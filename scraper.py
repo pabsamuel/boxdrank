@@ -19,7 +19,7 @@ HEADERS = {
 
 # --- In-memory cache: username -> (data_dict, timestamp) ---
 _cache: Dict[str, tuple] = {}
-_CACHE_TTL = 60 * 60  # 60 minutes in seconds
+_CACHE_TTL = 5 * 60  # 5 minutes
 _MAX_CACHE_SIZE = 10000  # Prevent unbounded memory growth
 
 # --- Rate limiting ---
