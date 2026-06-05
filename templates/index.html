@@ -565,14 +565,19 @@
     /* NAV */
     function showView(v) {
         document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+        document.getElementById('navLinks').classList.remove('open');
         if (v==='home') {
             document.getElementById('homeView').style.display='';
+            document.getElementById('resultSection').style.display='none';
             document.getElementById('resultSection').classList.remove('active');
+            document.getElementById('lbView').style.display='none';
             document.getElementById('lbView').classList.remove('active');
             document.querySelector('.nav-link:first-child').classList.add('active');
         } else {
             document.getElementById('homeView').style.display='none';
+            document.getElementById('resultSection').style.display='none';
             document.getElementById('resultSection').classList.remove('active');
+            document.getElementById('lbView').style.display='block';
             document.getElementById('lbView').classList.add('active');
             document.querySelector('.lb-nav').classList.add('active');
             loadLB();
