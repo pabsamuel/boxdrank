@@ -107,7 +107,12 @@ def rate_limited(e):
 # ---------------------------------------------------------------------------
 @app.route("/")
 def index():
-    response = make_response(render_template("index.html"))
+    """Serve raw HTML to avoid Jinja2 conflicts with {{ }} in JavaScript."""
+    html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates", "index.html")
+    with open(html_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    response = make_response(content)
+    response.headers["Content-Type"] = "text/html"
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
