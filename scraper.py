@@ -19,12 +19,12 @@ HEADERS = {
 
 # --- In-memory cache: username -> (data_dict, timestamp) ---
 _cache: Dict[str, tuple] = {}
-_CACHE_TTL = 5 * 60  # 5 minutes
+_CACHE_TTL = 30 * 60  # 30 minutes
 _MAX_CACHE_SIZE = 10000  # Prevent unbounded memory growth
 
 # --- Rate limiting ---
 _last_request_time: float = 0.0
-_MIN_REQUEST_INTERVAL = 1.5  # seconds between outgoing requests
+_MIN_REQUEST_INTERVAL = 0.5  # seconds between outgoing requests
 _rate_lock = threading.Lock()
 
 # --- Retry settings ---
