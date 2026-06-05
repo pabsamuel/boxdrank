@@ -204,6 +204,7 @@ def api_leaderboard():
     limit = min(_safe_int(request.args.get("limit"), 50), 100)
     offset = max(_safe_int(request.args.get("offset"), 0), 0)
     tier_filter = request.args.get("tier", None)
+    country_filter = request.args.get("country", None)
 
     # Validate tier filter against known tiers
     valid_tiers = {
@@ -213,7 +214,7 @@ def api_leaderboard():
     if tier_filter and tier_filter not in valid_tiers:
         tier_filter = None
 
-    entries = leaderboard.get_leaderboard(limit=limit, offset=offset, tier_filter=tier_filter)
+    entries = leaderboard.get_leaderboard_by_country(country_filter, limit, offset) if country_filter else leaderboard.get_leaderboard(limit=limit, offset=offset, tier_filter=tier_filter)
     stats = leaderboard.get_stats()
 
     return jsonify({
@@ -281,6 +282,20 @@ def api_connect_x():
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
+@app.route("/api/country", methods=["POST"])
+def api_set_country():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Missing JSON body"}), 400
+    username = data.get("username", "").strip().lower()
+    country = data.get("country", "").strip()
+    if not username or not country:
+        return jsonify({"error": "Both 'username' and 'country' are required"}), 400
+    leaderboard.update_country(username, country)
+    log.info("Country set: %s -> %s", username, country)
+    return jsonify({"ok": True, "username": username, "country": country})
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     debug = os.environ.get("FLASK_DEBUG", "false").lower() == "true"

@@ -34,12 +34,17 @@ def init_db() -> None:
                     this_year_count INTEGER DEFAULT 0,
                     x_handle        TEXT DEFAULT NULL,
                     avatar_url      TEXT DEFAULT NULL,
+                    country         TEXT DEFAULT NULL,
                     created_at      TEXT NOT NULL DEFAULT '',
                     last_updated    TEXT NOT NULL
                 )
             """)
             try:
                 conn.execute("ALTER TABLE rankings ADD COLUMN avatar_url TEXT DEFAULT NULL")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                conn.execute("ALTER TABLE rankings ADD COLUMN country TEXT DEFAULT NULL")
             except sqlite3.OperationalError:
                 pass
             conn.execute("CREATE INDEX IF NOT EXISTS idx_rankings_score ON rankings (score DESC)")
@@ -120,6 +125,25 @@ def search_leaderboard(query: str) -> List[Dict]:
         rows = conn.execute("""SELECT *, (SELECT COUNT(*) + 1 FROM rankings AS r2 WHERE r2.score > rankings.score) AS position
             FROM rankings WHERE username LIKE ? ORDER BY score DESC LIMIT 25""",
             (f"%{query.lower()}%",)).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        conn.close()
+def update_country(username: str, country: str) -> None:
+    with _db_lock:
+        conn = _get_connection()
+        try:
+            conn.execute("UPDATE rankings SET country = ? WHERE username = ?",
+                         (country, username.lower()))
+            conn.commit()
+        finally:
+            conn.close()
+
+def get_leaderboard_by_country(country: str, limit: int = 100, offset: int = 0) -> List[Dict]:
+    conn = _get_connection()
+    try:
+        rows = conn.execute('''SELECT *, ROW_NUMBER() OVER (ORDER BY score DESC) AS position
+            FROM rankings WHERE country = ? ORDER BY score DESC LIMIT ? OFFSET ?''',
+            (country, limit, offset)).fetchall()
         return [dict(row) for row in rows]
     finally:
         conn.close()
