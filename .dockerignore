@@ -1,0 +1,11 @@
+.gitignore
+__pycache__
+*.pyc
+*.db
+.env
+.env.example
+README.md
+LICENSE
+test_profiles.py
+.vscode
+.idea
