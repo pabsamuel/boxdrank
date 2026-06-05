@@ -149,10 +149,15 @@ def api_rank(username):
     next_rank = get_next_rank_info(rank_info)
     rank_title = get_rank_title(rank_info.get("score", 0))
 
-    # Include x_handle if stored
     user_entry = leaderboard.get_user_position(clean)
-    if user_entry and user_entry.get("x_handle"):
-        stats["x_handle"] = user_entry["x_handle"]
+    lb_position = None
+    total_users = 0
+    if user_entry:
+        if user_entry.get("x_handle"):
+            stats["x_handle"] = user_entry["x_handle"]
+        if user_entry.get("position"):
+            lb_position = user_entry["position"]
+            total_users = leaderboard.get_stats().get("total_users", 0)
 
     return jsonify({
         "username": clean,
@@ -160,6 +165,8 @@ def api_rank(username):
         "rank": rank_info,
         "next_rank": next_rank,
         "rank_title": rank_title,
+        "lb_position": lb_position,
+        "total_users": total_users,
     })
 
 
