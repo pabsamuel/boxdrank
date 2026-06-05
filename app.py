@@ -7,7 +7,7 @@ import io
 import time
 import logging
 from collections import defaultdict
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, make_response
 
 from scraper import get_user_stats
 from rank_engine import calculate_rank, RANK_COLORS, get_next_rank_info, get_rank_title
@@ -107,7 +107,11 @@ def rate_limited(e):
 # ---------------------------------------------------------------------------
 @app.route("/")
 def index():
-    return render_template("index.html")
+    response = make_response(render_template("index.html"))
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 @app.route("/health")
