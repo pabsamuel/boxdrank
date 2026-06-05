@@ -668,6 +668,8 @@
     /* RESULT */
     function showResult(d) {
         const {stats, rank} = d, t = getT(rank.tier), nr = d.next_rank||null, title = d.rank_title||'';
+        const lbPos = d.lb_position, totalU = d.total_users || 0;
+        const lbPosText = lbPos ? ` · #${lbPos.toLocaleString()} of ${totalU.toLocaleString()} on Leaderboard` : '';
         document.getElementById('homeView').style.display='none';
         let progHTML='';
         if (nr&&nr.next_tier) {
@@ -682,12 +684,12 @@
             <div class="card-header">
                 <div class="user-group">
                     ${stats.avatar_url?`<img src="${esc(stats.avatar_url)}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid ${t.c}30;">`:`<div class="user-avatar">${esc(curUser).charAt(0).toUpperCase()}</div>`}
-                    <div><h3>@${esc(curUser)}</h3><div class="sub">Connected via Letterboxd</div></div>
+                    <div><h3>@${esc(curUser)}</h3><div class="sub">Connected via Letterboxd${lbPosText}</div></div>
                 </div>
                 <div class="rank-badge" style="background:${t.c}15;color:${t.c};">${rank.full_rank}</div>
             </div>
             <div class="card-body">
-                <div class="tier-display"><div class="emblem">${emblemSVG(rank.tier,90)}</div><div class="tier-name" style="color:${t.c};">${rank.tier.toUpperCase()}</div><div class="tier-div">${rank.division}</div><div class="tier-lp" style="color:${t.c};">${rank.lp} LP</div><div class="tier-score">Score: ${rank.score}</div>${title?`<div class="tier-title" style="background:${t.c}12;color:${t.c};">${title}</div>`:''}</div>
+                <div class="tier-display"><div class="emblem">${emblemSVG(rank.tier,90)}</div><div class="tier-name" style="color:${t.c};">${rank.tier.toUpperCase()}</div><div class="tier-div">${rank.division}</div><div class="tier-lp" style="color:${t.c};">${rank.lp} LP</div><div class="tier-score">Score: ${rank.score}</div>${title?`<div class="tier-title" style="background:${t.c}12;color:${t.c};">${title}</div>`:''}${lbPos?`<div style="margin-top:6px;font-size:.72rem;color:var(--text-muted);">🏆 #${lbPos.toLocaleString()} on Leaderboard</div>`:''}</div>
                 <div class="stats-grid">
                     <div class="stat-box"><div class="label">Films</div><div class="value">${(stats.films_watched||0).toLocaleString()}</div></div>
                     <div class="stat-box"><div class="label">Avg Rating</div><div class="value">${stats.avg_rating?'★ '+stats.avg_rating.toFixed(1):'n/a'}</div></div>
