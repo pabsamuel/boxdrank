@@ -135,6 +135,33 @@ def api_rank(username):
     if err:
         return err
 
+    # FAST PATH: Check DB if cached is requested (e.g. clicking from leaderboard)
+    if request.args.get("cached") == "true":
+        user_entry = leaderboard.get_user_position(clean)
+        if user_entry:
+            stats_mock = {
+                "films_watched": user_entry.get("films_watched", 0),
+                "avg_rating": user_entry.get("avg_rating", 0.0),
+                "reviews_count": user_entry.get("reviews_count", 0),
+                "this_year_count": user_entry.get("this_year_count", 0),
+                "lists_count": user_entry.get("lists_count", 0),
+                "followers": user_entry.get("followers", 0),
+                "x_handle": user_entry.get("x_handle"),
+                "avatar_url": user_entry.get("avatar_url"),
+                "country": user_entry.get("country")
+            }
+            rank_info_mock = calculate_rank(stats_mock)
+            return jsonify({
+                "username": clean,
+                "stats": stats_mock,
+                "rank": rank_info_mock,
+                "next_rank": get_next_rank_info(rank_info_mock),
+                "rank_title": get_rank_title(rank_info_mock.get("score", 0)),
+                "lb_position": user_entry.get("position"),
+                "total_users": leaderboard.get_stats().get("total_users", 0),
+                "cached": True
+            })
+
     log.info("Rank lookup: %s", clean)
     stats = get_user_stats(clean)
 

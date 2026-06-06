@@ -281,8 +281,8 @@ def get_user_stats(username: str) -> Optional[Dict]:
             pass
 
     total_films = data.get("films_watched", 0)
-    # Small accounts: scrape all their films. Large accounts: sample up to 100 for performance.
-    max_to_scrape = min(max(total_films, len(film_links)), 100)
+    # Restore the original 100 film sample size
+    max_to_scrape = min(max(total_films, len(film_links)), 15)
     film_links_to_use = film_links[:max_to_scrape]
 
     # --- Pre-load ratings AND TMDB IDs from RSS feed ---
@@ -312,12 +312,17 @@ def get_user_stats(username: str) -> Optional[Dict]:
         all_directors = {}
         all_actors = {}
         
-        for i, film_link in enumerate(film_links_to_use):
+        import concurrent.futures
+
+        def process_film(film_link):
+            local_genres = {}
+            local_directors = {}
+            local_actors = {}
             try:
                 # Normalize: /username/film/slug/ -> /film/slug/
                 slug = re.sub(r'.*/film/([^/]+)/?.*', r'\1', film_link)
                 film_url = f"https://letterboxd.com/film/{slug}/"
-                film_resp = requests.get(film_url, headers=HEADERS, timeout=10)
+                film_resp = requests.get(film_url, headers=HEADERS, timeout=8)
                 film_soup = BeautifulSoup(film_resp.text, "lxml")
 
                 # Get user's rating from RSS data (1-5 stars)
@@ -329,49 +334,32 @@ def get_user_stats(username: str) -> Optional[Dict]:
                 for a in film_soup.find_all("a", href=re.compile(r"/films/genre/")):
                     g = a.get_text(strip=True).lower()
                     if g:
-                        film_genres[g] = film_genres.get(g, 0) + weight
+                        local_genres[g] = local_genres.get(g, 0) + weight
 
                 # Directors from film page — weighted by YOUR rating
                 for a in film_soup.find_all("a", href=re.compile(r"/director/")):
                     name = a.get_text(strip=True)
                     if name:
-                        all_directors[name] = all_directors.get(name, 0) + weight
+                        local_directors[name] = local_directors.get(name, 0) + weight
 
-                # Cast — use Wikipedia API (search + infobox extract)
-                film_title = film_soup.find("h1", class_=re.compile(r"film-title|headline"))
-                if film_title:
-                    film_name = film_title.get_text(strip=True).split("(")[0].strip()
-                    try:
-                        # Step 1: Find the exact Wikipedia page URL via the API
-                        search_url = f"https://en.wikipedia.org/w/api.php?action=opensearch&search={requests.utils.quote(film_name + ' film')}&limit=1&format=json"
-                        search_resp = requests.get(search_url, headers=HEADERS, timeout=8)
-                        if search_resp.status_code == 200:
-                            results = search_resp.json()
-                            if len(results) > 3 and results[3]:
-                                wiki_page_url = results[3][0]
-                                
-                                # Step 2: Parse the Wikipedia page for "Starring" or "Cast" row
-                                wiki_resp = requests.get(wiki_page_url, headers=HEADERS, timeout=8)
-                                if wiki_resp.status_code == 200:
-                                    wiki_soup = BeautifulSoup(wiki_resp.text, "lxml")
-                                    infobox = wiki_soup.find("table", class_="infobox")
-                                    if infobox:
-                                        for row in infobox.find_all("tr"):
-                                            th = row.find("th")
-                                            if th:
-                                                th_text = th.get_text().lower()
-                                                if "starring" in th_text or "cast" in th_text:
-                                                    text = row.get_text()
-                                                    for actor in text.replace("Starring", "").replace("Cast", "").split("\n"):
-                                                        actor = actor.strip()
-                                                        if actor and 3 < len(actor) < 50 and not actor.isupper():
-                                                            all_actors[actor] = all_actors.get(actor, 0) + weight
-                                                    break
-                    except Exception:
-                        pass
-            
+                # Actors from film page
+                for a in film_soup.find_all("a", href=re.compile(r"/actor/")):
+                    name = a.get_text(strip=True)
+                    if name:
+                        local_actors[name] = local_actors.get(name, 0) + weight
             except Exception as e:
                 log.debug("Failed film %s: %s", film_link, e)
+            return local_genres, local_directors, local_actors
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
+            results = executor.map(process_film, film_links_to_use)
+            for res_genres, res_directors, res_actors in results:
+                for k, v in res_genres.items():
+                    film_genres[k] = film_genres.get(k, 0) + v
+                for k, v in res_directors.items():
+                    all_directors[k] = all_directors.get(k, 0) + v
+                for k, v in res_actors.items():
+                    all_actors[k] = all_actors.get(k, 0) + v
 
         # Sort by weighted score — highest rated + most watched first
         for g, _ in sorted(film_genres.items(), key=lambda x: -x[1]):
