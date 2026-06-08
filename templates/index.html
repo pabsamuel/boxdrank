@@ -464,6 +464,7 @@ const COUNTRIES = [["AF","Afghanistan"],["AL","Albania"],["DZ","Algeria"],["AD",
 
 function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'):'';}
 function countryFlag(code){ if(!code||code.length!==2) return ''; const A=0x1F1E6; try{ return String.fromCodePoint(...[...code.toUpperCase()].map(c=>A+c.charCodeAt(0)-65)); }catch(e){ return ''; } }
+function countryName(code){ const f=COUNTRIES.find(c=>c[0]===code); return f?f[1]:code; }
 function fmt(n){ const x=Number(n); return isNaN(x)?'0':x.toLocaleString('en-US'); }
 function tierRGB(t){ return TIER_RGB[t]||TIER_RGB.Iron; }
 function mix(a,b,f){ return [Math.round(a[0]+(b[0]-a[0])*f),Math.round(a[1]+(b[1]-a[1])*f),Math.round(a[2]+(b[2]-a[2])*f)]; }
@@ -515,7 +516,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // country selects
   const opts = '<option value="">All countries</option>' + COUNTRIES.map(([c,n])=>`<option value="${c}">${esc(n)} ${countryFlag(c)}</option>`).join('');
   document.getElementById('lbCountry').innerHTML = opts;
-  document.getElementById('heroCountry').innerHTML = '<option value="">Country — optional (show your flag)</option>' + COUNTRIES.map(([c,n])=>`<option value="${c}">${esc(n)} ${countryFlag(c)}</option>`).join('');
+  document.getElementById('heroCountry').innerHTML = '<option value="">Select your country…</option>' + COUNTRIES.map(([c,n])=>`<option value="${c}">${esc(n)} ${countryFlag(c)}</option>`).join('');
   // tier filter chips
   document.getElementById('lbChips').innerHTML =
     `<button class="fchip active" onclick="filterTier(null,this)">All tiers</button>` +
@@ -540,6 +541,7 @@ async function startLookup(){
   if(!u){ showErr('Enter your Letterboxd username.'); return; }
   if(!/^[a-zA-Z0-9_-]+$/.test(u)){ showErr('Letters, numbers, underscores and hyphens only.'); return; }
   const country = document.getElementById('heroCountry').value || '';
+  if(!country){ showErr('Please select your country to join the rankings.'); document.getElementById('heroCountry').focus(); return; }
   const btn=document.getElementById('findBtn'); btn.disabled=true;
   showScrimLoading(u);
   try{
@@ -738,7 +740,11 @@ async function fetchLB(q){
     lbOffset=entries.length;
     lbHasMore = !q && entries.length>=25;
     document.getElementById('lbMore').style.display = lbHasMore?'block':'none';
-    document.getElementById('lbFootText').innerHTML = `Showing ${entries.length} of <b style="color:var(--ink-2)">${fmt(totalUsers)}</b> ranked profiles`;
+    let foot;
+    if(lbCountry){ foot = `Showing top <b style="color:var(--ink-2)">${entries.length}</b> in ${countryFlag(lbCountry)} ${esc(countryName(lbCountry))}`; }
+    else if(lbTier){ foot = `Showing top <b style="color:var(--ink-2)">${entries.length}</b> ${esc(lbTier)} players`; }
+    else { foot = `Showing ${entries.length} of <b style="color:var(--ink-2)">${fmt(totalUsers)}</b> ranked profiles`; }
+    document.getElementById('lbFootText').innerHTML = foot;
   }catch(e){ document.getElementById('lbTable').innerHTML='<div class="lb-empty">Could not load leaderboard.</div>'; }
 }
 
