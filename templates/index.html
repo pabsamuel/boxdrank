@@ -273,6 +273,14 @@
   .lb-foot { display:flex; align-items:center; justify-content:space-between; margin-top:18px; font-size:13px; color:var(--ink-3); }
   .lb-foot a { color:rgb(var(--accent)); font-weight:600; cursor:pointer; }
   .lb-empty { text-align:center; padding:50px 20px; color:var(--ink-4); }
+  .lb-you { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:18px; padding:13px 18px; border:1px solid rgba(var(--accent),0.4); background:linear-gradient(180deg, rgba(var(--accent),0.13), rgba(var(--accent),0.04)); border-radius:12px; }
+  .lb-you .ly-left { display:flex; align-items:center; gap:12px; min-width:0; }
+  .lb-you .ly-dot { width:10px; height:10px; border-radius:50%; background:rgb(var(--accent)); box-shadow:0 0 12px -1px rgb(var(--accent)); flex-shrink:0; }
+  .lb-you .ly-text { font-size:14px; color:var(--ink); font-weight:500; }
+  .lb-you .ly-text b { color:rgb(var(--accent)); font-weight:700; }
+  .lb-you .ly-sub { font-size:12px; color:var(--ink-3); margin-top:2px; }
+  .lb-you .ly-btn { font-size:12.5px; font-weight:600; color:rgb(var(--accent)); border:1px solid rgba(var(--accent),0.45); background:rgba(var(--accent),0.1); padding:9px 15px; border-radius:9px; cursor:pointer; white-space:nowrap; transition:background .14s; }
+  .lb-you .ly-btn:hover { background:rgba(var(--accent),0.2); }
 
   footer.site { border-top:1px solid var(--line); padding:46px 0 60px; margin-top:20px; }
   .foot-inner { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:18px; }
@@ -413,6 +421,7 @@
   <div class="wrap">
     <div class="section-kicker"><span class="num">—</span><span class="dash"></span> Global leaderboard</div>
     <div class="result-head" style="margin-bottom:24px"><div><h2>The highest taste on Letterboxd</h2></div></div>
+    <div class="lb-you" id="lbYou" style="display:none"></div>
     <div class="lb-controls">
       <div class="chips" id="lbChips"></div>
       <div class="lb-right">
@@ -524,6 +533,7 @@ function goHome(){ window.scrollTo({top:0,behavior:'smooth'}); }
 
 /* ===================== init ===================== */
 document.addEventListener('DOMContentLoaded', ()=>{
+  try{ myUsername = localStorage.getItem('boxdrank_user') || null; }catch(e){}
   document.getElementById('heroEmblem').innerHTML = emblemSVG('Diamond',120);
   // tier ladder
   const cur='Diamond';
@@ -566,7 +576,7 @@ async function startLookup(){
     const r = await fetch(`/api/rank/${encodeURIComponent(u)}`);
     const d = await r.json();
     if(!r.ok) throw new Error(d.error || 'Could not fetch that profile.');
-    curData=d; curUser=u;
+    curData=d; curUser=u; setMyUsername(u);
     if(country){
       try{ await fetch('/api/country',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,country})}); }catch(e){}
       if(d.stats) d.stats.country=country;
@@ -574,6 +584,7 @@ async function startLookup(){
       try{ const r2=await fetch(`/api/rank/${encodeURIComponent(u)}?cached=true`); if(r2.ok){ const d2=await r2.json(); if(!d2.error) curData=d2; } }catch(e){}
     }
     fromLB=false;   // this is the visitor's own lookup -> show the rank reveal
+    fetchLB();      // refresh the board so the user's updated row + "you are here" banner appear
     playReveal(curData);
   }catch(e){
     hideScrim();
@@ -795,6 +806,7 @@ async function fetchLB(q){
     else if(lbTier){ foot = `Showing top <b style="color:var(--ink-2)">${entries.length}</b> ${esc(lbTier)} players`; }
     else { foot = `Showing ${entries.length} of <b style="color:var(--ink-2)">${fmt(totalUsers)}</b> ranked profiles`; }
     document.getElementById('lbFootText').innerHTML = foot;
+    updateLbYou();
   }catch(e){ document.getElementById('lbTable').innerHTML='<div class="lb-empty">Could not load leaderboard.</div>'; }
 }
 
@@ -809,9 +821,40 @@ async function loadMoreLB(){
   }catch(e){}
 }
 
+function setMyUsername(u){ myUsername=u; try{ localStorage.setItem('boxdrank_user', u); }catch(e){} }
+async function updateLbYou(){
+  const el=document.getElementById('lbYou');
+  if(!myUsername){ el.style.display='none'; return; }
+  try{
+    const r=await fetch(`/api/rank/${encodeURIComponent(myUsername)}?cached=true`);
+    if(!r.ok){ el.style.display='none'; return; }
+    const d=await r.json(); if(d.error){ el.style.display='none'; return; }
+    const rk=d.rank||{}, c=tierRGB(rk.tier), pos=d.lb_position, total=d.total_users||totalUsers;
+    const ccode=(d.stats&&d.stats.country)||d.country, cpos=d.country_position;
+    el.style.setProperty('--accent', c.join(','));
+    const ctry=(cpos&&ccode)?` · ${countryFlag(ccode)} #${fmt(cpos)} in ${esc(countryName(ccode))}`:'';
+    el.innerHTML = `<div class="ly-left"><span class="ly-dot"></span><div><div class="ly-text">You're <b>#${fmt(pos||'?')}</b>${total?` of ${fmt(total)}`:''} globally — @${esc(myUsername)}</div><div class="ly-sub">${esc(rk.tier||'')} ${esc(rk.division||'')} · ${rk.score||0} pts${ctry}</div></div></div><button class="ly-btn" onclick="refreshAndViewMe()">↻ Refresh &amp; view</button>`;
+    el.style.display='flex';
+  }catch(e){ el.style.display='none'; }
+}
+async function refreshAndViewMe(){
+  if(!myUsername) return;
+  toast('Refreshing your profile…');
+  try{
+    const r=await fetch(`/api/rank/${encodeURIComponent(myUsername)}?refresh=true`); const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Refresh failed');
+    viewData=d; viewName=myUsername; curData=d; curUser=myUsername;
+    document.getElementById('pmodalContent').innerHTML = buildResultHTML(d, myUsername, true);
+    openProfileModal();
+    setTimeout(()=>{ document.querySelectorAll('#pmodalContent .pbar>i,#pmodalContent .track>i').forEach(b=>{ if(b.dataset.w) b.style.width=b.dataset.w+'%'; }); }, 200);
+    fetchLB(); loadStats();
+    toast('Updated!');
+  }catch(e){ toast(e.message||'Refresh failed'); }
+}
+
 function lbRowHTML(x,i){
   const t=x.tier||'Iron', tl=t.toLowerCase(), pos=x.position||(i+1);
-  const isYou = curUser && x.username && x.username.toLowerCase()===curUser.toLowerCase();
+  const isYou = myUsername && x.username && x.username.toLowerCase()===myUsername.toLowerCase();
   const flag = x.country?`<span class="flag">${countryFlag(x.country)}</span>`:'';
   const youTag = isYou?'<span class="you-flag">You</span>':'';
   const av = x.avatar_url?`<img class="lb-av" src="${esc(x.avatar_url)}" alt="" onerror="this.outerHTML='<div class=\\'lb-av\\'>${esc((x.username||'?').charAt(0).toUpperCase())}</div>'">`:`<div class="lb-av">${esc((x.username||'?').charAt(0).toUpperCase())}</div>`;
@@ -833,7 +876,7 @@ function renderLB(entries, replace){
   }
 }
 
-let viewData=null, viewName=null;
+let viewData=null, viewName=null, myUsername=null;
 async function viewUser(u){
   if(!u) return;
   try{
