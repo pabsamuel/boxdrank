@@ -128,7 +128,7 @@ def health():
 
 # How long before a user's cached rank is re-scraped on lookup. Keeps ranks
 # "live" as users log films, without hammering Letterboxd. Tunable via env.
-_REFRESH_WINDOW = timedelta(minutes=int(os.environ.get("BOXDRANK_REFRESH_MIN", "30")))
+_REFRESH_WINDOW = timedelta(minutes=int(os.environ.get("BOXDRANK_REFRESH_MIN", "10")))
 
 
 def _is_stale(user_entry) -> bool:
@@ -186,8 +186,9 @@ def api_rank(username):
     # and update as users log new films) — or unless ?cached=true is passed,
     # which is used for fast leaderboard browsing.
     force_cached = request.args.get("cached") == "true"
+    force_refresh = request.args.get("refresh") == "true"
     user_entry = leaderboard.get_user_position(clean)
-    if user_entry and (force_cached or not _is_stale(user_entry)):
+    if user_entry and not force_refresh and (force_cached or not _is_stale(user_entry)):
         stats_mock = _stats_from_db_entry(user_entry)
         rank_info_mock = calculate_rank(stats_mock)
         cpos = leaderboard.get_user_country_position(clean)
@@ -205,8 +206,8 @@ def api_rank(username):
             "cached": True
         })
 
-    log.info("Rank lookup: %s", clean)
-    stats = get_user_stats(clean)
+    log.info("Rank lookup: %s%s", clean, " (forced refresh)" if force_refresh else "")
+    stats = get_user_stats(clean, force=force_refresh)
 
     if stats is None:
         return jsonify({

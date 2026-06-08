@@ -19,7 +19,7 @@ HEADERS = {
 
 # --- In-memory cache: username -> (data_dict, timestamp) ---
 _cache: Dict[str, tuple] = {}
-_CACHE_TTL = 30 * 60  # 30 minutes
+_CACHE_TTL = 10 * 60  # 10 minutes
 _MAX_CACHE_SIZE = 10000  # Prevent unbounded memory growth
 
 # --- Rate limiting ---
@@ -33,23 +33,24 @@ _RETRY_DELAY = 2  # seconds
 
 
 
-def get_user_stats(username: str) -> Optional[Dict]:
+def get_user_stats(username: str, force: bool = False) -> Optional[Dict]:
     """
     Scrape a public Letterboxd profile for film stats.
     Returns dict with: films_watched, avg_rating, reviews_count, lists_count, followers,
                        fav_directors, fav_genres, this_year_count, rated_count
 
     Features:
-        - In-memory cache (30-minute TTL)
-        - Rate limiting (min 1.5 s between requests)
+        - In-memory cache (10-minute TTL; pass force=True to bypass it)
+        - Rate limiting (min 0.5 s between requests)
         - Retry on failure (up to 2 retries with 2 s delay)
     """
-    # --- Check cache first ---
-    cached = _cache.get(username)
-    if cached is not None:
-        data, ts = cached
-        if time.time() - ts < _CACHE_TTL:
-            return data
+    # --- Check cache first (skipped on a forced refresh) ---
+    if not force:
+        cached = _cache.get(username)
+        if cached is not None:
+            data, ts = cached
+            if time.time() - ts < _CACHE_TTL:
+                return data
 
     url = f"https://letterboxd.com/{username}/"
 

@@ -710,6 +710,7 @@ function buildResultHTML(d, uname, isProfile){
             <button class="share-btn ghost" onclick="downloadCard()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Card</button>
           </div>
           <div class="extras">
+            <span class="mini" onclick="refreshMyRank()">↻ Refresh stats</span>
             ${s.x_handle?`<a class="mini" href="https://x.com/${esc(s.x_handle)}" target="_blank" rel="noopener">𝕏 @${esc(s.x_handle)}</a>`:`<span class="mini" onclick="toggleCX()">𝕏 Connect your X</span>`}
             <span class="mini" onclick="searchAnother()">Search another</span>
           </div>
@@ -754,6 +755,19 @@ function downloadCard(){ return downloadCardFor(curUser); }
 function toggleCX(){ const f=document.getElementById('cxForm'); f.classList.toggle('show'); if(f.classList.contains('show')) document.getElementById('cxInput').focus(); }
 async function saveCX(){ const h=document.getElementById('cxInput').value.trim().replace(/^@/,''); if(!h||!curUser) return; if(!/^[a-zA-Z0-9_]+$/.test(h)||h.length>15){ toast('Invalid X handle'); return; } try{ const r=await fetch('/api/connect-x',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:curUser,x_handle:h})}); if(!r.ok) throw new Error(); if(curData.stats) curData.stats.x_handle=h; toast('X linked!'); renderResult(curData); setTimeout(()=>document.querySelectorAll('#resultContent .pbar>i,#resultContent .track>i').forEach(b=>{if(b.dataset.w)b.style.width=b.dataset.w+'%';}),100); }catch(e){ toast('Failed to link'); } }
 function searchAnother(){ goHome(); setTimeout(()=>document.getElementById('usernameInput').focus(),400); }
+async function refreshMyRank(){
+  if(!curUser) return;
+  toast('Refreshing from Letterboxd…');
+  try{
+    const r=await fetch(`/api/rank/${encodeURIComponent(curUser)}?refresh=true`); const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Refresh failed');
+    curData=d;
+    renderResult(d);
+    setTimeout(()=>document.querySelectorAll('#resultContent .pbar>i,#resultContent .track>i').forEach(b=>{if(b.dataset.w)b.style.width=b.dataset.w+'%';}),100);
+    loadStats(); fetchLB();
+    toast('Updated!');
+  }catch(e){ toast(e.message||'Refresh failed'); }
+}
 
 /* ===================== leaderboard ===================== */
 async function loadLeaderboard(){ lbOffset=0; await fetchLB(); }
