@@ -135,32 +135,43 @@ def api_rank(username):
     if err:
         return err
 
-    # FAST PATH: Check DB if cached is requested (e.g. clicking from leaderboard)
-    if request.args.get("cached") == "true":
-        user_entry = leaderboard.get_user_position(clean)
-        if user_entry:
-            stats_mock = {
-                "films_watched": user_entry.get("films_watched", 0),
-                "avg_rating": user_entry.get("avg_rating", 0.0),
-                "reviews_count": user_entry.get("reviews_count", 0),
-                "this_year_count": user_entry.get("this_year_count", 0),
-                "lists_count": user_entry.get("lists_count", 0),
-                "followers": user_entry.get("followers", 0),
-                "x_handle": user_entry.get("x_handle"),
-                "avatar_url": user_entry.get("avatar_url"),
-                "country": user_entry.get("country")
-            }
-            rank_info_mock = calculate_rank(stats_mock)
-            return jsonify({
-                "username": clean,
-                "stats": stats_mock,
-                "rank": rank_info_mock,
-                "next_rank": get_next_rank_info(rank_info_mock),
-                "rank_title": get_rank_title(rank_info_mock.get("score", 0)),
-                "lb_position": user_entry.get("position"),
-                "total_users": leaderboard.get_stats().get("total_users", 0),
-                "cached": True
-            })
+    # FAST PATH: If user already exists in DB, return cached result immediately
+    # (prevents duplicate scrapes — same account only connects once)
+    user_entry = leaderboard.get_user_position(clean)
+    if user_entry:
+        stats_mock = {
+            "films_watched": user_entry.get("films_watched", 0),
+            "avg_rating": user_entry.get("avg_rating", 0.0),
+            "reviews_count": user_entry.get("reviews_count", 0),
+            "this_year_count": user_entry.get("this_year_count", 0),
+            "lists_count": user_entry.get("lists_count", 0),
+            "followers": user_entry.get("followers", 0),
+            "x_handle": user_entry.get("x_handle"),
+            "avatar_url": user_entry.get("avatar_url"),
+            "country": user_entry.get("country")
+        }
+        taste_profile_json = user_entry.get("taste_profile")
+        if taste_profile_json:
+            import json
+            try:
+                tp = json.loads(taste_profile_json)
+                stats_mock["fav_genres"] = tp.get("fav_genres", [])
+                stats_mock["fav_directors"] = tp.get("fav_directors", [])
+                stats_mock["top_actors"] = tp.get("top_actors", [])
+                stats_mock["reviews"] = tp.get("reviews", [])
+            except Exception:
+                pass
+        rank_info_mock = calculate_rank(stats_mock)
+        return jsonify({
+            "username": clean,
+            "stats": stats_mock,
+            "rank": rank_info_mock,
+            "next_rank": get_next_rank_info(rank_info_mock),
+            "rank_title": get_rank_title(rank_info_mock.get("score", 0)),
+            "lb_position": user_entry.get("position"),
+            "total_users": leaderboard.get_stats().get("total_users", 0),
+            "cached": True
+        })
 
     log.info("Rank lookup: %s", clean)
     stats = get_user_stats(clean)
@@ -249,11 +260,15 @@ def api_leaderboard():
     entries = leaderboard.get_leaderboard_by_country(country_filter, limit, offset) if country_filter else leaderboard.get_leaderboard(limit=limit, offset=offset, tier_filter=tier_filter)
     stats = leaderboard.get_stats()
 
-    return jsonify({
+    resp = make_response(jsonify({
         "leaderboard": entries,
         "user_count": stats["total_users"],
         "rank_distribution": stats["rank_distribution"],
-    })
+    }))
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 
 @app.route("/api/leaderboard/search")
@@ -273,7 +288,11 @@ def api_leaderboard_search():
 def api_leaderboard_stats():
     """Return aggregate leaderboard statistics."""
     stats = leaderboard.get_stats()
-    return jsonify(stats)
+    resp = make_response(jsonify(stats))
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 
 @app.route("/api/connect-x", methods=["POST"])

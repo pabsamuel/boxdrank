@@ -282,7 +282,7 @@ def get_user_stats(username: str) -> Optional[Dict]:
 
     total_films = data.get("films_watched", 0)
     # Restore the original 100 film sample size
-    max_to_scrape = min(max(total_films, len(film_links)), 15)
+    max_to_scrape = min(max(total_films, len(film_links)), 50)
     film_links_to_use = film_links[:max_to_scrape]
 
     # --- Pre-load ratings AND TMDB IDs from RSS feed ---
@@ -386,7 +386,7 @@ def get_user_stats(username: str) -> Optional[Dict]:
         data["fav_films"] = film_links[:4]
 
     # --- Extract ALL reviews from RSS with user avatar info ---
-    data["reviews"] = []
+    data["reviews"] = []; data["_rss_review_count"] = 0
     try:
         rss_url = f"https://letterboxd.com/{username}/rss/"
         rss_resp = requests.get(rss_url, headers=HEADERS, timeout=10)
@@ -417,10 +417,13 @@ def get_user_stats(username: str) -> Optional[Dict]:
             # Sort: liked first, then by rating, then by length
             data["reviews"].sort(key=lambda r: (-r["liked"], -r["rating"], -r["length"]))
             # Only keep top 5
-            data["reviews"] = data["reviews"][:5]
+            data["_rss_review_count"] = len(data["reviews"]); data["reviews"] = data["reviews"][:5]
     except Exception:
         pass
 
+    # Use RSS-based review count if available
+    if data.get("_rss_review_count", 0) > 0:
+        data["reviews_count"] = data["_rss_review_count"]
     # --- If this_year is still 0, try from the year stats section ---
     if data["this_year_count"] == 0:
         year_section = soup.find("section", class_=re.compile(r"year"))

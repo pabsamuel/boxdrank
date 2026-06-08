@@ -4,6 +4,7 @@ Leaderboard Module - SQLite-based persistent leaderboard for BoxdRank.
 import sqlite3
 import threading
 import os
+import json
 from typing import Optional, Dict, List
 from datetime import datetime, timezone
 
@@ -47,6 +48,10 @@ def init_db() -> None:
                 conn.execute("ALTER TABLE rankings ADD COLUMN country TEXT DEFAULT NULL")
             except sqlite3.OperationalError:
                 pass
+            try:
+                conn.execute("ALTER TABLE rankings ADD COLUMN taste_profile TEXT DEFAULT NULL")
+            except sqlite3.OperationalError:
+                pass
             conn.execute("CREATE INDEX IF NOT EXISTS idx_rankings_score ON rankings (score DESC)")
             conn.commit()
         finally:
@@ -54,23 +59,47 @@ def init_db() -> None:
 
 def save_ranking(username: str, stats: Dict, rank_info: Dict) -> None:
     now = datetime.now(timezone.utc).isoformat()
+    # Serialize taste profile to JSON
+    taste_profile = json.dumps({
+        "fav_genres": stats.get("fav_genres", []),
+        "fav_directors": stats.get("fav_directors", []),
+        "top_actors": stats.get("top_actors", []),
+        "reviews": stats.get("reviews", [])
+    })
     with _db_lock:
         conn = _get_connection()
         try:
-            conn.execute(
-                """INSERT INTO rankings
-                    (username, score, tier, division, lp, films_watched, avg_rating, reviews_count, lists_count, followers, this_year_count, avatar_url, last_updated)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(username) DO UPDATE SET
-                    score=excluded.score, tier=excluded.tier, division=excluded.division, lp=excluded.lp,
-                    films_watched=excluded.films_watched, avg_rating=excluded.avg_rating, reviews_count=excluded.reviews_count,
-                    lists_count=excluded.lists_count, followers=excluded.followers, this_year_count=excluded.this_year_count,
-                    avatar_url=excluded.avatar_url, last_updated=excluded.last_updated""",
-                (username.lower(), rank_info.get("score",0), rank_info.get("tier","Iron"), rank_info.get("division","IV"),
-                 rank_info.get("lp",0), stats.get("films_watched",0), stats.get("avg_rating",0.0),
-                 stats.get("reviews_count",0), stats.get("lists_count",0), stats.get("followers",0),
-                 stats.get("this_year_count",0), stats.get("avatar_url",""), now),
-            )
+            # Check if user exists to preserve created_at
+            row = conn.execute("SELECT created_at, country, x_handle FROM rankings WHERE username = ?", (username.lower(),)).fetchone()
+            created_at = row["created_at"] if row and row["created_at"] else now
+            country = row["country"] if row and "country" in row.keys() else None
+            x_handle = row["x_handle"] if row and "x_handle" in row.keys() else None
+
+            conn.execute("""
+                INSERT OR REPLACE INTO rankings (
+                    username, score, tier, division, lp,
+                    films_watched, avg_rating, reviews_count, lists_count, followers,
+                    this_year_count, avatar_url, country, x_handle, taste_profile, created_at, last_updated
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                username.lower(),
+                rank_info.get("score", 0),
+                rank_info.get("tier", "Iron"),
+                rank_info.get("division", "IV"),
+                rank_info.get("lp", 0),
+                stats.get("films_watched", 0),
+                stats.get("avg_rating", 0.0),
+                stats.get("reviews_count", 0),
+                stats.get("lists_count", 0),
+                stats.get("followers", 0),
+                stats.get("this_year_count", 0),
+                stats.get("avatar_url", ""),
+                country,
+                x_handle,
+                taste_profile,
+                created_at,
+                now
+            ))
             conn.commit()
         finally:
             conn.close()
