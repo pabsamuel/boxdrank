@@ -5,6 +5,8 @@ __pycache__/
 *.pyo
 *.pyd
 *.db
+*.db-wal
+*.db-shm
 *.sqlite3
 .env
 venv/

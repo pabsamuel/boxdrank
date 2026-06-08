@@ -9,6 +9,7 @@ Cross-platform fonts: tries Windows fonts first, falls back to DejaVu/Liberation
 on Linux (DigitalOcean / Docker) so the card renders identically in production.
 """
 import io
+import os
 import math
 import logging
 from typing import Dict, Optional
@@ -22,7 +23,7 @@ log = logging.getLogger("boxdrank.image")
 # --------------------------------------------------------------------------- #
 WIDTH, HEIGHT = 1200, 630
 SS = 2  # supersample factor
-BRAND_URL = "boxdrank.app"   # <- change here when the domain is chosen
+BRAND_URL = os.environ.get("BOXDRANK_DOMAIN", "boxdrank.app")   # set BOXDRANK_DOMAIN to your real domain
 BRAND_GREEN = (0, 224, 84)
 
 TIER_COLORS = {

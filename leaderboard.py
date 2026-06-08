@@ -8,12 +8,20 @@ import json
 from typing import Optional, Dict, List
 from datetime import datetime, timezone
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "boxdrank.db")
+DB_PATH = os.environ.get("BOXDRANK_DB_PATH") or os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "boxdrank.db")
 _db_lock = threading.Lock()
 
 def _get_connection() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
+    # timeout = wait on a locked DB (safe with multiple gunicorn workers);
+    # WAL lets readers + the writer run at once without "database is locked".
+    conn = sqlite3.connect(DB_PATH, timeout=15)
     conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=15000")
+    except sqlite3.OperationalError:
+        pass
     return conn
 
 def init_db() -> None:
