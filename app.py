@@ -6,6 +6,7 @@ import os
 import io
 import time
 import logging
+from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 from flask import Flask, render_template, request, jsonify, send_file, make_response
 
@@ -125,6 +126,25 @@ def health():
     return jsonify({"status": "ok", "service": "boxdrank"})
 
 
+# How long before a user's cached rank is re-scraped on lookup. Keeps ranks
+# "live" as users log films, without hammering Letterboxd. Tunable via env.
+_REFRESH_WINDOW = timedelta(minutes=int(os.environ.get("BOXDRANK_REFRESH_MIN", "30")))
+
+
+def _is_stale(user_entry) -> bool:
+    """True if the cached rank is older than the refresh window."""
+    ts = user_entry.get("last_updated")
+    if not ts:
+        return True
+    try:
+        dt = datetime.fromisoformat(ts)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - dt) > _REFRESH_WINDOW
+    except Exception:
+        return True
+
+
 def _stats_from_db_entry(user_entry):
     """Reconstruct a stats dict from a cached leaderboard row (no scrape)."""
     import json
@@ -162,10 +182,12 @@ def api_rank(username):
     if err:
         return err
 
-    # FAST PATH: If user already exists in DB, return cached result immediately
-    # (prevents duplicate scrapes — same account only connects once)
+    # CACHE PATH: serve the stored rank unless it's stale (so ranks stay "live"
+    # and update as users log new films) — or unless ?cached=true is passed,
+    # which is used for fast leaderboard browsing.
+    force_cached = request.args.get("cached") == "true"
     user_entry = leaderboard.get_user_position(clean)
-    if user_entry:
+    if user_entry and (force_cached or not _is_stale(user_entry)):
         stats_mock = _stats_from_db_entry(user_entry)
         rank_info_mock = calculate_rank(stats_mock)
         return jsonify({
@@ -238,13 +260,15 @@ def api_card(username):
     user_entry = leaderboard.get_user_position(clean)
     if user_entry:
         stats = _stats_from_db_entry(user_entry)
+        lb_position = user_entry.get("position")
     else:
         stats = get_user_stats(clean)
         if stats is None or stats.get("films_watched", 0) == 0:
             return jsonify({"error": "Could not fetch data"}), 404
+        lb_position = None
 
     rank_info = calculate_rank(stats)
-    img = generate_rank_card(clean, stats, rank_info)
+    img = generate_rank_card(clean, stats, rank_info, lb_position=lb_position)
 
     img_io = io.BytesIO()
     img.save(img_io, "PNG", optimize=True)

@@ -162,7 +162,8 @@ def _load_avatar(url: str, diameter: int) -> Optional[Image.Image]:
 # --------------------------------------------------------------------------- #
 # MAIN
 # --------------------------------------------------------------------------- #
-def generate_rank_card(username: str, stats: Dict, rank_info: Dict) -> Image.Image:
+def generate_rank_card(username: str, stats: Dict, rank_info: Dict,
+                       lb_position: Optional[int] = None) -> Image.Image:
     """Render a 1200x630 shareable rank card and return a PIL RGB Image."""
     W, H = WIDTH, HEIGHT
     tier = rank_info.get("tier", "Iron")
@@ -299,11 +300,14 @@ def generate_rank_card(username: str, stats: Dict, rank_info: Dict) -> Image.Ima
     draw.text((bx + bsz + _s(12) + _text_w(draw, "BoxdRank", f_brand) + _s(10), by + bsz / 2),
               "· " + BRAND_URL, font=f_brand_sm, fill=(150, 156, 165), anchor="lm")
 
-    serial = f"No. {score:04d}  /  SEASON 1"
-    draw.text((right_edge, by + bsz / 2 - _s(8)), serial, font=f_serial,
-              fill=_mix(accent, (255, 255, 255), 0.35), anchor="rm")
-    draw.text((right_edge, by + bsz / 2 + _s(9)), "RANKED  COLLECTIBLE", font=f_micro,
-              fill=(120, 126, 135), anchor="rm")
+    if lb_position:
+        draw.text((right_edge, by + bsz / 2 - _s(9)), f"#{lb_position:,}", font=f_brand,
+                  fill=_mix(accent, (255, 255, 255), 0.45), anchor="rm")
+        draw.text((right_edge, by + bsz / 2 + _s(12)), "GLOBAL RANK", font=f_micro,
+                  fill=(120, 126, 135), anchor="rm")
+    else:
+        draw.text((right_edge, by + bsz / 2), "GLOBAL FILM RANK", font=f_micro,
+                  fill=(120, 126, 135), anchor="rm")
 
     dly = top_y + _s(46)
     draw.line([(pad, dly), (right_edge, dly)], fill=_alpha((255, 255, 255), 22), width=_s(1))
@@ -472,7 +476,7 @@ def generate_rank_card(username: str, stats: Dict, rank_info: Dict) -> Image.Ima
     draw.line([(strip_x0, strip_y1 + _s(16)), (strip_x1, strip_y1 + _s(16))],
               fill=_alpha((255, 255, 255), 16), width=_s(1))
     draw.text((strip_x0, strip_y1 + _s(26)),
-              f"Ranked from real Letterboxd activity · share yours at {BRAND_URL}",
+              f"Live Letterboxd rank · updates as you log films · {BRAND_URL}",
               font=f_brand_sm, fill=(132, 138, 147), anchor="lm")
     genres = [g for g in (stats.get("fav_genres") or [])[:3] if g]
     if genres:
@@ -484,9 +488,10 @@ def generate_rank_card(username: str, stats: Dict, rank_info: Dict) -> Image.Ima
     return img.resize((W, H), Image.LANCZOS)
 
 
-def generate_card_bytes(username: str, stats: Dict, rank_info: Dict) -> bytes:
+def generate_card_bytes(username: str, stats: Dict, rank_info: Dict,
+                        lb_position: Optional[int] = None) -> bytes:
     """Convenience: return PNG bytes."""
-    img = generate_rank_card(username, stats, rank_info)
+    img = generate_rank_card(username, stats, rank_info, lb_position=lb_position)
     buf = io.BytesIO()
     img.save(buf, "PNG", optimize=True)
     return buf.getvalue()
@@ -498,5 +503,5 @@ if __name__ == "__main__":
               "lists_count": 12, "this_year_count": 64, "followers": 210,
               "fav_genres": ["horror", "drama", "thriller"], "avatar_url": ""}
     _rank = {"tier": "Diamond", "division": "II", "lp": 67, "score": 642, "percentile": 64}
-    generate_rank_card("cinephile_jane", _stats, _rank).save("_cardgen/card_final.png", "PNG")
+    generate_rank_card("cinephile_jane", _stats, _rank, lb_position=342).save("_cardgen/card_final.png", "PNG")
     print("saved _cardgen/card_final.png")
