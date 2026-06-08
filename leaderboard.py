@@ -138,6 +138,25 @@ def get_user_position(username: str) -> Optional[Dict]:
     finally:
         conn.close()
 
+def get_user_country_position(username: str) -> Optional[Dict]:
+    """Return the user's rank position within their own country."""
+    conn = _get_connection()
+    try:
+        row = conn.execute("SELECT country, score FROM rankings WHERE username = ?",
+                           (username.lower(),)).fetchone()
+        if not row or not row["country"]:
+            return None
+        country, score = row["country"], row["score"]
+        pos = conn.execute(
+            "SELECT COUNT(*) + 1 AS p FROM rankings WHERE country = ? AND score > ?",
+            (country, score)).fetchone()["p"]
+        total = conn.execute(
+            "SELECT COUNT(*) AS c FROM rankings WHERE country = ?",
+            (country,)).fetchone()["c"]
+        return {"country": country, "country_position": pos, "country_total": total}
+    finally:
+        conn.close()
+
 def get_stats() -> Dict:
     conn = _get_connection()
     try:

@@ -379,7 +379,7 @@
         <div class="hc-mini-stats">
           <div class="cell"><div class="v">1,243</div><div class="l">Films</div></div>
           <div class="cell"><div class="v">3.9 <span class="star">&#9733;</span></div><div class="l">Avg rating</div></div>
-          <div class="cell"><div class="v">Top 64%</div><div class="l">Percentile</div></div>
+          <div class="cell"><div class="v">Top 2%</div><div class="l">Globally</div></div>
         </div>
       </div>
     </div>
@@ -549,8 +549,13 @@ async function startLookup(){
     const d = await r.json();
     if(!r.ok) throw new Error(d.error || 'Could not fetch that profile.');
     curData=d; curUser=u;
-    if(country){ fetch('/api/country',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,country})}).catch(()=>{}); if(d.stats) d.stats.country=country; }
-    playReveal(d);
+    if(country){
+      try{ await fetch('/api/country',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,country})}); }catch(e){}
+      if(d.stats) d.stats.country=country;
+      // re-fetch (cached) so the response now includes the user's country rank
+      try{ const r2=await fetch(`/api/rank/${encodeURIComponent(u)}?cached=true`); if(r2.ok){ const d2=await r2.json(); if(!d2.error) curData=d2; } }catch(e){}
+    }
+    playReveal(curData);
   }catch(e){
     hideScrim();
     showErr(e.message || 'Something went wrong. Try again.');
@@ -605,6 +610,8 @@ function renderResult(d){
   const s=d.stats||{}, rk=d.rank||{}, c=tierRGB(rk.tier);
   const acc=c.join(',');
   const nr=d.next_rank||{}, title=d.rank_title||'', pos=d.lb_position, total=d.total_users||totalUsers;
+  const topPct=(pos&&total)?Math.max(1,Math.ceil(pos/total*100)):(rk.percentile||1);
+  const ccode=s.country||d.country, cpos=d.country_position;
   const ratingTxt = s.avg_rating ? Number(s.avg_rating).toFixed(1) : 'n/a';
   const bd = rk.breakdown||{};
   const bdRows = [
@@ -621,6 +628,7 @@ function renderResult(d){
   const reviews=(s.reviews||[]).slice(0,4);
 
   const posBadge = pos ? `<div class="pos-badge">Global rank <b>#${fmt(pos)}</b>${total?` of ${fmt(total)}`:''}</div>` : '';
+  const countryBadge = (cpos && ccode) ? `<div class="pos-badge">${countryFlag(ccode)} <b>#${fmt(cpos)}</b> in ${esc(countryName(ccode))}</div>` : '';
   const avatar = s.avatar_url ? `<img class="avatar" src="${esc(s.avatar_url)}" alt="" onerror="this.style.display='none'">` : '';
 
   let nextHTML='';
@@ -656,7 +664,7 @@ function renderResult(d){
           ${avatar}
           <h2><span class="u">@${esc(curUser)}</span> is ${esc(rk.tier)} ${esc(rk.division||'')}</h2>
         </div>
-        ${posBadge}
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">${countryBadge}${posBadge}</div>
       </div>
       <div class="result-layout">
         <div class="card rank-card">
@@ -668,7 +676,7 @@ function renderResult(d){
           <div class="metric-band">
             <div class="m"><div class="num acc">${rk.lp||0}</div><div class="lbl">League pts</div></div>
             <div class="m"><div class="num">${rk.score||0}</div><div class="lbl">Rank score</div></div>
-            <div class="m"><div class="num">${rk.percentile||1}%</div><div class="lbl">Top percentile</div></div>
+            <div class="m"><div class="num">Top ${topPct}%</div><div class="lbl">Globally</div></div>
           </div>
           ${nextHTML}
           <div class="share-row">

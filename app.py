@@ -190,6 +190,7 @@ def api_rank(username):
     if user_entry and (force_cached or not _is_stale(user_entry)):
         stats_mock = _stats_from_db_entry(user_entry)
         rank_info_mock = calculate_rank(stats_mock)
+        cpos = leaderboard.get_user_country_position(clean)
         return jsonify({
             "username": clean,
             "stats": stats_mock,
@@ -198,6 +199,9 @@ def api_rank(username):
             "rank_title": get_rank_title(rank_info_mock.get("score", 0)),
             "lb_position": user_entry.get("position"),
             "total_users": leaderboard.get_stats().get("total_users", 0),
+            "country_position": cpos["country_position"] if cpos else None,
+            "country_total": cpos["country_total"] if cpos else None,
+            "country": cpos["country"] if cpos else stats_mock.get("country"),
             "cached": True
         })
 
@@ -234,6 +238,7 @@ def api_rank(username):
             lb_position = user_entry["position"]
             total_users = leaderboard.get_stats().get("total_users", 0)
 
+    cpos = leaderboard.get_user_country_position(clean)
     return jsonify({
         "username": clean,
         "stats": stats,
@@ -242,6 +247,9 @@ def api_rank(username):
         "rank_title": rank_title,
         "lb_position": lb_position,
         "total_users": total_users,
+        "country_position": cpos["country_position"] if cpos else None,
+        "country_total": cpos["country_total"] if cpos else None,
+        "country": cpos["country"] if cpos else stats.get("country"),
     })
 
 
@@ -261,14 +269,16 @@ def api_card(username):
     if user_entry:
         stats = _stats_from_db_entry(user_entry)
         lb_position = user_entry.get("position")
+        lb_total = leaderboard.get_stats().get("total_users", 0)
     else:
         stats = get_user_stats(clean)
         if stats is None or stats.get("films_watched", 0) == 0:
             return jsonify({"error": "Could not fetch data"}), 404
         lb_position = None
+        lb_total = 0
 
     rank_info = calculate_rank(stats)
-    img = generate_rank_card(clean, stats, rank_info, lb_position=lb_position)
+    img = generate_rank_card(clean, stats, rank_info, lb_position=lb_position, lb_total=lb_total)
 
     img_io = io.BytesIO()
     img.save(img_io, "PNG", optimize=True)

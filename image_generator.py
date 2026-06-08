@@ -163,7 +163,8 @@ def _load_avatar(url: str, diameter: int) -> Optional[Image.Image]:
 # MAIN
 # --------------------------------------------------------------------------- #
 def generate_rank_card(username: str, stats: Dict, rank_info: Dict,
-                       lb_position: Optional[int] = None) -> Image.Image:
+                       lb_position: Optional[int] = None,
+                       lb_total: Optional[int] = None) -> Image.Image:
     """Render a 1200x630 shareable rank card and return a PIL RGB Image."""
     W, H = WIDTH, HEIGHT
     tier = rank_info.get("tier", "Iron")
@@ -377,7 +378,11 @@ def generate_rank_card(username: str, stats: Dict, rank_info: Dict,
     if _text_w(draw, uname, f_user_at) > av_r * 2 + _s(60):
         uname = uname[:16] + "…"
     draw.text((av_cx, uy), uname, font=f_user_at, fill=(214, 218, 224), anchor="mm")
-    pc_txt = f"TOP {percentile}%"
+    if lb_position and lb_total:
+        top_pct = max(1, math.ceil(lb_position / lb_total * 100))
+    else:
+        top_pct = percentile
+    pc_txt = f"TOP {top_pct}%"
     pcw = _text_w(draw, pc_txt, f_micro) + _s(22)
     draw.rounded_rectangle([av_cx - pcw // 2, uy + _s(22), av_cx + pcw // 2, uy + _s(22) + _s(24)],
                            radius=_s(12), fill=_alpha(BRAND_GREEN, 36),
@@ -489,9 +494,10 @@ def generate_rank_card(username: str, stats: Dict, rank_info: Dict,
 
 
 def generate_card_bytes(username: str, stats: Dict, rank_info: Dict,
-                        lb_position: Optional[int] = None) -> bytes:
+                        lb_position: Optional[int] = None,
+                        lb_total: Optional[int] = None) -> bytes:
     """Convenience: return PNG bytes."""
-    img = generate_rank_card(username, stats, rank_info, lb_position=lb_position)
+    img = generate_rank_card(username, stats, rank_info, lb_position=lb_position, lb_total=lb_total)
     buf = io.BytesIO()
     img.save(buf, "PNG", optimize=True)
     return buf.getvalue()
