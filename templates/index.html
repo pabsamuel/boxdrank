@@ -303,6 +303,17 @@
 
   .toast { position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(120px); background:var(--ink); color:#04130b; font-weight:700; font-size:13.5px; padding:11px 22px; border-radius:10px; z-index:300; transition:transform .3s cubic-bezier(.2,1,.3,1); pointer-events:none; box-shadow:0 16px 40px -12px rgba(0,0,0,0.7); }
   .toast.show { transform:translateX(-50%) translateY(0); }
+
+  /* anchor scroll offset so the sticky nav doesn't cover section tops */
+  #hero, #tiers, #leaderboard, #resultSection { scroll-margin-top: 84px; }
+
+  /* leaderboard profile modal */
+  .pmodal-overlay { position:fixed; inset:0; z-index:180; display:none; overflow-y:auto; background:rgba(6,7,9,0.80); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); padding:40px 18px; }
+  .pmodal-overlay.show { display:block; }
+  .pmodal { position:relative; max-width:940px; margin:0 auto; background:linear-gradient(180deg,#0e1014,#0a0b0e); border:1px solid var(--line-2); border-radius:20px; padding:30px 30px 36px; box-shadow:0 50px 130px -30px rgba(0,0,0,0.9); }
+  .pmodal-close { position:absolute; top:16px; right:16px; z-index:3; width:36px; height:36px; border-radius:10px; border:1px solid var(--line-2); background:var(--panel); color:var(--ink-2); font-size:15px; cursor:pointer; transition:color .14s, border-color .14s; }
+  .pmodal-close:hover { color:var(--ink); border-color:var(--line); }
+  @media (max-width:560px){ .pmodal { padding:22px 15px 26px; } }
 </style>
 </head>
 <body id="top">
@@ -451,6 +462,13 @@
     <div class="rv-lp" id="rvLp"></div>
   </div>
   <div class="rv-hint" id="rvHint" style="display:none">Click anywhere to continue</div>
+</div>
+
+<div class="pmodal-overlay" id="pmodal" onclick="if(event.target===this)closeProfileModal()">
+  <div class="pmodal">
+    <button class="pmodal-close" onclick="closeProfileModal()" aria-label="Close">✕</button>
+    <div id="pmodalContent"></div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -607,7 +625,7 @@ function dismissReveal(){
 }
 
 /* ===================== result render ===================== */
-function renderResult(d){
+function buildResultHTML(d, uname, isProfile){
   const s=d.stats||{}, rk=d.rank||{}, c=tierRGB(rk.tier);
   const acc=c.join(',');
   const nr=d.next_rank||{}, title=d.rank_title||'', pos=d.lb_position, total=d.total_users||totalUsers;
@@ -652,25 +670,25 @@ function renderResult(d){
   if(reviews.length){
     reviewsHTML = `<div class="card card-pad"><div class="panel-head"><h3>Recent reviews</h3><span class="tag">from Letterboxd</span></div><div class="reviews-list">${reviews.map(r=>{
       const stars = r.rating?'★'.repeat(Math.min(Math.round(r.rating),5)):'';
-      const rav = r.avatar?`<img class="rav" src="${esc(r.avatar)}" alt="" onerror="this.style.display='none'">`:`<div class="rav">${esc((curUser||'?').charAt(0).toUpperCase())}</div>`;
+      const rav = r.avatar?`<img class="rav" src="${esc(r.avatar)}" alt="" onerror="this.style.display='none'">`:`<div class="rav">${esc((uname||'?').charAt(0).toUpperCase())}</div>`;
       return `<div class="review">${rav}<div class="rbody"><div class="rtop"><span class="rfilm">${esc(r.film||'')}</span><span class="rstars">${stars}</span></div><div class="rtext">"${esc(r.text||'')}"</div></div></div>`;
     }).join('')}</div></div>`;
   }
 
-  document.getElementById('resultContent').innerHTML = `
+  return `
     <div style="--accent:${acc}">
-      <div class="section-kicker"><span class="num">★</span><span class="dash"></span> ${fromLB?'Viewing profile':'Your result'}</div>
+      <div class="section-kicker"><span class="num">★</span><span class="dash"></span> ${isProfile?'Viewing profile':'Your result'}</div>
       <div class="result-head">
         <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
           ${avatar}
-          <h2><span class="u">@${esc(curUser)}</span> is ${esc(rk.tier)} ${esc(rk.division||'')}</h2>
+          <h2><span class="u">@${esc(uname)}</span> is ${esc(rk.tier)} ${esc(rk.division||'')}</h2>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">${countryBadge}${posBadge}</div>
       </div>
       <div class="result-layout">
         <div class="card rank-card">
           <span class="top-rule"></span>
-          <div class="eyebrow">BOXDRANK <span class="muted">· ${fromLB?'CINEPHILE PROFILE':'YOUR RANK'}</span></div>
+          <div class="eyebrow">BOXDRANK <span class="muted">· ${isProfile?'CINEPHILE PROFILE':'YOUR RANK'}</span></div>
           <div class="rank-emblem-wrap">${emblemSVG(rk.tier,148)}</div>
           <div class="tier-big" style="font-size:${(rk.tier||'').length<=7?46:(rk.tier||'').length<=9?38:31}px">${esc((rk.tier||'').toUpperCase())}</div>
           <div class="div-lp">${rk.division?`<span class="division-pill">Division ${esc(rk.division)}</span>`:''}<span class="lp-pill"><b>${rk.lp||0}</b> LP</span></div>
@@ -680,10 +698,10 @@ function renderResult(d){
             <div class="m"><div class="num">Top ${topPct}%</div><div class="lbl">Globally</div></div>
           </div>
           ${nextHTML}
-          ${fromLB ? `
+          ${isProfile ? `
           <div class="share-row" style="grid-template-columns:1fr 1fr">
-            <button class="share-btn ghost" onclick="downloadCard()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Card</button>
-            <button class="share-btn ghost" onclick="backToLeaderboard()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back to leaderboard</button>
+            <button class="share-btn ghost" onclick="downloadCardFor('${esc(uname)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Card</button>
+            <button class="share-btn ghost" onclick="closeProfileModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back to leaderboard</button>
           </div>
           ` : `
           <div class="share-row">
@@ -725,12 +743,14 @@ function renderResult(d){
       </div>
     </div>`;
 }
+function renderResult(d){ document.getElementById('resultContent').innerHTML = buildResultHTML(d, curUser, false); }
 
 /* ===================== share ===================== */
 function shareText(){ const rk=curData.rank; return `My Letterboxd rank is ${rk.tier} ${rk.division||''} (${rk.lp||0} LP) on BoxdRank.\n\nWhat's yours?\n\n${location.origin}`; }
 function shareX(){ window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(shareText()),'_blank'); }
 function copyShare(){ const t=shareText(); (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Copied!')).catch(()=>{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');toast('Copied!');}catch(e){toast('Copy failed');} document.body.removeChild(ta); }); }
-async function downloadCard(){ toast('Generating card…'); try{ const r=await fetch(`/api/card/${encodeURIComponent(curUser)}`); if(!r.ok) throw new Error(); const b=await r.blob(); const url=URL.createObjectURL(b); const a=document.createElement('a'); a.href=url; a.download=`boxdrank_${curUser}.png`; a.click(); URL.revokeObjectURL(url); toast('Card downloaded!'); }catch(e){ toast('Card failed'); } }
+async function downloadCardFor(u){ toast('Generating card…'); try{ const r=await fetch(`/api/card/${encodeURIComponent(u)}`); if(!r.ok) throw new Error(); const b=await r.blob(); const url=URL.createObjectURL(b); const a=document.createElement('a'); a.href=url; a.download=`boxdrank_${u}.png`; a.click(); URL.revokeObjectURL(url); toast('Card downloaded!'); }catch(e){ toast('Card failed'); } }
+function downloadCard(){ return downloadCardFor(curUser); }
 function toggleCX(){ const f=document.getElementById('cxForm'); f.classList.toggle('show'); if(f.classList.contains('show')) document.getElementById('cxInput').focus(); }
 async function saveCX(){ const h=document.getElementById('cxInput').value.trim().replace(/^@/,''); if(!h||!curUser) return; if(!/^[a-zA-Z0-9_]+$/.test(h)||h.length>15){ toast('Invalid X handle'); return; } try{ const r=await fetch('/api/connect-x',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:curUser,x_handle:h})}); if(!r.ok) throw new Error(); if(curData.stats) curData.stats.x_handle=h; toast('X linked!'); renderResult(curData); setTimeout(()=>document.querySelectorAll('#resultContent .pbar>i,#resultContent .track>i').forEach(b=>{if(b.dataset.w)b.style.width=b.dataset.w+'%';}),100); }catch(e){ toast('Failed to link'); } }
 function searchAnother(){ goHome(); setTimeout(()=>document.getElementById('usernameInput').focus(),400); }
@@ -799,20 +819,21 @@ function renderLB(entries, replace){
   }
 }
 
+let viewData=null, viewName=null;
 async function viewUser(u){
   if(!u) return;
-  fromLB=true;   // viewing someone else from the leaderboard — NOT the visitor's own rank, so NO reveal
   try{
     const r=await fetch(`/api/rank/${encodeURIComponent(u)}?cached=true`); const d=await r.json();
     if(!r.ok) throw new Error(d.error||'Could not load.');
-    curData=d; curUser=u;
-    renderResult(d);
-    const rs=document.getElementById('resultSection'); rs.style.display='block';
-    rs.scrollIntoView({behavior:'smooth',block:'start'});
-    setTimeout(()=>{ document.querySelectorAll('#resultContent .pbar>i,#resultContent .track>i').forEach(b=>{ if(b.dataset.w) b.style.width=b.dataset.w+'%'; }); }, 250);
+    viewData=d; viewName=u;   // separate state — does NOT touch the visitor's own result
+    document.getElementById('pmodalContent').innerHTML = buildResultHTML(d, u, true);
+    openProfileModal();
+    setTimeout(()=>{ document.querySelectorAll('#pmodalContent .pbar>i,#pmodalContent .track>i').forEach(b=>{ if(b.dataset.w) b.style.width=b.dataset.w+'%'; }); }, 200);
   }catch(e){ toast(e.message||'Could not load user'); }
 }
-function backToLeaderboard(){ document.getElementById('leaderboard').scrollIntoView({behavior:'smooth'}); }
+function openProfileModal(){ const m=document.getElementById('pmodal'); m.classList.add('show'); m.scrollTop=0; document.body.style.overflow='hidden'; }
+function closeProfileModal(){ document.getElementById('pmodal').classList.remove('show'); document.body.style.overflow=''; }
+function backToLeaderboard(){ closeProfileModal(); }
 </script>
 </body>
 </html>
