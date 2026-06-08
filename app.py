@@ -402,7 +402,7 @@ def api_set_country():
 # reviews even if they never reopen the site. Throttled to stay gentle on
 # Letterboxd. Tunable / disable via env (BOXDRANK_BG_REFRESH=0).
 # ---------------------------------------------------------------------------
-_BG_ENABLED = os.environ.get("BOXDRANK_BG_REFRESH", "1") != "0"
+_BG_ENABLED = os.environ.get("BOXDRANK_BG_REFRESH", "0") != "0"   # OFF in this version (users re-search to update)
 _BG_INTERVAL = int(os.environ.get("BOXDRANK_BG_INTERVAL_SEC", "180"))   # seconds between cycles
 _BG_BATCH = int(os.environ.get("BOXDRANK_BG_BATCH", "4"))               # profiles refreshed per cycle
 

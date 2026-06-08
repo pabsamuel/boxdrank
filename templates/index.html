@@ -281,6 +281,9 @@
   .lb-you .ly-sub { font-size:12px; color:var(--ink-3); margin-top:2px; }
   .lb-you .ly-btn { font-size:12.5px; font-weight:600; color:rgb(var(--accent)); border:1px solid rgba(var(--accent),0.45); background:rgba(var(--accent),0.1); padding:9px 15px; border-radius:9px; cursor:pointer; white-space:nowrap; transition:background .14s; }
   .lb-you .ly-btn:hover { background:rgba(var(--accent),0.2); }
+  .nudge { display:flex; align-items:center; gap:11px; margin:0 0 26px; padding:14px 18px; border:1px solid rgba(0,224,84,0.3); background:linear-gradient(180deg, rgba(0,224,84,0.08), rgba(0,224,84,0.03)); border-radius:12px; font-size:14px; color:var(--ink-2); }
+  .nudge b { color:var(--brand); font-weight:700; }
+  .nudge .ic { flex-shrink:0; color:var(--brand); display:flex; }
 
   footer.site { border-top:1px solid var(--line); padding:46px 0 60px; margin-top:20px; }
   .foot-inner { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:18px; }
@@ -696,6 +699,7 @@ function buildResultHTML(d, uname, isProfile){
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">${countryBadge}${posBadge}</div>
       </div>
+      ${!isProfile ? `<div class="nudge"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span><span>Logged more films since? <b>Search your username again</b> any time to update your rank and climb the leaderboard.</span></div>` : ''}
       <div class="result-layout">
         <div class="card rank-card">
           <span class="top-rule"></span>
