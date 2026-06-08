@@ -125,6 +125,33 @@ def health():
     return jsonify({"status": "ok", "service": "boxdrank"})
 
 
+def _stats_from_db_entry(user_entry):
+    """Reconstruct a stats dict from a cached leaderboard row (no scrape)."""
+    import json
+    stats = {
+        "films_watched": user_entry.get("films_watched", 0),
+        "avg_rating": user_entry.get("avg_rating", 0.0),
+        "reviews_count": user_entry.get("reviews_count", 0),
+        "this_year_count": user_entry.get("this_year_count", 0),
+        "lists_count": user_entry.get("lists_count", 0),
+        "followers": user_entry.get("followers", 0),
+        "x_handle": user_entry.get("x_handle"),
+        "avatar_url": user_entry.get("avatar_url"),
+        "country": user_entry.get("country"),
+    }
+    taste_profile_json = user_entry.get("taste_profile")
+    if taste_profile_json:
+        try:
+            tp = json.loads(taste_profile_json)
+            stats["fav_genres"] = tp.get("fav_genres", [])
+            stats["fav_directors"] = tp.get("fav_directors", [])
+            stats["top_actors"] = tp.get("top_actors", [])
+            stats["reviews"] = tp.get("reviews", [])
+        except Exception:
+            pass
+    return stats
+
+
 @app.route("/api/rank/<username>")
 def api_rank(username):
     """API endpoint to get rank for a Letterboxd username."""
@@ -139,28 +166,7 @@ def api_rank(username):
     # (prevents duplicate scrapes — same account only connects once)
     user_entry = leaderboard.get_user_position(clean)
     if user_entry:
-        stats_mock = {
-            "films_watched": user_entry.get("films_watched", 0),
-            "avg_rating": user_entry.get("avg_rating", 0.0),
-            "reviews_count": user_entry.get("reviews_count", 0),
-            "this_year_count": user_entry.get("this_year_count", 0),
-            "lists_count": user_entry.get("lists_count", 0),
-            "followers": user_entry.get("followers", 0),
-            "x_handle": user_entry.get("x_handle"),
-            "avatar_url": user_entry.get("avatar_url"),
-            "country": user_entry.get("country")
-        }
-        taste_profile_json = user_entry.get("taste_profile")
-        if taste_profile_json:
-            import json
-            try:
-                tp = json.loads(taste_profile_json)
-                stats_mock["fav_genres"] = tp.get("fav_genres", [])
-                stats_mock["fav_directors"] = tp.get("fav_directors", [])
-                stats_mock["top_actors"] = tp.get("top_actors", [])
-                stats_mock["reviews"] = tp.get("reviews", [])
-            except Exception:
-                pass
+        stats_mock = _stats_from_db_entry(user_entry)
         rank_info_mock = calculate_rank(stats_mock)
         return jsonify({
             "username": clean,
@@ -227,9 +233,15 @@ def api_card(username):
     if err:
         return err
 
-    stats = get_user_stats(clean)
-    if stats is None or stats.get("films_watched", 0) == 0:
-        return jsonify({"error": "Could not fetch data"}), 404
+    # DB cache first — avoid a fresh scrape for the common case (the user just
+    # looked up their rank, so they're already persisted).
+    user_entry = leaderboard.get_user_position(clean)
+    if user_entry:
+        stats = _stats_from_db_entry(user_entry)
+    else:
+        stats = get_user_stats(clean)
+        if stats is None or stats.get("films_watched", 0) == 0:
+            return jsonify({"error": "Could not fetch data"}), 404
 
     rank_info = calculate_rank(stats)
     img = generate_rank_card(clean, stats, rank_info)

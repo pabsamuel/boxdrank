@@ -29,3 +29,7 @@ desktop.ini
 
 # Logs
 *.log
+
+# Scratch / generated previews
+_cardgen/
+_webgen/

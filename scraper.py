@@ -351,7 +351,7 @@ def get_user_stats(username: str) -> Optional[Dict]:
                 log.debug("Failed film %s: %s", film_link, e)
             return local_genres, local_directors, local_actors
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             results = executor.map(process_film, film_links_to_use)
             for res_genres, res_directors, res_actors in results:
                 for k, v in res_genres.items():
