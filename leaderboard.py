@@ -157,6 +157,18 @@ def get_user_country_position(username: str) -> Optional[Dict]:
     finally:
         conn.close()
 
+def get_oldest_usernames(limit: int = 5) -> List[str]:
+    """Usernames with the oldest last_updated — for background refresh rotation."""
+    conn = _get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT username FROM rankings ORDER BY last_updated ASC LIMIT ?",
+            (limit,)).fetchall()
+        return [r["username"] for r in rows]
+    finally:
+        conn.close()
+
+
 def get_stats() -> Dict:
     conn = _get_connection()
     try:

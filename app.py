@@ -6,6 +6,7 @@ import os
 import io
 import time
 import logging
+import threading
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 from flask import Flask, render_template, request, jsonify, send_file, make_response
@@ -393,6 +394,41 @@ def api_set_country():
     leaderboard.update_country(username, country)
     log.info("Country set: %s -> %s", username, country)
     return jsonify({"ok": True, "username": username, "country": country})
+
+
+# ---------------------------------------------------------------------------
+# Background refresher — keeps the leaderboard "alive": quietly re-scrapes the
+# most out-of-date profiles on a rotation, so ranks update as users log films /
+# reviews even if they never reopen the site. Throttled to stay gentle on
+# Letterboxd. Tunable / disable via env (BOXDRANK_BG_REFRESH=0).
+# ---------------------------------------------------------------------------
+_BG_ENABLED = os.environ.get("BOXDRANK_BG_REFRESH", "1") != "0"
+_BG_INTERVAL = int(os.environ.get("BOXDRANK_BG_INTERVAL_SEC", "180"))   # seconds between cycles
+_BG_BATCH = int(os.environ.get("BOXDRANK_BG_BATCH", "4"))               # profiles refreshed per cycle
+
+
+def _background_refresher():
+    log.info("Background refresher on: %d profiles every %ds", _BG_BATCH, _BG_INTERVAL)
+    while True:
+        time.sleep(_BG_INTERVAL)
+        try:
+            for u in leaderboard.get_oldest_usernames(_BG_BATCH):
+                try:
+                    stats = get_user_stats(u, force=True)
+                    if stats and stats.get("films_watched", 0) > 0:
+                        rank_info = calculate_rank(stats)
+                        leaderboard.save_ranking(u, stats, rank_info)
+                        log.info("bg-refresh: %s -> %s %s (%d)", u,
+                                 rank_info["tier"], rank_info["division"], rank_info["score"])
+                except Exception as e:
+                    log.warning("bg-refresh failed for %s: %s", u, e)
+        except Exception as e:
+            log.warning("bg-refresher cycle error: %s", e)
+
+
+if _BG_ENABLED:
+    threading.Thread(target=_background_refresher, daemon=True, name="bg-refresher").start()
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
