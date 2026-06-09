@@ -295,8 +295,16 @@ def generate_rank_card(username: str, stats: Dict, rank_info: Dict,
 
     bsz = _s(28)
     bx, by = pad, top_y
-    draw.rounded_rectangle([bx, by, bx + bsz, by + bsz], radius=_s(7), fill=BRAND_GREEN)
-    draw.text((bx + bsz / 2, by + bsz / 2 - _s(2)), "B", font=f_holo, fill=(8, 10, 12), anchor="mm")
+    _cube_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "favicon.png")
+    try:
+        cube = Image.open(_cube_path).convert("RGBA").resize((int(bsz), int(bsz)), Image.LANCZOS)
+        img = img.convert("RGBA")
+        img.alpha_composite(cube, (int(bx), int(by)))
+        img = img.convert("RGB")
+        draw = ImageDraw.Draw(img, "RGBA")
+    except Exception:
+        draw.rounded_rectangle([bx, by, bx + bsz, by + bsz], radius=_s(7), fill=BRAND_GREEN)
+        draw.text((bx + bsz / 2, by + bsz / 2 - _s(2)), "B", font=f_holo, fill=(8, 10, 12), anchor="mm")
     draw.text((bx + bsz + _s(12), by + bsz / 2), "BoxdRank", font=f_brand,
               fill=(238, 240, 243), anchor="lm")
     draw.text((bx + bsz + _s(12) + _text_w(draw, "BoxdRank", f_brand) + _s(10), by + bsz / 2),
