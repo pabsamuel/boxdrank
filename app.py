@@ -127,7 +127,9 @@ def add_security_headers(response):
 def not_found(e):
     if request.path.startswith("/api/"):
         return jsonify({"error": "Not found"}), 404
-    return render_template("index.html"), 200   # SPA — let frontend handle
+    base = _public_base()
+    return _index_response(_DEFAULT_OG_TITLE, _DEFAULT_OG_DESC,    # SPA — let frontend handle
+                           f"{base}/static/boxdrank-logo.png", base + request.path)
 
 
 @app.errorhandler(500)
@@ -144,18 +146,84 @@ def rate_limited(e):
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
-@app.route("/")
-def index():
-    """Serve raw HTML to avoid Jinja2 conflicts with {{ }} in JavaScript."""
-    html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates", "index.html")
-    with open(html_path, "r", encoding="utf-8") as f:
+_INDEX_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates", "index.html")
+_DEFAULT_OG_TITLE = "BoxdRank — What's your film rank?"
+_DEFAULT_OG_DESC = "Iron to Challenger. Find your competitive Letterboxd rank and climb the global leaderboard."
+
+
+def _public_base():
+    """Absolute origin for building share / image URLs. BOXDRANK_DOMAIN wins in
+    production (so links survive behind proxies); otherwise use the request."""
+    dom = os.environ.get("BOXDRANK_DOMAIN", "").strip()
+    if dom:
+        if not dom.startswith("http"):
+            dom = "https://" + dom
+        return dom.rstrip("/")
+    return request.url_root.rstrip("/")
+
+
+def _social_meta(title, desc, image, url, w=None, h=None):
+    """Build the Open Graph / Twitter card meta tags injected into the page head."""
+    from html import escape
+    tags = [
+        '<meta property="og:type" content="website" />',
+        f'<meta property="og:title" content="{escape(title)}" />',
+        f'<meta property="og:description" content="{escape(desc)}" />',
+        f'<meta property="og:image" content="{escape(image)}" />',
+        f'<meta property="og:url" content="{escape(url)}" />',
+        '<meta name="twitter:card" content="summary_large_image" />',
+        f'<meta name="twitter:title" content="{escape(title)}" />',
+        f'<meta name="twitter:description" content="{escape(desc)}" />',
+        f'<meta name="twitter:image" content="{escape(image)}" />',
+    ]
+    if w and h:
+        tags.append(f'<meta property="og:image:width" content="{int(w)}" />')
+        tags.append(f'<meta property="og:image:height" content="{int(h)}" />')
+    return "\n".join(tags)
+
+
+def _index_response(title, desc, image, url, w=None, h=None):
+    """Serve index.html (raw, to avoid Jinja conflicts with ${} in JS) with the
+    social meta block injected at the <!--SOCIAL_META--> marker."""
+    with open(_INDEX_PATH, "r", encoding="utf-8") as f:
         content = f.read()
+    content = content.replace("<!--SOCIAL_META-->", _social_meta(title, desc, image, url, w, h), 1)
     response = make_response(content)
     response.headers["Content-Type"] = "text/html"
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+
+
+@app.route("/")
+def index():
+    base = _public_base()
+    return _index_response(_DEFAULT_OG_TITLE, _DEFAULT_OG_DESC,
+                           f"{base}/static/boxdrank-logo.png", base + "/")
+
+
+@app.route("/u/<username>")
+def share_page(username):
+    """Per-user share page — its og:image is the user's rank card, so pasting
+    the link into X / Discord / iMessage renders their card."""
+    clean, err = _validate_username(username)
+    base = _public_base()
+    if not clean:
+        return _index_response(_DEFAULT_OG_TITLE, _DEFAULT_OG_DESC,
+                               f"{base}/static/boxdrank-logo.png", base + "/")
+    entry = leaderboard.get_user_position(clean)
+    image = f"{base}/api/card/{clean}"
+    if entry:
+        tier = entry.get("tier", "") or ""
+        div = entry.get("division", "") or ""
+        title = f"@{clean} is {tier} {div}".strip() + " on BoxdRank"
+        desc = (f"{entry.get('lp', 0)} LP · rank score {entry.get('score', 0)} — "
+                "Iron to Challenger. What's your Letterboxd rank?")
+    else:
+        title = f"@{clean}'s rank on BoxdRank"
+        desc = _DEFAULT_OG_DESC
+    return _index_response(title, desc, image, f"{base}/u/{clean}", 1200, 630)
 
 
 @app.route("/health")
