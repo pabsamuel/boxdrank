@@ -155,6 +155,21 @@ def update_x_handle(username: str, x_handle: str) -> None:
         finally:
             conn.close()
 
+def get_username_by_x_handle(x_handle: str) -> Optional[str]:
+    """Return the username that has already linked this X handle (or None).
+    Used to keep one X handle tied to a single account."""
+    h = (x_handle or "").strip().lstrip("@")
+    if not h:
+        return None
+    conn = _get_connection()
+    try:
+        row = conn.execute(
+            "SELECT username FROM rankings WHERE x_handle IS NOT NULL AND LOWER(x_handle) = LOWER(?) LIMIT 1",
+            (h,)).fetchone()
+        return row["username"] if row else None
+    finally:
+        conn.close()
+
 def get_leaderboard(limit: int = 100, offset: int = 0, tier_filter: Optional[str] = None) -> List[Dict]:
     conn = _get_connection()
     try:

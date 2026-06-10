@@ -492,6 +492,13 @@ def api_connect_x():
     if not ok:
         return err
 
+    # One X handle = one rank. Block linking it to a second account.
+    existing = leaderboard.get_username_by_x_handle(x_handle)
+    if existing and existing != username:
+        return jsonify({
+            "error": f"@{x_handle} is already linked to another rank (@{existing})."
+        }), 409
+
     leaderboard.update_x_handle(username, x_handle)
     log.info("X linked: %s -> @%s", username, x_handle)
     return jsonify({"ok": True, "username": username, "x_handle": x_handle})
