@@ -16,6 +16,7 @@ from scraper import get_user_stats
 from rank_engine import calculate_rank, RANK_COLORS, get_next_rank_info, get_rank_title
 from image_generator import generate_rank_card
 import leaderboard
+import geo
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -84,15 +85,6 @@ def _hash_key(key: str) -> str:
 def _valid_key(key) -> bool:
     return isinstance(key, str) and 8 <= len(key) <= 200 and all(
         c.isalnum() or c in "-_" for c in key)
-
-
-def _client_country():
-    """Best-effort ISO-2 country code from an upstream proxy (Cloudflare sets
-    CF-IPCountry for free). Returns None when unknown / behind no proxy."""
-    code = (request.headers.get("CF-IPCountry") or "").strip().upper()
-    if len(code) == 2 and code.isalpha() and code not in ("XX", "T1"):
-        return code
-    return None
 
 
 def _authorize_owner(username: str, key: str):
@@ -204,6 +196,7 @@ def _stats_from_db_entry(user_entry):
         "x_handle": user_entry.get("x_handle"),
         "avatar_url": user_entry.get("avatar_url"),
         "country": user_entry.get("country"),
+        "location": user_entry.get("location"),
     }
     taste_profile_json = user_entry.get("taste_profile")
     if taste_profile_json:
@@ -249,6 +242,7 @@ def api_rank(username):
             "country_position": cpos["country_position"] if cpos else None,
             "country_total": cpos["country_total"] if cpos else None,
             "country": cpos["country"] if cpos else stats_mock.get("country"),
+            "location": stats_mock.get("location"),
             "cached": True
         })
 
@@ -265,6 +259,12 @@ def api_rank(username):
             "error": "No film data found. Is this a public Letterboxd profile?",
             "partial": stats,
         }), 404
+
+    # Country comes from the profile's free-text location, geocoded to a
+    # standard ISO-2 code. Objective + tamper-proof: there is no way for anyone
+    # to set someone's country except by editing the real Letterboxd profile.
+    location = (stats.get("location") or "").strip()
+    stats["country"] = geo.location_to_country(location) if location else None
 
     rank_info = calculate_rank(stats)
 
@@ -297,6 +297,7 @@ def api_rank(username):
         "country_position": cpos["country_position"] if cpos else None,
         "country_total": cpos["country_total"] if cpos else None,
         "country": cpos["country"] if cpos else stats.get("country"),
+        "location": stats.get("location"),
     })
 
 
@@ -432,39 +433,9 @@ def api_connect_x():
 # Entry point
 # ---------------------------------------------------------------------------
 
-@app.route("/api/whereami")
-def api_whereami():
-    """Best-effort country of the visitor (for pre-filling the picker)."""
-    return jsonify({"country": _client_country()})
-
-
-@app.route("/api/country", methods=["POST"])
-def api_set_country():
-    if _is_rate_limited(request.remote_addr):
-        return jsonify({"error": "Too many requests."}), 429
-
-    data = request.get_json(silent=True)
-    if not data:
-        return jsonify({"error": "Missing JSON body"}), 400
-    username = data.get("username", "").strip().lower()
-    country = data.get("country", "").strip().upper()
-    key = data.get("key", "")
-    if not username or not country:
-        return jsonify({"error": "Both 'username' and 'country' are required"}), 400
-    if not all(c.isalnum() or c in "_-" for c in username):
-        return jsonify({"error": "Invalid username"}), 400
-    if not (len(country) == 2 and country.isalpha()):
-        return jsonify({"error": "Invalid country"}), 400
-    if not _valid_key(key):
-        return jsonify({"error": "Missing or invalid device key"}), 400
-
-    ok, err = _authorize_owner(username, key)
-    if not ok:
-        return err
-
-    leaderboard.update_country(username, country)
-    log.info("Country set: %s -> %s", username, country)
-    return jsonify({"ok": True, "username": username, "country": country})
+# NOTE: there is intentionally no endpoint to set a country. Country is derived
+# only from the scraped Letterboxd location (see /api/rank), so it can't be
+# spoofed for yourself or anyone else.
 
 
 # ---------------------------------------------------------------------------

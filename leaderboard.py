@@ -44,6 +44,7 @@ def init_db() -> None:
                     x_handle        TEXT DEFAULT NULL,
                     avatar_url      TEXT DEFAULT NULL,
                     country         TEXT DEFAULT NULL,
+                    location        TEXT DEFAULT NULL,
                     owner_key       TEXT DEFAULT NULL,
                     created_at      TEXT NOT NULL DEFAULT '',
                     last_updated    TEXT NOT NULL
@@ -63,11 +64,25 @@ def init_db() -> None:
                 pass
             try:
                 # owner_key: a hash of the device key that "claimed" this account.
-                # Once set, only that device may change the account's country / X handle.
+                # Once set, only that device may change the account's X handle.
                 conn.execute("ALTER TABLE rankings ADD COLUMN owner_key TEXT DEFAULT NULL")
             except sqlite3.OperationalError:
                 pass
+            try:
+                # location: the raw free-text location scraped from the profile
+                # (the country is derived from it by geocoding).
+                conn.execute("ALTER TABLE rankings ADD COLUMN location TEXT DEFAULT NULL")
+            except sqlite3.OperationalError:
+                pass
             conn.execute("CREATE INDEX IF NOT EXISTS idx_rankings_score ON rankings (score DESC)")
+            # Persistent geocoding cache: free-text location -> ISO-2 country
+            # ('' = resolved to no country). Keeps us well within Nominatim limits.
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS geocode_cache (
+                    q       TEXT PRIMARY KEY,
+                    country TEXT
+                )
+            """)
             conn.commit()
         finally:
             conn.close()
@@ -84,18 +99,27 @@ def save_ranking(username: str, stats: Dict, rank_info: Dict) -> None:
     with _db_lock:
         conn = _get_connection()
         try:
-            # Check if user exists to preserve created_at
-            row = conn.execute("SELECT created_at, country, x_handle FROM rankings WHERE username = ?", (username.lower(),)).fetchone()
+            # Check if user exists to preserve created_at / claim / last-known country
+            row = conn.execute("SELECT created_at, country, location, owner_key, x_handle FROM rankings WHERE username = ?", (username.lower(),)).fetchone()
             created_at = row["created_at"] if row and row["created_at"] else now
-            country = row["country"] if row and "country" in row.keys() else None
+            prev_country = row["country"] if row and "country" in row.keys() else None
+            prev_location = row["location"] if row and "location" in row.keys() else None
+            owner_key = row["owner_key"] if row and "owner_key" in row.keys() else None
             x_handle = row["x_handle"] if row and "x_handle" in row.keys() else None
+
+            # Country is derived from the scraped location (see geo.location_to_country,
+            # done by the caller and passed in stats["country"]). Keep the previous
+            # value if this scrape didn't resolve one, so a transient geocode miss
+            # never wipes a known-good country.
+            location = stats.get("location") if stats.get("location") is not None else prev_location
+            country = stats.get("country") or prev_country
 
             conn.execute("""
                 INSERT OR REPLACE INTO rankings (
                     username, score, tier, division, lp,
                     films_watched, avg_rating, reviews_count, lists_count, followers,
-                    this_year_count, avatar_url, country, x_handle, taste_profile, created_at, last_updated
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    this_year_count, avatar_url, country, location, owner_key, x_handle, taste_profile, created_at, last_updated
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 username.lower(),
                 rank_info.get("score", 0),
@@ -110,6 +134,8 @@ def save_ranking(username: str, stats: Dict, rank_info: Dict) -> None:
                 stats.get("this_year_count", 0),
                 stats.get("avatar_url", ""),
                 country,
+                location,
+                owner_key,
                 x_handle,
                 taste_profile,
                 created_at,
@@ -253,5 +279,28 @@ def claim_owner(username: str, key_hash: str) -> bool:
                 (key_hash, username.lower()))
             conn.commit()
             return cur.rowcount > 0
+        finally:
+            conn.close()
+
+# ---------------------------------------------------------------------------
+# Geocoding cache (see geo.py) — free-text location string -> ISO-2 country.
+# Returns None when the string has never been looked up; returns '' when it was
+# looked up and resolved to no country (so we don't re-hit Nominatim for it).
+# ---------------------------------------------------------------------------
+def geocode_cache_get(q: str) -> Optional[str]:
+    conn = _get_connection()
+    try:
+        row = conn.execute("SELECT country FROM geocode_cache WHERE q = ?", (q,)).fetchone()
+        return row["country"] if row else None
+    finally:
+        conn.close()
+
+def geocode_cache_set(q: str, country: str) -> None:
+    with _db_lock:
+        conn = _get_connection()
+        try:
+            conn.execute("INSERT OR REPLACE INTO geocode_cache (q, country) VALUES (?, ?)",
+                         (q, country or ""))
+            conn.commit()
         finally:
             conn.close()

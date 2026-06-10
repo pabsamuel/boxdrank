@@ -94,7 +94,21 @@ def get_user_stats(username: str, force: bool = False) -> Optional[Dict]:
         "fav_directors": [],
         "fav_genres": [],
         "avatar_url": "",
+        "location": "",
     }
+
+    # --- Location (free-text, from the profile metadata block) ---
+    # The location is the <div class="metadatum"> (link metadata like website /
+    # twitter are <a> tags, so we only take the non-link one).
+    meta_block = soup.find("div", class_=re.compile(r"profile-metadata"))
+    if meta_block:
+        for md in meta_block.find_all("div", class_=re.compile(r"metadatum")):
+            label = md.find("span", class_="label")
+            if label:
+                txt = label.get_text(" ", strip=True)
+                if txt:
+                    data["location"] = txt[:120]
+                    break
 
     # --- Avatar / Profile Photo (from og:image) ---
     og_img = soup.find("meta", property="og:image")

@@ -287,6 +287,11 @@
   .hero-reminder { margin-top:18px; font-size:13.5px; color:var(--ink-2); display:inline-flex; align-items:center; gap:9px; padding:10px 15px; border:1px solid rgba(0,224,84,0.28); background:rgba(0,224,84,0.07); border-radius:10px; }
   .hero-reminder svg { flex-shrink:0; color:var(--brand); }
   .hero-reminder b { color:var(--brand); font-weight:700; }
+  .hero-loc-note { margin-top:14px; font-size:12.5px; color:var(--ink-3); display:inline-flex; align-items:flex-start; gap:9px; padding:10px 14px; border:1px solid var(--line-2); background:var(--panel); border-radius:10px; max-width:560px; line-height:1.5; }
+  .hero-loc-note svg { flex-shrink:0; margin-top:1px; color:var(--ink-3); }
+  .hero-loc-note b { color:var(--ink-2); font-weight:700; } .hero-loc-note i { font-style:italic; color:var(--ink-2); }
+  .nudge.loc-warn { border-color:rgba(245,176,65,0.38); background:linear-gradient(180deg, rgba(245,176,65,0.10), rgba(245,176,65,0.03)); }
+  .nudge.loc-warn b { color:#f5b041; } .nudge.loc-warn .ic { color:#f5b041; }
 
   footer.site { border-top:1px solid var(--line); padding:46px 0 60px; margin-top:20px; }
   .foot-inner { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:18px; }
@@ -385,13 +390,8 @@
             Find your rank
           </button>
         </form>
-        <div class="hero-options">
-          <div class="country-shell">
-            <select id="heroCountry" aria-label="Country (optional)"></select>
-            <svg class="caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-          </div>
-        </div>
         <div class="hero-err" id="heroErr"></div>
+        <div class="hero-loc-note"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg><span>Want on your <b>country's</b> leaderboard? Add a real location (e.g. <i>London</i>) to your Letterboxd profile — we read it automatically.</span></div>
         <div class="hero-note">
           <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Free &amp; instant</span>
           <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> No login required</span>
@@ -566,13 +566,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const you = t===cur ? '<span class="you-tag" style="position:absolute;top:7px;right:7px;font-size:8.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgb(var(--c));background:rgba(var(--c),.16);padding:2px 5px;border-radius:4px">You</span>' : '';
     return `<div class="tier-chip" style="--c:var(--${t.toLowerCase()})">${you}<div class="dot"></div><div class="nm">${t}</div><div class="sc">${TIER_MIN[t]}+</div></div>`;
   }).join('');
-  // country selects
+  // leaderboard country filter (browsing only — your own country is scraped)
   const opts = '<option value="">All countries</option>' + COUNTRIES.map(([c,n])=>`<option value="${c}">${esc(n)} ${countryFlag(c)}</option>`).join('');
   document.getElementById('lbCountry').innerHTML = opts;
-  document.getElementById('heroCountry').innerHTML = '<option value="">Select your country…</option>' + COUNTRIES.map(([c,n])=>`<option value="${c}">${esc(n)} ${countryFlag(c)}</option>`).join('');
-  getKey();   // make sure this browser has a device key
-  // pre-fill the country picker from the visitor's IP (best-effort, no friction)
-  (async()=>{ try{ const r=await fetch('/api/whereami'); if(r.ok){ const d=await r.json(); const sel=document.getElementById('heroCountry'); if(d.country && !sel.value && [...sel.options].some(o=>o.value===d.country)) sel.value=d.country; } }catch(e){} })();
+  getKey();   // make sure this browser has a device key (used for linking X)
   // tier filter chips
   document.getElementById('lbChips').innerHTML =
     `<button class="fchip active" onclick="filterTier(null,this)">All tiers</button>` +
@@ -596,11 +593,9 @@ async function startLookup(){
   showErr('');
   if(!u){ showErr('Enter your Letterboxd username.'); return; }
   if(!/^[a-zA-Z0-9_-]+$/.test(u)){ showErr('Letters, numbers, underscores and hyphens only.'); return; }
-  // "Mine" = my first lookup, or re-looking-up the account I've already claimed.
-  // Looking up anyone else is view-only and never touches their country.
+  // First lookup = "you" (drives the "you are here" banner). Country is no
+  // longer chosen here — it's read from your Letterboxd profile location.
   const isMine = !myUsername || u.toLowerCase()===myUsername.toLowerCase();
-  const country = document.getElementById('heroCountry').value || '';
-  if(isMine && !country){ showErr('Please select your country to join the rankings.'); document.getElementById('heroCountry').focus(); return; }
   const btn=document.getElementById('findBtn'); btn.disabled=true;
   showScrimLoading(u);
   try{
@@ -608,20 +603,7 @@ async function startLookup(){
     const d = await r.json();
     if(!r.ok) throw new Error(d.error || 'Could not fetch that profile.');
     curData=d; curUser=u;
-    if(isMine){
-      setMyUsername(u);
-      if(country){
-        try{
-          const cr=await fetch('/api/country',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,country,key:getKey()})});
-          if(cr.status===403){ toast('That account is already linked to another device.'); }
-          else if(cr.ok){
-            if(d.stats) d.stats.country=country;
-            // re-fetch (cached) so the response now includes the user's country rank
-            try{ const r2=await fetch(`/api/rank/${encodeURIComponent(u)}?cached=true`); if(r2.ok){ const d2=await r2.json(); if(!d2.error) curData=d2; } }catch(e){}
-          }
-        }catch(e){}
-      }
-    }
+    if(isMine) setMyUsername(u);
     fromLB=false;   // this is the visitor's own lookup -> show the rank reveal
     fetchLB();      // refresh the board so the user's updated row + "you are here" banner appear
     playReveal(curData);
@@ -737,6 +719,7 @@ function buildResultHTML(d, uname, isProfile){
         <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">${countryBadge}${posBadge}</div>
       </div>
       ${!isProfile ? `<div class="nudge"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span><span>Logged new films or reviews? <b>Connect again</b> any time to update your rank and climb the leaderboard.</span></div>` : ''}
+      ${(isYou && !ccode) ? `<div class="nudge loc-warn"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg></span><span>${(s.location||d.location)?`We couldn't match your location <b>"${esc(s.location||d.location)}"</b> to a country.`:`No location on your Letterboxd profile yet.`} Add a real city/country there, then hit <b>↻ Refresh stats</b> to join your country's leaderboard.</span></div>` : ''}
       <div class="result-layout">
         <div class="card rank-card">
           <span class="top-rule"></span>
@@ -764,11 +747,9 @@ function buildResultHTML(d, uname, isProfile){
           <div class="extras">
             <span class="mini" onclick="refreshMyRank()">↻ Refresh stats</span>
             ${s.x_handle?`<a class="mini" href="https://x.com/${esc(s.x_handle)}" target="_blank" rel="noopener">𝕏 @${esc(s.x_handle)}</a>`:`<span class="mini" onclick="toggleCX()">𝕏 Connect your X</span>`}
-            ${isYou?`<span class="mini" onclick="toggleCountryEdit()">🌍 Change country</span>`:''}
             <span class="mini" onclick="searchAnother()">Search another</span>
           </div>
           <div class="cx-form" id="cxForm"><input id="cxInput" type="text" placeholder="X handle (no @)" /><button onclick="saveCX()">Link</button></div>
-          ${isYou?`<div class="cx-form" id="ctryForm"><select id="ctryEdit" aria-label="Change country"></select><button onclick="saveCountry()">Save</button></div>`:''}
           `}
         </div>
 
@@ -808,9 +789,6 @@ async function downloadCardFor(u){ toast('Generating card…'); try{ const r=awa
 function downloadCard(){ return downloadCardFor(curUser); }
 function toggleCX(){ const f=document.getElementById('cxForm'); f.classList.toggle('show'); if(f.classList.contains('show')) document.getElementById('cxInput').focus(); }
 async function saveCX(){ const h=document.getElementById('cxInput').value.trim().replace(/^@/,''); if(!h||!curUser) return; if(!/^[a-zA-Z0-9_]+$/.test(h)||h.length>15){ toast('Invalid X handle'); return; } try{ const r=await fetch('/api/connect-x',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:curUser,x_handle:h,key:getKey()})}); if(r.status===403){ toast('This account is linked to another device.'); return; } if(!r.ok) throw new Error(); if(curData.stats) curData.stats.x_handle=h; toast('X linked!'); renderResult(curData); setTimeout(()=>document.querySelectorAll('#resultContent .pbar>i,#resultContent .track>i').forEach(b=>{if(b.dataset.w)b.style.width=b.dataset.w+'%';}),100); }catch(e){ toast('Failed to link'); } }
-/* owner-only: fix a wrong country on your own claimed account */
-function toggleCountryEdit(){ const f=document.getElementById('ctryForm'); if(!f) return; const sel=document.getElementById('ctryEdit'); if(sel && !sel.options.length){ sel.innerHTML = COUNTRIES.map(([c,n])=>`<option value="${c}">${esc(n)} ${countryFlag(c)}</option>`).join(''); } const cur=(curData&&((curData.stats&&curData.stats.country)||curData.country))||''; if(cur && sel) sel.value=cur; f.classList.toggle('show'); }
-async function saveCountry(){ if(!curUser) return; const c=document.getElementById('ctryEdit').value; if(!c) return; try{ const r=await fetch('/api/country',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:curUser,country:c,key:getKey()})}); if(r.status===403){ toast('This account is linked to another device.'); return; } if(!r.ok) throw new Error(); const r2=await fetch(`/api/rank/${encodeURIComponent(curUser)}?cached=true`); if(r2.ok){ const d2=await r2.json(); if(!d2.error){ curData=d2; renderResult(d2); setTimeout(()=>document.querySelectorAll('#resultContent .pbar>i,#resultContent .track>i').forEach(b=>{if(b.dataset.w)b.style.width=b.dataset.w+'%';}),100); } } toast('Country updated!'); fetchLB(); }catch(e){ toast('Could not update'); } }
 function searchAnother(){ goHome(); setTimeout(()=>document.getElementById('usernameInput').focus(),400); }
 async function refreshMyRank(){
   if(!curUser) return;
