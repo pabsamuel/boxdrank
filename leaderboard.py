@@ -44,6 +44,7 @@ def init_db() -> None:
                     x_handle        TEXT DEFAULT NULL,
                     avatar_url      TEXT DEFAULT NULL,
                     country         TEXT DEFAULT NULL,
+                    owner_key       TEXT DEFAULT NULL,
                     created_at      TEXT NOT NULL DEFAULT '',
                     last_updated    TEXT NOT NULL
                 )
@@ -58,6 +59,12 @@ def init_db() -> None:
                 pass
             try:
                 conn.execute("ALTER TABLE rankings ADD COLUMN taste_profile TEXT DEFAULT NULL")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                # owner_key: a hash of the device key that "claimed" this account.
+                # Once set, only that device may change the account's country / X handle.
+                conn.execute("ALTER TABLE rankings ADD COLUMN owner_key TEXT DEFAULT NULL")
             except sqlite3.OperationalError:
                 pass
             conn.execute("CREATE INDEX IF NOT EXISTS idx_rankings_score ON rankings (score DESC)")
@@ -215,3 +222,36 @@ def get_leaderboard_by_country(country: str, limit: int = 100, offset: int = 0) 
         return [dict(row) for row in rows]
     finally:
         conn.close()
+
+# ---------------------------------------------------------------------------
+# Account ownership — a lightweight "this device owns this account" model.
+# A browser generates a random key, sends it (we store only its hash). The
+# first device to set a country/X handle for an account claims it; afterwards
+# only that device may change those fields. No login required.
+# ---------------------------------------------------------------------------
+def get_owner_info(username: str) -> Optional[Dict]:
+    """Return {'owner_key', 'country'} for a username, or None if the account
+    isn't in the leaderboard yet."""
+    conn = _get_connection()
+    try:
+        row = conn.execute("SELECT owner_key, country FROM rankings WHERE username = ?",
+                           (username.lower(),)).fetchone()
+        if not row:
+            return None
+        return {"owner_key": row["owner_key"], "country": row["country"]}
+    finally:
+        conn.close()
+
+def claim_owner(username: str, key_hash: str) -> bool:
+    """Atomically claim an account for a device, but only if it's still
+    unclaimed. Returns True if this call performed the claim."""
+    with _db_lock:
+        conn = _get_connection()
+        try:
+            cur = conn.execute(
+                "UPDATE rankings SET owner_key = ? WHERE username = ? AND owner_key IS NULL",
+                (key_hash, username.lower()))
+            conn.commit()
+            return cur.rowcount > 0
+        finally:
+            conn.close()

@@ -510,6 +510,13 @@ const COUNTRIES = [["AF","Afghanistan"],["AL","Albania"],["DZ","Algeria"],["AD",
 function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'):'';}
 function countryFlag(code){ if(!code||code.length!==2) return ''; const A=0x1F1E6; try{ return String.fromCodePoint(...[...code.toUpperCase()].map(c=>A+c.charCodeAt(0)-65)); }catch(e){ return ''; } }
 function countryName(code){ const f=COUNTRIES.find(c=>c[0]===code); return f?f[1]:code; }
+/* device key — a random per-browser token that "owns" the accounts it claims.
+   We send it when setting a country / linking X; the server stores only its hash. */
+function getKey(){ let k=null; try{ k=localStorage.getItem('boxdrank_key'); }catch(e){}
+  if(!k){ try{ k=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():null; }catch(e){}
+    if(!k) k='k'+Math.random().toString(36).slice(2)+Date.now().toString(36);
+    try{ localStorage.setItem('boxdrank_key',k); }catch(e){} }
+  return k; }
 function fmt(n){ const x=Number(n); return isNaN(x)?'0':x.toLocaleString('en-US'); }
 function tierRGB(t){ return TIER_RGB[t]||TIER_RGB.Iron; }
 function mix(a,b,f){ return [Math.round(a[0]+(b[0]-a[0])*f),Math.round(a[1]+(b[1]-a[1])*f),Math.round(a[2]+(b[2]-a[2])*f)]; }
@@ -563,6 +570,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const opts = '<option value="">All countries</option>' + COUNTRIES.map(([c,n])=>`<option value="${c}">${esc(n)} ${countryFlag(c)}</option>`).join('');
   document.getElementById('lbCountry').innerHTML = opts;
   document.getElementById('heroCountry').innerHTML = '<option value="">Select your country…</option>' + COUNTRIES.map(([c,n])=>`<option value="${c}">${esc(n)} ${countryFlag(c)}</option>`).join('');
+  getKey();   // make sure this browser has a device key
+  // pre-fill the country picker from the visitor's IP (best-effort, no friction)
+  (async()=>{ try{ const r=await fetch('/api/whereami'); if(r.ok){ const d=await r.json(); const sel=document.getElementById('heroCountry'); if(d.country && !sel.value && [...sel.options].some(o=>o.value===d.country)) sel.value=d.country; } }catch(e){} })();
   // tier filter chips
   document.getElementById('lbChips').innerHTML =
     `<button class="fchip active" onclick="filterTier(null,this)">All tiers</button>` +
@@ -586,20 +596,31 @@ async function startLookup(){
   showErr('');
   if(!u){ showErr('Enter your Letterboxd username.'); return; }
   if(!/^[a-zA-Z0-9_-]+$/.test(u)){ showErr('Letters, numbers, underscores and hyphens only.'); return; }
+  // "Mine" = my first lookup, or re-looking-up the account I've already claimed.
+  // Looking up anyone else is view-only and never touches their country.
+  const isMine = !myUsername || u.toLowerCase()===myUsername.toLowerCase();
   const country = document.getElementById('heroCountry').value || '';
-  if(!country){ showErr('Please select your country to join the rankings.'); document.getElementById('heroCountry').focus(); return; }
+  if(isMine && !country){ showErr('Please select your country to join the rankings.'); document.getElementById('heroCountry').focus(); return; }
   const btn=document.getElementById('findBtn'); btn.disabled=true;
   showScrimLoading(u);
   try{
     const r = await fetch(`/api/rank/${encodeURIComponent(u)}`);
     const d = await r.json();
     if(!r.ok) throw new Error(d.error || 'Could not fetch that profile.');
-    curData=d; curUser=u; setMyUsername(u);
-    if(country){
-      try{ await fetch('/api/country',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,country})}); }catch(e){}
-      if(d.stats) d.stats.country=country;
-      // re-fetch (cached) so the response now includes the user's country rank
-      try{ const r2=await fetch(`/api/rank/${encodeURIComponent(u)}?cached=true`); if(r2.ok){ const d2=await r2.json(); if(!d2.error) curData=d2; } }catch(e){}
+    curData=d; curUser=u;
+    if(isMine){
+      setMyUsername(u);
+      if(country){
+        try{
+          const cr=await fetch('/api/country',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,country,key:getKey()})});
+          if(cr.status===403){ toast('That account is already linked to another device.'); }
+          else if(cr.ok){
+            if(d.stats) d.stats.country=country;
+            // re-fetch (cached) so the response now includes the user's country rank
+            try{ const r2=await fetch(`/api/rank/${encodeURIComponent(u)}?cached=true`); if(r2.ok){ const d2=await r2.json(); if(!d2.error) curData=d2; } }catch(e){}
+          }
+        }catch(e){}
+      }
     }
     fromLB=false;   // this is the visitor's own lookup -> show the rank reveal
     fetchLB();      // refresh the board so the user's updated row + "you are here" banner appear
@@ -655,6 +676,7 @@ function dismissReveal(){
 
 /* ===================== result render ===================== */
 function buildResultHTML(d, uname, isProfile){
+  const isYou = !isProfile && myUsername && uname && uname.toLowerCase()===myUsername.toLowerCase();
   const s=d.stats||{}, rk=d.rank||{}, c=tierRGB(rk.tier);
   const acc=c.join(',');
   const nr=d.next_rank||{}, title=d.rank_title||'', pos=d.lb_position, total=d.total_users||totalUsers;
@@ -742,9 +764,11 @@ function buildResultHTML(d, uname, isProfile){
           <div class="extras">
             <span class="mini" onclick="refreshMyRank()">↻ Refresh stats</span>
             ${s.x_handle?`<a class="mini" href="https://x.com/${esc(s.x_handle)}" target="_blank" rel="noopener">𝕏 @${esc(s.x_handle)}</a>`:`<span class="mini" onclick="toggleCX()">𝕏 Connect your X</span>`}
+            ${isYou?`<span class="mini" onclick="toggleCountryEdit()">🌍 Change country</span>`:''}
             <span class="mini" onclick="searchAnother()">Search another</span>
           </div>
           <div class="cx-form" id="cxForm"><input id="cxInput" type="text" placeholder="X handle (no @)" /><button onclick="saveCX()">Link</button></div>
+          ${isYou?`<div class="cx-form" id="ctryForm"><select id="ctryEdit" aria-label="Change country"></select><button onclick="saveCountry()">Save</button></div>`:''}
           `}
         </div>
 
@@ -783,7 +807,10 @@ function copyShare(){ const t=shareText(); (navigator.clipboard?navigator.clipbo
 async function downloadCardFor(u){ toast('Generating card…'); try{ const r=await fetch(`/api/card/${encodeURIComponent(u)}`); if(!r.ok) throw new Error(); const b=await r.blob(); const url=URL.createObjectURL(b); const a=document.createElement('a'); a.href=url; a.download=`boxdrank_${u}.png`; a.click(); URL.revokeObjectURL(url); toast('Card downloaded!'); }catch(e){ toast('Card failed'); } }
 function downloadCard(){ return downloadCardFor(curUser); }
 function toggleCX(){ const f=document.getElementById('cxForm'); f.classList.toggle('show'); if(f.classList.contains('show')) document.getElementById('cxInput').focus(); }
-async function saveCX(){ const h=document.getElementById('cxInput').value.trim().replace(/^@/,''); if(!h||!curUser) return; if(!/^[a-zA-Z0-9_]+$/.test(h)||h.length>15){ toast('Invalid X handle'); return; } try{ const r=await fetch('/api/connect-x',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:curUser,x_handle:h})}); if(!r.ok) throw new Error(); if(curData.stats) curData.stats.x_handle=h; toast('X linked!'); renderResult(curData); setTimeout(()=>document.querySelectorAll('#resultContent .pbar>i,#resultContent .track>i').forEach(b=>{if(b.dataset.w)b.style.width=b.dataset.w+'%';}),100); }catch(e){ toast('Failed to link'); } }
+async function saveCX(){ const h=document.getElementById('cxInput').value.trim().replace(/^@/,''); if(!h||!curUser) return; if(!/^[a-zA-Z0-9_]+$/.test(h)||h.length>15){ toast('Invalid X handle'); return; } try{ const r=await fetch('/api/connect-x',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:curUser,x_handle:h,key:getKey()})}); if(r.status===403){ toast('This account is linked to another device.'); return; } if(!r.ok) throw new Error(); if(curData.stats) curData.stats.x_handle=h; toast('X linked!'); renderResult(curData); setTimeout(()=>document.querySelectorAll('#resultContent .pbar>i,#resultContent .track>i').forEach(b=>{if(b.dataset.w)b.style.width=b.dataset.w+'%';}),100); }catch(e){ toast('Failed to link'); } }
+/* owner-only: fix a wrong country on your own claimed account */
+function toggleCountryEdit(){ const f=document.getElementById('ctryForm'); if(!f) return; const sel=document.getElementById('ctryEdit'); if(sel && !sel.options.length){ sel.innerHTML = COUNTRIES.map(([c,n])=>`<option value="${c}">${esc(n)} ${countryFlag(c)}</option>`).join(''); } const cur=(curData&&((curData.stats&&curData.stats.country)||curData.country))||''; if(cur && sel) sel.value=cur; f.classList.toggle('show'); }
+async function saveCountry(){ if(!curUser) return; const c=document.getElementById('ctryEdit').value; if(!c) return; try{ const r=await fetch('/api/country',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:curUser,country:c,key:getKey()})}); if(r.status===403){ toast('This account is linked to another device.'); return; } if(!r.ok) throw new Error(); const r2=await fetch(`/api/rank/${encodeURIComponent(curUser)}?cached=true`); if(r2.ok){ const d2=await r2.json(); if(!d2.error){ curData=d2; renderResult(d2); setTimeout(()=>document.querySelectorAll('#resultContent .pbar>i,#resultContent .track>i').forEach(b=>{if(b.dataset.w)b.style.width=b.dataset.w+'%';}),100); } } toast('Country updated!'); fetchLB(); }catch(e){ toast('Could not update'); } }
 function searchAnother(){ goHome(); setTimeout(()=>document.getElementById('usernameInput').focus(),400); }
 async function refreshMyRank(){
   if(!curUser) return;

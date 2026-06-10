@@ -5,6 +5,7 @@ Flask web app — production-ready
 import os
 import io
 import time
+import hashlib
 import logging
 import threading
 from datetime import datetime, timezone, timedelta
@@ -69,6 +70,50 @@ def _validate_username(username: str):
     if not all(c.isalnum() or c in "_-" for c in clean):
         return None, (jsonify({"error": "Username contains invalid characters"}), 400)
     return clean, None
+
+
+# ---------------------------------------------------------------------------
+# Account ownership helpers — see leaderboard.claim_owner. A browser sends a
+# random device key; we store only its hash. The first device to set a
+# country / X handle claims the account; afterwards only that device can edit.
+# ---------------------------------------------------------------------------
+def _hash_key(key: str) -> str:
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()
+
+
+def _valid_key(key) -> bool:
+    return isinstance(key, str) and 8 <= len(key) <= 200 and all(
+        c.isalnum() or c in "-_" for c in key)
+
+
+def _client_country():
+    """Best-effort ISO-2 country code from an upstream proxy (Cloudflare sets
+    CF-IPCountry for free). Returns None when unknown / behind no proxy."""
+    code = (request.headers.get("CF-IPCountry") or "").strip().upper()
+    if len(code) == 2 and code.isalpha() and code not in ("XX", "T1"):
+        return code
+    return None
+
+
+def _authorize_owner(username: str, key: str):
+    """Ensure this device key owns the account, claiming it if it's still
+    unclaimed. Returns (ok: bool, error_tuple_or_None)."""
+    info = leaderboard.get_owner_info(username)
+    if info is None:
+        return False, (jsonify({"error": "Look up your rank first."}), 404)
+    key_hash = _hash_key(key)
+    owner = info.get("owner_key")
+    if owner is None:
+        # Unclaimed — this device claims it (atomic; safe under a race).
+        leaderboard.claim_owner(username, key_hash)
+        info = leaderboard.get_owner_info(username)
+        owner = info.get("owner_key") if info else None
+    if owner != key_hash:
+        return False, (jsonify({
+            "error": "This account is already linked to another device.",
+            "claimed": True,
+        }), 403)
+    return True, None
 
 
 # ---------------------------------------------------------------------------
@@ -355,6 +400,7 @@ def api_connect_x():
 
     username = data.get("username", "").strip().lower()
     x_handle = data.get("x_handle", "").strip().lstrip("@")
+    key = data.get("key", "")
 
     if not username or not x_handle:
         return jsonify({"error": "Both 'username' and 'x_handle' are required"}), 400
@@ -368,10 +414,14 @@ def api_connect_x():
     if len(x_handle) > 15:
         return jsonify({"error": "X handle too long"}), 400
 
-    # Only allow linking if user exists in leaderboard (they must check rank first)
-    user_entry = leaderboard.get_user_position(username)
-    if not user_entry:
-        return jsonify({"error": "Check your rank first before linking X"}), 400
+    if not _valid_key(key):
+        return jsonify({"error": "Missing or invalid device key"}), 400
+
+    # Must exist in the leaderboard AND be owned by this device (claims if
+    # still unclaimed) — you can't link X to someone else's account.
+    ok, err = _authorize_owner(username, key)
+    if not ok:
+        return err
 
     leaderboard.update_x_handle(username, x_handle)
     log.info("X linked: %s -> @%s", username, x_handle)
@@ -382,15 +432,36 @@ def api_connect_x():
 # Entry point
 # ---------------------------------------------------------------------------
 
+@app.route("/api/whereami")
+def api_whereami():
+    """Best-effort country of the visitor (for pre-filling the picker)."""
+    return jsonify({"country": _client_country()})
+
+
 @app.route("/api/country", methods=["POST"])
 def api_set_country():
-    data = request.get_json()
+    if _is_rate_limited(request.remote_addr):
+        return jsonify({"error": "Too many requests."}), 429
+
+    data = request.get_json(silent=True)
     if not data:
         return jsonify({"error": "Missing JSON body"}), 400
     username = data.get("username", "").strip().lower()
-    country = data.get("country", "").strip()
+    country = data.get("country", "").strip().upper()
+    key = data.get("key", "")
     if not username or not country:
         return jsonify({"error": "Both 'username' and 'country' are required"}), 400
+    if not all(c.isalnum() or c in "_-" for c in username):
+        return jsonify({"error": "Invalid username"}), 400
+    if not (len(country) == 2 and country.isalpha()):
+        return jsonify({"error": "Invalid country"}), 400
+    if not _valid_key(key):
+        return jsonify({"error": "Missing or invalid device key"}), 400
+
+    ok, err = _authorize_owner(username, key)
+    if not ok:
+        return err
+
     leaderboard.update_country(username, country)
     log.info("Country set: %s -> %s", username, country)
     return jsonify({"ok": True, "username": username, "country": country})
