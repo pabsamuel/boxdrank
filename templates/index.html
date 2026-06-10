@@ -723,7 +723,7 @@ function buildResultHTML(d, uname, isProfile){
 
   return `
     <div style="--accent:${acc}">
-      <div class="section-kicker"><span class="num">★</span><span class="dash"></span> ${isProfile?'Viewing profile':'Your result'}</div>
+      <div class="section-kicker"><span class="num">★</span><span class="dash"></span> ${isYou?'Your result':'Viewing profile'}</div>
       <div class="result-head">
         <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
           ${avatar}
@@ -731,12 +731,12 @@ function buildResultHTML(d, uname, isProfile){
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">${countryBadge}${posBadge}</div>
       </div>
-      ${!isProfile ? `<div class="nudge"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span><span>Logged new films or reviews? <b>Connect again</b> any time to update your rank and climb the leaderboard.</span></div>` : ''}
+      ${isYou ? `<div class="nudge"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span><span>Logged new films or reviews? <b>Connect again</b> any time to update your rank and climb the leaderboard.</span></div>` : ''}
       ${(isYou && !ccode) ? `<div class="nudge loc-warn"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg></span><span>${(s.location||d.location)?`We couldn't match your location <b>"${esc(s.location||d.location)}"</b> to a country.`:`No location on your Letterboxd profile yet.`} Add a real city/country there, then hit <b>↻ Refresh stats</b> to join your country's leaderboard.</span></div>` : ''}
       <div class="result-layout">
         <div class="card rank-card">
           <span class="top-rule"></span>
-          <div class="eyebrow">BOXDRANK <span class="muted">· ${isProfile?'CINEPHILE PROFILE':'YOUR RANK'}</span></div>
+          <div class="eyebrow">BOXDRANK <span class="muted">· ${isYou?'YOUR RANK':'CINEPHILE PROFILE'}</span></div>
           <div class="rank-emblem-wrap">${emblemSVG(rk.tier,148)}</div>
           <div class="tier-big" style="font-size:${(rk.tier||'').length<=7?46:(rk.tier||'').length<=9?38:31}px">${esc((rk.tier||'').toUpperCase())}</div>
           <div class="div-lp">${rk.division?`<span class="division-pill">Division ${esc(rk.division)}</span>`:''}<span class="lp-pill"><b>${rk.lp||0}</b> LP</span></div>
@@ -746,12 +746,7 @@ function buildResultHTML(d, uname, isProfile){
             <div class="m"><div class="num">Top ${topPct}%</div><div class="lbl">Globally</div></div>
           </div>
           ${nextHTML}
-          ${isProfile ? `
-          <div class="share-row" style="grid-template-columns:1fr 1fr">
-            <button class="share-btn ghost" onclick="downloadCardFor('${esc(uname)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Card</button>
-            <button class="share-btn ghost" onclick="closeProfileModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back to leaderboard</button>
-          </div>
-          ` : `
+          ${isYou ? `
           <div class="share-row">
             <button class="share-btn x" onclick="shareX()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z"/></svg>Share on X</button>
             <button class="share-btn ghost" onclick="copyShare()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button>
@@ -763,6 +758,14 @@ function buildResultHTML(d, uname, isProfile){
             <span class="mini" onclick="searchAnother()">Search another</span>
           </div>
           <div class="cx-form" id="cxForm"><input id="cxInput" type="text" placeholder="X handle (no @)" /><button onclick="saveCX()">Link</button></div>
+          ` : isProfile ? `
+          <div class="share-row" style="grid-template-columns:1fr">
+            <button class="share-btn ghost" onclick="closeProfileModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back to leaderboard</button>
+          </div>
+          ` : `
+          <div class="share-row" style="grid-template-columns:1fr">
+            <button class="share-btn x" onclick="focusFind()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>Find your rank</button>
+          </div>
           `}
         </div>
 
