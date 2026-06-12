@@ -357,11 +357,23 @@ def get_user_stats(username: str, force: bool = False) -> Optional[Dict]:
                     if name:
                         local_directors[name] = local_directors.get(name, 0) + weight
 
-                # Actors from film page
+                # Actors from film page. Letterboxd lists the cast in billing
+                # order (leads first), so weight by position: the lead counts
+                # full, supporting cast decays, and bit-part extras past the top
+                # ~12 are ignored. This keeps "top actors" the faces you actually
+                # watch, not whoever happened to fill out the credits.
+                seen_actors = set()
+                billing = 0
                 for a in film_soup.find_all("a", href=re.compile(r"/actor/")):
                     name = a.get_text(strip=True)
-                    if name:
-                        local_actors[name] = local_actors.get(name, 0) + weight
+                    if not name or name in seen_actors:
+                        continue
+                    seen_actors.add(name)
+                    if billing >= 12:
+                        break
+                    cast_weight = max(0.2, 1.0 - 0.08 * billing)   # 1.0 -> 0.2
+                    local_actors[name] = local_actors.get(name, 0) + weight * cast_weight
+                    billing += 1
             except Exception as e:
                 log.debug("Failed film %s: %s", film_link, e)
             return local_genres, local_directors, local_actors

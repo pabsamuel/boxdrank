@@ -220,7 +220,26 @@
   .dir-row .nm { font-size:14px; font-weight:600; color:var(--ink); }
   .dir-row .meta { font-size:11.5px; color:var(--ink-3); margin-top:1px; }
   .dir-row .cnt { margin-left:auto; font-family:"Geist Mono",monospace; font-size:12px; color:var(--ink-3); }
+  /* circular headshot avatar (taste profile + talent boards); falls back to initials */
+  .person-av { width:38px; height:38px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; color:var(--ink-2); background:var(--panel-2,rgba(255,255,255,0.05)); border:1px solid var(--line-2); background-size:cover; background-position:center top; overflow:hidden; }
+  .person-row { display:flex; align-items:center; gap:12px; padding:10px 0; }
+  .person-row + .person-row { border-top:1px solid var(--hair); }
+  .person-row .nm { font-size:14px; font-weight:600; color:var(--ink); }
   .taste-empty { font-size:13px; color:var(--ink-4); font-style:italic; }
+  /* talent leaderboards (top actors / directors) */
+  .talent-grid { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+  @media (max-width:680px){ .talent-grid{ grid-template-columns:1fr; } }
+  .talent-col { border:1px solid var(--line); border-radius:16px; background:rgba(255,255,255,0.012); padding:18px 20px; }
+  .talent-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:6px; }
+  .talent-head h3 { font-size:15px; margin:0; }
+  .talent-head .talent-sub { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-4); }
+  .talent-row { display:flex; align-items:center; gap:12px; padding:11px 0; }
+  .talent-row + .talent-row { border-top:1px solid var(--hair); }
+  .talent-row .rk { width:22px; text-align:center; font-family:"Geist Mono",monospace; font-size:13px; font-weight:600; color:var(--ink-3); flex-shrink:0; }
+  .talent-row .rk.top { color:rgb(var(--accent)); }
+  .talent-row .nm { font-size:14px; font-weight:600; color:var(--ink); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .talent-row .fans { margin-left:auto; font-size:12px; color:var(--ink-3); flex-shrink:0; }
+  .talent-row .fans b { color:var(--ink-2); font-family:"Geist Mono",monospace; }
   .reviews-list { display:flex; flex-direction:column; gap:12px; }
   .review { display:flex; gap:13px; padding:14px 16px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,0.012); }
   .review .rav { width:32px; height:32px; border-radius:9px; flex-shrink:0; object-fit:cover; border:1px solid var(--line-2); background:rgba(var(--accent),0.12); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; color:rgb(var(--accent)); }
@@ -459,6 +478,23 @@
     <div class="lb-foot"><span id="lbFootText"></span><a id="lbMore" style="display:none" onclick="loadMoreLB()">Load more &rarr;</a></div>
   </div>
 </section>
+
+<section class="section" id="talent">
+  <div class="wrap">
+    <div class="section-kicker"><span class="num">★</span><span class="dash"></span> Most-loved talent</div>
+    <div class="result-head" style="margin-bottom:24px"><div><h2>Who cinephiles love most</h2><p class="muted" style="margin:6px 0 0;font-size:13.5px">Ranked by how many BoxdRank users have them among their top — across every connected profile.</p></div></div>
+    <div class="talent-grid">
+      <div class="talent-col">
+        <div class="talent-head"><h3>Top Actors</h3><span class="talent-sub">by fans</span></div>
+        <div class="talent-list" id="actorBoard"><div class="lb-empty">Loading…</div></div>
+      </div>
+      <div class="talent-col">
+        <div class="talent-head"><h3>Top Directors</h3><span class="talent-sub">by fans</span></div>
+        <div class="talent-list" id="directorBoard"><div class="lb-empty">Loading…</div></div>
+      </div>
+    </div>
+  </div>
+</section>
 </main>
 
 <footer class="site">
@@ -574,12 +610,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // tier filter chips
   document.getElementById('lbChips').innerHTML =
     `<button class="fchip active" onclick="filterTier(null,this)">All tiers</button>` +
-    ['Challenger','Grandmaster','Master','Diamond','Emerald','Platinum','Gold'].map(t=>
+    TIER_ORDER.slice().reverse().map(t=>
       `<button class="fchip" style="--c:var(--${t.toLowerCase()})" onclick="filterTier('${t}',this)"><span class="swatch"></span>${t}</button>`).join('');
   // scrim dismiss
   document.getElementById('scrim').addEventListener('click', ()=>{ if(document.getElementById('scrimReveal').style.display!=='none') dismissReveal(); });
   loadLeaderboard();
   loadStats();
+  loadTalent();
   // Landed on a shared link (/u/<username>)? Show that person's rank.
   const sm = location.pathname.match(/^\/u\/([A-Za-z0-9_-]{1,30})\/?$/);
   if(sm){ document.getElementById('usernameInput').value = sm[1]; viewShared(sm[1]); }
@@ -694,6 +731,22 @@ function dismissReveal(){
 }
 
 /* ===================== result render ===================== */
+function personInitials(n){ return (n||'?').split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase()||'?'; }
+function personRowHTML(n){ return `<div class="person-row"><div class="person-av" data-person="${esc(n)}">${esc(personInitials(n))}</div><div class="nm" style="text-transform:none">${esc(n)}</div></div>`; }
+// Fill in TMDB headshots for any .person-av in `scope`, async after render.
+// Names are de-duped; with no TMDB key the endpoint returns nulls and we just
+// keep the initials fallback.
+async function fillPersonImages(scope){
+  const avs = Array.from((scope||document).querySelectorAll('.person-av[data-person]'));
+  const names = [...new Set(avs.map(a=>a.getAttribute('data-person')).filter(Boolean))];
+  if(!names.length) return;
+  try{
+    const r = await fetch('/api/people-images', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({names})});
+    if(!r.ok) return;
+    const imgs = (await r.json()).images || {};
+    avs.forEach(a=>{ const u=imgs[a.getAttribute('data-person')]; if(u){ a.style.backgroundImage=`url("${u.replace(/"/g,'%22')}")`; a.textContent=''; } });
+  }catch(e){}
+}
 function buildResultHTML(d, uname, isProfile){
   const isYou = !!(myUsername && uname && uname.toLowerCase()===myUsername.toLowerCase());
   const s=d.stats||{}, rk=d.rank||{}, c=tierRGB(rk.tier);
@@ -733,8 +786,8 @@ function buildResultHTML(d, uname, isProfile){
 
   const tasteCols = `
     <div class="col"><h4>Top genres</h4><div class="chip-list">${genres.length?genres.map(g=>`<span class="gchip">${esc(g)}</span>`).join(''):'<span class="taste-empty">No genre data yet</span>'}</div>
-    ${actors.length?`<h4 style="margin-top:18px">Top actors</h4><div class="chip-list">${actors.map(a=>`<span class="gchip" style="text-transform:none">${esc(a)}</span>`).join('')}</div>`:''}</div>
-    <div class="col"><h4>Most-watched directors</h4>${directors.length?directors.map(dn=>{const ini=dn.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();return `<div class="dir-row"><div class="av">${esc(ini)}</div><div><div class="nm">${esc(dn)}</div></div></div>`;}).join(''):'<span class="taste-empty">No director data yet</span>'}</div>`;
+    ${actors.length?`<h4 style="margin-top:18px">Top actors</h4>${actors.map(personRowHTML).join('')}`:''}</div>
+    <div class="col"><h4>Most-watched directors</h4>${directors.length?directors.map(personRowHTML).join(''):'<span class="taste-empty">No director data yet</span>'}</div>`;
 
   let reviewsHTML='';
   if(reviews.length){
@@ -819,7 +872,7 @@ function buildResultHTML(d, uname, isProfile){
       </div>
     </div>`;
 }
-function renderResult(d){ document.getElementById('resultContent').innerHTML = buildResultHTML(d, curUser, false); }
+function renderResult(d){ const el=document.getElementById('resultContent'); el.innerHTML = buildResultHTML(d, curUser, false); fillPersonImages(el); }
 
 /* ===================== share ===================== */
 function shareUrl(){ return `${location.origin}/u/${encodeURIComponent(curUser||'')}`; }
@@ -847,6 +900,29 @@ async function refreshMyRank(){
 
 /* ===================== leaderboard ===================== */
 async function loadLeaderboard(){ lbOffset=0; await fetchLB(); }
+
+/* ===================== talent leaderboards ===================== */
+function talentRowHTML(p){
+  const top = p.position<=3;
+  return `<div class="talent-row">
+    <div class="rk${top?' top':''}">${p.position}</div>
+    <div class="person-av" data-person="${esc(p.name)}">${esc(personInitials(p.name))}</div>
+    <div class="nm">${esc(p.name)}</div>
+    <div class="fans"><b>${p.fans}</b> ${p.fans===1?'fan':'fans'}</div>
+  </div>`;
+}
+async function loadTalentBoard(kind, elId){
+  const el=document.getElementById(elId);
+  try{
+    const r=await fetch(`/api/leaderboard/people/${kind}?limit=15`);
+    if(!r.ok) throw new Error();
+    const people=(await r.json()).people||[];
+    if(!people.length){ el.innerHTML='<div class="lb-empty">No data yet — be the first to connect.</div>'; return; }
+    el.innerHTML=people.map(talentRowHTML).join('');
+    fillPersonImages(el);
+  }catch(e){ el.innerHTML='<div class="lb-empty">Couldn’t load.</div>'; }
+}
+function loadTalent(){ loadTalentBoard('actors','actorBoard'); loadTalentBoard('directors','directorBoard'); }
 function filterTier(t,el){ lbTier=t; lbCountry=null; document.getElementById('lbCountry').value=''; document.querySelectorAll('.fchip').forEach(c=>c.classList.remove('active')); if(el) el.classList.add('active'); fetchLB(); }
 function filterCountry(c){ lbCountry=c; lbTier=null; document.querySelectorAll('.fchip').forEach((b,i)=>b.classList.toggle('active',i===0)); fetchLB(); }
 function debounceSearch(){ clearTimeout(searchTO); searchTO=setTimeout(()=>{ const q=document.getElementById('lbSearch').value.trim(); fetchLB(q||null); },380); }
@@ -910,6 +986,7 @@ async function refreshAndViewMe(){
     if(!r.ok) throw new Error(d.error||'Refresh failed');
     viewData=d; viewName=myUsername; curData=d; curUser=myUsername;
     document.getElementById('pmodalContent').innerHTML = buildResultHTML(d, myUsername, true);
+    fillPersonImages(document.getElementById('pmodalContent'));
     openProfileModal();
     setTimeout(()=>{ document.querySelectorAll('#pmodalContent .pbar>i,#pmodalContent .track>i').forEach(b=>{ if(b.dataset.w) b.style.width=b.dataset.w+'%'; }); }, 200);
     fetchLB(); loadStats();
@@ -949,6 +1026,7 @@ async function viewUser(u){
     if(!r.ok) throw new Error(d.error||'Could not load.');
     viewData=d; viewName=u;   // separate state — does NOT touch the visitor's own result
     document.getElementById('pmodalContent').innerHTML = buildResultHTML(d, u, true);
+    fillPersonImages(document.getElementById('pmodalContent'));
     openProfileModal();
     setTimeout(()=>{ document.querySelectorAll('#pmodalContent .pbar>i,#pmodalContent .track>i').forEach(b=>{ if(b.dataset.w) b.style.width=b.dataset.w+'%'; }); }, 200);
   }catch(e){ toast(e.message||'Could not load user'); }

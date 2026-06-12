@@ -17,6 +17,7 @@ from rank_engine import calculate_rank, RANK_COLORS, get_next_rank_info, get_ran
 from image_generator import generate_rank_card
 import leaderboard
 import geo
+import tmdb
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -35,7 +36,7 @@ log = logging.getLogger("boxdrank")
 # Loud warning if a real secret isn't set outside debug (harmless today since we
 # don't use Flask sessions, but a trap if cookie-based auth is ever added).
 if not _SECRET and os.environ.get("FLASK_DEBUG", "").lower() not in ("1", "true"):
-    log.warning("SECRET_KEY not set — using an insecure dev fallback. "
+    log.warning("SECRET_KEY not set - using an insecure dev fallback. "
                 "Set SECRET_KEY in the environment before exposing this publicly.")
 
 # Initialize leaderboard database on startup
@@ -462,6 +463,49 @@ def api_leaderboard_stats():
     resp.headers["Pragma"] = "no-cache"
     resp.headers["Expires"] = "0"
     return resp
+
+
+@app.route("/api/people-images", methods=["POST"])
+def api_people_images():
+    """Batch-resolve TMDB headshots for a list of actor/director names.
+    Returns {name: url_or_null}. Cached per-name in the DB, so repeat views are
+    free; with no TMDB_API_KEY set, every value is null (graceful no-op)."""
+    if _is_rate_limited(request.remote_addr):
+        return jsonify({"error": "Too many requests."}), 429
+    data = request.get_json(silent=True) or {}
+    names = data.get("names") or []
+    if not isinstance(names, list):
+        return jsonify({"error": "names must be a list"}), 400
+    out = {}
+    for name in names[:12]:               # cap to keep a single request bounded
+        if isinstance(name, str) and name.strip():
+            out[name] = tmdb.person_image(name)
+    return jsonify({"images": out})
+
+
+# Actor / director leaderboards are aggregated from every stored taste profile.
+# That scan + the TMDB image resolve is cheap but not free, so cache the built
+# payload briefly — the board doesn't change second-to-second.
+_people_lb_cache: dict = {}            # kind -> (built_at, payload)
+_PEOPLE_LB_TTL = 120                   # seconds
+
+
+@app.route("/api/leaderboard/people/<kind>")
+def api_people_leaderboard(kind):
+    """Popularity leaderboard for 'actors' or 'directors' (with headshots)."""
+    if kind not in ("actors", "directors"):
+        return jsonify({"error": "Unknown leaderboard"}), 404
+    now = time.time()
+    cached = _people_lb_cache.get(kind)
+    if cached and now - cached[0] < _PEOPLE_LB_TTL:
+        return jsonify(cached[1])
+    limit = min(_safe_int(request.args.get("limit"), 25), 50)
+    people = leaderboard.get_people_leaderboard(kind, limit=limit)
+    for p in people:                   # attach cached headshots (null without a key)
+        p["image"] = tmdb.person_image(p["name"])
+    payload = {"kind": kind, "people": people}
+    _people_lb_cache[kind] = (now, payload)
+    return jsonify(payload)
 
 
 @app.route("/api/connect-x", methods=["POST"])

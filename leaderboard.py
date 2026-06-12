@@ -83,6 +83,14 @@ def init_db() -> None:
                     country TEXT
                 )
             """)
+            # Persistent TMDB headshot cache: lower(name) -> image URL
+            # ('' = looked up, no image). Keeps each person to one TMDB call.
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS person_cache (
+                    name  TEXT PRIMARY KEY,
+                    image TEXT
+                )
+            """)
             conn.commit()
         finally:
             conn.close()
@@ -319,3 +327,70 @@ def geocode_cache_set(q: str, country: str) -> None:
             conn.commit()
         finally:
             conn.close()
+
+# ---------------------------------------------------------------------------
+# TMDB person-image cache (see tmdb.py) — lower(name) -> headshot URL.
+# None = never looked up; '' = looked up, no image found.
+# ---------------------------------------------------------------------------
+def person_cache_get(name: str) -> Optional[str]:
+    conn = _get_connection()
+    try:
+        row = conn.execute("SELECT image FROM person_cache WHERE name = ?", (name,)).fetchone()
+        return row["image"] if row else None
+    finally:
+        conn.close()
+
+def person_cache_set(name: str, image: str) -> None:
+    with _db_lock:
+        conn = _get_connection()
+        try:
+            conn.execute("INSERT OR REPLACE INTO person_cache (name, image) VALUES (?, ?)",
+                         (name, image or ""))
+            conn.commit()
+        finally:
+            conn.close()
+
+# ---------------------------------------------------------------------------
+# Actor / director popularity leaderboards — aggregated from every user's stored
+# taste profile. "Popularity" = how many users have this person in their top
+# list; ties broken by the combined rank score of those users (so among equally
+# popular names, the one backed by stronger cinephiles ranks higher).
+# ---------------------------------------------------------------------------
+def get_people_leaderboard(kind: str, limit: int = 50) -> List[Dict]:
+    """kind: 'actors' or 'directors'. Returns [{name, fans, score_sum, position}]."""
+    field = "top_actors" if kind == "actors" else "fav_directors"
+    conn = _get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT score, taste_profile FROM rankings WHERE taste_profile IS NOT NULL"
+        ).fetchall()
+    finally:
+        conn.close()
+
+    tally: Dict[str, Dict] = {}
+    for row in rows:
+        try:
+            tp = json.loads(row["taste_profile"]) or {}
+        except Exception:
+            continue
+        names = tp.get(field) or []
+        user_score = row["score"] or 0
+        seen = set()
+        for name in names:
+            if not name:
+                continue
+            key = " ".join(str(name).split())          # canonical display name
+            low = key.lower()
+            if low in seen:                            # one vote per user per name
+                continue
+            seen.add(low)
+            slot = tally.setdefault(low, {"name": key, "fans": 0, "score_sum": 0})
+            slot["fans"] += 1
+            slot["score_sum"] += user_score
+
+    ranked = sorted(tally.values(), key=lambda d: (-d["fans"], -d["score_sum"], d["name"].lower()))
+    out = []
+    for i, d in enumerate(ranked[:limit]):
+        out.append({"name": d["name"], "fans": d["fans"],
+                    "score_sum": d["score_sum"], "position": i + 1})
+    return out
