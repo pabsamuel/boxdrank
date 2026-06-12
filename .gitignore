@@ -37,3 +37,6 @@ _cardgen/
 _webgen/
 _logos/
 .claude/
+
+# One-off dev patch/inspect scripts (never part of the app)
+_*.py

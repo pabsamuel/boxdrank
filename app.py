@@ -22,7 +22,8 @@ import geo
 # App setup
 # ---------------------------------------------------------------------------
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-fallback-key")
+_SECRET = os.environ.get("SECRET_KEY", "")
+app.config["SECRET_KEY"] = _SECRET or "dev-fallback-key"
 
 # Logging
 logging.basicConfig(
@@ -30,6 +31,12 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
 log = logging.getLogger("boxdrank")
+
+# Loud warning if a real secret isn't set outside debug (harmless today since we
+# don't use Flask sessions, but a trap if cookie-based auth is ever added).
+if not _SECRET and os.environ.get("FLASK_DEBUG", "").lower() not in ("1", "true"):
+    log.warning("SECRET_KEY not set — using an insecure dev fallback. "
+                "Set SECRET_KEY in the environment before exposing this publicly.")
 
 # Initialize leaderboard database on startup
 leaderboard.init_db()

@@ -9,3 +9,11 @@ LICENSE
 test_profiles.py
 .vscode
 .idea
+
+# One-off dev scripts + scratch dirs
+_*.py
+_cardgen
+_webgen
+_logos
+.claude
+.git
