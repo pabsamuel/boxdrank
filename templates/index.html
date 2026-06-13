@@ -226,14 +226,13 @@
   .person-row + .person-row { border-top:1px solid var(--hair); }
   .person-row .nm { font-size:14px; font-weight:600; color:var(--ink); }
   .taste-empty { font-size:13px; color:var(--ink-4); font-style:italic; }
-  /* talent leaderboards (top actors / directors) */
-  .talent-grid { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
-  @media (max-width:680px){ .talent-grid{ grid-template-columns:1fr; } }
-  .talent-col { border:1px solid var(--line); border-radius:16px; background:rgba(255,255,255,0.012); padding:18px 20px; }
-  .talent-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:6px; }
-  .talent-head h3 { font-size:15px; margin:0; }
-  .talent-head .talent-sub { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-4); }
-  .talent-row { display:flex; align-items:center; gap:12px; padding:11px 0; }
+  /* talent leaderboards (top actors / directors) — separate tabbed pages */
+  .talent-tabs { display:flex; gap:9px; margin-bottom:18px; }
+  .ttab { font-size:13.5px; font-weight:600; color:var(--ink-3); border:1px solid var(--line); background:rgba(255,255,255,0.018); padding:9px 18px; border-radius:999px; cursor:pointer; transition:all .14s ease; }
+  .ttab:hover { color:var(--ink-2); border-color:var(--line-2); }
+  .ttab.active { color:#061a10; background:var(--brand); border-color:var(--brand); }
+  .talent-col { border:1px solid var(--line); border-radius:16px; background:rgba(255,255,255,0.012); padding:8px 22px; }
+  .talent-row { display:flex; align-items:center; gap:14px; padding:13px 0; }
   .talent-row + .talent-row { border-top:1px solid var(--hair); }
   .talent-row .rk { width:22px; text-align:center; font-family:"Geist Mono",monospace; font-size:13px; font-weight:600; color:var(--ink-3); flex-shrink:0; }
   .talent-row .rk.top { color:rgb(var(--accent)); }
@@ -483,15 +482,13 @@
   <div class="wrap">
     <div class="section-kicker"><span class="num">★</span><span class="dash"></span> Most-loved talent</div>
     <div class="result-head" style="margin-bottom:24px"><div><h2>Who cinephiles love most</h2><p class="muted" style="margin:6px 0 0;font-size:13.5px">Ranked by how many BoxdRank users have them among their top — across every connected profile.</p></div></div>
-    <div class="talent-grid">
-      <div class="talent-col">
-        <div class="talent-head"><h3>Top Actors</h3><span class="talent-sub">by fans</span></div>
-        <div class="talent-list" id="actorBoard"><div class="lb-empty">Loading…</div></div>
-      </div>
-      <div class="talent-col">
-        <div class="talent-head"><h3>Top Directors</h3><span class="talent-sub">by fans</span></div>
-        <div class="talent-list" id="directorBoard"><div class="lb-empty">Loading…</div></div>
-      </div>
+    <div class="talent-tabs">
+      <button class="ttab active" id="ttabActors" onclick="showTalent('actors')">Top Actors</button>
+      <button class="ttab" id="ttabDirectors" onclick="showTalent('directors')">Top Directors</button>
+    </div>
+    <div class="talent-col">
+      <div class="talent-list" id="actorBoard"><div class="lb-empty">Loading…</div></div>
+      <div class="talent-list" id="directorBoard" style="display:none"><div class="lb-empty">Loading…</div></div>
     </div>
   </div>
 </section>
@@ -509,7 +506,7 @@
         <a onclick="document.getElementById('leaderboard').scrollIntoView({behavior:'smooth'})">Leaderboard</a>
       </nav>
     </div>
-    <p class="foot-note">Not affiliated with Letterboxd. Ranks are computed from public profile data and update as you log films.</p>
+    <p class="foot-note">Not affiliated with Letterboxd. Ranks are computed from public profile data and update as you log films. Actor &amp; director photos via <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a>.</p>
   </div>
 </footer>
 
@@ -914,7 +911,7 @@ function talentRowHTML(p){
 async function loadTalentBoard(kind, elId){
   const el=document.getElementById(elId);
   try{
-    const r=await fetch(`/api/leaderboard/people/${kind}?limit=15`);
+    const r=await fetch(`/api/leaderboard/people/${kind}?limit=25`);
     if(!r.ok) throw new Error();
     const people=(await r.json()).people||[];
     if(!people.length){ el.innerHTML='<div class="lb-empty">No data yet — be the first to connect.</div>'; return; }
@@ -923,6 +920,14 @@ async function loadTalentBoard(kind, elId){
   }catch(e){ el.innerHTML='<div class="lb-empty">Couldn’t load.</div>'; }
 }
 function loadTalent(){ loadTalentBoard('actors','actorBoard'); loadTalentBoard('directors','directorBoard'); }
+// Switch between the two talent "pages" — only one board is shown at a time.
+function showTalent(kind){
+  const isActors = kind==='actors';
+  document.getElementById('actorBoard').style.display = isActors?'':'none';
+  document.getElementById('directorBoard').style.display = isActors?'none':'';
+  document.getElementById('ttabActors').classList.toggle('active', isActors);
+  document.getElementById('ttabDirectors').classList.toggle('active', !isActors);
+}
 function filterTier(t,el){ lbTier=t; lbCountry=null; document.getElementById('lbCountry').value=''; document.querySelectorAll('.fchip').forEach(c=>c.classList.remove('active')); if(el) el.classList.add('active'); fetchLB(); }
 function filterCountry(c){ lbCountry=c; lbTier=null; document.querySelectorAll('.fchip').forEach((b,i)=>b.classList.toggle('active',i===0)); fetchLB(); }
 function debounceSearch(){ clearTimeout(searchTO); searchTO=setTimeout(()=>{ const q=document.getElementById('lbSearch').value.trim(); fetchLB(q||null); },380); }

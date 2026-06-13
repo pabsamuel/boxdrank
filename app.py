@@ -476,10 +476,16 @@ def api_people_images():
     names = data.get("names") or []
     if not isinstance(names, list):
         return jsonify({"error": "names must be a list"}), 400
+    valid = [n for n in names[:30] if isinstance(n, str) and n.strip()]
     out = {}
-    for name in names[:30]:               # cap to keep a single request bounded
-        if isinstance(name, str) and name.strip():
-            out[name] = headshots.person_image(name)
+    if valid:
+        # Lookups are network-bound (Wikipedia); resolve them in parallel so a
+        # cold board fills in a couple of seconds instead of ~20s sequentially.
+        # Cached names return instantly, so warm loads are cheap regardless.
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+            for name, img in zip(valid, ex.map(headshots.person_image, valid)):
+                out[name] = img
     return jsonify({"images": out})
 
 
