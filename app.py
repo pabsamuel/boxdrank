@@ -19,6 +19,15 @@ import leaderboard
 import geo
 import headshots
 
+# Load .env (local secrets like TMDB_API_KEY) before reading any env vars. No-op
+# if python-dotenv isn't installed or there's no .env — in prod the host sets
+# the environment directly.
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
+
 # ---------------------------------------------------------------------------
 # App setup
 # ---------------------------------------------------------------------------

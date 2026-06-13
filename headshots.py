@@ -21,6 +21,7 @@ is cached in SQLite (person_cache) so each person hits the network at most once;
 '' is cached for "no usable image".
 """
 import logging
+import os
 import re
 import urllib.parse
 
@@ -127,6 +128,30 @@ def _wikidata_image(q):
     return None
 
 
+def _tmdb_image(q):
+    """Final fallback: TMDB, which has a headshot for nearly every actor/director
+    with film credits — including obscure world-cinema names Wikimedia lacks.
+    Only runs if TMDB_API_KEY is set; TMDB's domain is film, so the top match for
+    a name query is reliably the right person. Free key is fine for ad-supported
+    use with a 'uses TMDB' credit."""
+    key = os.environ.get("TMDB_API_KEY", "").strip()
+    if not key:
+        return None
+    import requests
+    r = requests.get("https://api.themoviedb.org/3/search/person", params={
+        "api_key": key, "query": q, "include_adult": "false",
+    }, headers={"User-Agent": _UA}, timeout=8)
+    if r.status_code != 200:
+        return None
+    results = (r.json() or {}).get("results") or []
+    results.sort(key=lambda x: x.get("popularity", 0), reverse=True)
+    for p in results:
+        path = p.get("profile_path")
+        if path:
+            return "https://image.tmdb.org/t/p/w300" + path
+    return None
+
+
 def person_image(name):
     """Return a headshot URL for a person's name, or None. Cached in SQLite."""
     if not name:
@@ -143,7 +168,8 @@ def person_image(name):
 
     url = None
     try:
-        url = _direct_summary(q) or _search_fallback(q) or _wikidata_image(q)
+        url = (_direct_summary(q) or _search_fallback(q)
+               or _wikidata_image(q) or _tmdb_image(q))
     except Exception as e:
         # Transient failure — don't poison the cache, just bail for now.
         log.warning("wiki headshot lookup failed for %r: %s", q, e)
