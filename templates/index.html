@@ -393,9 +393,9 @@
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
     </button>
     <nav class="nav-links" id="navLinks" onclick="this.classList.remove('open')">
-      <a onclick="goHomeThen('tiers')">Tiers</a>
-      <a onclick="goHomeThen('leaderboard')">Account Leaderboard</a>
-      <a data-view="talent" onclick="showView('talent')">Actors &amp; Directors</a>
+      <a data-nav="tiers" onclick="navGo('tiers')">Tiers</a>
+      <a data-nav="account" onclick="navGo('account')">Account Leaderboard</a>
+      <a data-nav="talent" onclick="navGo('talent')">Actors &amp; Directors</a>
       <a class="nav-cta" onclick="focusFind()">Find your rank</a>
     </nav>
   </div>
@@ -517,9 +517,9 @@
       </div>
       <nav class="foot-links">
         <a onclick="focusFind()">Find your rank</a>
-        <a onclick="goHomeThen('tiers')">Tiers</a>
-        <a onclick="goHomeThen('leaderboard')">Account Leaderboard</a>
-        <a onclick="showView('talent')">Actors &amp; Directors</a>
+        <a onclick="navGo('tiers')">Tiers</a>
+        <a onclick="navGo('account')">Account Leaderboard</a>
+        <a onclick="navGo('talent')">Actors &amp; Directors</a>
       </nav>
     </div>
     <p class="foot-note">Not affiliated with Letterboxd. Ranks are computed from public profile data and update as you log films. Actor &amp; director photos via <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a> and <a href="https://www.themoviedb.org/" target="_blank" rel="noopener">TMDB</a>. This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
@@ -603,19 +603,28 @@ function emblemSVG(tier,size){
 let curData=null, curUser=null, fromLB=false, lbTier=null, lbCountry=null, lbOffset=0, lbHasMore=false, searchTO=null, totalUsers=0;
 
 function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
-function focusFind(){ showView('home'); document.getElementById('hero').scrollIntoView({behavior:'smooth'}); setTimeout(()=>document.getElementById('usernameInput').focus(),350); }
-function goHome(){ showView('home'); window.scrollTo({top:0,behavior:'smooth'}); }
+function focusFind(){ navHighlight(null); showView('home'); document.getElementById('hero').scrollIntoView({behavior:'smooth'}); setTimeout(()=>document.getElementById('usernameInput').focus(),350); }
+function goHome(){ navHighlight(null); showView('home'); window.scrollTo({top:0,behavior:'smooth'}); }
+// Highlight exactly one nav item (by its data-nav key), or none when key is null.
+function navHighlight(key){ document.querySelectorAll('.nav-links a[data-nav]').forEach(a=>a.classList.toggle('active', !!key && a.dataset.nav===key)); }
 // Simple two-view router: 'home' (hero + global leaderboard) and 'talent' (the
 // actor/actress + director leaderboards as their own page).
 function showView(name){
   const talent = name==='talent';
   ['hero','resultSection','leaderboard'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display = talent?'none':''; });
   document.getElementById('talent').style.display = talent?'':'none';
-  document.querySelectorAll('.nav-links a[data-view]').forEach(a=>a.classList.toggle('active', a.dataset.view===name));
   window.scrollTo({top:0});
   if(talent) loadTalent();   // refresh boards each time the page is opened (cached server-side)
 }
-function goHomeThen(id){ showView('home'); setTimeout(()=>{ const el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth'}); }, 40); }
+// Nav click: highlight the clicked item, switch view, and (for home anchors) scroll.
+function navGo(key){
+  navHighlight(key);
+  document.getElementById('navLinks').classList.remove('open');   // close mobile menu
+  if(key==='talent'){ showView('talent'); return; }
+  showView('home');
+  const id = key==='account' ? 'leaderboard' : 'tiers';
+  setTimeout(()=>{ const s=document.getElementById(id); if(s) s.scrollIntoView({behavior:'smooth'}); }, 40);
+}
 
 /* ===================== init ===================== */
 document.addEventListener('DOMContentLoaded', ()=>{
