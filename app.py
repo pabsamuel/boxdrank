@@ -17,7 +17,7 @@ from rank_engine import calculate_rank, RANK_COLORS, get_next_rank_info, get_ran
 from image_generator import generate_rank_card
 import leaderboard
 import geo
-import tmdb
+import headshots
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -477,9 +477,9 @@ def api_people_images():
     if not isinstance(names, list):
         return jsonify({"error": "names must be a list"}), 400
     out = {}
-    for name in names[:12]:               # cap to keep a single request bounded
+    for name in names[:30]:               # cap to keep a single request bounded
         if isinstance(name, str) and name.strip():
-            out[name] = tmdb.person_image(name)
+            out[name] = headshots.person_image(name)
     return jsonify({"images": out})
 
 
@@ -501,8 +501,8 @@ def api_people_leaderboard(kind):
         return jsonify(cached[1])
     limit = min(_safe_int(request.args.get("limit"), 25), 50)
     people = leaderboard.get_people_leaderboard(kind, limit=limit)
-    for p in people:                   # attach cached headshots (null without a key)
-        p["image"] = tmdb.person_image(p["name"])
+    # Headshots are filled in lazily by the client (via /api/people-images) so
+    # this board renders instantly with initials and photos fade in after.
     payload = {"kind": kind, "people": people}
     _people_lb_cache[kind] = (now, payload)
     return jsonify(payload)
