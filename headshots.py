@@ -30,6 +30,8 @@ log = logging.getLogger("boxdrank.headshots")
 _UA = "BoxdRank/1.0 (https://boxdrank.app; actor/director headshots)"
 _SUMMARY = "https://en.wikipedia.org/api/rest_v1/page/summary/"
 _API = "https://en.wikipedia.org/w/api.php"
+_WD_API = "https://www.wikidata.org/w/api.php"
+_COMMONS_FILE = "https://commons.wikimedia.org/wiki/Special:FilePath/"
 
 # The page must read as a film person for us to trust the photo is the right one.
 _PERSON_HINTS = (
@@ -89,6 +91,42 @@ def _search_fallback(q):
     return None
 
 
+def _wikidata_image(q):
+    """Last resort: Wikidata's image (P18). It's language-neutral, so it often
+    has a photo for actors whose ENGLISH Wikipedia article has none (common for
+    Japanese / world-cinema names). We still require the entity to be a human
+    film person whose label matches the name, so a same-named civil servant or
+    athlete doesn't slip through."""
+    import requests
+    r = requests.get(_WD_API, params={
+        "action": "wbsearchentities", "search": q, "language": "en",
+        "type": "item", "format": "json", "limit": 5,
+    }, headers={"User-Agent": _UA}, timeout=8)
+    if r.status_code != 200:
+        return None
+    for c in (r.json() or {}).get("search") or []:
+        qid, label, desc = c.get("id"), c.get("label", ""), c.get("description", "")
+        # Cheap pre-filters on the search hit before fetching full claims.
+        if not qid or not _name_matches(q, label) or not _is_film_person(desc, label):
+            continue
+        e = requests.get(_WD_API, params={
+            "action": "wbgetentities", "ids": qid, "props": "claims", "format": "json",
+        }, headers={"User-Agent": _UA}, timeout=8)
+        if e.status_code != 200:
+            continue
+        claims = (((e.json() or {}).get("entities") or {}).get(qid) or {}).get("claims") or {}
+        instance_of = [cl.get("mainsnak", {}).get("datavalue", {}).get("value", {}).get("id")
+                       for cl in claims.get("P31", [])]
+        if "Q5" not in instance_of:          # must be a human, not a film/character
+            continue
+        p18 = claims.get("P18")
+        if p18:
+            fn = p18[0].get("mainsnak", {}).get("datavalue", {}).get("value")
+            if fn:
+                return _COMMONS_FILE + urllib.parse.quote(fn) + "?width=300"
+    return None
+
+
 def person_image(name):
     """Return a headshot URL for a person's name, or None. Cached in SQLite."""
     if not name:
@@ -105,7 +143,7 @@ def person_image(name):
 
     url = None
     try:
-        url = _direct_summary(q) or _search_fallback(q)
+        url = _direct_summary(q) or _search_fallback(q) or _wikidata_image(q)
     except Exception as e:
         # Transient failure — don't poison the cache, just bail for now.
         log.warning("wiki headshot lookup failed for %r: %s", q, e)
