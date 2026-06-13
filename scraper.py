@@ -31,6 +31,12 @@ _rate_lock = threading.Lock()
 _MAX_RETRIES = 2
 _RETRY_DELAY = 2  # seconds
 
+# How many top-billed cast members count as a film's "main actors". Letterboxd
+# lists cast in billing order, so the first few are the leads. Counting only
+# these keeps the actor stats about leads people actually watch, not character
+# actors / bit parts who quietly rack up appearances across many films.
+_MAIN_CAST = 5
+
 
 
 def get_user_stats(username: str, force: bool = False) -> Optional[Dict]:
@@ -358,10 +364,11 @@ def get_user_stats(username: str, force: bool = False) -> Optional[Dict]:
                         local_directors[name] = local_directors.get(name, 0) + weight
 
                 # Actors from film page. Letterboxd lists the cast in billing
-                # order (leads first), so weight by position: the lead counts
-                # full, supporting cast decays, and bit-part extras past the top
-                # ~12 are ignored. This keeps "top actors" the faces you actually
-                # watch, not whoever happened to fill out the credits.
+                # order (leads first), so we count only the MAIN cast — the top
+                # _MAIN_CAST billed — and weight by position so the lead counts
+                # most. Everyone past that (supporting players, character actors,
+                # bit parts) is ignored, keeping the actor stats about the leads
+                # of the films you watch rather than whoever pads the credits.
                 seen_actors = set()
                 billing = 0
                 for a in film_soup.find_all("a", href=re.compile(r"/actor/")):
@@ -369,9 +376,9 @@ def get_user_stats(username: str, force: bool = False) -> Optional[Dict]:
                     if not name or name in seen_actors:
                         continue
                     seen_actors.add(name)
-                    if billing >= 12:
+                    if billing >= _MAIN_CAST:
                         break
-                    cast_weight = max(0.2, 1.0 - 0.08 * billing)   # 1.0 -> 0.2
+                    cast_weight = 1.0 - 0.15 * billing             # 1.0 (lead) -> 0.40
                     local_actors[name] = local_actors.get(name, 0) + weight * cast_weight
                     billing += 1
             except Exception as e:
