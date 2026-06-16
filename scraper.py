@@ -339,6 +339,8 @@ def get_user_stats(username: str, force: bool = False) -> Optional[Dict]:
             local_genres = {}
             local_directors = {}
             local_actors = {}
+            local_actor_ratings = {}     # name -> [rating_sum, rated_film_count]
+            local_director_ratings = {}
             try:
                 # Normalize: /username/film/slug/ -> /film/slug/
                 slug = re.sub(r'.*/film/([^/]+)/?.*', r'\1', film_link)
@@ -362,6 +364,9 @@ def get_user_stats(username: str, force: bool = False) -> Optional[Dict]:
                     name = a.get_text(strip=True)
                     if name:
                         local_directors[name] = local_directors.get(name, 0) + weight
+                        if user_rating > 0:     # collect the star rating you gave their film
+                            r = local_director_ratings.setdefault(name, [0.0, 0])
+                            r[0] += user_rating; r[1] += 1
 
                 # Actors from film page. Letterboxd lists the cast in billing
                 # order (leads first), so we count only the MAIN cast — the top
@@ -380,20 +385,33 @@ def get_user_stats(username: str, force: bool = False) -> Optional[Dict]:
                         break
                     cast_weight = 1.0 - 0.15 * billing             # 1.0 (lead) -> 0.40
                     local_actors[name] = local_actors.get(name, 0) + weight * cast_weight
+                    if user_rating > 0:         # collect the star rating you gave their film
+                        r = local_actor_ratings.setdefault(name, [0.0, 0])
+                        r[0] += user_rating; r[1] += 1
                     billing += 1
             except Exception as e:
                 log.debug("Failed film %s: %s", film_link, e)
-            return local_genres, local_directors, local_actors
+            return (local_genres, local_directors, local_actors,
+                    local_actor_ratings, local_director_ratings)
+
+        actor_ratings = {}      # name -> [rating_sum, rated_film_count]
+        director_ratings = {}
+
+        def _merge_ratings(dst, src):
+            for k, (s, n) in src.items():
+                slot = dst.setdefault(k, [0.0, 0]); slot[0] += s; slot[1] += n
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             results = executor.map(process_film, film_links_to_use)
-            for res_genres, res_directors, res_actors in results:
+            for res_genres, res_directors, res_actors, res_aratings, res_dratings in results:
                 for k, v in res_genres.items():
                     film_genres[k] = film_genres.get(k, 0) + v
                 for k, v in res_directors.items():
                     all_directors[k] = all_directors.get(k, 0) + v
                 for k, v in res_actors.items():
                     all_actors[k] = all_actors.get(k, 0) + v
+                _merge_ratings(actor_ratings, res_aratings)
+                _merge_ratings(director_ratings, res_dratings)
 
         # Sort by weighted score — highest rated + most watched first
         for g, _ in sorted(film_genres.items(), key=lambda x: -x[1]):
@@ -415,6 +433,19 @@ def get_user_stats(username: str, force: bool = False) -> Optional[Dict]:
                 data["top_actors"].append(name)
                 if len(data["top_actors"]) >= 3:
                     break
+
+        # Per-name rating stats (sum + count of YOUR rated films featuring them),
+        # kept for the top names so the talent leaderboards can show an average
+        # star rating. {name: {"sum": float, "n": int}}.
+        def _rating_map(names, src):
+            out = {}
+            for name in names:
+                rc = src.get(name)
+                if rc and rc[1] > 0:
+                    out[name] = {"sum": round(rc[0], 2), "n": rc[1]}
+            return out
+        data["actor_ratings"] = _rating_map(data["top_actors"], actor_ratings)
+        data["director_ratings"] = _rating_map(data["fav_directors"], director_ratings)
 
     if "fav_films" not in data:
         data["fav_films"] = film_links[:4]

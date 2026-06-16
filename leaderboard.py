@@ -102,6 +102,8 @@ def save_ranking(username: str, stats: Dict, rank_info: Dict) -> None:
         "fav_genres": stats.get("fav_genres", []),
         "fav_directors": stats.get("fav_directors", []),
         "top_actors": stats.get("top_actors", []),
+        "actor_ratings": stats.get("actor_ratings", {}),
+        "director_ratings": stats.get("director_ratings", {}),
         "reviews": stats.get("reviews", [])
     })
     with _db_lock:
@@ -357,8 +359,12 @@ def person_cache_set(name: str, image: str) -> None:
 # popular names, the one backed by stronger cinephiles ranks higher).
 # ---------------------------------------------------------------------------
 def get_people_leaderboard(kind: str, limit: int = 50) -> List[Dict]:
-    """kind: 'actors' or 'directors'. Returns [{name, fans, score_sum, position}]."""
+    """kind: 'actors' or 'directors'. Returns
+    [{name, fans, score_sum, avg_rating, rating_count, position}].
+    avg_rating is the average star rating (0.5-5) users gave to that person's
+    films, pooled across everyone who has them in their top list."""
     field = "top_actors" if kind == "actors" else "fav_directors"
+    ratings_field = "actor_ratings" if kind == "actors" else "director_ratings"
     conn = _get_connection()
     try:
         rows = conn.execute(
@@ -374,6 +380,7 @@ def get_people_leaderboard(kind: str, limit: int = 50) -> List[Dict]:
         except Exception:
             continue
         names = tp.get(field) or []
+        ratings = tp.get(ratings_field) or {}
         user_score = row["score"] or 0
         seen = set()
         for name in names:
@@ -384,13 +391,19 @@ def get_people_leaderboard(kind: str, limit: int = 50) -> List[Dict]:
             if low in seen:                            # one vote per user per name
                 continue
             seen.add(low)
-            slot = tally.setdefault(low, {"name": key, "fans": 0, "score_sum": 0})
+            slot = tally.setdefault(low, {"name": key, "fans": 0, "score_sum": 0,
+                                          "rating_sum": 0.0, "rating_n": 0})
             slot["fans"] += 1
             slot["score_sum"] += user_score
+            rc = ratings.get(name)                     # {"sum": float, "n": int}
+            if rc and rc.get("n"):
+                slot["rating_sum"] += rc.get("sum", 0) or 0
+                slot["rating_n"] += rc["n"]
 
     ranked = sorted(tally.values(), key=lambda d: (-d["fans"], -d["score_sum"], d["name"].lower()))
     out = []
     for i, d in enumerate(ranked[:limit]):
-        out.append({"name": d["name"], "fans": d["fans"],
-                    "score_sum": d["score_sum"], "position": i + 1})
+        avg = round(d["rating_sum"] / d["rating_n"], 1) if d["rating_n"] else None
+        out.append({"name": d["name"], "fans": d["fans"], "score_sum": d["score_sum"],
+                    "avg_rating": avg, "rating_count": d["rating_n"], "position": i + 1})
     return out

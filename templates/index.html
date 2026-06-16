@@ -248,7 +248,8 @@
   .talent-row .rk { width:22px; text-align:center; font-family:"Geist Mono",monospace; font-size:13px; font-weight:600; color:var(--ink-3); flex-shrink:0; }
   .talent-row .rk.top { color:rgb(var(--accent)); }
   .talent-row .nm { font-size:14px; font-weight:600; color:var(--ink); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .talent-row .fans { margin-left:auto; font-size:12px; color:var(--ink-3); flex-shrink:0; }
+  .talent-row .trating { margin-left:16px; font-family:"Geist Mono",monospace; font-size:12.5px; color:#f4d03f; flex-shrink:0; }
+  .talent-row .fans { margin-left:16px; font-size:12px; color:var(--ink-3); flex-shrink:0; min-width:54px; text-align:right; }
   .talent-row .fans b { color:var(--ink-2); font-family:"Geist Mono",monospace; }
   .reviews-list { display:flex; flex-direction:column; gap:12px; }
   .review { display:flex; gap:13px; padding:14px 16px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,0.012); }
@@ -936,10 +937,12 @@ async function loadLeaderboard(){ lbOffset=0; await fetchLB(); }
 /* ===================== talent leaderboards ===================== */
 function talentRowHTML(p){
   const top = p.position<=3;
+  const rating = (p.avg_rating!=null) ? `<div class="trating" title="Average rating across ${p.rating_count} rated film${p.rating_count===1?'':'s'}">★ ${p.avg_rating.toFixed(1)}</div>` : '';
   return `<div class="talent-row">
     <div class="rk${top?' top':''}">${p.position}</div>
     <div class="person-av" data-person="${esc(p.name)}">${esc(personInitials(p.name))}</div>
     <div class="nm">${esc(p.name)}</div>
+    ${rating}
     <div class="fans"><b>${p.fans}</b> ${p.fans===1?'fan':'fans'}</div>
   </div>`;
 }
