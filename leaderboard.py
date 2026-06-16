@@ -5,6 +5,7 @@ import sqlite3
 import threading
 import os
 import json
+import math
 from typing import Optional, Dict, List
 from datetime import datetime, timezone
 
@@ -400,10 +401,25 @@ def get_people_leaderboard(kind: str, limit: int = 50) -> List[Dict]:
                 slot["rating_sum"] += rc.get("sum", 0) or 0
                 slot["rating_n"] += rc["n"]
 
-    ranked = sorted(tally.values(), key=lambda d: (-d["fans"], -d["score_sum"], d["name"].lower()))
+    # "Loved score" — rank by both popularity AND rating, so a widely-watched
+    # but mediocre actor can't top the board on volume alone. The rating is
+    # Bayesian-shrunk toward the global mean (a lucky 1-film ★5 gets pulled back,
+    # a broadly well-rated favourite keeps its score), then a gentle log bonus
+    # for fan count adds reach without letting it dominate.
+    total_sum = sum(d["rating_sum"] for d in tally.values())
+    total_n = sum(d["rating_n"] for d in tally.values())
+    mean = (total_sum / total_n) if total_n else 3.5    # pooled average rating
+    PRIOR = 5      # ~5 rated films before a person's own average outweighs the mean
+    POP_W = 0.4    # weight of the log-popularity bonus
+    for d in tally.values():
+        bayes = (PRIOR * mean + d["rating_sum"]) / (PRIOR + d["rating_n"])
+        d["loved"] = bayes + POP_W * math.log(1 + d["fans"])
+
+    ranked = sorted(tally.values(), key=lambda d: (-d["loved"], -d["fans"], d["name"].lower()))
     out = []
     for i, d in enumerate(ranked[:limit]):
         avg = round(d["rating_sum"] / d["rating_n"], 1) if d["rating_n"] else None
         out.append({"name": d["name"], "fans": d["fans"], "score_sum": d["score_sum"],
-                    "avg_rating": avg, "rating_count": d["rating_n"], "position": i + 1})
+                    "avg_rating": avg, "rating_count": d["rating_n"],
+                    "loved": round(d["loved"], 3), "position": i + 1})
     return out
