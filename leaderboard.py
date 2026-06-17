@@ -410,7 +410,8 @@ def get_people_leaderboard(kind: str, limit: int = 50) -> List[Dict]:
     total_n = sum(d["rating_n"] for d in tally.values())
     mean = (total_sum / total_n) if total_n else 3.5    # pooled average rating
     PRIOR = 5      # ~5 rated films before a person's own average outweighs the mean
-    POP_W = 0.4    # weight of the log-popularity bonus
+    POP_W = 0.7    # weight of the log-popularity bonus (0.7 keeps very popular
+                   # names visible mid-board without letting a mediocre rating top it)
     for d in tally.values():
         bayes = (PRIOR * mean + d["rating_sum"]) / (PRIOR + d["rating_n"])
         d["loved"] = bayes + POP_W * math.log(1 + d["fans"])
