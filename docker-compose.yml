@@ -1,0 +1,34 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    # Secrets (SECRET_KEY, TMDB_API_KEY) come from a .env file you create on the
+    # server — see DEPLOY.md. Never commit .env.
+    env_file: .env
+    environment:
+      # SQLite lives on a named volume so the leaderboard survives redeploys.
+      BOXDRANK_DB_PATH: /data/boxdrank.db
+      BOXDRANK_DOMAIN: boxdrank.app
+      FLASK_DEBUG: "false"
+    volumes:
+      - boxdrank-data:/data
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data       # Let's Encrypt certs persist here
+      - caddy-config:/config
+    depends_on:
+      - app
+
+volumes:
+  boxdrank-data:
+  caddy-data:
+  caddy-config:

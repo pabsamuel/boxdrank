@@ -1,0 +1,14 @@
+# Caddy automatically provisions + renews a Let's Encrypt TLS cert for these
+# domains (requires the DNS A records to point at this server and ports 80/443
+# to be open). HTTPS is required for X/Twitter to render the rank-card preview.
+
+# Canonical host — the app, reverse-proxied.
+boxdrank.app {
+	encode gzip
+	reverse_proxy app:8000
+}
+
+# Redirect www -> apex so share links + og:image stay on one canonical domain.
+www.boxdrank.app {
+	redir https://boxdrank.app{uri} permanent
+}
