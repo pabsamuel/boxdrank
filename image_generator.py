@@ -201,11 +201,22 @@ def _load_avatar(url: str, diameter: int) -> Optional[Image.Image]:
 # MAIN
 # --------------------------------------------------------------------------- #
 def _fmt_timestamp(dt: datetime) -> str:
-    """e.g. '12/07/2026 12:06AM'. Built manually so the AM/PM stays English
-    regardless of the server's locale."""
+    """e.g. '12/07/2026 12:06AM UTC+3'. Built manually so AM/PM stays English
+    regardless of locale, and the UTC offset makes the time unambiguous globally.
+    A naive datetime is read as the server's local time."""
+    if dt.tzinfo is None:
+        dt = dt.astimezone()                 # attach the server's local timezone
     h12 = dt.hour % 12 or 12
     ampm = "AM" if dt.hour < 12 else "PM"
-    return f"{dt.day:02d}/{dt.month:02d}/{dt.year} {h12}:{dt.minute:02d}{ampm}"
+    off = dt.utcoffset()
+    if off:
+        mins = int(off.total_seconds() // 60)
+        sign = "+" if mins >= 0 else "-"
+        oh, om = divmod(abs(mins), 60)
+        tz = f"UTC{sign}{oh}" + (f":{om:02d}" if om else "")
+    else:
+        tz = "UTC"
+    return f"{dt.day:02d}/{dt.month:02d}/{dt.year} {h12}:{dt.minute:02d}{ampm} {tz}"
 
 
 def generate_rank_card(username: str, stats: Dict, rank_info: Dict,
