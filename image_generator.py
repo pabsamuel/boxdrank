@@ -12,6 +12,7 @@ import io
 import os
 import math
 import logging
+from datetime import datetime
 from typing import Dict, Optional
 
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
@@ -199,12 +200,23 @@ def _load_avatar(url: str, diameter: int) -> Optional[Image.Image]:
 # --------------------------------------------------------------------------- #
 # MAIN
 # --------------------------------------------------------------------------- #
+def _fmt_timestamp(dt: datetime) -> str:
+    """e.g. '12/07/2026 12:06AM'. Built manually so the AM/PM stays English
+    regardless of the server's locale."""
+    h12 = dt.hour % 12 or 12
+    ampm = "AM" if dt.hour < 12 else "PM"
+    return f"{dt.day:02d}/{dt.month:02d}/{dt.year} {h12}:{dt.minute:02d}{ampm}"
+
+
 def generate_rank_card(username: str, stats: Dict, rank_info: Dict,
                        lb_position: Optional[int] = None,
                        lb_total: Optional[int] = None,
-                       style: str = "code") -> Image.Image:
+                       style: str = "code",
+                       generated_at: Optional[datetime] = None) -> Image.Image:
     """Render a 1200x630 shareable rank card and return a PIL RGB Image.
-    style: "code" (Pillow-drawn frame) or "canva" (Canva-designed backdrop)."""
+    style: "code" (Pillow-drawn frame) or "canva" (Canva-designed backdrop).
+    generated_at: timestamp shown on the card (defaults to now) so a shared card
+    is dated — stats change as users log films."""
     W, H = WIDTH, HEIGHT
     tier = rank_info.get("tier", "Iron")
     accent = TIER_COLORS.get(tier, TIER_COLORS["Iron"])
@@ -524,8 +536,9 @@ def generate_rank_card(username: str, stats: Dict, rank_info: Dict,
     # footer + genre tags
     draw.line([(strip_x0, strip_y1 + _s(16)), (strip_x1, strip_y1 + _s(16))],
               fill=_alpha((255, 255, 255), 16), width=_s(1))
+    ts = _fmt_timestamp(generated_at or datetime.now())
     draw.text((strip_x0, strip_y1 + _s(26)),
-              f"Live Letterboxd rank · updates as you log films · {BRAND_URL}",
+              f"As of {ts} · {BRAND_URL}",
               font=f_brand_sm, fill=(132, 138, 147), anchor="lm")
     genres = [g for g in (stats.get("fav_genres") or [])[:3] if g]
     if genres:
