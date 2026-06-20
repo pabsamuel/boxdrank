@@ -910,7 +910,7 @@ function renderResult(d){ const el=document.getElementById('resultContent'); el.
 
 /* ===================== share ===================== */
 function shareUrl(){ return `${location.origin}/u/${encodeURIComponent(curUser||'')}`; }
-function shareText(){ const rk=curData.rank; return `My Letterboxd rank is ${rk.tier} ${rk.division||''} (${rk.lp||0} LP) on BoxdRank.\n\nWhat's yours?\n\n${shareUrl()}`; }
+function shareText(){ const rk=curData.rank; return `My Letterboxd rank is ${rk.tier} ${rk.division||''} (${rk.lp||0} LP) on BoxdRank. 🎬\n\nWhat's yours? #BoxdRank\n\n${shareUrl()}`; }
 function shareX(){ window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(shareText()),'_blank'); }
 function copyTextFallback(t){ try{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); toast('Link copied'); }catch(e){ toast('Copy failed'); } }
 async function copyShare(){
