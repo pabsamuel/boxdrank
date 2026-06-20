@@ -42,3 +42,6 @@ _logos/
 _*.py
 # Scratch card-render previews (the real Canva asset lives in static/)
 _card*.png
+
+# Local rank-card PNG cache
+cards/

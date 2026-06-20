@@ -356,6 +356,10 @@ def api_rank(username):
     # Persist ranking to leaderboard
     leaderboard.save_ranking(clean, stats, rank_info)
 
+    # Pre-render the share card now (off the request path) so it's already
+    # cached on disk before the user clicks "Share on X" and the crawler hits it.
+    threading.Thread(target=_prewarm_card, args=(clean,), daemon=True).start()
+
     # Enrich response with progression info and title
     next_rank = get_next_rank_info(rank_info)
     rank_title = get_rank_title(rank_info.get("score", 0))
@@ -386,53 +390,74 @@ def api_rank(username):
     })
 
 
-# In-process PNG cache so social crawlers (Twitterbot, Discord, iMessage) get
-# the card instantly instead of waiting ~2s for a fresh Pillow render — a slow
-# image is the #1 reason X falls back to a placeholder thumbnail. Keyed by
-# (username, style) and versioned on the row's last_updated, so a Refresh that
-# changes the stats automatically busts the cache.
-_card_cache = {}
-_CARD_CACHE_MAX = 256
+# --- Rank-card cache -------------------------------------------------------
+# A slow card image is the #1 reason X/Twitter falls back to a placeholder
+# thumbnail instead of the big card, so we cache the rendered PNG aggressively:
+#   L1: per-worker memory dict (instant)
+#   L2: a PNG on the data volume, shared across gunicorn workers + persisted
+#       across restarts (so even the first crawl after a deploy is fast)
+# Both are versioned on the row's last_updated, so a Refresh that changes the
+# stats automatically supersedes the old card. Cards are also pre-warmed in the
+# background the moment a user looks up their rank (see api_rank), so the image
+# is already on disk before they hit "Share on X".
+_CARD_DIR = os.path.join(
+    os.path.dirname(os.environ.get("BOXDRANK_DB_PATH", "boxdrank.db")) or ".", "cards")
+try:
+    os.makedirs(_CARD_DIR, exist_ok=True)
+except Exception as e:  # pragma: no cover
+    log.warning("could not create card cache dir %s: %s", _CARD_DIR, e)
+
+_card_mem = {}            # (username, style) -> (version, png_bytes)
+_CARD_MEM_MAX = 128
 
 
-def _card_cache_get(key, version):
-    item = _card_cache.get(key)
-    if item and item[0] == version:
-        return item[1]
-    return None
+def _safe_ver(v):
+    return "".join(c if c.isalnum() else "-" for c in str(v or "0"))[:40]
 
 
-def _card_cache_put(key, version, data):
-    if len(_card_cache) >= _CARD_CACHE_MAX:
-        _card_cache.clear()
-    _card_cache[key] = (version, data)
+def _card_disk_path(clean, style, version):
+    return os.path.join(_CARD_DIR, f"{clean}__{style}__{_safe_ver(version)}.png")
 
 
-@app.route("/api/card/<username>")
-def api_card(username):
-    """Generate and return a rank card image."""
-    if _is_rate_limited(request.remote_addr):
-        return jsonify({"error": "Too many requests."}), 429
+def _card_disk_write(clean, style, version, data):
+    """Persist the PNG (atomically) and drop stale versions for this user/style."""
+    try:
+        os.makedirs(_CARD_DIR, exist_ok=True)
+        path = _card_disk_path(clean, style, version)
+        tmp = path + ".tmp"
+        with open(tmp, "wb") as f:
+            f.write(data)
+        os.replace(tmp, path)
+        keep = os.path.basename(path)
+        prefix = f"{clean}__{style}__"
+        for fn in os.listdir(_CARD_DIR):
+            if fn.startswith(prefix) and fn != keep:
+                try:
+                    os.remove(os.path.join(_CARD_DIR, fn))
+                except Exception:
+                    pass
+    except Exception as e:
+        log.debug("card disk write failed for %s: %s", clean, e)
 
-    clean, err = _validate_username(username)
-    if err:
-        return err
 
-    style = "canva" if request.args.get("style") == "canva" else "code"
-
-    # DB cache first — avoid a fresh scrape for the common case (the user just
-    # looked up their rank, so they're already persisted).
+def _card_bytes(clean, style):
+    """Return the card PNG bytes for a user (L1 mem -> L2 disk -> render), or
+    None if the profile has no usable data. Safe to call from any thread."""
     user_entry = leaderboard.get_user_position(clean)
-
-    # Serve a cached PNG when the stats haven't changed since we last drew it.
     version = str(user_entry.get("last_updated") or "") if user_entry else ""
-    cache_key = (clean, style)
+    key = (clean, style)
+
     if version:
-        cached = _card_cache_get(cache_key, version)
-        if cached is not None:
-            resp = send_file(io.BytesIO(cached), mimetype="image/png")
-            resp.headers["Cache-Control"] = "public, max-age=600"
-            return resp
+        item = _card_mem.get(key)
+        if item and item[0] == version:
+            return item[1]
+        try:
+            with open(_card_disk_path(clean, style, version), "rb") as f:
+                data = f.read()
+            _card_mem[key] = (version, data)
+            return data
+        except Exception:
+            pass  # not on disk yet — render below
 
     if user_entry:
         stats = _stats_from_db_entry(user_entry)
@@ -441,21 +466,49 @@ def api_card(username):
     else:
         stats = get_user_stats(clean)
         if stats is None or stats.get("films_watched", 0) == 0:
-            return jsonify({"error": "Could not fetch data"}), 404
+            return None
         lb_position = None
         lb_total = 0
 
     rank_info = calculate_rank(stats)
     img = generate_rank_card(clean, stats, rank_info, lb_position=lb_position,
                              lb_total=lb_total, style=style)
+    bio = io.BytesIO()
+    img.save(bio, "PNG", optimize=True)
+    data = bio.getvalue()
 
-    img_io = io.BytesIO()
-    img.save(img_io, "PNG", optimize=True)
-    png_bytes = img_io.getvalue()
     if version:
-        _card_cache_put(cache_key, version, png_bytes)
+        if len(_card_mem) >= _CARD_MEM_MAX:
+            _card_mem.clear()
+        _card_mem[key] = (version, data)
+        _card_disk_write(clean, style, version, data)
+    return data
 
-    resp = send_file(io.BytesIO(png_bytes), mimetype="image/png")
+
+def _prewarm_card(clean):
+    """Render + cache the default share card off the request path."""
+    try:
+        _card_bytes(clean, "code")
+    except Exception as e:
+        log.debug("card prewarm failed for %s: %s", clean, e)
+
+
+@app.route("/api/card/<username>")
+def api_card(username):
+    """Generate and return a rank card image (served from cache when possible)."""
+    if _is_rate_limited(request.remote_addr):
+        return jsonify({"error": "Too many requests."}), 429
+
+    clean, err = _validate_username(username)
+    if err:
+        return err
+
+    style = "canva" if request.args.get("style") == "canva" else "code"
+    data = _card_bytes(clean, style)
+    if data is None:
+        return jsonify({"error": "Could not fetch data"}), 404
+
+    resp = send_file(io.BytesIO(data), mimetype="image/png")
     resp.headers["Cache-Control"] = "public, max-age=600"
     return resp
 
