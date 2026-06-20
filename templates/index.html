@@ -911,27 +911,42 @@ function renderResult(d){ const el=document.getElementById('resultContent'); el.
 /* ===================== share ===================== */
 function shareUrl(){ return `${location.origin}/u/${encodeURIComponent(curUser||'')}`; }
 function shareText(){ const rk=curData.rank; return `My Letterboxd rank is ${rk.tier} ${rk.division||''} (${rk.lp||0} LP) on BoxdRank. 🎬\n\nWhat's yours? #BoxdRank\n\n${shareUrl()}`; }
-function shareX(){ window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(shareText()),'_blank'); }
-function copyTextFallback(t){ try{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); toast('Link copied'); }catch(e){ toast('Copy failed'); } }
+function shareX(){
+  const t=shareText();
+  const url='https://twitter.com/intent/tweet?text='+encodeURIComponent(t);
+  const w=window.open(url,'_blank','noopener');
+  if(!w){ location.href=url; }   // popup blocked → navigate instead
+}
+// Synchronous, in-gesture text copy — never leaves the clipboard stale.
+function copyTextSync(t){
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=t; ta.setAttribute('readonly','');
+    ta.style.position='fixed'; ta.style.top='-9999px'; ta.style.left='-9999px';
+    document.body.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0, t.length);
+    const ok=document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  }catch(e){ return false; }
+}
+// Best-effort: put the actual card PNG on the clipboard so it pastes as a photo
+// into X (bypasses X's link-preview cache entirely). Returns true on success.
+async function copyCardImage(){
+  if(!(window.ClipboardItem && navigator.clipboard && navigator.clipboard.write)) return false;
+  try{
+    await navigator.clipboard.write([ new ClipboardItem({
+      'image/png': fetch(`/api/card/${encodeURIComponent(curUser||'')}`).then(r=>{ if(!r.ok) throw new Error('card'); return r.blob(); })
+    }) ]);
+    return true;
+  }catch(e){ return false; }
+}
 async function copyShare(){
   const t=shareText();
-  const imgUrl=`/api/card/${encodeURIComponent(curUser||'')}`;
-  // Copy the actual card image (+ the text) so pasting into X / iMessage / Discord
-  // drops the card in. Promise-form ClipboardItem keeps Safari happy (the write
-  // must start inside the click gesture).
-  if(navigator.clipboard && window.ClipboardItem){
-    try{
-      const item=new ClipboardItem({
-        'image/png': fetch(imgUrl).then(r=>{ if(!r.ok) throw new Error(); return r.blob(); }),
-        'text/plain': new Blob([t],{type:'text/plain'})
-      });
-      await navigator.clipboard.write([item]);
-      toast('Card copied — paste it into your post');
-      return;
-    }catch(e){ /* fall through to text-only copy */ }
-  }
-  if(navigator.clipboard){ try{ await navigator.clipboard.writeText(t); toast('Link copied'); return; }catch(e){} }
-  copyTextFallback(t);
+  const textOk=copyTextSync(t);     // 1) guarantee something useful is on the clipboard
+  const imgOk=await copyCardImage(); // 2) upgrade to the card image when the browser allows it
+  if(imgOk) toast('Card copied — paste into your X post (Ctrl/⌘+V)');
+  else if(textOk) toast('Copied — paste into X (the card loads as a preview)');
+  else toast('Copy failed — use Share on X');
 }
 async function downloadCardFor(u){ toast('Generating card…'); try{ const r=await fetch(`/api/card/${encodeURIComponent(u)}`); if(!r.ok) throw new Error(); const b=await r.blob(); const url=URL.createObjectURL(b); const a=document.createElement('a'); a.href=url; a.download=`boxdrank_${u}.png`; a.click(); URL.revokeObjectURL(url); toast('Card downloaded!'); }catch(e){ toast('Card failed'); } }
 function downloadCard(){ return downloadCardFor(curUser); }
