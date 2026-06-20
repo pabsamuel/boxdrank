@@ -87,6 +87,8 @@ def _validate_username(username: str):
     clean = username.strip().replace(" ", "").lower()
     if not all(c.isalnum() or c in "_-" for c in clean):
         return None, (jsonify({"error": "Username contains invalid characters"}), 400)
+    if clean in ("null", "undefined", "none"):
+        return None, (jsonify({"error": "Invalid username"}), 400)
     return clean, None
 
 

@@ -630,7 +630,7 @@ function navGo(key){
 
 /* ===================== init ===================== */
 document.addEventListener('DOMContentLoaded', ()=>{
-  try{ myUsername = localStorage.getItem('boxdrank_user') || null; }catch(e){}
+  try{ myUsername = localStorage.getItem('boxdrank_user') || null; if(myUsername==='null'||myUsername==='undefined'||myUsername===''){ myUsername=null; localStorage.removeItem('boxdrank_user'); } }catch(e){}
   document.getElementById('heroEmblem').innerHTML = emblemSVG('Diamond',120);
   // tier ladder
   const cur='Diamond';
@@ -911,11 +911,21 @@ function renderResult(d){ const el=document.getElementById('resultContent'); el.
 /* ===================== share ===================== */
 function shareUrl(){ return `${location.origin}/u/${encodeURIComponent(curUser||'')}`; }
 function shareText(){ const rk=curData.rank; return `My Letterboxd rank is ${rk.tier} ${rk.division||''} (${rk.lp||0} LP) on BoxdRank. 🎬\n\nWhat's yours? #BoxdRank\n\n${shareUrl()}`; }
-function shareX(){
-  const t=shareText();
+function openX(t){
+  // Anchor-click is the most reliable way to open a new tab from a gesture
+  // (window.open with 'noopener' returns null and trips false popup-blocked logic).
   const url='https://twitter.com/intent/tweet?text='+encodeURIComponent(t);
-  const w=window.open(url,'_blank','noopener');
-  if(!w){ location.href=url; }   // popup blocked → navigate instead
+  const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+async function shareX(){
+  if(!curUser){ toast('Look up your rank first'); return; }
+  const t=shareText();
+  // Put the card on the clipboard first (cached → ~200ms) so a single Ctrl/⌘+V
+  // in the composer attaches it, then open X with the tweet text prefilled.
+  const imgOk=await copyCardImage();
+  openX(t);
+  toast(imgOk ? 'X opened — press Ctrl/⌘+V to attach your card' : 'X opened — text is ready');
 }
 // Synchronous, in-gesture text copy — never leaves the clipboard stale.
 function copyTextSync(t){
@@ -941,6 +951,7 @@ async function copyCardImage(){
   }catch(e){ return false; }
 }
 async function copyShare(){
+  if(!curUser){ toast('Look up your rank first'); return; }
   const t=shareText();
   const textOk=copyTextSync(t);     // 1) guarantee something useful is on the clipboard
   const imgOk=await copyCardImage(); // 2) upgrade to the card image when the browser allows it
@@ -948,7 +959,7 @@ async function copyShare(){
   else if(textOk) toast('Copied — paste into X (the card loads as a preview)');
   else toast('Copy failed — use Share on X');
 }
-async function downloadCardFor(u){ toast('Generating card…'); try{ const r=await fetch(`/api/card/${encodeURIComponent(u)}`); if(!r.ok) throw new Error(); const b=await r.blob(); const url=URL.createObjectURL(b); const a=document.createElement('a'); a.href=url; a.download=`boxdrank_${u}.png`; a.click(); URL.revokeObjectURL(url); toast('Card downloaded!'); }catch(e){ toast('Card failed'); } }
+async function downloadCardFor(u){ if(!u||u==='null'||u==='undefined'){ toast('Look up your rank first'); return; } toast('Generating card…'); try{ const r=await fetch(`/api/card/${encodeURIComponent(u)}`); if(!r.ok) throw new Error(); const b=await r.blob(); const url=URL.createObjectURL(b); const a=document.createElement('a'); a.href=url; a.download=`boxdrank_${u}.png`; a.click(); URL.revokeObjectURL(url); toast('Card downloaded!'); }catch(e){ toast('Card failed'); } }
 function downloadCard(){ return downloadCardFor(curUser); }
 function toggleCX(){ const f=document.getElementById('cxForm'); f.classList.toggle('show'); if(f.classList.contains('show')) document.getElementById('cxInput').focus(); }
 async function saveCX(){ const h=document.getElementById('cxInput').value.trim().replace(/^@/,''); if(!h||!curUser) return; if(!/^[a-zA-Z0-9_]+$/.test(h)||h.length>15){ toast('Invalid X handle'); return; } try{ const r=await fetch('/api/connect-x',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:curUser,x_handle:h,key:getKey()})}); if(!r.ok){ let m=(r.status===403)?'This account is linked to another device.':'Failed to link'; try{ const e=await r.json(); if(e&&e.error) m=e.error; }catch(_){} toast(m); return; } if(curData.stats) curData.stats.x_handle=h; toast('X linked!'); renderResult(curData); setTimeout(()=>document.querySelectorAll('#resultContent .pbar>i,#resultContent .track>i').forEach(b=>{if(b.dataset.w)b.style.width=b.dataset.w+'%';}),100); }catch(e){ toast('Failed to link'); } }
@@ -1041,7 +1052,7 @@ async function loadMoreLB(){
   }catch(e){}
 }
 
-function setMyUsername(u){ myUsername=u; try{ localStorage.setItem('boxdrank_user', u); }catch(e){} }
+function setMyUsername(u){ if(!u||u==='null'||u==='undefined') return; myUsername=u; try{ localStorage.setItem('boxdrank_user', u); }catch(e){} }
 async function updateLbYou(){
   const el=document.getElementById('lbYou');
   if(!myUsername){ el.style.display='none'; return; }
