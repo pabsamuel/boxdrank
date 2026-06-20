@@ -68,7 +68,8 @@
   .nav-links a { font-size:14px; color:var(--ink-3); font-weight:500; transition:color .15s ease; cursor:pointer; }
   .nav-links a:hover { color:var(--ink); }
   .nav-links a.active { color:var(--brand); }
-  .nav-cta { font-size:13.5px; font-weight:600; color:#03110a; background:var(--brand); padding:9px 16px; border-radius:9px; transition:transform .12s ease; box-shadow:0 0 0 1px rgba(0,224,84,0.4), 0 8px 24px -10px rgba(0,224,84,0.6); }
+  .nav-links a.nav-cta { font-size:13.5px; font-weight:700; color:#022c12; background:linear-gradient(180deg,#13ec6b,#00c24a); padding:9px 16px; border-radius:9px; transition:transform .12s ease; box-shadow:0 0 0 1px rgba(0,224,84,0.4), 0 8px 24px -10px rgba(0,224,84,0.6); }
+  .nav-links a.nav-cta:hover { color:#022c12; }
   .nav-cta:hover { transform:translateY(-1px); }
   .nav-toggle { display:none; background:none; border:0; cursor:pointer; padding:6px; color:var(--ink-2); }
   .nav-toggle:hover { color:var(--ink); }
@@ -97,7 +98,7 @@
   .input-shell .at { color:var(--ink-3); font-weight:500; font-size:15.5px; }
   .input-shell input { flex:1; background:transparent; border:0; outline:0; color:var(--ink); font-size:15.5px; font-family:inherit; padding:14px 0; letter-spacing:-0.01em; }
   .input-shell input::placeholder { color:var(--ink-4); }
-  .btn-primary { display:inline-flex; align-items:center; gap:8px; background:var(--brand); color:#04130b; font-weight:700; font-size:15px; border:0; border-radius:12px; padding:0 22px; cursor:pointer; white-space:nowrap; box-shadow:0 0 0 1px rgba(0,224,84,0.35), 0 14px 34px -14px rgba(0,224,84,0.7); transition:transform .12s ease, opacity .15s; }
+  .btn-primary { display:inline-flex; align-items:center; gap:8px; background:linear-gradient(180deg,#13ec6b,#00c24a); color:#022c12; font-weight:800; font-size:15px; border:0; border-radius:12px; padding:0 22px; cursor:pointer; white-space:nowrap; box-shadow:0 0 0 1px rgba(0,224,84,0.35), 0 14px 34px -14px rgba(0,224,84,0.7); transition:transform .12s ease, opacity .15s; }
   .btn-primary:hover { transform:translateY(-1px); }
   .btn-primary:disabled { opacity:.5; cursor:not-allowed; transform:none; }
   .btn-primary svg { width:16px; height:16px; }
@@ -409,7 +410,7 @@
       <div class="hero-copy">
         <div class="badge-pill">
           <span class="live"></span>
-          <span><b id="heroCount">—</b> cinephiles ranked</span>
+          <span><b id="heroCount">—</b> cinephiles learned their rank</span>
           <span class="sep">·</span>
           <span>updated live</span>
         </div>
@@ -842,7 +843,7 @@ function buildResultHTML(d, uname, isProfile){
         <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">${countryBadge}${posBadge}</div>
       </div>
       ${isYou ? `<div class="nudge"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span><span>Logged new films or reviews? <b>Connect again</b> any time to update your rank and climb the leaderboard.</span></div>` : ''}
-      ${(isYou && !ccode) ? `<div class="nudge loc-warn"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg></span><span>${(s.location||d.location)?`We couldn't match your location <b>"${esc(s.location||d.location)}"</b> to a country.`:`No location on your Letterboxd profile yet.`} Add a real city/country there, then hit <b>↻ Refresh stats</b> to join your country's leaderboard.</span></div>` : ''}
+      ${(isYou && !ccode) ? `<div class="nudge loc-warn"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg></span><span>${(s.location||d.location)?`We couldn't match your location <b>"${esc(s.location||d.location)}"</b> to a country.`:`No location on your Letterboxd profile yet.`} Add a real city/country to your <b>Letterboxd profile</b> (Settings → Profile → Location), then hit <b>↻ Refresh stats</b> to join your country's leaderboard.</span></div>` : ''}
       <div class="result-layout">
         <div class="card rank-card">
           <span class="top-rule"></span>
