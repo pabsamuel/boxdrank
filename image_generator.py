@@ -380,7 +380,7 @@ def generate_rank_card(username: str, stats: Dict, rank_info: Dict,
         draw.text((right_edge, by + bsz / 2 + _s(12)), "GLOBAL RANK", font=f_micro,
                   fill=(120, 126, 135), anchor="rm")
     else:
-        draw.text((right_edge, by + bsz / 2), "GLOBAL FILM RANK", font=f_micro,
+        draw.text((right_edge, by + bsz / 2), "GLOBAL CINEPHILE RANK", font=f_micro,
                   fill=(120, 126, 135), anchor="rm")
 
     dly = top_y + _s(46)

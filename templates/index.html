@@ -909,7 +909,11 @@ function buildResultHTML(d, uname, isProfile){
 function renderResult(d){ const el=document.getElementById('resultContent'); el.innerHTML = buildResultHTML(d, curUser, false); fillPersonImages(el); }
 
 /* ===================== share ===================== */
-function shareUrl(){ return `${location.origin}/u/${encodeURIComponent(curUser||'')}`; }
+// The buttons render when isYou (driven by myUsername), but the result can be
+// shown via paths that don't set curUser (page revisit / leaderboard "you" row),
+// so fall back to myUsername — otherwise the handlers wrongly say "look up first".
+function activeUser(){ return curUser || myUsername || ''; }
+function shareUrl(){ return `${location.origin}/u/${encodeURIComponent(activeUser())}`; }
 function shareText(){ const rk=curData.rank; return `My Letterboxd rank is ${rk.tier} ${rk.division||''} (${rk.lp||0} LP) on BoxdRank. 🎬\n\nWhat's yours? #BoxdRank\n\n${shareUrl()}`; }
 function openX(t){
   // Anchor-click is the most reliable way to open a new tab from a gesture
@@ -919,13 +923,14 @@ function openX(t){
   document.body.appendChild(a); a.click(); a.remove();
 }
 async function shareX(){
-  if(!curUser){ toast('Look up your rank first'); return; }
+  const u=activeUser(); if(!u){ toast('Look up your rank first'); return; }
   const t=shareText();
-  // Put the card on the clipboard first (cached → ~200ms) so a single Ctrl/⌘+V
-  // in the composer attaches it, then open X with the tweet text prefilled.
+  // X's share intent CANNOT auto-attach an image — only text. So we copy the
+  // card to the clipboard first (cached → ~200ms), open the composer with the
+  // tweet text prefilled, and the user drops the card in with one Ctrl/⌘+V.
   const imgOk=await copyCardImage();
   openX(t);
-  toast(imgOk ? 'X opened — press Ctrl/⌘+V to attach your card' : 'X opened — text is ready');
+  toast(imgOk ? '✓ Card copied — press Ctrl/⌘+V in the post to add it' : 'X opened — your text is ready');
 }
 // Synchronous, in-gesture text copy — never leaves the clipboard stale.
 function copyTextSync(t){
@@ -945,22 +950,35 @@ async function copyCardImage(){
   if(!(window.ClipboardItem && navigator.clipboard && navigator.clipboard.write)) return false;
   try{
     await navigator.clipboard.write([ new ClipboardItem({
-      'image/png': fetch(`/api/card/${encodeURIComponent(curUser||'')}`).then(r=>{ if(!r.ok) throw new Error('card'); return r.blob(); })
+      'image/png': fetch(`/api/card/${encodeURIComponent(activeUser())}`).then(r=>{ if(!r.ok) throw new Error('card'); return r.blob(); })
     }) ]);
     return true;
   }catch(e){ return false; }
 }
 async function copyShare(){
-  if(!curUser){ toast('Look up your rank first'); return; }
+  const u=activeUser(); if(!u){ toast('Look up your rank first'); return; }
   const t=shareText();
-  const textOk=copyTextSync(t);     // 1) guarantee something useful is on the clipboard
-  const imgOk=await copyCardImage(); // 2) upgrade to the card image when the browser allows it
-  if(imgOk) toast('Card copied — paste into your X post (Ctrl/⌘+V)');
-  else if(textOk) toast('Copied — paste into X (the card loads as a preview)');
-  else toast('Copy failed — use Share on X');
+  copyTextSync(t);  // guarantee the clipboard is never left holding stale content
+  // Copy the card image AND the tweet text in one item. Pasting into a text box
+  // gives the text; pasting into X attaches the card.
+  if(window.ClipboardItem && navigator.clipboard && navigator.clipboard.write){
+    try{
+      await navigator.clipboard.write([ new ClipboardItem({
+        'image/png': fetch(`/api/card/${encodeURIComponent(u)}`).then(r=>{ if(!r.ok) throw new Error('card'); return r.blob(); }),
+        'text/plain': new Blob([t], {type:'text/plain'})
+      }) ]);
+      toast('Card + text copied — paste into your post');
+      return;
+    }catch(e){
+      const ok=await copyCardImage();   // retry image-only (some browsers reject multi-type)
+      toast(ok ? 'Card copied — paste into your post' : 'Text copied — paste into X');
+      return;
+    }
+  }
+  toast('Text copied — paste into X');
 }
 async function downloadCardFor(u){ if(!u||u==='null'||u==='undefined'){ toast('Look up your rank first'); return; } toast('Generating card…'); try{ const r=await fetch(`/api/card/${encodeURIComponent(u)}`); if(!r.ok) throw new Error(); const b=await r.blob(); const url=URL.createObjectURL(b); const a=document.createElement('a'); a.href=url; a.download=`boxdrank_${u}.png`; a.click(); URL.revokeObjectURL(url); toast('Card downloaded!'); }catch(e){ toast('Card failed'); } }
-function downloadCard(){ return downloadCardFor(curUser); }
+function downloadCard(){ return downloadCardFor(activeUser()); }
 function toggleCX(){ const f=document.getElementById('cxForm'); f.classList.toggle('show'); if(f.classList.contains('show')) document.getElementById('cxInput').focus(); }
 async function saveCX(){ const h=document.getElementById('cxInput').value.trim().replace(/^@/,''); if(!h||!curUser) return; if(!/^[a-zA-Z0-9_]+$/.test(h)||h.length>15){ toast('Invalid X handle'); return; } try{ const r=await fetch('/api/connect-x',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:curUser,x_handle:h,key:getKey()})}); if(!r.ok){ let m=(r.status===403)?'This account is linked to another device.':'Failed to link'; try{ const e=await r.json(); if(e&&e.error) m=e.error; }catch(_){} toast(m); return; } if(curData.stats) curData.stats.x_handle=h; toast('X linked!'); renderResult(curData); setTimeout(()=>document.querySelectorAll('#resultContent .pbar>i,#resultContent .track>i').forEach(b=>{if(b.dataset.w)b.style.width=b.dataset.w+'%';}),100); }catch(e){ toast('Failed to link'); } }
 function searchAnother(){ goHome(); setTimeout(()=>document.getElementById('usernameInput').focus(),400); }
