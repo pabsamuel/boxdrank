@@ -859,9 +859,9 @@ function buildResultHTML(d, uname, isProfile){
           ${nextHTML}
           ${isYou ? `
           <div class="share-row">
-            <button class="share-btn x" onclick="shareX()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z"/></svg>Share on X</button>
-            <button class="share-btn ghost" onclick="copyShare()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button>
-            <button class="share-btn ghost" onclick="downloadCard()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Card</button>
+            <button class="share-btn x" onclick="shareXFor('${esc(uname)}','${esc(rk.tier||'')}','${esc(rk.division||'')}',${rk.lp||0},${rk.score||0})"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z"/></svg>Share on X</button>
+            <button class="share-btn ghost" onclick="copyShareFor('${esc(uname)}','${esc(rk.tier||'')}','${esc(rk.division||'')}',${rk.lp||0},${rk.score||0})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button>
+            <button class="share-btn ghost" onclick="downloadCardFor('${esc(uname)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Card</button>
           </div>
           <div class="extras">
             <span class="mini" onclick="${isProfile?'refreshAndViewMe':'refreshMyRank'}()">↻ Refresh stats</span>
@@ -909,28 +909,18 @@ function buildResultHTML(d, uname, isProfile){
 function renderResult(d){ const el=document.getElementById('resultContent'); el.innerHTML = buildResultHTML(d, curUser, false); fillPersonImages(el); }
 
 /* ===================== share ===================== */
-// The buttons render when isYou (driven by myUsername), but the result can be
-// shown via paths that don't set curUser (page revisit / leaderboard "you" row),
-// so fall back to myUsername — otherwise the handlers wrongly say "look up first".
-function activeUser(){ return curUser || myUsername || ''; }
-function shareUrl(){ const rk=(curData&&curData.rank)||{}; const v=(rk.score||0)+''+(rk.lp||0); return `${location.origin}/u/${encodeURIComponent(activeUser())}?v=${v}`; }
-function shareText(){ const rk=curData.rank; return `My Letterboxd rank is ${rk.tier} ${rk.division||''} (${rk.lp||0} LP) on BoxdRank. 🎬\n\nWhat's yours? #BoxdRank\n\n${shareUrl()}`; }
+// Every share/copy/download takes the username + rank straight from the card it
+// was rendered on — NEVER a global like curUser, which goes stale when you open
+// your own profile after searching someone else (that was the "copies the wrong
+// account" bug). The button onclick passes these explicitly.
+function shareUrlFor(u, score, lp){ const v=(score||0)+''+(lp||0); return `${location.origin}/u/${encodeURIComponent(u)}?v=${v}`; }
+function tweetTextFor(u, tier, div, lp, score){ return `My Letterboxd rank is ${tier} ${div||''} (${lp||0} LP) on BoxdRank. 🎬\n\nWhat's yours? #BoxdRank\n\n${shareUrlFor(u, score, lp)}`; }
 function openX(t){
   // Anchor-click is the most reliable way to open a new tab from a gesture
   // (window.open with 'noopener' returns null and trips false popup-blocked logic).
   const url='https://twitter.com/intent/tweet?text='+encodeURIComponent(t);
   const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener';
   document.body.appendChild(a); a.click(); a.remove();
-}
-async function shareX(){
-  const u=activeUser(); if(!u){ toast('Look up your rank first'); return; }
-  const t=shareText();
-  // X's share intent CANNOT auto-attach an image — only text. So we copy the
-  // card to the clipboard first (cached → ~200ms), open the composer with the
-  // tweet text prefilled, and the user drops the card in with one Ctrl/⌘+V.
-  copyCardImage();   // bonus: also on the clipboard so you can Ctrl/⌘+V it as a photo
-  openX(t);
-  toast('X opened — your card loads below the tweet');
 }
 // Synchronous, in-gesture text copy — never leaves the clipboard stale.
 function copyTextSync(t){
@@ -944,20 +934,26 @@ function copyTextSync(t){
     return ok;
   }catch(e){ return false; }
 }
-// Best-effort: put the actual card PNG on the clipboard so it pastes as a photo
-// into X (bypasses X's link-preview cache entirely). Returns true on success.
-async function copyCardImage(){
-  if(!(window.ClipboardItem && navigator.clipboard && navigator.clipboard.write)) return false;
+// Put the card PNG for THIS user on the clipboard (paste as a photo into X).
+async function copyCardImageFor(u){
+  if(!u || !(window.ClipboardItem && navigator.clipboard && navigator.clipboard.write)) return false;
   try{
     await navigator.clipboard.write([ new ClipboardItem({
-      'image/png': fetch(`/api/card/${encodeURIComponent(activeUser())}`).then(r=>{ if(!r.ok) throw new Error('card'); return r.blob(); })
+      'image/png': fetch(`/api/card/${encodeURIComponent(u)}`).then(r=>{ if(!r.ok) throw new Error('card'); return r.blob(); })
     }) ]);
     return true;
   }catch(e){ return false; }
 }
-async function copyShare(){
-  const u=activeUser(); if(!u){ toast('Look up your rank first'); return; }
-  const t=shareText();
+async function shareXFor(u, tier, div, lp, score){
+  if(!u){ toast('Look up your rank first'); return; }
+  const t=tweetTextFor(u, tier, div, lp, score);
+  copyCardImageFor(u);   // bonus: card on clipboard so you can Ctrl/⌘+V it as a photo
+  openX(t);
+  toast('X opened — your card loads below the tweet');
+}
+async function copyShareFor(u, tier, div, lp, score){
+  if(!u){ toast('Look up your rank first'); return; }
+  const t=tweetTextFor(u, tier, div, lp, score);
   copyTextSync(t);  // guarantee the clipboard is never left holding stale content
   // Copy the card image AND the tweet text in one item. Pasting into a text box
   // gives the text; pasting into X attaches the card.
@@ -970,7 +966,7 @@ async function copyShare(){
       toast('Card + text copied — paste into your post');
       return;
     }catch(e){
-      const ok=await copyCardImage();   // retry image-only (some browsers reject multi-type)
+      const ok=await copyCardImageFor(u);   // retry image-only (some browsers reject multi-type)
       toast(ok ? 'Card copied — paste into your post' : 'Text copied — paste into X');
       return;
     }
@@ -978,7 +974,7 @@ async function copyShare(){
   toast('Text copied — paste into X');
 }
 async function downloadCardFor(u){ if(!u||u==='null'||u==='undefined'){ toast('Look up your rank first'); return; } toast('Generating card…'); try{ const r=await fetch(`/api/card/${encodeURIComponent(u)}`); if(!r.ok) throw new Error(); const b=await r.blob(); const url=URL.createObjectURL(b); const a=document.createElement('a'); a.href=url; a.download=`boxdrank_${u}.png`; a.click(); URL.revokeObjectURL(url); toast('Card downloaded!'); }catch(e){ toast('Card failed'); } }
-function downloadCard(){ return downloadCardFor(activeUser()); }
+function downloadCard(){ return downloadCardFor(curUser||myUsername||''); }
 function toggleCX(){ const f=document.getElementById('cxForm'); f.classList.toggle('show'); if(f.classList.contains('show')) document.getElementById('cxInput').focus(); }
 async function saveCX(){ const h=document.getElementById('cxInput').value.trim().replace(/^@/,''); if(!h||!curUser) return; if(!/^[a-zA-Z0-9_]+$/.test(h)||h.length>15){ toast('Invalid X handle'); return; } try{ const r=await fetch('/api/connect-x',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:curUser,x_handle:h,key:getKey()})}); if(!r.ok){ let m=(r.status===403)?'This account is linked to another device.':'Failed to link'; try{ const e=await r.json(); if(e&&e.error) m=e.error; }catch(_){} toast(m); return; } if(curData.stats) curData.stats.x_handle=h; toast('X linked!'); renderResult(curData); setTimeout(()=>document.querySelectorAll('#resultContent .pbar>i,#resultContent .track>i').forEach(b=>{if(b.dataset.w)b.style.width=b.dataset.w+'%';}),100); }catch(e){ toast('Failed to link'); } }
 function searchAnother(){ goHome(); setTimeout(()=>document.getElementById('usernameInput').focus(),400); }
