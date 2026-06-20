@@ -411,7 +411,9 @@ def api_card(username):
         lb_total = 0
 
     rank_info = calculate_rank(stats)
-    img = generate_rank_card(clean, stats, rank_info, lb_position=lb_position, lb_total=lb_total)
+    style = "canva" if request.args.get("style") == "canva" else "code"
+    img = generate_rank_card(clean, stats, rank_info, lb_position=lb_position,
+                             lb_total=lb_total, style=style)
 
     img_io = io.BytesIO()
     img.save(img_io, "PNG", optimize=True)

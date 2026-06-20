@@ -134,6 +134,42 @@ def _star(draw, cx, cy, r_out, fill, points=5, r_in_ratio=0.42, rot=-90):
     draw.polygon(pts, fill=fill)
 
 
+def _hex_points(cx, cy, r, rot_deg=-90):
+    """Pointy-top hexagon vertices."""
+    return [(cx + r * math.cos(math.radians(rot_deg + 60 * i)),
+             cy + r * math.sin(math.radians(rot_deg + 60 * i))) for i in range(6)]
+
+
+def _emblem_watermark(img, accent, faint=True):
+    """A large faceted hexagonal rank gem behind the content (right side). Reads
+    as a collectible rank badge instead of the old giant letter watermark."""
+    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    cx, cy, r = _s(WIDTH - 214), _s(HEIGHT // 2 + 6), _s(150)
+    col = _alpha(_mix(accent, (255, 255, 255), 0.35), 30 if faint else 90)
+    outer = _hex_points(cx, cy, r)
+    d.polygon(outer, outline=col, width=_s(3))
+    d.polygon(_hex_points(cx, cy, r * 0.62), outline=col, width=_s(2))
+    for p in outer:                       # facet lines from centre to each vertex
+        d.line([(cx, cy), p], fill=col, width=_s(2))
+    dr = r * 0.30                          # centre diamond
+    d.polygon([(cx, cy - dr), (cx + dr * 0.72, cy), (cx, cy + dr), (cx - dr * 0.72, cy)],
+              outline=col, width=_s(2))
+    layer = layer.filter(ImageFilter.GaussianBlur(_s(1)))
+    return Image.alpha_composite(img.convert("RGBA"), layer).convert("RGB")
+
+
+def _canva_background(w_px, h_px):
+    """Load the Canva-designed backdrop (static/card_bg_canva.png) at supersampled
+    size. Returns an RGB image, or None if the asset is missing."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "card_bg_canva.png")
+    try:
+        return Image.open(path).convert("RGB").resize((w_px, h_px), Image.LANCZOS)
+    except Exception as e:
+        log.warning("canva backdrop unavailable: %s", e)
+        return None
+
+
 def _load_avatar(url: str, diameter: int) -> Optional[Image.Image]:
     """Download an avatar and return it cropped to a circle, or None on failure."""
     if not url:
@@ -165,8 +201,10 @@ def _load_avatar(url: str, diameter: int) -> Optional[Image.Image]:
 # --------------------------------------------------------------------------- #
 def generate_rank_card(username: str, stats: Dict, rank_info: Dict,
                        lb_position: Optional[int] = None,
-                       lb_total: Optional[int] = None) -> Image.Image:
-    """Render a 1200x630 shareable rank card and return a PIL RGB Image."""
+                       lb_total: Optional[int] = None,
+                       style: str = "code") -> Image.Image:
+    """Render a 1200x630 shareable rank card and return a PIL RGB Image.
+    style: "code" (Pillow-drawn frame) or "canva" (Canva-designed backdrop)."""
     W, H = WIDTH, HEIGHT
     tier = rank_info.get("tier", "Iron")
     accent = TIER_COLORS.get(tier, TIER_COLORS["Iron"])
@@ -278,14 +316,17 @@ def generate_rank_card(username: str, stats: Dict, rank_info: Dict,
     corner(card_box[0] + ci, card_box[3] - ci, 1, -1)
     corner(card_box[2] - ci, card_box[3] - ci, -1, -1)
 
-    # giant faint watermark tier initial
-    wm = Image.new("RGBA", (W * SS, H * SS), (0, 0, 0, 0))
-    wmd = ImageDraw.Draw(wm)
-    wmd.text((_s(W - 250), _s(H // 2 + 20)), (tier[:1] or "?").upper(), font=f_watermark,
-             fill=_alpha(_mix(accent, (255, 255, 255), 0.3), 26), anchor="mm")
-    wm = wm.filter(ImageFilter.GaussianBlur(_s(1)))
-    wm_masked = Image.composite(wm, Image.new("RGBA", wm.size, (0, 0, 0, 0)), mask)
-    img = Image.alpha_composite(img.convert("RGBA"), wm_masked).convert("RGB")
+    # For the "canva" style, swap in the Canva-designed backdrop (this discards
+    # the code-drawn frame above, which is cheap to render). The content below is
+    # drawn identically on top of whichever base we end up with.
+    if style == "canva":
+        cbg = _canva_background(W * SS, H * SS)
+        if cbg is not None:
+            img = cbg
+            draw = ImageDraw.Draw(img, "RGBA")
+
+    # Faceted rank-gem watermark (both styles) — replaces the old letter initial.
+    img = _emblem_watermark(img, accent, faint=True)
     draw = ImageDraw.Draw(img, "RGBA")
 
     # ---- header strip ----
@@ -412,24 +453,14 @@ def generate_rank_card(username: str, stats: Dict, rank_info: Dict,
                  shadow=(0, 0, 0, 170), off=(0, 3), anchor="lm")
 
     if division:
+        # Division as integrated accent text after the tier name ("SILVER  II"),
+        # not a boxed pill — the old pill read as a "pause" button.
         tnw = _text_w(draw, tier_txt, f_tier)
-        dvx = col_x + tnw + _s(22)
-        dv_h, dv_w = _s(60), _s(66)
-        dv_y = ty - dv_h // 2
-        pill = Image.new("RGBA", (W * SS, H * SS), (0, 0, 0, 0))
-        pdw = ImageDraw.Draw(pill)
-        for yy in range(dv_y, dv_y + dv_h):
-            tt = (yy - dv_y) / dv_h
-            pdw.line([(dvx, yy), (dvx + dv_w, yy)],
-                     fill=_lerp(_mix(accent, (255, 255, 255), 0.35), _mix(accent, (0, 0, 0), 0.12), tt))
-        pmask = Image.new("L", (W * SS, H * SS), 0)
-        pmd = ImageDraw.Draw(pmask)
-        pmd.rounded_rectangle([dvx, dv_y, dvx + dv_w, dv_y + dv_h], radius=_s(13), fill=255)
-        img = Image.composite(pill.convert("RGB"), img.convert("RGB"), pmask)
-        draw = ImageDraw.Draw(img, "RGBA")
-        draw.rounded_rectangle([dvx, dv_y, dvx + dv_w, dv_y + dv_h], radius=_s(13),
-                               outline=_alpha((255, 255, 255), 130), width=_s(2))
-        draw.text((dvx + dv_w / 2, dv_y + dv_h / 2), division, font=f_div, fill=(14, 16, 22), anchor="mm")
+        dvx = col_x + tnw + _s(24)
+        f_div2 = _font("heavy", 46)
+        _shadow_text(draw, (dvx, ty), division, f_div2,
+                     fill=_mix(accent, (255, 255, 255), 0.55),
+                     shadow=(0, 0, 0, 150), off=(0, 2), anchor="lm")
 
     # score + LP blocks
     sc_y = ty + _s(70)
@@ -462,6 +493,10 @@ def generate_rank_card(username: str, stats: Dict, rank_info: Dict,
         ("THIS YEAR",  _fmt(stats.get("this_year_count", 0))),
         ("FOLLOWERS",  _fmt(stats.get("followers", 0))),
     ]
+    # Drop empty "0" tiles (Lists/Followers etc.) so the strip never shows sad
+    # zeros — but always keep Films and Avg rating. Fewer tiles also read cleaner.
+    _keep = {"FILMS", "AVG RATING"}
+    stat_items = [it for it in stat_items if it[0] in _keep or it[1] not in ("0", "n/a")]
 
     strip_x0, strip_x1 = col_x, right_edge
     strip_y0, strip_y1 = _s(452), _s(540)
@@ -504,9 +539,11 @@ def generate_rank_card(username: str, stats: Dict, rank_info: Dict,
 
 def generate_card_bytes(username: str, stats: Dict, rank_info: Dict,
                         lb_position: Optional[int] = None,
-                        lb_total: Optional[int] = None) -> bytes:
+                        lb_total: Optional[int] = None,
+                        style: str = "code") -> bytes:
     """Convenience: return PNG bytes."""
-    img = generate_rank_card(username, stats, rank_info, lb_position=lb_position, lb_total=lb_total)
+    img = generate_rank_card(username, stats, rank_info, lb_position=lb_position,
+                             lb_total=lb_total, style=style)
     buf = io.BytesIO()
     img.save(buf, "PNG", optimize=True)
     return buf.getvalue()

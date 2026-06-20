@@ -40,3 +40,5 @@ _logos/
 
 # One-off dev patch/inspect scripts (never part of the app)
 _*.py
+# Scratch card-render previews (the real Canva asset lives in static/)
+_card*.png
