@@ -386,6 +386,28 @@ def api_rank(username):
     })
 
 
+# In-process PNG cache so social crawlers (Twitterbot, Discord, iMessage) get
+# the card instantly instead of waiting ~2s for a fresh Pillow render — a slow
+# image is the #1 reason X falls back to a placeholder thumbnail. Keyed by
+# (username, style) and versioned on the row's last_updated, so a Refresh that
+# changes the stats automatically busts the cache.
+_card_cache = {}
+_CARD_CACHE_MAX = 256
+
+
+def _card_cache_get(key, version):
+    item = _card_cache.get(key)
+    if item and item[0] == version:
+        return item[1]
+    return None
+
+
+def _card_cache_put(key, version, data):
+    if len(_card_cache) >= _CARD_CACHE_MAX:
+        _card_cache.clear()
+    _card_cache[key] = (version, data)
+
+
 @app.route("/api/card/<username>")
 def api_card(username):
     """Generate and return a rank card image."""
@@ -396,9 +418,22 @@ def api_card(username):
     if err:
         return err
 
+    style = "canva" if request.args.get("style") == "canva" else "code"
+
     # DB cache first — avoid a fresh scrape for the common case (the user just
     # looked up their rank, so they're already persisted).
     user_entry = leaderboard.get_user_position(clean)
+
+    # Serve a cached PNG when the stats haven't changed since we last drew it.
+    version = str(user_entry.get("last_updated") or "") if user_entry else ""
+    cache_key = (clean, style)
+    if version:
+        cached = _card_cache_get(cache_key, version)
+        if cached is not None:
+            resp = send_file(io.BytesIO(cached), mimetype="image/png")
+            resp.headers["Cache-Control"] = "public, max-age=600"
+            return resp
+
     if user_entry:
         stats = _stats_from_db_entry(user_entry)
         lb_position = user_entry.get("position")
@@ -411,15 +446,18 @@ def api_card(username):
         lb_total = 0
 
     rank_info = calculate_rank(stats)
-    style = "canva" if request.args.get("style") == "canva" else "code"
     img = generate_rank_card(clean, stats, rank_info, lb_position=lb_position,
                              lb_total=lb_total, style=style)
 
     img_io = io.BytesIO()
     img.save(img_io, "PNG", optimize=True)
-    img_io.seek(0)
+    png_bytes = img_io.getvalue()
+    if version:
+        _card_cache_put(cache_key, version, png_bytes)
 
-    return send_file(img_io, mimetype="image/png")
+    resp = send_file(io.BytesIO(png_bytes), mimetype="image/png")
+    resp.headers["Cache-Control"] = "public, max-age=600"
+    return resp
 
 
 @app.route("/api/leaderboard")
