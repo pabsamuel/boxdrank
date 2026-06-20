@@ -232,7 +232,16 @@ def share_page(username):
         return _index_response(_DEFAULT_OG_TITLE, _DEFAULT_OG_DESC,
                                f"{base}/static/boxdrank-logo.png", base + "/")
     entry = leaderboard.get_user_position(clean)
-    image = f"{base}/api/card/{clean}"
+    # Optional cache-buster: the share button appends ?v=<score>. X/Twitter caches
+    # link cards by exact URL, so a poisoned old crawl (placeholder from when the
+    # card was slow) sticks forever on the bare URL. Carrying the version through
+    # to BOTH the page url and the image url forces a fresh crawl of the now-fast
+    # card. The og:url canonical matches the crawled URL so X doesn't dedupe back
+    # to the stale one.
+    v = "".join(c for c in request.args.get("v", "") if c.isalnum())[:16]
+    suffix = f"?v={v}" if v else ""
+    image = f"{base}/api/card/{clean}{suffix}"
+    share_url = f"{base}/u/{clean}{suffix}"
     if entry:
         tier = entry.get("tier", "") or ""
         div = entry.get("division", "") or ""
@@ -242,7 +251,7 @@ def share_page(username):
     else:
         title = f"@{clean}'s rank on BoxdRank"
         desc = _DEFAULT_OG_DESC
-    return _index_response(title, desc, image, f"{base}/u/{clean}", 1200, 630)
+    return _index_response(title, desc, image, share_url, 1200, 630)
 
 
 @app.route("/health")

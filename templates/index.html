@@ -913,7 +913,7 @@ function renderResult(d){ const el=document.getElementById('resultContent'); el.
 // shown via paths that don't set curUser (page revisit / leaderboard "you" row),
 // so fall back to myUsername — otherwise the handlers wrongly say "look up first".
 function activeUser(){ return curUser || myUsername || ''; }
-function shareUrl(){ return `${location.origin}/u/${encodeURIComponent(activeUser())}`; }
+function shareUrl(){ const rk=(curData&&curData.rank)||{}; const v=(rk.score||0)+''+(rk.lp||0); return `${location.origin}/u/${encodeURIComponent(activeUser())}?v=${v}`; }
 function shareText(){ const rk=curData.rank; return `My Letterboxd rank is ${rk.tier} ${rk.division||''} (${rk.lp||0} LP) on BoxdRank. 🎬\n\nWhat's yours? #BoxdRank\n\n${shareUrl()}`; }
 function openX(t){
   // Anchor-click is the most reliable way to open a new tab from a gesture
@@ -928,9 +928,9 @@ async function shareX(){
   // X's share intent CANNOT auto-attach an image — only text. So we copy the
   // card to the clipboard first (cached → ~200ms), open the composer with the
   // tweet text prefilled, and the user drops the card in with one Ctrl/⌘+V.
-  const imgOk=await copyCardImage();
+  copyCardImage();   // bonus: also on the clipboard so you can Ctrl/⌘+V it as a photo
   openX(t);
-  toast(imgOk ? '✓ Card copied — press Ctrl/⌘+V in the post to add it' : 'X opened — your text is ready');
+  toast('X opened — your card loads below the tweet');
 }
 // Synchronous, in-gesture text copy — never leaves the clipboard stale.
 function copyTextSync(t){
