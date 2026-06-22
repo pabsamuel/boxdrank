@@ -859,8 +859,8 @@ function buildResultHTML(d, uname, isProfile){
           ${nextHTML}
           ${isYou ? `
           <div class="share-row">
-            <button class="share-btn x" onclick="shareXFor('${esc(uname)}','${esc(rk.tier||'')}','${esc(rk.division||'')}',${rk.lp||0},${rk.score||0})"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z"/></svg>Share on X</button>
-            <button class="share-btn ghost" onclick="copyShareFor('${esc(uname)}','${esc(rk.tier||'')}','${esc(rk.division||'')}',${rk.lp||0},${rk.score||0})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button>
+            <button class="share-btn x" onclick="shareXFor('${esc(uname)}','${esc(rk.tier||'')}','${esc(rk.division||'')}',${rk.lp||0},${rk.score||0},${d.lb_position||0})"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z"/></svg>Share on X</button>
+            <button class="share-btn ghost" onclick="copyShareFor('${esc(uname)}','${esc(rk.tier||'')}','${esc(rk.division||'')}',${rk.lp||0},${rk.score||0},${d.lb_position||0})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button>
             <button class="share-btn ghost" onclick="downloadCardFor('${esc(uname)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Card</button>
           </div>
           <div class="extras">
@@ -913,8 +913,8 @@ function renderResult(d){ const el=document.getElementById('resultContent'); el.
 // was rendered on — NEVER a global like curUser, which goes stale when you open
 // your own profile after searching someone else (that was the "copies the wrong
 // account" bug). The button onclick passes these explicitly.
-function shareUrlFor(u, score, lp){ const v=(score||0)+''+(lp||0); return `${location.origin}/u/${encodeURIComponent(u)}?v=${v}`; }
-function tweetTextFor(u, tier, div, lp, score){ return `My Letterboxd rank is ${tier} ${div||''} (${lp||0} LP) on BoxdRank. 🎬\n\nWhat's yours? #BoxdRank\n\n${shareUrlFor(u, score, lp)}`; }
+function shareUrlFor(u, score, lp, pos){ const v=(score||0)+'-'+(lp||0)+'-'+(pos||0); return `${location.origin}/u/${encodeURIComponent(u)}?v=${v}`; }
+function tweetTextFor(u, tier, div, lp, score, pos){ return `My Letterboxd rank is ${tier} ${div||''} (${lp||0} LP) on BoxdRank. 🎬\n\nWhat's yours? #BoxdRank\n\n${shareUrlFor(u, score, lp, pos)}`; }
 function openX(t){
   // Anchor-click is the most reliable way to open a new tab from a gesture
   // (window.open with 'noopener' returns null and trips false popup-blocked logic).
@@ -944,16 +944,16 @@ async function copyCardImageFor(u){
     return true;
   }catch(e){ return false; }
 }
-async function shareXFor(u, tier, div, lp, score){
+async function shareXFor(u, tier, div, lp, score, pos){
   if(!u){ toast('Look up your rank first'); return; }
-  const t=tweetTextFor(u, tier, div, lp, score);
+  const t=tweetTextFor(u, tier, div, lp, score, pos);
   copyCardImageFor(u);   // bonus: card on clipboard so you can Ctrl/⌘+V it as a photo
   openX(t);
   toast('X opened — your card loads below the tweet');
 }
-async function copyShareFor(u, tier, div, lp, score){
+async function copyShareFor(u, tier, div, lp, score, pos){
   if(!u){ toast('Look up your rank first'); return; }
-  const t=tweetTextFor(u, tier, div, lp, score);
+  const t=tweetTextFor(u, tier, div, lp, score, pos);
   copyTextSync(t);  // guarantee the clipboard is never left holding stale content
   // Copy the card image AND the tweet text in one item. Pasting into a text box
   // gives the text; pasting into X attaches the card.

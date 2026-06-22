@@ -455,7 +455,18 @@ def _card_bytes(clean, style):
     """Return the card PNG bytes for a user (L1 mem -> L2 disk -> render), or
     None if the profile has no usable data. Safe to call from any thread."""
     user_entry = leaderboard.get_user_position(clean)
-    version = str(user_entry.get("last_updated") or "") if user_entry else ""
+    if user_entry:
+        lb_position = user_entry.get("position")
+        lb_total = leaderboard.get_stats().get("total_users", 0)
+        # Version on last_updated AND the live standing (position + total). The
+        # card prints the user's global rank, which moves when OTHER people pass
+        # them — and that doesn't touch this user's last_updated — so positioning
+        # alone in the key keeps the cached card honest.
+        version = f"{user_entry.get('last_updated') or ''}|{lb_position or 0}|{lb_total}"
+    else:
+        lb_position = None
+        lb_total = 0
+        version = ""
     key = (clean, style)
 
     if version:
@@ -472,14 +483,10 @@ def _card_bytes(clean, style):
 
     if user_entry:
         stats = _stats_from_db_entry(user_entry)
-        lb_position = user_entry.get("position")
-        lb_total = leaderboard.get_stats().get("total_users", 0)
     else:
         stats = get_user_stats(clean)
         if stats is None or stats.get("films_watched", 0) == 0:
             return None
-        lb_position = None
-        lb_total = 0
 
     rank_info = calculate_rank(stats)
     img = generate_rank_card(clean, stats, rank_info, lb_position=lb_position,
