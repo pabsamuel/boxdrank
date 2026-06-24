@@ -367,6 +367,10 @@ def api_rank(username):
     # Persist ranking to leaderboard
     leaderboard.save_ranking(clean, stats, rank_info)
 
+    # A new/updated profile changes the actor & director boards (their top
+    # people now count), so drop the cached talent boards to recompute next hit.
+    _people_lb_cache.clear()
+
     # Pre-render the share card now (off the request path) so it's already
     # cached on disk before the user clicks "Share on X" and the crawler hits it.
     threading.Thread(target=_prewarm_card, args=(clean,), daemon=True).start()

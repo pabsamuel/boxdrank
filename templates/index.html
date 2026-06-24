@@ -953,16 +953,10 @@ async function shareXFor(u, tier, div, lp, score, pos){
 }
 async function copyShareFor(u, tier, div, lp, score, pos){
   if(!u){ toast('Look up your rank first'); return; }
-  const t=tweetTextFor(u, tier, div, lp, score, pos);
-  // Copy the full tweet TEXT (with the link). Pasting into X drops in the text +
-  // #BoxdRank, and the link expands into the card preview — so one paste gives
-  // BOTH. (A clipboard can't make X show an attached photo AND text at once.)
-  let ok=false;
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    try{ await navigator.clipboard.writeText(t); ok=true; }catch(e){}
-  }
-  if(!ok) ok=copyTextSync(t);
-  toast(ok ? 'Tweet copied — paste into X (the link shows your card)' : 'Copy failed');
+  // Copy ONLY the card image, so pasting into X attaches it as a photo.
+  const ok=await copyCardImageFor(u);
+  toast(ok ? 'Card image copied — paste it into your post (Ctrl/⌘+V)'
+           : 'Your browser blocked image copy — use the Card button to download it');
 }
 async function downloadCardFor(u){ if(!u||u==='null'||u==='undefined'){ toast('Look up your rank first'); return; } toast('Generating card…'); try{ const r=await fetch(`/api/card/${encodeURIComponent(u)}`); if(!r.ok) throw new Error(); const b=await r.blob(); const url=URL.createObjectURL(b); const a=document.createElement('a'); a.href=url; a.download=`boxdrank_${u}.png`; a.click(); URL.revokeObjectURL(url); toast('Card downloaded!'); }catch(e){ toast('Card failed'); } }
 function downloadCard(){ return downloadCardFor(curUser||myUsername||''); }
