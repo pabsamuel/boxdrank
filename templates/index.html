@@ -954,24 +954,15 @@ async function shareXFor(u, tier, div, lp, score, pos){
 async function copyShareFor(u, tier, div, lp, score, pos){
   if(!u){ toast('Look up your rank first'); return; }
   const t=tweetTextFor(u, tier, div, lp, score, pos);
-  copyTextSync(t);  // guarantee the clipboard is never left holding stale content
-  // Copy the card image AND the tweet text in one item. Pasting into a text box
-  // gives the text; pasting into X attaches the card.
-  if(window.ClipboardItem && navigator.clipboard && navigator.clipboard.write){
-    try{
-      await navigator.clipboard.write([ new ClipboardItem({
-        'image/png': fetch(`/api/card/${encodeURIComponent(u)}`).then(r=>{ if(!r.ok) throw new Error('card'); return r.blob(); }),
-        'text/plain': new Blob([t], {type:'text/plain'})
-      }) ]);
-      toast('Card + text copied — paste into your post');
-      return;
-    }catch(e){
-      const ok=await copyCardImageFor(u);   // retry image-only (some browsers reject multi-type)
-      toast(ok ? 'Card copied — paste into your post' : 'Text copied — paste into X');
-      return;
-    }
+  // Copy the full tweet TEXT (with the link). Pasting into X drops in the text +
+  // #BoxdRank, and the link expands into the card preview — so one paste gives
+  // BOTH. (A clipboard can't make X show an attached photo AND text at once.)
+  let ok=false;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    try{ await navigator.clipboard.writeText(t); ok=true; }catch(e){}
   }
-  toast('Text copied — paste into X');
+  if(!ok) ok=copyTextSync(t);
+  toast(ok ? 'Tweet copied — paste into X (the link shows your card)' : 'Copy failed');
 }
 async function downloadCardFor(u){ if(!u||u==='null'||u==='undefined'){ toast('Look up your rank first'); return; } toast('Generating card…'); try{ const r=await fetch(`/api/card/${encodeURIComponent(u)}`); if(!r.ok) throw new Error(); const b=await r.blob(); const url=URL.createObjectURL(b); const a=document.createElement('a'); a.href=url; a.download=`boxdrank_${u}.png`; a.click(); URL.revokeObjectURL(url); toast('Card downloaded!'); }catch(e){ toast('Card failed'); } }
 function downloadCard(){ return downloadCardFor(curUser||myUsername||''); }
