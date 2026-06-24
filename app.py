@@ -527,7 +527,14 @@ def api_card(username):
         return jsonify({"error": "Could not fetch data"}), 404
 
     resp = send_file(io.BytesIO(data), mimetype="image/png")
-    resp.headers["Cache-Control"] = "public, max-age=600"
+    if request.args.get("v"):
+        # Versioned share URL (?v=score-lp-pos): the content is immutable for
+        # that exact standing, so let X / CDNs cache it hard.
+        resp.headers["Cache-Control"] = "public, max-age=86400, immutable"
+    else:
+        # Bare URL: the card's global rank shifts as other people update, so it
+        # must never be served stale from a browser cache.
+        resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     return resp
 
 
