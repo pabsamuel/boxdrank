@@ -99,6 +99,12 @@
   .hp-fill { position: absolute; top: 0; bottom: 0; transition: width 0.7s cubic-bezier(0.2, 0.9, 0.3, 1); border-radius: 8px; }
   .hp-fill.me { left: 0; background: linear-gradient(90deg, #06b6d4, #22d3ee); box-shadow: 0 0 14px var(--p1-glow); }
   .hp-fill.them { right: 0; background: linear-gradient(90deg, #f43f5e, #fb7185); box-shadow: 0 0 14px var(--p2-glow); }
+  .hp-fill.low { animation: lowPulse 0.85s infinite; }
+  @keyframes lowPulse { 50% { filter: brightness(1.7) saturate(1.4); } }
+  .form-dots { display: flex; gap: 6px; align-items: center; }
+  .form-dots .dot { width: 14px; height: 14px; border-radius: 50%; font-size: 0; }
+  .form-dots .dot.W { background: var(--green); box-shadow: 0 0 8px rgba(52,211,153,0.5); }
+  .form-dots .dot.L { background: var(--red); opacity: 0.75; }
   .hp-num { font-variant-numeric: tabular-nums; }
   .vs-badge {
     flex: 0 0 auto; text-align: center; width: 64px;
@@ -247,7 +253,7 @@ const store = {
   },
 };
 const PROFILE_KEY = "linguaduel_profile_v1";
-const DEFAULT_PROFILE = { rating: 1000, wins: 0, losses: 0, games: 0, bestStreak: 0, langStats: {} };
+const DEFAULT_PROFILE = { rating: 1000, wins: 0, losses: 0, games: 0, bestStreak: 0, langStats: {}, history: [1000], results: [] };
 
 /* =====================================================================
    CONTENT BANK — curated, offline, no API needed
@@ -276,6 +282,9 @@ const BANK = {
       ["¿Dónde está la estación de tren más cercana?", "Where is the nearest train station?", 1],
       ["La vida es un sueño, y los sueños, sueños son.", "Life is a dream, and dreams are dreams. (Calderón)", 2],
       ["Aunque llueva, saldremos a caminar por el parque.", "Even if it rains, we'll go for a walk in the park.", 3],
+      ["Hace mucho calor en verano aquí.", "It's very hot here in summer.", 1],
+      ["No entiendo lo que dices, habla más despacio.", "I don't understand what you're saying, speak more slowly.", 2],
+      ["El próximo año quiero aprender a cocinar.", "Next year I want to learn to cook.", 2],
     ],
     w: [["dog","el perro"],["water","el agua"],["book","el libro"],["house","la casa"],["red","rojo"],["to eat","comer"],["night","la noche"],["friend","el amigo"],["cat","el gato"],["sun","el sol"],["bread","el pan"],["milk","la leche"]],
     p: [
@@ -283,12 +292,16 @@ const BANK = {
       ["ko.ɾaˈson","corazón","heart",["head","crown","song"]],
       ["ma.ˈɲa.na","mañana","tomorrow / morning",["butter","apple","never"]],
       ["a.ˈmi.ɣo","amigo","friend",["enemy","uncle","teacher"]],
+      ["es.ˈkwe.la","escuela","school",["squirrel","ladder","excuse"]],
+      ["ˈfwe.ɣo","fuego","fire",["game","outside","strength"]],
     ],
     f: [
       ["Yo ___ español todos los días.",["hablo","hablas","habla","hablan"],0,"With \"yo\" (I), -ar verbs take -o: yo hablo."],
       ["Ella ___ en Madrid.",["vive","vivo","vives","viven"],0,"Third person singular of vivir is vive: ella vive."],
       ["Nosotros ___ al cine los viernes.",["vamos","van","vas","voy"],0,"\"Nosotros\" (we) takes vamos — the nosotros form of ir."],
       ["¿Cuántos años ___ tú?",["tienes","tengo","tiene","tenéis"],0,"Age uses tener; with tú it's tienes."],
+      ["Ayer ___ una película muy buena.",["vi","veo","veré","viendo"],0,"\"Ayer\" (yesterday) needs the preterite: yo vi."],
+      ["Me ___ mucho el chocolate.",["gusta","gusto","gustan","gustas"],0,"Gustar agrees with the thing liked — el chocolate is singular: me gusta."],
     ],
   },
   fr: {
@@ -298,6 +311,9 @@ const BANK = {
       ["Où se trouve la gare la plus proche ?", "Where is the nearest train station?", 1],
       ["J'aimerais un croissant et un café, s'il vous plaît.", "I'd like a croissant and a coffee, please.", 2],
       ["Il faut cultiver notre jardin.", "We must cultivate our garden. (Voltaire)", 3],
+      ["Il fait très froid en hiver ici.", "It's very cold here in winter.", 1],
+      ["Je ne comprends pas, parlez plus lentement.", "I don't understand, speak more slowly.", 2],
+      ["L'année prochaine, je veux apprendre à cuisiner.", "Next year I want to learn to cook.", 2],
     ],
     w: [["dog","le chien"],["water","l'eau"],["book","le livre"],["house","la maison"],["red","rouge"],["to eat","manger"],["night","la nuit"],["friend","l'ami"],["cat","le chat"],["sun","le soleil"],["bread","le pain"],["milk","le lait"]],
     p: [
@@ -305,12 +321,16 @@ const BANK = {
       ["bɔ̃.ʒuʁ","bonjour","hello / good day",["goodbye","good night","welcome"]],
       ["ɑ̃.fɑ̃","enfant","child",["elephant","before","fan"]],
       ["ʃa","chat","cat",["hat","tea","road"]],
+      ["e.twal","étoile","star",["towel","story","toll"]],
+      ["fʁɔ.maʒ","fromage","cheese",["massage","frame","homage"]],
     ],
     f: [
       ["Je ___ français avec ma famille.",["parle","parles","parlons","parlez"],0,"With \"je\", -er verbs take -e: je parle."],
       ["Il ___ à Paris depuis deux ans.",["habite","habites","habitons","habitez"],0,"Third person singular of habiter is habite."],
       ["Nous ___ du pain frais.",["mangeons","mange","manges","mangez"],0,"\"Nous\" takes -ons; manger keeps the e: nous mangeons."],
       ["Tu ___ un frère ou une sœur ?",["as","ai","a","avons"],0,"Avoir with tu is as: tu as."],
+      ["Hier, j'___ visité le musée.",["ai","as","a","avons"],0,"Passé composé with avoir: j'ai visité."],
+      ["Elle est ___ à la maison.",["restée","resté","restés","rester"],0,"Rester takes être, so the participle agrees: elle est restée."],
     ],
   },
   de: {
@@ -320,6 +340,9 @@ const BANK = {
       ["Wo ist der nächste Bahnhof, bitte?", "Where is the nearest train station, please?", 1],
       ["Ich hätte gern ein Brötchen mit Käse.", "I'd like a bread roll with cheese.", 2],
       ["Übung macht den Meister, sagt man bei uns.", "Practice makes perfect, as we say.", 3],
+      ["Im Sommer ist es hier sehr heiß.", "It's very hot here in summer.", 1],
+      ["Ich verstehe nicht, sprechen Sie bitte langsamer.", "I don't understand, please speak more slowly.", 2],
+      ["Nächstes Jahr will ich kochen lernen.", "Next year I want to learn to cook.", 2],
     ],
     w: [["dog","der Hund"],["water","das Wasser"],["book","das Buch"],["house","das Haus"],["red","rot"],["to eat","essen"],["night","die Nacht"],["friend","der Freund"],["cat","die Katze"],["sun","die Sonne"],["bread","das Brot"],["milk","die Milch"]],
     p: [
@@ -327,12 +350,16 @@ const BANK = {
       ["ˈʃmɛ.tɐ.lɪŋ","Schmetterling","butterfly",["hammer","small talk","sandwich"]],
       ["ˈmɛːt.çən","Mädchen","girl",["market","fairy tale","kitten"]],
       ["ˈfʁɔʏnt","Freund","friend",["freedom","joy","stranger"]],
+      ["ˈkʁaŋ.kən.haʊs","Krankenhaus","hospital",["prison","pharmacy","garage"]],
+      ["ˈtsaɪ.tʊŋ","Zeitung","newspaper",["time zone","tent","train"]],
     ],
     f: [
       ["Ich ___ ein bisschen Deutsch.",["spreche","sprichst","spricht","sprechen"],0,"With \"ich\", verbs take -e: ich spreche."],
       ["Er ___ seit 2020 in Berlin.",["wohnt","wohne","wohnst","wohnen"],0,"Third person singular takes -t: er wohnt."],
       ["___ du einen Bruder?",["Hast","Habe","Hat","Haben"],0,"Haben with du is hast: Hast du…?"],
       ["Wir ___ jeden Morgen Brot.",["essen","esse","isst","esst"],0,"\"Wir\" (we) uses the infinitive form: wir essen."],
+      ["Gestern ___ ich ins Kino gegangen.",["bin","habe","ist","war"],0,"Movement verbs like gehen build the Perfekt with sein: ich bin gegangen."],
+      ["Ich möchte einen Kaffee, ___.",["bitte","danke","hallo","tschüss"],0,"Bitte means \"please\" when asking for something."],
     ],
   },
   ja: {
@@ -342,6 +369,9 @@ const BANK = {
       ["駅はどこにありますか。", "Where is the station?", 1],
       ["日本語の勉強はとても楽しいです。", "Studying Japanese is a lot of fun.", 2],
       ["継続は力なり。", "Persistence is power. (proverb)", 3],
+      ["夏はここはとても暑いです。", "It's very hot here in summer.", 1],
+      ["もっとゆっくり話してください。", "Please speak more slowly.", 2],
+      ["来年は料理を習いたいです。", "Next year I want to learn to cook.", 2],
     ],
     w: [["dog","犬 (inu)"],["water","水 (mizu)"],["book","本 (hon)"],["house","家 (ie)"],["red","赤い (akai)"],["to eat","食べる (taberu)"],["night","夜 (yoru)"],["friend","友達 (tomodachi)"],["cat","猫 (neko)"],["sun","太陽 (taiyō)"],["bread","パン (pan)"],["milk","牛乳 (gyūnyū)"]],
     p: [
@@ -349,12 +379,16 @@ const BANK = {
       ["ko.n.ni.tɕi.wa","こんにちは (konnichiwa)","hello / good afternoon",["good night","cheers","welcome home"]],
       ["ne.ko","ねこ (neko)","cat",["dog","root","sleep"]],
       ["mi.zɯ","みず (mizu)","water",["ear","road","store"]],
+      ["sa.kɯ.ɾa","さくら (sakura)","cherry blossom",["salmon","courage","whisper"]],
+      ["ɡo.haɴ","ごはん (gohan)","rice / a meal",["afternoon","book","five"]],
     ],
     f: [
       ["わたしは にほんご ___ はなします。",["を","が","に","で"],0,"を (o) marks the direct object — the thing being spoken: Japanese."],
       ["がっこう ___ いきます。",["に","を","が","の"],0,"に (ni) marks the destination of movement: to school."],
       ["これ ___ ほんです。",["は","を","に","で"],0,"は (wa) marks the topic: as for this, it's a book."],
       ["とうきょう ___ すんでいます。",["に","を","へ","が"],0,"住む (to live) takes に for the place you live in."],
+      ["ともだち ___ はなします。",["と","を","が","の"],0,"と (to) means \"with\": talking with a friend."],
+      ["にちようび ___ やすみです。",["は","を","に","が"],0,"は (wa) marks the topic: as for Sunday, it's a day off."],
     ],
   },
   tr: {
@@ -364,6 +398,9 @@ const BANK = {
       ["En yakın otobüs durağı nerede?", "Where is the nearest bus stop?", 1],
       ["Türkçe öğrenmek çok keyifli bir yolculuk.", "Learning Turkish is a very enjoyable journey.", 2],
       ["Damlaya damlaya göl olur.", "Drop by drop, a lake forms. (proverb)", 3],
+      ["Yazın burası çok sıcak oluyor.", "It gets very hot here in summer.", 1],
+      ["Anlamıyorum, lütfen daha yavaş konuşun.", "I don't understand, please speak more slowly.", 2],
+      ["Gelecek yıl yemek yapmayı öğrenmek istiyorum.", "Next year I want to learn to cook.", 2],
     ],
     w: [["dog","köpek"],["water","su"],["book","kitap"],["house","ev"],["red","kırmızı"],["to eat","yemek"],["night","gece"],["friend","arkadaş"],["cat","kedi"],["sun","güneş"],["bread","ekmek"],["milk","süt"]],
     p: [
@@ -371,12 +408,16 @@ const BANK = {
       ["ɟy.ˈzel","güzel","beautiful",["ugly","fast","autumn"]],
       ["aɾ.ka.ˈdaʃ","arkadaş","friend",["behind","stone","market"]],
       ["ˈe.vet","evet","yes",["no","maybe","house"]],
+      ["jɯl.ˈdɯz","yıldız","star",["year","lightning","road"]],
+      ["de.ˈniz","deniz","sea",["morning","salt","harbor"]],
     ],
     f: [
       ["Ben biraz Türkçe ___.",["konuşuyorum","konuşuyorsun","konuşuyor","konuşuyoruz"],0,"\"Ben\" (I) takes the -um ending: konuşuyorum."],
       ["O, İstanbul'da ___.",["yaşıyor","yaşıyorum","yaşıyorsun","yaşıyorlar"],0,"Third person singular has no personal ending: o yaşıyor."],
       ["Biz her sabah çay ___.",["içiyoruz","içiyorum","içiyor","içiyorsunuz"],0,"\"Biz\" (we) takes -uz: içiyoruz."],
       ["Sen nereye ___?",["gidiyorsun","gidiyorum","gidiyor","gidiyoruz"],0,"\"Sen\" (you) takes -sun: gidiyorsun."],
+      ["Dün akşam film ___.",["izledim","izliyorum","izlerim","izleyeceğim"],0,"\"Dün\" (yesterday) needs the past tense -di: izledim."],
+      ["Kahve ___ misin?",["ister","istiyor","istedi","isteyecek"],0,"\"İster misin?\" is the set phrase for \"would you like…?\""],
     ],
   },
   pt: {
@@ -386,6 +427,9 @@ const BANK = {
       ["Onde fica a estação de comboios mais próxima?", "Where is the nearest train station?", 2],
       ["Eu adoro tomar café de manhã bem cedo.", "I love having breakfast really early.", 2],
       ["Quem não arrisca, não petisca.", "Nothing ventured, nothing gained. (proverb)", 3],
+      ["No verão faz muito calor aqui.", "It's very hot here in summer.", 2],
+      ["Não entendo, fale mais devagar, por favor.", "I don't understand, speak more slowly, please.", 2],
+      ["No próximo ano quero aprender a cozinhar.", "Next year I want to learn to cook.", 2],
     ],
     w: [["dog","o cachorro"],["water","a água"],["book","o livro"],["house","a casa"],["red","vermelho"],["to eat","comer"],["night","a noite"],["friend","o amigo"],["cat","o gato"],["sun","o sol"],["bread","o pão"],["milk","o leite"]],
     p: [
@@ -393,12 +437,16 @@ const BANK = {
       ["sɐw.ˈda.dʒi","saudade","longing / nostalgic missing",["health","Saturday","greeting"]],
       ["ko.ɾa.ˈsɐ̃w̃","coração","heart",["crown","reason","race"]],
       ["ˈa.ɡwɐ","água","water",["needle","eagle","grape"]],
+      ["ʒɐ.ˈnɛ.lɐ","janela","window",["January","dinner","jar"]],
+      ["ˈpɾaj.ɐ","praia","beach",["prayer","silver","hurry"]],
     ],
     f: [
       ["Eu ___ um pouco de português.",["falo","falas","fala","falamos"],0,"With \"eu\" (I), -ar verbs take -o: eu falo."],
       ["Ela ___ no Brasil há cinco anos.",["mora","moro","moras","moram"],0,"Third person singular of morar is mora."],
       ["Nós ___ pão fresco de manhã.",["comemos","como","comes","comem"],0,"\"Nós\" (we) takes -emos with -er verbs: comemos."],
       ["Tu ___ um irmão mais velho?",["tens","tenho","tem","temos"],0,"Ter with tu is tens (European Portuguese)."],
+      ["Ontem eu ___ um filme ótimo.",["vi","vejo","verei","vendo"],0,"\"Ontem\" (yesterday) needs the preterite: eu vi."],
+      ["Nós ___ ao Brasil no ano passado.",["fomos","vamos","iremos","íamos"],0,"Past tense of ir with nós is fomos: we went."],
     ],
   },
   it: {
@@ -408,6 +456,9 @@ const BANK = {
       ["Dove si trova la stazione più vicina?", "Where is the nearest station?", 2],
       ["Mi piace molto il caffè della mattina.", "I really like morning coffee.", 1],
       ["Chi va piano va sano e va lontano.", "Slow and steady wins the race. (proverb)", 3],
+      ["D'estate fa molto caldo qui.", "It's very hot here in summer.", 1],
+      ["Non capisco, parli più lentamente, per favore.", "I don't understand, speak more slowly, please.", 2],
+      ["L'anno prossimo voglio imparare a cucinare.", "Next year I want to learn to cook.", 2],
     ],
     w: [["dog","il cane"],["water","l'acqua"],["book","il libro"],["house","la casa"],["red","rosso"],["to eat","mangiare"],["night","la notte"],["friend","l'amico"],["cat","il gatto"],["sun","il sole"],["bread","il pane"],["milk","il latte"]],
     p: [
@@ -415,12 +466,16 @@ const BANK = {
       ["a.ˈmo.re","amore","love",["bitter","armor","again"]],
       ["ˈdɔn.na","donna","woman",["gift","door","sleep"]],
       ["ˈnɔt.te","notte","night",["note","ninth","nothing"]],
+      ["ˈstel.la","stella","star",["style","chair","stem"]],
+      ["fi.ˈnɛs.tra","finestra","window",["finish line","orchestra","Friday"]],
     ],
     f: [
       ["Io ___ un po' di italiano.",["parlo","parli","parla","parliamo"],0,"With \"io\" (I), -are verbs take -o: io parlo."],
       ["Lei ___ a Roma da tre anni.",["vive","vivo","vivi","vivono"],0,"Third person singular of vivere is vive."],
       ["Noi ___ la pizza il sabato.",["mangiamo","mangio","mangi","mangiano"],0,"\"Noi\" (we) takes -iamo: mangiamo."],
       ["Tu ___ un fratello?",["hai","ho","ha","abbiamo"],0,"Avere with tu is hai: tu hai."],
+      ["Ieri ___ mangiato una pizza.",["ho","hai","ha","abbiamo"],0,"Passato prossimo with io: ho mangiato."],
+      ["Mia sorella ___ andata al mare.",["è","ha","sono","hanno"],0,"Andare takes essere; feminine singular: è andata."],
     ],
   },
   ko: {
@@ -430,6 +485,9 @@ const BANK = {
       ["가장 가까운 지하철역이 어디예요?", "Where is the nearest subway station?", 1],
       ["한국어 공부는 정말 재미있어요.", "Studying Korean is really fun.", 2],
       ["시작이 반이다.", "Starting is half the battle. (proverb)", 3],
+      ["여름에는 여기가 아주 더워요.", "It's very hot here in summer.", 1],
+      ["이해가 안 돼요, 좀 더 천천히 말해 주세요.", "I don't understand, please speak more slowly.", 2],
+      ["내년에는 요리를 배우고 싶어요.", "Next year I want to learn to cook.", 2],
     ],
     w: [["dog","개 (gae)"],["water","물 (mul)"],["book","책 (chaek)"],["house","집 (jip)"],["red","빨간 (ppalgan)"],["to eat","먹다 (meokda)"],["night","밤 (bam)"],["friend","친구 (chingu)"],["cat","고양이 (goyangi)"],["sun","해 (hae)"],["bread","빵 (ppang)"],["milk","우유 (uyu)"]],
     p: [
@@ -437,12 +495,16 @@ const BANK = {
       ["an.njʌŋ","안녕 (annyeong)","hi / bye (casual)",["good night only","stranger","angel"]],
       ["sa.ɾaŋ","사랑 (sarang)","love",["person","salary","living room"]],
       ["tɕin.ɡu","친구 (chingu)","friend",["penguin","really","nine"]],
+      ["pa.da","바다 (bada)","sea",["banana","father","leg"]],
+      ["ha.nɯl","하늘 (haneul)","sky",["one","older brother","flour"]],
     ],
     f: [
       ["저는 한국어___ 공부해요.",["를","이","은","에"],0,"를 (reul) marks the direct object after a vowel: the thing being studied."],
       ["학교___ 가요.",["에","를","은","가"],0,"에 (e) marks the destination: to school."],
       ["이것___ 책이에요.",["은","를","에","로"],0,"은 (eun) marks the topic after a consonant: as for this…"],
       ["물___ 마셔요.",["을","이","에","는"],0,"을 (eul) marks the direct object after a consonant: drink water."],
+      ["친구___ 같이 가요.",["와","를","은","에"],0,"와 (wa) means \"with\" after a vowel: together with a friend."],
+      ["아침___ 커피를 마셔요.",["에","를","이","와"],0,"에 (e) marks a point in time: in the morning."],
     ],
   },
 };
@@ -474,6 +536,22 @@ const PARALLEL = [
     es: "Mi amigo habla tres idiomas.", fr: "Mon ami parle trois langues.", de: "Mein Freund spricht drei Sprachen.",
     ja: "私の友達は三か国語を話します。", tr: "Arkadaşım üç dil konuşuyor.", pt: "O meu amigo fala três línguas.",
     it: "Il mio amico parla tre lingue.", ko: "제 친구는 세 개의 언어를 해요." }],
+  ["How much does this cost?", {
+    es: "¿Cuánto cuesta esto?", fr: "Combien ça coûte ?", de: "Wie viel kostet das?",
+    ja: "これはいくらですか。", tr: "Bu ne kadar?", pt: "Quanto custa isto?",
+    it: "Quanto costa questo?", ko: "이거 얼마예요?" }],
+  ["I'm hungry — let's eat something.", {
+    es: "Tengo hambre, comamos algo.", fr: "J'ai faim, mangeons quelque chose.", de: "Ich habe Hunger, lass uns etwas essen.",
+    ja: "お腹が空いたので、何か食べましょう。", tr: "Acıktım, bir şeyler yiyelim.", pt: "Estou com fome, vamos comer alguma coisa.",
+    it: "Ho fame, mangiamo qualcosa.", ko: "배고파요, 뭐 좀 먹어요." }],
+  ["It's raining today.", {
+    es: "Hoy está lloviendo.", fr: "Il pleut aujourd'hui.", de: "Heute regnet es.",
+    ja: "今日は雨が降っています。", tr: "Bugün yağmur yağıyor.", pt: "Hoje está a chover.",
+    it: "Oggi piove.", ko: "오늘은 비가 와요." }],
+  ["See you tomorrow at school.", {
+    es: "Nos vemos mañana en la escuela.", fr: "À demain à l'école.", de: "Bis morgen in der Schule.",
+    ja: "また明日、学校で。", tr: "Yarın okulda görüşürüz.", pt: "Até amanhã na escola.",
+    it: "Ci vediamo domani a scuola.", ko: "내일 학교에서 봐요." }],
 ];
 
 /* =====================================================================
@@ -609,9 +687,24 @@ const ROUND_SECONDS = 15;
 const BASE_SCORE = 500;   // for a correct answer
 const SPEED_SCORE = 500;  // linear bonus by time remaining
 const DIFFS = {
-  easy:   { name: "Easy",         acc: 0.55, tMin: 5.0, tMax: 12.5, rating: 850,  blurb: "Slow, sloppy — a warm-up bot." },
-  ranked: { name: "Ranked",       acc: 0.72, tMin: 3.5, tMax: 9.5,  rating: 1150, blurb: "A fair fight. Speed matters." },
-  pro:    { name: "Polyglot Pro", acc: 0.90, tMin: 2.0, tMax: 6.0,  rating: 1450, blurb: "Fast and nearly flawless. Good luck." },
+  easy: {
+    name: "Easy", bot: "Lil Lingo 🐣", acc: 0.55, tMin: 5.0, tMax: 12.5, rating: 850,
+    blurb: "Lil Lingo 🐣 — slow, sloppy, adorable. A warm-up bot.",
+    winTaunts: ["hehe gotcha!", "wait, I got that RIGHT?", "beginner's luck!!"],
+    loseTaunts: ["oops lol", "I'm still learning, ok??", "that word is HARD"],
+  },
+  ranked: {
+    name: "Ranked", bot: "VerbHunter ⚔️", acc: 0.72, tMin: 3.5, tMax: 9.5, rating: 1150,
+    blurb: "VerbHunter ⚔️ — a fair fight. Speed matters.",
+    winTaunts: ["Too slow.", "Read faster.", "That one was free."],
+    loseTaunts: ["Lucky round.", "Won't happen again.", "Hm. Decent."],
+  },
+  pro: {
+    name: "Polyglot Pro", bot: "BabelKing 👑", acc: 0.90, tMin: 2.0, tMax: 6.0, rating: 1450,
+    blurb: "BabelKing 👑 — fast and nearly flawless. Good luck.",
+    winTaunts: ["I speak twelve languages. You?", "Precision.", "Predictable."],
+    loseTaunts: ["…noted.", "Interesting.", "A statistical anomaly."],
+  },
 };
 const multiplierFor = (round) => 1 + 0.5 * Math.floor((round - 1) / 4);
 
@@ -653,7 +746,7 @@ function HpBar({ side, name, hp, dmgEvent }) {
         {side === "me" ? <span className="hp-num">{Math.max(0, hp)}</span> : <span className="them">{name}</span>}
       </div>
       <div className="hp-track">
-        <div className={"hp-fill " + side} style={{ width: pct + "%" }} />
+        <div className={"hp-fill " + side + (pct < 20 && pct > 0 ? " low" : "")} style={{ width: pct + "%" }} />
         {dmgEvent && (
           <div className="dmg-pop" style={side === "me" ? { right: 4, color: "var(--red)" } : { left: 4, color: "var(--gold)" }}>
             -{dmgEvent.amount}
@@ -755,9 +848,31 @@ function RoundResult({ r, hp, oppHp, oppName, onNext }) {
             : (r.dmgTo === "them" ? "💥 You deal " : "🩸 You take ") + r.dmg + " damage" + (r.mult > 1 ? " (" + r.mult + "× multiplier)" : "")}
         </div>
         <div className="explain"><b>Answer:</b> {r.ch.options[r.ch.correctIndex]} — {r.ch.explanation}</div>
+        {r.taunt && (
+          <div style={{ textAlign: "center", fontSize: 14, fontStyle: "italic", color: "var(--p2)", marginBottom: 14 }}>
+            {oppName}: “{r.taunt}”
+          </div>
+        )}
         <button className="btn primary" style={{ width: "100%" }} onClick={onNext}>
           {over ? "SEE RESULTS" : "NEXT ROUND ⚡"}
         </button>
+      </div>
+    </div>
+  );
+}
+
+function RatingSpark({ history }) {
+  if (!history || history.length < 2) return <div style={{ color: "var(--dim)", fontSize: 13 }}>Play a few duels to see your rating curve.</div>;
+  const min = Math.min(...history), max = Math.max(...history);
+  const span = Math.max(1, max - min);
+  const pts = history.map((r, i) => (2 + i / (history.length - 1) * 196).toFixed(1) + "," + (44 - (r - min) / span * 38).toFixed(1)).join(" ");
+  return (
+    <div>
+      <svg viewBox="0 0 200 48" style={{ width: "100%", height: 64, display: "block" }} preserveAspectRatio="none">
+        <polyline points={pts} fill="none" stroke="var(--gold)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--dim)", fontWeight: 700 }}>
+        <span>{min}</span><span>last {history.length} games</span><span>{max}</span>
       </div>
     </div>
   );
@@ -824,6 +939,8 @@ function App() {
       games: profile.games + 1,
       bestStreak: Math.max(profile.bestStreak, result.bestStreak),
       langStats,
+      history: [...(profile.history || [profile.rating]), profile.rating + dRating].slice(-20),
+      results: [...(profile.results || []), won ? "W" : "L"].slice(-10),
     });
     setLastGame({ ...result, won, dRating });
     setScreen("end");
@@ -840,7 +957,7 @@ function App() {
     );
   }
   if (screen === "end" && lastGame) {
-    return <EndScreen g={lastGame} oppName={DIFFS[diffKey].name} onAgain={() => setScreen("game")} onMenu={() => setScreen("menu")} />;
+    return <EndScreen g={lastGame} oppName={DIFFS[diffKey].bot} onAgain={() => setScreen("game")} onMenu={() => setScreen("menu")} />;
   }
   if (screen === "stats") {
     return (
@@ -853,6 +970,18 @@ function App() {
           <div className="stat-tile"><div className="v">{profile.games}</div><div className="k">Duels played</div></div>
           <div className="stat-tile"><div className="v">{profile.games ? Math.round(100 * profile.wins / profile.games) : 0}%</div><div className="k">Win rate</div></div>
           <div className="stat-tile"><div className="v">🔥 {profile.bestStreak}</div><div className="k">Best streak</div></div>
+        </div>
+        <div className="card" style={{ marginBottom: 16 }}>
+          <span className="label" style={{ display: "block", marginBottom: 10 }}>Rating history</span>
+          <RatingSpark history={profile.history} />
+          {profile.results && profile.results.length > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
+              <span className="label">Form</span>
+              <div className="form-dots">
+                {profile.results.map((r, i) => <span key={i} className={"dot " + r}>{r}</span>)}
+              </div>
+            </div>
+          )}
         </div>
         <div className="card" style={{ marginBottom: 16 }}>
           <span className="label" style={{ display: "block", marginBottom: 12 }}>Accuracy by language (all time)</span>
@@ -982,8 +1111,11 @@ function Game({ langCodes, diffKey, onFinish, onQuit }) {
     SND.play(pCorrect ? "good" : "bad");
     if (dmg > 0) setTimeout(() => SND.play("hit"), 260);
 
+    const taunt = dmgTo && Math.random() < 0.65
+      ? pick(dmgTo === "me" ? diff.winTaunts : diff.loseTaunts)
+      : null;
     setResult({
-      ch, mult, dmg, dmgTo,
+      ch, mult, dmg, dmgTo, taunt,
       pAnswered, pCorrect, pScore, pTime: R.playerTime || 0,
       aiAnswered, aiCorrect, aiScore, aiTime: R.answerAt,
     });
@@ -1058,7 +1190,7 @@ function Game({ langCodes, diffKey, onFinish, onQuit }) {
 
   return (
     <div className="app">
-      <Hud hp={hp} oppHp={oppHp} round={round} oppName={diff.name} dmg={dmgEvent} />
+      <Hud hp={hp} oppHp={oppHp} round={round} oppName={diff.bot} dmg={dmgEvent} />
       <Timer timeLeft={timeLeft} streak={streak} />
       <Challenge ch={ch} picked={picked} revealed={!!result} onPick={onPick} oppLocked={oppLocked} />
       <div style={{ textAlign: "center", marginTop: 18, display: "flex", gap: 10, justifyContent: "center" }}>
@@ -1069,12 +1201,29 @@ function Game({ langCodes, diffKey, onFinish, onQuit }) {
         </button>
       </div>
       {multBanner && <div className="mult-banner">⚡ DAMAGE ×{multBanner}</div>}
-      {result && <RoundResult r={result} hp={hp} oppHp={oppHp} oppName={diff.name} onNext={nextRound} />}
+      {result && <RoundResult r={result} hp={hp} oppHp={oppHp} oppName={diff.bot} onNext={nextRound} />}
     </div>
   );
 }
 
 function EndScreen({ g, oppName, onAgain, onMenu }) {
+  const [copied, setCopied] = useState(false);
+  const shareResult = () => {
+    const flags = Object.keys(g.gameLangStats).map((c) => LANGS[c].flag).join("");
+    const text =
+      "⚔️ LinguaDuel — " + (g.won ? "VICTORY" : "DEFEAT") + " vs " + oppName + "\n" +
+      "🎯 " + g.accuracy + "% acc · 🔥" + g.bestStreak + " streak · " + g.rounds + " rounds " + flags + "\n" +
+      "💥 " + g.dmgDealt + " dealt / " + g.dmgTaken + " taken · rating " + (g.dRating >= 0 ? "+" : "") + g.dRating;
+    const done = () => { setCopied(true); setTimeout(() => setCopied(false), 2000); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => {});
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); done(); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
+    }
+  };
   return (
     <div className="app">
       <div className={"end-title " + (g.won ? "win" : "lose")}>{g.won ? "VICTORY" : "DEFEAT"}</div>
@@ -1096,6 +1245,7 @@ function EndScreen({ g, oppName, onAgain, onMenu }) {
       </div>
       <div className="menu-footer">
         <button className="btn primary" onClick={onAgain}>⚔️ Rematch</button>
+        <button className="btn ghost" onClick={shareResult}>{copied ? "✅ Copied!" : "📋 Share result"}</button>
         <button className="btn ghost" onClick={onMenu}>Menu</button>
       </div>
     </div>
