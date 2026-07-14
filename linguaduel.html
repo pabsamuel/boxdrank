@@ -151,6 +151,13 @@
     text-wrap: balance;
   }
   .prompt-main.phonetic { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; color: #93c5fd; letter-spacing: 1px; }
+  .speak-btn {
+    display: block; margin: 0 auto 20px; padding: 18px 34px; cursor: pointer;
+    font-size: 22px; font-weight: 800; color: var(--text);
+    background: linear-gradient(135deg, #1d2b4d, #14203c); border: 1px solid var(--p1);
+    border-radius: 16px; box-shadow: 0 0 22px rgba(34,211,238,0.25); transition: transform 0.1s;
+  }
+  .speak-btn:active { transform: scale(0.95); }
   .options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   @media (max-width: 430px) { .options.long { grid-template-columns: 1fr; } }
   .options.single { grid-template-columns: 1fr; }
@@ -253,7 +260,7 @@ const store = {
   },
 };
 const PROFILE_KEY = "linguaduel_profile_v1";
-const DEFAULT_PROFILE = { rating: 1000, wins: 0, losses: 0, games: 0, bestStreak: 0, langStats: {}, history: [1000], results: [] };
+const DEFAULT_PROFILE = { rating: 1000, wins: 0, losses: 0, games: 0, bestStreak: 0, langStats: {}, typeStats: {}, history: [1000], results: [], lastDaily: null };
 
 /* =====================================================================
    CONTENT BANK — curated, offline, no API needed
@@ -560,25 +567,56 @@ const PARALLEL = [
 const TYPES = ["guess", "translate", "phonetic", "fill"];
 const TYPE_LABEL = {
   guess: "Guess the language", translate: "Translate", phonetic: "Sound it out", fill: "Fill the blank",
-  xword: "Cross-translate", xsent: "Polyglot sentence",
+  xword: "Cross-translate", xsent: "Polyglot sentence", listen: "Listen 🔊",
 };
-const shuffle = (a) => { const x = [...a]; for (let i = x.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [x[i], x[j]] = [x[j], x[i]]; } return x; };
-const pick = (a) => a[Math.floor(Math.random() * a.length)];
+// All gameplay randomness flows through RNG.fn so Daily Duel can swap in a
+// seeded generator — same seed, same rounds, worldwide. Cosmetic randomness
+// (taunts) must NOT use it, or player-dependent draws would desync the seed.
+const RNG = { fn: Math.random };
+const rand = () => RNG.fn();
+function seededRng(seed) {
+  let t = seed >>> 0;
+  return function () {
+    t += 0x6D2B79F5;
+    let r = Math.imul(t ^ (t >>> 15), t | 1);
+    r ^= r + Math.imul(r ^ (r >>> 7), r | 61);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const DAILY_EPOCH = Date.UTC(2026, 6, 13); // Daily Duel #1 on 2026-07-14 UTC
+const dailyNumber = () => Math.max(1, Math.floor((Date.now() - DAILY_EPOCH) / 86400000));
+const shuffle = (a) => { const x = [...a]; for (let i = x.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [x[i], x[j]] = [x[j], x[i]]; } return x; };
+const pick = (a) => a[Math.floor(rand() * a.length)];
+
+// Browser TTS for listening rounds — no audio files, works offline.
+const SPEECH_LANG = { es: "es-ES", fr: "fr-FR", de: "de-DE", ja: "ja-JP", tr: "tr-TR", pt: "pt-PT", it: "it-IT", ko: "ko-KR" };
+const canSpeak = typeof window !== "undefined" && "speechSynthesis" in window;
+function speak(text, lang) {
+  try {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = SPEECH_LANG[lang]; u.rate = 0.85;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  } catch (e) { /* no TTS available */ }
+}
 
 function makeGenerator(langCodes) {
   const used = new Set();
   // Cross-language rounds need 2+ active languages; in polyglot-style pools
   // (4+ languages) they make up half the rotation — that's the show.
   const crossOK = langCodes.length >= 2;
-  const typePool = crossOK
-    ? [...TYPES, "xword", "xsent", ...(langCodes.length >= 4 ? ["xword", "xsent"] : [])]
-    : [...TYPES];
+  const typePool = [
+    ...TYPES,
+    ...(canSpeak ? ["listen"] : []),
+    ...(crossOK ? ["xword", "xsent"] : []),
+    ...(crossOK && langCodes.length >= 4 ? ["xword", "xsent"] : []),
+  ];
   const pickTwoLangs = () => shuffle(langCodes).slice(0, 2);
   const fresh = (key, poolSize) => {
     // returns an unused index for this key, resetting when the pool is spent
     const open = [];
     for (let i = 0; i < poolSize; i++) if (!used.has(key + i)) open.push(i);
-    if (open.length === 0) { for (let i = 0; i < poolSize; i++) used.delete(key + i); return Math.floor(Math.random() * poolSize); }
+    if (open.length === 0) { for (let i = 0; i < poolSize; i++) used.delete(key + i); return Math.floor(rand() * poolSize); }
     const idx = pick(open);
     used.add(key + idx);
     return idx;
@@ -663,6 +701,22 @@ function makeGenerator(langCodes) {
         options: opts,
         correctIndex: opts.indexOf(meaning),
         explanation: "/" + ipa + "/ is the " + L + " word " + word + ".",
+      };
+    }
+    if (type === "listen") {
+      // shares the phonetic pool (and its repeat-tracking key) but plays
+      // the word aloud via TTS instead of showing the transcription
+      const i = fresh(lang + ":p", bank.p.length);
+      const [ipa, word, meaning, wrong] = bank.p[i];
+      const opts = shuffle([meaning, ...wrong]);
+      return {
+        type, lang, difficulty: 2,
+        speak: word.replace(/\s*\(.*\)$/, ""),
+        question: "Listen — what does this " + L + " word mean?",
+        display: "",
+        options: opts,
+        correctIndex: opts.indexOf(meaning),
+        explanation: "You heard " + word + " (/" + ipa + "/).",
       };
     }
     // fill
@@ -799,7 +853,9 @@ function Challenge({ ch, picked, revealed, onPick, oppLocked }) {
     <div className="card">
       <span className="type-chip">{TYPE_LABEL[ch.type]} · {chipLang}</span>
       <div className="prompt-q">{ch.question}</div>
-      <div className={"prompt-main" + (ch.phonetic ? " phonetic" : "")}>{ch.display}</div>
+      {ch.type === "listen"
+        ? <button className="speak-btn" onClick={() => speak(ch.speak, ch.lang)}>🔊 Play sound</button>
+        : <div className={"prompt-main" + (ch.phonetic ? " phonetic" : "")}>{ch.display}</div>}
       <div className={optCls}>
         {ch.options.map((opt, i) => {
           let cls = "opt";
@@ -906,7 +962,16 @@ function App() {
   const [selLangs, setSelLangs] = useState(["es"]);
   const [polyglot, setPolyglot] = useState(false);
   const [diffKey, setDiffKey] = useState("ranked");
+  const [mode, setMode] = useState("normal"); // normal | daily
   const [lastGame, setLastGame] = useState(null);
+
+  // Daily Duel: seed the RNG from the day number so every player on Earth
+  // gets the same rounds. Normal games restore true randomness.
+  const startGame = (m) => {
+    RNG.fn = m === "daily" ? seededRng((dailyNumber() * 2654435761) ^ 0x9E3779B9) : Math.random;
+    setMode(m);
+    setScreen("game");
+  };
 
   useEffect(() => {
     store.get(PROFILE_KEY).then((raw) => {
@@ -925,39 +990,54 @@ function App() {
 
   const finishGame = (result) => {
     const won = result.oppHp <= 0 && result.hp > 0;
-    const dRating = eloDelta(profile.rating, DIFFS[diffKey].rating, won);
-    const langStats = { ...profile.langStats };
-    for (const [code, v] of Object.entries(result.gameLangStats)) {
-      const prev = langStats[code] || { c: 0, t: 0 };
-      langStats[code] = { c: prev.c + v.c, t: prev.t + v.t };
-    }
-    saveProfile({
+    const isDaily = mode === "daily";
+    const dNum = dailyNumber();
+    const dRating = isDaily ? 0 : eloDelta(profile.rating, DIFFS[isDaily ? "ranked" : diffKey].rating, won);
+    const merge = (into, from) => {
+      const out = { ...into };
+      for (const [k, v] of Object.entries(from)) {
+        const prev = out[k] || { c: 0, t: 0 };
+        out[k] = { c: prev.c + v.c, t: prev.t + v.t };
+      }
+      return out;
+    };
+    const next = {
       ...profile,
-      rating: profile.rating + dRating,
-      wins: profile.wins + (won ? 1 : 0),
-      losses: profile.losses + (won ? 0 : 1),
-      games: profile.games + 1,
       bestStreak: Math.max(profile.bestStreak, result.bestStreak),
-      langStats,
-      history: [...(profile.history || [profile.rating]), profile.rating + dRating].slice(-20),
-      results: [...(profile.results || []), won ? "W" : "L"].slice(-10),
-    });
-    setLastGame({ ...result, won, dRating });
+      langStats: merge(profile.langStats, result.gameLangStats),
+      typeStats: merge(profile.typeStats || {}, result.gameTypeStats || {}),
+    };
+    if (isDaily) {
+      // dailies are rating-neutral; only the first attempt of the day counts
+      if (!profile.lastDaily || profile.lastDaily.num !== dNum) {
+        next.lastDaily = { num: dNum, won, accuracy: result.accuracy };
+      }
+    } else {
+      next.rating = profile.rating + dRating;
+      next.wins = profile.wins + (won ? 1 : 0);
+      next.losses = profile.losses + (won ? 0 : 1);
+      next.games = profile.games + 1;
+      next.history = [...(profile.history || [profile.rating]), profile.rating + dRating].slice(-20);
+      next.results = [...(profile.results || []), won ? "W" : "L"].slice(-10);
+    }
+    saveProfile(next);
+    setLastGame({ ...result, won, dRating, dailyNum: isDaily ? dNum : null });
     setScreen("end");
   };
 
+  const activeDiffKey = mode === "daily" ? "ranked" : diffKey;
   if (screen === "game") {
     return (
       <Game
-        langCodes={polyglot ? LANG_CODES : selLangs}
-        diffKey={diffKey}
+        langCodes={mode === "daily" || polyglot ? LANG_CODES : selLangs}
+        diffKey={activeDiffKey}
         onFinish={finishGame}
         onQuit={() => setScreen("menu")}
       />
     );
   }
   if (screen === "end" && lastGame) {
-    return <EndScreen g={lastGame} oppName={DIFFS[diffKey].bot} onAgain={() => setScreen("game")} onMenu={() => setScreen("menu")} />;
+    return <EndScreen g={lastGame} oppName={DIFFS[activeDiffKey].bot} onAgain={() => startGame(mode)} onMenu={() => setScreen("menu")} />;
   }
   if (screen === "stats") {
     return (
@@ -986,6 +1066,21 @@ function App() {
         <div className="card" style={{ marginBottom: 16 }}>
           <span className="label" style={{ display: "block", marginBottom: 12 }}>Accuracy by language (all time)</span>
           <LangAccuracyList stats={profile.langStats} />
+        </div>
+        <div className="card" style={{ marginBottom: 16 }}>
+          <span className="label" style={{ display: "block", marginBottom: 12 }}>Accuracy by round type</span>
+          {Object.entries(profile.typeStats || {}).filter(([, v]) => v.t > 0).length === 0
+            ? <div style={{ color: "var(--dim)", fontSize: 14 }}>No answers recorded yet.</div>
+            : Object.entries(profile.typeStats).filter(([, v]) => v.t > 0).sort((a, b) => b[1].t - a[1].t).map(([t, v]) => {
+                const pct = Math.round(100 * v.c / v.t);
+                return (
+                  <div className="lang-acc-row" key={t}>
+                    <div className="flag" style={{ width: 150 }}>{TYPE_LABEL[t] || t}</div>
+                    <div className="track"><div className="fill" style={{ width: pct + "%" }} /></div>
+                    <div className="pct">{pct}% ({v.c}/{v.t})</div>
+                  </div>
+                );
+              })}
         </div>
         <button className="btn ghost" onClick={() => setScreen("menu")}>← Back</button>
       </div>
@@ -1033,8 +1128,22 @@ function App() {
         </div>
         <div style={{ marginTop: 8, fontSize: 13, color: "var(--dim)" }}>{DIFFS[diffKey].blurb}</div>
       </div>
+      <div className="menu-section">
+        <span className="label">Daily duel</span>
+        <div className="chip-row">
+          <button className="chip gold" onClick={() => startGame("daily")}>
+            🗓️ DAILY #{dailyNumber()} — same rounds for everyone
+            {profile.lastDaily && profile.lastDaily.num === dailyNumber()
+              ? " · " + (profile.lastDaily.won ? "✅ won" : "❌ lost") + " today"
+              : ""}
+          </button>
+        </div>
+        <div style={{ marginTop: 8, fontSize: 13, color: "var(--dim)" }}>
+          All 8 languages vs VerbHunter ⚔️ — rating-neutral, first attempt counts.
+        </div>
+      </div>
       <div className="menu-footer">
-        <button className="btn primary" onClick={() => setScreen("game")}>⚔️ Start Duel</button>
+        <button className="btn primary" onClick={() => startGame("normal")}>⚔️ Start Duel</button>
         <button className="btn ghost" onClick={() => setScreen("stats")}>📊 My Stats</button>
       </div>
     </div>
@@ -1059,19 +1168,20 @@ function Game({ langCodes, diffKey, onFinish, onQuit }) {
   const [multBanner, setMultBanner] = useState(null);
   const [muted, setMuted] = useState(SND.muted);
 
-  const gameRef = useRef({ bestStreak: 0, pCorrectCount: 0, dmgDealt: 0, dmgTaken: 0, gameLangStats: {}, rounds: 0 });
+  const gameRef = useRef({ bestStreak: 0, pCorrectCount: 0, dmgDealt: 0, dmgTaken: 0, gameLangStats: {}, gameTypeStats: {}, rounds: 0 });
   const roundRef = useRef(null);
   if (!roundRef.current) roundRef.current = newAiPlan(ch, diff);
 
   function newAiPlan(challenge, d) {
     const acc = Math.min(0.97, Math.max(0.15, d.acc - (challenge.difficulty - 2) * 0.07));
-    const willBeCorrect = Math.random() < acc;
+    const willBeCorrect = rand() < acc;
     const wrongOpts = challenge.options.map((_, i) => i).filter((i) => i !== challenge.correctIndex);
+    const wrongIndex = wrongOpts[Math.floor(rand() * wrongOpts.length)];
     return {
       start: Date.now(),
-      answerAt: d.tMin + Math.random() * (d.tMax - d.tMin),
+      answerAt: d.tMin + rand() * (d.tMax - d.tMin),
       willBeCorrect,
-      index: willBeCorrect ? challenge.correctIndex : pick(wrongOpts),
+      index: willBeCorrect ? challenge.correctIndex : wrongIndex,
       playerPick: null,
       playerTime: null,
     };
@@ -1100,6 +1210,8 @@ function Game({ langCodes, diffKey, onFinish, onQuit }) {
     G.rounds = round;
     const ls = G.gameLangStats[ch.lang] || { c: 0, t: 0 };
     G.gameLangStats[ch.lang] = { c: ls.c + (pCorrect ? 1 : 0), t: ls.t + 1 };
+    const ts = G.gameTypeStats[ch.type] || { c: 0, t: 0 };
+    G.gameTypeStats[ch.type] = { c: ts.c + (pCorrect ? 1 : 0), t: ts.t + 1 };
     if (pCorrect) { G.pCorrectCount++; }
     const newStreak = pCorrect ? streak + 1 : 0;
     G.bestStreak = Math.max(G.bestStreak, newStreak);
@@ -1111,8 +1223,10 @@ function Game({ langCodes, diffKey, onFinish, onQuit }) {
     SND.play(pCorrect ? "good" : "bad");
     if (dmg > 0) setTimeout(() => SND.play("hit"), 260);
 
+    // taunts stay on Math.random — pick() would consume the daily seed
+    const tauntPool = dmgTo === "me" ? diff.winTaunts : diff.loseTaunts;
     const taunt = dmgTo && Math.random() < 0.65
-      ? pick(dmgTo === "me" ? diff.winTaunts : diff.loseTaunts)
+      ? tauntPool[Math.floor(Math.random() * tauntPool.length)]
       : null;
     setResult({
       ch, mult, dmg, dmgTo, taunt,
@@ -1158,6 +1272,7 @@ function Game({ langCodes, diffKey, onFinish, onQuit }) {
         dmgDealt: G.dmgDealt, dmgTaken: G.dmgTaken,
         bestStreak: G.bestStreak,
         gameLangStats: G.gameLangStats,
+        gameTypeStats: G.gameTypeStats,
       });
       return;
     }
@@ -1176,6 +1291,11 @@ function Game({ langCodes, diffKey, onFinish, onQuit }) {
     setTimeLeft(ROUND_SECONDS);
     setResult(null);
   };
+
+  // listen rounds speak automatically as they appear
+  useEffect(() => {
+    if (ch.type === "listen") speak(ch.speak, ch.lang);
+  }, [ch]);
 
   // keyboard: 1-6 to answer, Enter to advance past the round result
   useEffect(() => {
@@ -1210,8 +1330,9 @@ function EndScreen({ g, oppName, onAgain, onMenu }) {
   const [copied, setCopied] = useState(false);
   const shareResult = () => {
     const flags = Object.keys(g.gameLangStats).map((c) => LANGS[c].flag).join("");
+    const title = g.dailyNum != null ? "🗓️ LinguaDuel Daily #" + g.dailyNum : "⚔️ LinguaDuel";
     const text =
-      "⚔️ LinguaDuel — " + (g.won ? "VICTORY" : "DEFEAT") + " vs " + oppName + "\n" +
+      title + " — " + (g.won ? "VICTORY" : "DEFEAT") + " vs " + oppName + "\n" +
       "🎯 " + g.accuracy + "% acc · 🔥" + g.bestStreak + " streak · " + g.rounds + " rounds " + flags + "\n" +
       "💥 " + g.dmgDealt + " dealt / " + g.dmgTaken + " taken · rating " + (g.dRating >= 0 ? "+" : "") + g.dRating;
     const done = () => { setCopied(true); setTimeout(() => setCopied(false), 2000); };
@@ -1227,12 +1348,19 @@ function EndScreen({ g, oppName, onAgain, onMenu }) {
   return (
     <div className="app">
       <div className={"end-title " + (g.won ? "win" : "lose")}>{g.won ? "VICTORY" : "DEFEAT"}</div>
-      <div className="end-sub">{g.won ? "You destroyed " + oppName + " in " + g.rounds + " rounds" : oppName + " took you down in " + g.rounds + " rounds"}</div>
+      <div className="end-sub">
+        {g.dailyNum != null ? "🗓️ Daily Duel #" + g.dailyNum + " — " : ""}
+        {g.won ? "You destroyed " + oppName + " in " + g.rounds + " rounds" : oppName + " took you down in " + g.rounds + " rounds"}
+      </div>
       <div className="stat-grid">
-        <div className="stat-tile">
-          <div className={"v elo-delta " + (g.dRating >= 0 ? "up" : "down")}>{g.dRating >= 0 ? "+" : ""}{g.dRating}</div>
-          <div className="k">Rating</div>
-        </div>
+        {g.dailyNum != null ? (
+          <div className="stat-tile"><div className="v">🗓️ #{g.dailyNum}</div><div className="k">Daily duel</div></div>
+        ) : (
+          <div className="stat-tile">
+            <div className={"v elo-delta " + (g.dRating >= 0 ? "up" : "down")}>{g.dRating >= 0 ? "+" : ""}{g.dRating}</div>
+            <div className="k">Rating</div>
+          </div>
+        )}
         <div className="stat-tile"><div className="v">{g.accuracy}%</div><div className="k">Accuracy</div></div>
         <div className="stat-tile"><div className="v">🔥 {g.bestStreak}</div><div className="k">Best streak</div></div>
         <div className="stat-tile"><div className="v">{g.dmgDealt}</div><div className="k">Damage dealt</div></div>
