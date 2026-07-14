@@ -147,6 +147,19 @@
   .prompt-main.phonetic { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; color: #93c5fd; letter-spacing: 1px; }
   .options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   @media (max-width: 430px) { .options.long { grid-template-columns: 1fr; } }
+  .options.single { grid-template-columns: 1fr; }
+  .mult-banner {
+    position: fixed; top: 16%; left: 50%; z-index: 40; pointer-events: none; white-space: nowrap;
+    font-size: clamp(28px, 8vw, 42px); font-weight: 900; font-style: italic; color: var(--gold);
+    text-shadow: 0 0 30px rgba(251,191,36,0.65); animation: multBanner 1.8s ease forwards;
+  }
+  @keyframes multBanner {
+    0% { opacity: 0; transform: translateX(-50%) scale(0.4); }
+    15% { opacity: 1; transform: translateX(-50%) scale(1.2); }
+    30% { transform: translateX(-50%) scale(1); }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translateX(-50%) scale(1); }
+  }
   .opt {
     border: 1px solid var(--line); border-radius: 12px; background: var(--bg1);
     color: var(--text); font-size: 16px; font-weight: 700; padding: 14px 12px; cursor: pointer;
@@ -264,7 +277,7 @@ const BANK = {
       ["La vida es un sueño, y los sueños, sueños son.", "Life is a dream, and dreams are dreams. (Calderón)", 2],
       ["Aunque llueva, saldremos a caminar por el parque.", "Even if it rains, we'll go for a walk in the park.", 3],
     ],
-    w: [["dog","el perro"],["water","el agua"],["book","el libro"],["house","la casa"],["red","rojo"],["to eat","comer"],["night","la noche"],["friend","el amigo"]],
+    w: [["dog","el perro"],["water","el agua"],["book","el libro"],["house","la casa"],["red","rojo"],["to eat","comer"],["night","la noche"],["friend","el amigo"],["cat","el gato"],["sun","el sol"],["bread","el pan"],["milk","la leche"]],
     p: [
       ["ˈɡɾa.sjas","gracias","thank you",["good morning","goodbye","please"]],
       ["ko.ɾaˈson","corazón","heart",["head","crown","song"]],
@@ -286,7 +299,7 @@ const BANK = {
       ["J'aimerais un croissant et un café, s'il vous plaît.", "I'd like a croissant and a coffee, please.", 2],
       ["Il faut cultiver notre jardin.", "We must cultivate our garden. (Voltaire)", 3],
     ],
-    w: [["dog","le chien"],["water","l'eau"],["book","le livre"],["house","la maison"],["red","rouge"],["to eat","manger"],["night","la nuit"],["friend","l'ami"]],
+    w: [["dog","le chien"],["water","l'eau"],["book","le livre"],["house","la maison"],["red","rouge"],["to eat","manger"],["night","la nuit"],["friend","l'ami"],["cat","le chat"],["sun","le soleil"],["bread","le pain"],["milk","le lait"]],
     p: [
       ["mɛʁ.si","merci","thank you",["mercy","Tuesday","sea"]],
       ["bɔ̃.ʒuʁ","bonjour","hello / good day",["goodbye","good night","welcome"]],
@@ -308,7 +321,7 @@ const BANK = {
       ["Ich hätte gern ein Brötchen mit Käse.", "I'd like a bread roll with cheese.", 2],
       ["Übung macht den Meister, sagt man bei uns.", "Practice makes perfect, as we say.", 3],
     ],
-    w: [["dog","der Hund"],["water","das Wasser"],["book","das Buch"],["house","das Haus"],["red","rot"],["to eat","essen"],["night","die Nacht"],["friend","der Freund"]],
+    w: [["dog","der Hund"],["water","das Wasser"],["book","das Buch"],["house","das Haus"],["red","rot"],["to eat","essen"],["night","die Nacht"],["friend","der Freund"],["cat","die Katze"],["sun","die Sonne"],["bread","das Brot"],["milk","die Milch"]],
     p: [
       ["ˈdaŋ.kə","danke","thank you",["donkey","thanks to you (formal)","dark"]],
       ["ˈʃmɛ.tɐ.lɪŋ","Schmetterling","butterfly",["hammer","small talk","sandwich"]],
@@ -330,7 +343,7 @@ const BANK = {
       ["日本語の勉強はとても楽しいです。", "Studying Japanese is a lot of fun.", 2],
       ["継続は力なり。", "Persistence is power. (proverb)", 3],
     ],
-    w: [["dog","犬 (inu)"],["water","水 (mizu)"],["book","本 (hon)"],["house","家 (ie)"],["red","赤い (akai)"],["to eat","食べる (taberu)"],["night","夜 (yoru)"],["friend","友達 (tomodachi)"]],
+    w: [["dog","犬 (inu)"],["water","水 (mizu)"],["book","本 (hon)"],["house","家 (ie)"],["red","赤い (akai)"],["to eat","食べる (taberu)"],["night","夜 (yoru)"],["friend","友達 (tomodachi)"],["cat","猫 (neko)"],["sun","太陽 (taiyō)"],["bread","パン (pan)"],["milk","牛乳 (gyūnyū)"]],
     p: [
       ["a.ɾi.ɡa.toː","ありがとう (arigatō)","thank you",["excuse me","good morning","let's go"]],
       ["ko.n.ni.tɕi.wa","こんにちは (konnichiwa)","hello / good afternoon",["good night","cheers","welcome home"]],
@@ -352,7 +365,7 @@ const BANK = {
       ["Türkçe öğrenmek çok keyifli bir yolculuk.", "Learning Turkish is a very enjoyable journey.", 2],
       ["Damlaya damlaya göl olur.", "Drop by drop, a lake forms. (proverb)", 3],
     ],
-    w: [["dog","köpek"],["water","su"],["book","kitap"],["house","ev"],["red","kırmızı"],["to eat","yemek"],["night","gece"],["friend","arkadaş"]],
+    w: [["dog","köpek"],["water","su"],["book","kitap"],["house","ev"],["red","kırmızı"],["to eat","yemek"],["night","gece"],["friend","arkadaş"],["cat","kedi"],["sun","güneş"],["bread","ekmek"],["milk","süt"]],
     p: [
       ["te.ʃek.ˈkyɾ","teşekkür","thank you",["welcome","excuse me","congratulations"]],
       ["ɟy.ˈzel","güzel","beautiful",["ugly","fast","autumn"]],
@@ -374,7 +387,7 @@ const BANK = {
       ["Eu adoro tomar café de manhã bem cedo.", "I love having breakfast really early.", 2],
       ["Quem não arrisca, não petisca.", "Nothing ventured, nothing gained. (proverb)", 3],
     ],
-    w: [["dog","o cachorro"],["water","a água"],["book","o livro"],["house","a casa"],["red","vermelho"],["to eat","comer"],["night","a noite"],["friend","o amigo"]],
+    w: [["dog","o cachorro"],["water","a água"],["book","o livro"],["house","a casa"],["red","vermelho"],["to eat","comer"],["night","a noite"],["friend","o amigo"],["cat","o gato"],["sun","o sol"],["bread","o pão"],["milk","o leite"]],
     p: [
       ["o.bɾi.ˈɡa.du","obrigado","thank you",["obligated","tired","welcome"]],
       ["sɐw.ˈda.dʒi","saudade","longing / nostalgic missing",["health","Saturday","greeting"]],
@@ -396,7 +409,7 @@ const BANK = {
       ["Mi piace molto il caffè della mattina.", "I really like morning coffee.", 1],
       ["Chi va piano va sano e va lontano.", "Slow and steady wins the race. (proverb)", 3],
     ],
-    w: [["dog","il cane"],["water","l'acqua"],["book","il libro"],["house","la casa"],["red","rosso"],["to eat","mangiare"],["night","la notte"],["friend","l'amico"]],
+    w: [["dog","il cane"],["water","l'acqua"],["book","il libro"],["house","la casa"],["red","rosso"],["to eat","mangiare"],["night","la notte"],["friend","l'amico"],["cat","il gatto"],["sun","il sole"],["bread","il pane"],["milk","il latte"]],
     p: [
       ["ˈɡrat.tsje","grazie","thank you",["grace","please","greetings"]],
       ["a.ˈmo.re","amore","love",["bitter","armor","again"]],
@@ -418,7 +431,7 @@ const BANK = {
       ["한국어 공부는 정말 재미있어요.", "Studying Korean is really fun.", 2],
       ["시작이 반이다.", "Starting is half the battle. (proverb)", 3],
     ],
-    w: [["dog","개 (gae)"],["water","물 (mul)"],["book","책 (chaek)"],["house","집 (jip)"],["red","빨간 (ppalgan)"],["to eat","먹다 (meokda)"],["night","밤 (bam)"],["friend","친구 (chingu)"]],
+    w: [["dog","개 (gae)"],["water","물 (mul)"],["book","책 (chaek)"],["house","집 (jip)"],["red","빨간 (ppalgan)"],["to eat","먹다 (meokda)"],["night","밤 (bam)"],["friend","친구 (chingu)"],["cat","고양이 (goyangi)"],["sun","해 (hae)"],["bread","빵 (ppang)"],["milk","우유 (uyu)"]],
     p: [
       ["kam.sa.ham.ni.da","감사합니다 (gamsahamnida)","thank you",["nice to meet you","I'm sorry","goodbye"]],
       ["an.njʌŋ","안녕 (annyeong)","hi / bye (casual)",["good night only","stranger","angel"]],
@@ -434,16 +447,55 @@ const BANK = {
   },
 };
 
+// Parallel corpus: the same sentence in all 8 languages — fuels the
+// cross-language "polyglot sentence" rounds.
+const PARALLEL = [
+  ["Where is the train station?", {
+    es: "¿Dónde está la estación de tren?", fr: "Où est la gare ?", de: "Wo ist der Bahnhof?",
+    ja: "駅はどこですか。", tr: "Tren istasyonu nerede?", pt: "Onde fica a estação de comboios?",
+    it: "Dov'è la stazione?", ko: "기차역이 어디예요?" }],
+  ["I love learning languages.", {
+    es: "Me encanta aprender idiomas.", fr: "J'adore apprendre les langues.", de: "Ich liebe es, Sprachen zu lernen.",
+    ja: "言語を学ぶのが大好きです。", tr: "Dil öğrenmeyi çok seviyorum.", pt: "Eu adoro aprender línguas.",
+    it: "Adoro imparare le lingue.", ko: "언어 배우는 것을 정말 좋아해요." }],
+  ["The cat is sleeping on the chair.", {
+    es: "El gato está durmiendo en la silla.", fr: "Le chat dort sur la chaise.", de: "Die Katze schläft auf dem Stuhl.",
+    ja: "猫は椅子の上で寝ています。", tr: "Kedi sandalyede uyuyor.", pt: "O gato está a dormir na cadeira.",
+    it: "Il gatto dorme sulla sedia.", ko: "고양이가 의자에서 자고 있어요." }],
+  ["Tomorrow we're going to the beach.", {
+    es: "Mañana vamos a la playa.", fr: "Demain, nous allons à la plage.", de: "Morgen fahren wir an den Strand.",
+    ja: "明日、私たちはビーチに行きます。", tr: "Yarın plaja gidiyoruz.", pt: "Amanhã vamos à praia.",
+    it: "Domani andiamo in spiaggia.", ko: "내일 우리는 해변에 가요." }],
+  ["Can I have a coffee, please?", {
+    es: "¿Me da un café, por favor?", fr: "Un café, s'il vous plaît.", de: "Einen Kaffee, bitte.",
+    ja: "コーヒーをひとつお願いします。", tr: "Bir kahve alabilir miyim, lütfen?", pt: "Um café, por favor.",
+    it: "Un caffè, per favore.", ko: "커피 한 잔 주세요." }],
+  ["My friend speaks three languages.", {
+    es: "Mi amigo habla tres idiomas.", fr: "Mon ami parle trois langues.", de: "Mein Freund spricht drei Sprachen.",
+    ja: "私の友達は三か国語を話します。", tr: "Arkadaşım üç dil konuşuyor.", pt: "O meu amigo fala três línguas.",
+    it: "Il mio amico parla tre lingue.", ko: "제 친구는 세 개의 언어를 해요." }],
+];
+
 /* =====================================================================
    CHALLENGE GENERATOR — assembles rounds from the bank, avoids repeats
    ===================================================================== */
 const TYPES = ["guess", "translate", "phonetic", "fill"];
-const TYPE_LABEL = { guess: "Guess the language", translate: "Translate", phonetic: "Sound it out", fill: "Fill the blank" };
+const TYPE_LABEL = {
+  guess: "Guess the language", translate: "Translate", phonetic: "Sound it out", fill: "Fill the blank",
+  xword: "Cross-translate", xsent: "Polyglot sentence",
+};
 const shuffle = (a) => { const x = [...a]; for (let i = x.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [x[i], x[j]] = [x[j], x[i]]; } return x; };
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
 function makeGenerator(langCodes) {
   const used = new Set();
+  // Cross-language rounds need 2+ active languages; in polyglot-style pools
+  // (4+ languages) they make up half the rotation — that's the show.
+  const crossOK = langCodes.length >= 2;
+  const typePool = crossOK
+    ? [...TYPES, "xword", "xsent", ...(langCodes.length >= 4 ? ["xword", "xsent"] : [])]
+    : [...TYPES];
+  const pickTwoLangs = () => shuffle(langCodes).slice(0, 2);
   const fresh = (key, poolSize) => {
     // returns an unused index for this key, resetting when the pool is spent
     const open = [];
@@ -455,8 +507,42 @@ function makeGenerator(langCodes) {
   };
 
   return function nextChallenge() {
+    const type = pick(typePool);
+
+    if (type === "xword") {
+      const [src, dst] = pickTwoLangs();
+      const i = fresh("xw:" + dst, BANK[dst].w.length);
+      const [en, dstWord] = BANK[dst].w[i];
+      const srcWord = BANK[src].w[i][1];
+      const distractors = shuffle(BANK[dst].w.filter((_, j) => j !== i)).slice(0, 3).map((x) => x[1]);
+      const opts = shuffle([dstWord, ...distractors]);
+      return {
+        type, lang: dst, srcLang: src, difficulty: 3,
+        question: "Translate this " + LANGS[src].name + " word into " + LANGS[dst].name + ":",
+        display: "“" + srcWord + "”",
+        options: opts,
+        correctIndex: opts.indexOf(dstWord),
+        explanation: srcWord + " and " + dstWord + " both mean “" + en + "”.",
+      };
+    }
+    if (type === "xsent") {
+      const [src, dst] = pickTwoLangs();
+      const i = fresh("xs", PARALLEL.length);
+      const [en, versions] = PARALLEL[i];
+      const correct = versions[dst];
+      const distractors = shuffle(PARALLEL.filter((_, j) => j !== i)).slice(0, 3).map((p) => p[1][dst]);
+      const opts = shuffle([correct, ...distractors]);
+      return {
+        type, lang: dst, srcLang: src, difficulty: 3,
+        question: "How do you say this in " + LANGS[dst].name + "?",
+        display: "“" + versions[src] + "”",
+        options: opts,
+        correctIndex: opts.indexOf(correct),
+        explanation: "Both sentences mean: “" + en + "”",
+      };
+    }
+
     const lang = pick(langCodes);
-    const type = pick(TYPES);
     const bank = BANK[lang];
     const L = LANGS[lang].name;
 
@@ -528,6 +614,30 @@ const DIFFS = {
   pro:    { name: "Polyglot Pro", acc: 0.90, tMin: 2.0, tMax: 6.0,  rating: 1450, blurb: "Fast and nearly flawless. Good luck." },
 };
 const multiplierFor = (round) => 1 + 0.5 * Math.floor((round - 1) / 4);
+
+// Tiny WebAudio synth for game feel — no audio files needed.
+const SND = {
+  muted: false, ctx: null,
+  tone(freq, dur, type, gain, delay) {
+    setTimeout(() => {
+      try {
+        this.ctx = this.ctx || new (window.AudioContext || window.webkitAudioContext)();
+        const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+        o.type = type; o.frequency.value = freq; g.gain.value = gain;
+        o.connect(g); g.connect(this.ctx.destination);
+        o.start(); g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+        o.stop(this.ctx.currentTime + dur);
+      } catch (e) { /* no audio available */ }
+    }, delay || 0);
+  },
+  play(kind) {
+    if (this.muted) return;
+    if (kind === "good") { this.tone(660, 0.12, "sine", 0.12); this.tone(990, 0.2, "sine", 0.12, 110); }
+    else if (kind === "bad") { this.tone(170, 0.3, "sawtooth", 0.09); }
+    else if (kind === "hit") { this.tone(95, 0.22, "square", 0.15); }
+    else if (kind === "mult") { this.tone(440, 0.1, "triangle", 0.12); this.tone(880, 0.22, "triangle", 0.12, 100); }
+  },
+};
 const scoreFor = (correct, timeLeft) => (correct ? BASE_SCORE + Math.round(SPEED_SCORE * Math.max(0, timeLeft) / ROUND_SECONDS) : 0);
 const eloDelta = (me, opp, won) => Math.round(32 * ((won ? 1 : 0) - 1 / (1 + Math.pow(10, (opp - me) / 400))));
 
@@ -585,13 +695,19 @@ function Timer({ timeLeft, streak }) {
 }
 
 function Challenge({ ch, picked, revealed, onPick, oppLocked }) {
-  const longOpts = ch.options.some((o) => o.length > 14);
+  const maxLen = Math.max(...ch.options.map((o) => o.length));
+  const optCls = "options" + (maxLen > 26 ? " single" : maxLen > 14 ? " long" : "");
+  const chipLang = ch.type === "guess"
+    ? "🌐 ???"
+    : ch.srcLang
+      ? LANGS[ch.srcLang].flag + " " + LANGS[ch.srcLang].name + " → " + LANGS[ch.lang].flag + " " + LANGS[ch.lang].name
+      : LANGS[ch.lang].flag + " " + LANGS[ch.lang].name;
   return (
     <div className="card">
-      <span className="type-chip">{TYPE_LABEL[ch.type]} · {LANGS[ch.lang].flag} {ch.type === "guess" ? "???" : LANGS[ch.lang].name}</span>
+      <span className="type-chip">{TYPE_LABEL[ch.type]} · {chipLang}</span>
       <div className="prompt-q">{ch.question}</div>
       <div className={"prompt-main" + (ch.phonetic ? " phonetic" : "")}>{ch.display}</div>
-      <div className={"options" + (longOpts ? " long" : "")}>
+      <div className={optCls}>
         {ch.options.map((opt, i) => {
           let cls = "opt";
           if (revealed) {
@@ -765,12 +881,17 @@ function App() {
             </button>
           ))}
         </div>
+        {!polyglot && selLangs.length >= 2 && (
+          <div style={{ marginTop: 8, fontSize: 13, color: "var(--gold)", fontWeight: 700 }}>
+            ⚡ Cross-translation rounds active: {selLangs.map((c) => LANGS[c].name).join(" ↔ ")}
+          </div>
+        )}
       </div>
       <div className="menu-section">
         <span className="label">Or go all in</span>
         <div className="chip-row">
           <button className={"chip gold" + (polyglot ? " on" : "")} onClick={() => setPolyglot(!polyglot)}>
-            🌍 POLYGLOT MODE — all 8 languages mixed
+            🌍 POLYGLOT MODE — all 8 mixed, cross-language translation
           </button>
         </div>
       </div>
@@ -806,6 +927,8 @@ function Game({ langCodes, diffKey, onFinish, onQuit }) {
   const [dmgEvent, setDmgEvent] = useState(null);
   const [streak, setStreak] = useState(0);
   const [oppLocked, setOppLocked] = useState(false);
+  const [multBanner, setMultBanner] = useState(null);
+  const [muted, setMuted] = useState(SND.muted);
 
   const gameRef = useRef({ bestStreak: 0, pCorrectCount: 0, dmgDealt: 0, dmgTaken: 0, gameLangStats: {}, rounds: 0 });
   const roundRef = useRef(null);
@@ -856,6 +979,8 @@ function Game({ langCodes, diffKey, onFinish, onQuit }) {
     if (dmgTo === "me") { setHp((h) => h - dmg); G.dmgTaken += dmg; }
     if (dmgTo === "them") { setOppHp((h) => h - dmg); G.dmgDealt += dmg; }
     if (dmg > 0) setDmgEvent({ id: Date.now(), to: dmgTo, amount: dmg });
+    SND.play(pCorrect ? "good" : "bad");
+    if (dmg > 0) setTimeout(() => SND.play("hit"), 260);
 
     setResult({
       ch, mult, dmg, dmgTo,
@@ -906,6 +1031,12 @@ function Game({ langCodes, diffKey, onFinish, onQuit }) {
     }
     const nextCh = genRef.current();
     roundRef.current = newAiPlan(nextCh, diff);
+    const newMult = multiplierFor(round + 1);
+    if (newMult > multiplierFor(round)) {
+      setMultBanner(newMult);
+      SND.play("mult");
+      setTimeout(() => setMultBanner(null), 1900);
+    }
     setCh(nextCh);
     setRound((r) => r + 1);
     setPicked(null);
@@ -914,14 +1045,30 @@ function Game({ langCodes, diffKey, onFinish, onQuit }) {
     setResult(null);
   };
 
+  // keyboard: 1-6 to answer, Enter to advance past the round result
+  useEffect(() => {
+    const onKey = (e) => {
+      if (result) { if (e.key === "Enter") nextRound(); return; }
+      const n = parseInt(e.key, 10);
+      if (n >= 1 && n <= ch.options.length) onPick(n - 1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   return (
     <div className="app">
       <Hud hp={hp} oppHp={oppHp} round={round} oppName={diff.name} dmg={dmgEvent} />
       <Timer timeLeft={timeLeft} streak={streak} />
       <Challenge ch={ch} picked={picked} revealed={!!result} onPick={onPick} oppLocked={oppLocked} />
-      <div style={{ textAlign: "center", marginTop: 18 }}>
+      <div style={{ textAlign: "center", marginTop: 18, display: "flex", gap: 10, justifyContent: "center" }}>
         <button className="btn ghost" style={{ fontSize: 13, padding: "8px 14px" }} onClick={onQuit}>Forfeit duel</button>
+        <button className="btn ghost" style={{ fontSize: 13, padding: "8px 14px" }}
+          onClick={() => { SND.muted = !SND.muted; setMuted(SND.muted); }}>
+          {muted ? "🔇 Sound off" : "🔊 Sound on"}
+        </button>
       </div>
+      {multBanner && <div className="mult-banner">⚡ DAMAGE ×{multBanner}</div>}
       {result && <RoundResult r={result} hp={hp} oppHp={oppHp} oppName={diff.name} onNext={nextRound} />}
     </div>
   );
