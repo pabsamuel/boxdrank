@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>LinguaDuel — Language Battle Arena</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  :root {
+    --bg0: #0a0e1a;
+    --bg1: #101629;
+    --bg2: #182038;
+    --line: #26304d;
+    --text: #e8ecf8;
+    --dim: #8b96b8;
+    --p1: #22d3ee;        /* player cyan */
+    --p1-glow: rgba(34, 211, 238, 0.45);
+    --p2: #f43f5e;        /* opponent red/magenta */
+    --p2-glow: rgba(244, 63, 94, 0.45);
+    --gold: #fbbf24;
+    --green: #34d399;
+    --red: #f87171;
+    --purple: #a78bfa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: radial-gradient(1200px 600px at 50% -10%, #1a2342 0%, var(--bg0) 55%);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  #root { min-height: 100%; }
+  .app { max-width: 720px; margin: 0 auto; padding: 12px 14px 40px; min-height: 100vh; }
+
+  /* ---------- shared ---------- */
+  .btn {
+    display: inline-block; border: 1px solid var(--line); border-radius: 12px;
+    background: linear-gradient(180deg, var(--bg2), var(--bg1));
+    color: var(--text); font-size: 16px; font-weight: 700; letter-spacing: 0.3px;
+    padding: 14px 22px; cursor: pointer; transition: transform 0.08s ease, box-shadow 0.15s ease, border-color 0.15s;
+    user-select: none;
+  }
+  .btn:hover { border-color: var(--p1); box-shadow: 0 0 18px rgba(34,211,238,0.18); }
+  .btn:active { transform: scale(0.97); }
+  .btn.primary {
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    border-color: #22d3ee66; box-shadow: 0 4px 24px rgba(34,211,238,0.25);
+    text-transform: uppercase;
+  }
+  .btn.primary:hover { box-shadow: 0 4px 32px rgba(34,211,238,0.45); }
+  .btn.ghost { background: transparent; font-weight: 600; }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+  .chip {
+    border: 1px solid var(--line); border-radius: 999px; padding: 10px 16px;
+    background: var(--bg1); color: var(--dim); font-weight: 700; font-size: 14px;
+    cursor: pointer; transition: all 0.12s ease; user-select: none;
+  }
+  .chip.on { color: #06121a; background: var(--p1); border-color: var(--p1); box-shadow: 0 0 16px var(--p1-glow); }
+  .chip.gold.on { background: var(--gold); border-color: var(--gold); box-shadow: 0 0 16px rgba(251,191,36,0.4); }
+  .card {
+    background: linear-gradient(180deg, var(--bg2), var(--bg1));
+    border: 1px solid var(--line); border-radius: 16px; padding: 18px;
+  }
+  .label { font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); }
+
+  /* ---------- menu ---------- */
+  .logo {
+    text-align: center; padding: 26px 0 4px;
+    font-size: clamp(38px, 9vw, 56px); font-weight: 900; font-style: italic; letter-spacing: -1px;
+    background: linear-gradient(100deg, var(--p1) 20%, #7dd3fc 45%, var(--p2) 80%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 24px rgba(34,211,238,0.25));
+  }
+  .tagline { text-align: center; color: var(--dim); font-size: 14px; margin-bottom: 22px; letter-spacing: 1px; }
+  .menu-section { margin-bottom: 20px; }
+  .menu-section .label { display: block; margin-bottom: 10px; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .menu-footer { display: flex; gap: 10px; margin-top: 26px; flex-wrap: wrap; }
+  .menu-footer .primary { flex: 1; min-width: 200px; font-size: 18px; padding: 16px; }
+  .rating-pill {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    margin: 0 0 18px; padding: 12px; border-radius: 12px;
+    background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.25);
+    font-weight: 800;
+  }
+  .rating-pill .num { color: var(--gold); font-size: 22px; }
+
+  /* ---------- HUD ---------- */
+  .hud { position: sticky; top: 0; z-index: 20; padding: 10px 0 8px; background: linear-gradient(180deg, var(--bg0) 75%, transparent); }
+  .hp-row { display: flex; align-items: center; gap: 10px; }
+  .hp-side { flex: 1; min-width: 0; }
+  .hp-name { display: flex; justify-content: space-between; font-size: 12px; font-weight: 800; letter-spacing: 1px; margin-bottom: 4px; }
+  .hp-name .me { color: var(--p1); } .hp-name .them { color: var(--p2); }
+  .hp-track { position: relative; height: 16px; border-radius: 8px; background: #0d1220; border: 1px solid var(--line); overflow: hidden; }
+  .hp-fill { position: absolute; top: 0; bottom: 0; transition: width 0.7s cubic-bezier(0.2, 0.9, 0.3, 1); border-radius: 8px; }
+  .hp-fill.me { left: 0; background: linear-gradient(90deg, #06b6d4, #22d3ee); box-shadow: 0 0 14px var(--p1-glow); }
+  .hp-fill.them { right: 0; background: linear-gradient(90deg, #f43f5e, #fb7185); box-shadow: 0 0 14px var(--p2-glow); }
+  .hp-num { font-variant-numeric: tabular-nums; }
+  .vs-badge {
+    flex: 0 0 auto; text-align: center; width: 64px;
+  }
+  .vs-badge .round { font-size: 11px; color: var(--dim); font-weight: 700; letter-spacing: 1px; }
+  .vs-badge .mult {
+    font-size: 18px; font-weight: 900; font-style: italic; color: var(--gold);
+    text-shadow: 0 0 14px rgba(251,191,36,0.5);
+  }
+  .vs-badge .mult.hot { animation: multPulse 1s infinite; }
+  @keyframes multPulse { 50% { transform: scale(1.15); } }
+  .dmg-pop {
+    position: absolute; top: -6px; font-size: 22px; font-weight: 900; font-style: italic;
+    pointer-events: none; animation: dmgFloat 1.4s ease-out forwards; z-index: 30;
+  }
+  @keyframes dmgFloat {
+    0% { transform: translateY(0) scale(0.6); opacity: 0; }
+    15% { transform: translateY(-8px) scale(1.25); opacity: 1; }
+    100% { transform: translateY(-46px) scale(1); opacity: 0; }
+  }
+  .shake { animation: shake 0.45s; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); } 40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); } 80% { transform: translateX(4px); }
+  }
+
+  /* ---------- timer ---------- */
+  .timer-wrap { margin: 8px 0 14px; }
+  .timer-track { height: 8px; border-radius: 4px; background: #0d1220; border: 1px solid var(--line); overflow: hidden; }
+  .timer-fill { height: 100%; border-radius: 4px; transition: width 0.1s linear; }
+  .timer-meta { display: flex; justify-content: space-between; margin-top: 5px; font-size: 12px; color: var(--dim); font-weight: 700; }
+  .streak { color: var(--gold); }
+
+  /* ---------- challenge ---------- */
+  .type-chip {
+    display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--purple); border: 1px solid #a78bfa55; background: #a78bfa14;
+    padding: 5px 12px; border-radius: 999px; margin-bottom: 12px;
+  }
+  .prompt-q { font-size: 16px; color: var(--dim); font-weight: 600; margin-bottom: 10px; }
+  .prompt-main {
+    font-size: clamp(20px, 5.5vw, 30px); font-weight: 800; line-height: 1.35; margin-bottom: 20px;
+    text-wrap: balance;
+  }
+  .prompt-main.phonetic { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; color: #93c5fd; letter-spacing: 1px; }
+  .options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 430px) { .options.long { grid-template-columns: 1fr; } }
+  .opt {
+    border: 1px solid var(--line); border-radius: 12px; background: var(--bg1);
+    color: var(--text); font-size: 16px; font-weight: 700; padding: 14px 12px; cursor: pointer;
+    transition: all 0.12s ease; text-align: center; line-height: 1.3;
+  }
+  .opt:hover:not(:disabled) { border-color: var(--p1); background: #17233f; }
+  .opt:active:not(:disabled) { transform: scale(0.97); }
+  .opt.picked { border-color: var(--p1); background: #0b3341; box-shadow: 0 0 14px var(--p1-glow); }
+  .opt.correct { border-color: var(--green); background: #0b2e22; box-shadow: 0 0 14px rgba(52,211,153,0.35); }
+  .opt.wrong { border-color: var(--red); background: #331318; }
+  .opt:disabled { cursor: default; opacity: 0.85; }
+  .opp-status { margin-top: 14px; text-align: center; font-size: 13px; font-weight: 700; color: var(--dim); }
+  .opp-status .locked { color: var(--p2); }
+  .pulse-dot { display: inline-block; animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: 0.2; } }
+
+  /* ---------- round result ---------- */
+  .overlay {
+    position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+    background: rgba(5, 8, 16, 0.82); backdrop-filter: blur(6px); padding: 16px;
+    animation: fadeIn 0.25s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } }
+  .result-card { width: 100%; max-width: 520px; animation: popIn 0.3s cubic-bezier(0.2, 1.4, 0.4, 1); max-height: 88vh; overflow-y: auto; }
+  @keyframes popIn { from { transform: scale(0.85); opacity: 0; } }
+  .result-title { font-size: 26px; font-weight: 900; font-style: italic; text-align: center; margin-bottom: 14px; letter-spacing: 0.5px; }
+  .result-title.win { color: var(--green); text-shadow: 0 0 24px rgba(52,211,153,0.5); }
+  .result-title.lose { color: var(--red); text-shadow: 0 0 24px rgba(248,113,113,0.5); }
+  .result-title.tie { color: var(--dim); }
+  .score-duel { display: flex; align-items: center; justify-content: space-around; margin: 8px 0 16px; }
+  .score-duel .side { text-align: center; }
+  .score-duel .who { font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: var(--dim); }
+  .score-duel .pts { font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .score-duel .pts.me { color: var(--p1); } .score-duel .pts.them { color: var(--p2); }
+  .score-duel .sub { font-size: 12px; color: var(--dim); }
+  .dmg-line { text-align: center; font-size: 17px; font-weight: 800; margin-bottom: 14px; }
+  .explain { background: #0d1220; border: 1px solid var(--line); border-radius: 12px; padding: 13px 14px; font-size: 14px; line-height: 1.55; color: #c7d0e8; margin-bottom: 16px; }
+  .explain b { color: var(--green); }
+
+  /* ---------- end screen ---------- */
+  .end-title { text-align: center; font-size: clamp(40px, 10vw, 60px); font-weight: 900; font-style: italic; margin: 30px 0 6px; letter-spacing: -1px; }
+  .end-title.win { color: var(--green); text-shadow: 0 0 40px rgba(52,211,153,0.55); }
+  .end-title.lose { color: var(--red); text-shadow: 0 0 40px rgba(248,113,113,0.55); }
+  .end-sub { text-align: center; color: var(--dim); font-weight: 700; margin-bottom: 22px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .stat-tile { background: var(--bg1); border: 1px solid var(--line); border-radius: 12px; padding: 14px; text-align: center; }
+  .stat-tile .v { font-size: 24px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .stat-tile .k { font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: var(--dim); text-transform: uppercase; margin-top: 3px; }
+  .elo-delta.up { color: var(--green); } .elo-delta.down { color: var(--red); }
+  .lang-acc-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .lang-acc-row .flag { width: 96px; flex: 0 0 auto; font-size: 14px; font-weight: 800; }
+  .lang-acc-row .track { flex: 1; height: 10px; border-radius: 5px; background: #0d1220; border: 1px solid var(--line); overflow: hidden; }
+  .lang-acc-row .fill { height: 100%; background: linear-gradient(90deg, #06b6d4, #34d399); border-radius: 5px; }
+  .lang-acc-row .pct { width: 74px; text-align: right; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--dim); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* =====================================================================
+   STORAGE — window.storage if the host provides it, localStorage otherwise
+   ===================================================================== */
+const store = {
+  async get(key) {
+    try {
+      const s = window.storage;
+      if (s) {
+        if (typeof s.getItem === "function") return await s.getItem(key);
+        if (typeof s.get === "function") return await s.get(key);
+      }
+    } catch (e) { /* fall through */ }
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  },
+  async set(key, val) {
+    try {
+      const s = window.storage;
+      if (s) {
+        if (typeof s.setItem === "function") { await s.setItem(key, val); return; }
+        if (typeof s.set === "function") { await s.set(key, val); return; }
+      }
+    } catch (e) { /* fall through */ }
+    try { localStorage.setItem(key, val); } catch (e) { /* ignore */ }
+  },
+};
+const PROFILE_KEY = "linguaduel_profile_v1";
+const DEFAULT_PROFILE = { rating: 1000, wins: 0, losses: 0, games: 0, bestStreak: 0, langStats: {} };
+
+/* =====================================================================
+   CONTENT BANK — curated, offline, no API needed
+   ===================================================================== */
+const LANGS = {
+  es: { name: "Spanish",    flag: "🇪🇸" },
+  fr: { name: "French",     flag: "🇫🇷" },
+  de: { name: "German",     flag: "🇩🇪" },
+  ja: { name: "Japanese",   flag: "🇯🇵" },
+  tr: { name: "Turkish",    flag: "🇹🇷" },
+  pt: { name: "Portuguese", flag: "🇵🇹" },
+  it: { name: "Italian",    flag: "🇮🇹" },
+  ko: { name: "Korean",     flag: "🇰🇷" },
+};
+const LANG_CODES = Object.keys(LANGS);
+
+// s: [sentence, englishMeaning, difficulty 1-3]
+// w: [english, target] — translate pool (distractors drawn from same language)
+// p: [ipa, word, meaning, wrongMeanings x3]
+// f: [sentenceWithBlank, options x4, correctIndex, explanation]
+const BANK = {
+  es: {
+    s: [
+      ["El gato duerme en la ventana todas las tardes.", "The cat sleeps in the window every afternoon.", 1],
+      ["Mañana vamos a la playa con mis primos.", "Tomorrow we're going to the beach with my cousins.", 1],
+      ["¿Dónde está la estación de tren más cercana?", "Where is the nearest train station?", 1],
+      ["La vida es un sueño, y los sueños, sueños son.", "Life is a dream, and dreams are dreams. (Calderón)", 2],
+      ["Aunque llueva, saldremos a caminar por el parque.", "Even if it rains, we'll go for a walk in the park.", 3],
+    ],
+    w: [["dog","el perro"],["water","el agua"],["book","el libro"],["house","la casa"],["red","rojo"],["to eat","comer"],["night","la noche"],["friend","el amigo"]],
+    p: [
+      ["ˈɡɾa.sjas","gracias","thank you",["good morning","goodbye","please"]],
+      ["ko.ɾaˈson","corazón","heart",["head","crown","song"]],
+      ["ma.ˈɲa.na","mañana","tomorrow / morning",["butter","apple","never"]],
+      ["a.ˈmi.ɣo","amigo","friend",["enemy","uncle","teacher"]],
+    ],
+    f: [
+      ["Yo ___ español todos los días.",["hablo","hablas","habla","hablan"],0,"With \"yo\" (I), -ar verbs take -o: yo hablo."],
+      ["Ella ___ en Madrid.",["vive","vivo","vives","viven"],0,"Third person singular of vivir is vive: ella vive."],
+      ["Nosotros ___ al cine los viernes.",["vamos","van","vas","voy"],0,"\"Nosotros\" (we) takes vamos — the nosotros form of ir."],
+      ["¿Cuántos años ___ tú?",["tienes","tengo","tiene","tenéis"],0,"Age uses tener; with tú it's tienes."],
+    ],
+  },
+  fr: {
+    s: [
+      ["Le chat dort sur le canapé depuis ce matin.", "The cat has been sleeping on the couch since this morning.", 1],
+      ["Nous allons au marché tous les samedis.", "We go to the market every Saturday.", 1],
+      ["Où se trouve la gare la plus proche ?", "Where is the nearest train station?", 1],
+      ["J'aimerais un croissant et un café, s'il vous plaît.", "I'd like a croissant and a coffee, please.", 2],
+      ["Il faut cultiver notre jardin.", "We must cultivate our garden. (Voltaire)", 3],
+    ],
+    w: [["dog","le chien"],["water","l'eau"],["book","le livre"],["house","la maison"],["red","rouge"],["to eat","manger"],["night","la nuit"],["friend","l'ami"]],
+    p: [
+      ["mɛʁ.si","merci","thank you",["mercy","Tuesday","sea"]],
+      ["bɔ̃.ʒuʁ","bonjour","hello / good day",["goodbye","good night","welcome"]],
+      ["ɑ̃.fɑ̃","enfant","child",["elephant","before","fan"]],
+      ["ʃa","chat","cat",["hat","tea","road"]],
+    ],
+    f: [
+      ["Je ___ français avec ma famille.",["parle","parles","parlons","parlez"],0,"With \"je\", -er verbs take -e: je parle."],
+      ["Il ___ à Paris depuis deux ans.",["habite","habites","habitons","habitez"],0,"Third person singular of habiter is habite."],
+      ["Nous ___ du pain frais.",["mangeons","mange","manges","mangez"],0,"\"Nous\" takes -ons; manger keeps the e: nous mangeons."],
+      ["Tu ___ un frère ou une sœur ?",["as","ai","a","avons"],0,"Avoir with tu is as: tu as."],
+    ],
+  },
+  de: {
+    s: [
+      ["Der Hund schläft unter dem alten Tisch.", "The dog sleeps under the old table.", 1],
+      ["Wir fahren am Wochenende in die Berge.", "We're driving to the mountains this weekend.", 1],
+      ["Wo ist der nächste Bahnhof, bitte?", "Where is the nearest train station, please?", 1],
+      ["Ich hätte gern ein Brötchen mit Käse.", "I'd like a bread roll with cheese.", 2],
+      ["Übung macht den Meister, sagt man bei uns.", "Practice makes perfect, as we say.", 3],
+    ],
+    w: [["dog","der Hund"],["water","das Wasser"],["book","das Buch"],["house","das Haus"],["red","rot"],["to eat","essen"],["night","die Nacht"],["friend","der Freund"]],
+    p: [
+      ["ˈdaŋ.kə","danke","thank you",["donkey","thanks to you (formal)","dark"]],
+      ["ˈʃmɛ.tɐ.lɪŋ","Schmetterling","butterfly",["hammer","small talk","sandwich"]],
+      ["ˈmɛːt.çən","Mädchen","girl",["market","fairy tale","kitten"]],
+      ["ˈfʁɔʏnt","Freund","friend",["freedom","joy","stranger"]],
+    ],
+    f: [
+      ["Ich ___ ein bisschen Deutsch.",["spreche","sprichst","spricht","sprechen"],0,"With \"ich\", verbs take -e: ich spreche."],
+      ["Er ___ seit 2020 in Berlin.",["wohnt","wohne","wohnst","wohnen"],0,"Third person singular takes -t: er wohnt."],
+      ["___ du einen Bruder?",["Hast","Habe","Hat","Haben"],0,"Haben with du is hast: Hast du…?"],
+      ["Wir ___ jeden Morgen Brot.",["essen","esse","isst","esst"],0,"\"Wir\" (we) uses the infinitive form: wir essen."],
+    ],
+  },
+  ja: {
+    s: [
+      ["猫は毎日窓のそばで寝ています。", "The cat sleeps by the window every day.", 1],
+      ["明日、友達と映画を見に行きます。", "Tomorrow I'm going to see a movie with friends.", 1],
+      ["駅はどこにありますか。", "Where is the station?", 1],
+      ["日本語の勉強はとても楽しいです。", "Studying Japanese is a lot of fun.", 2],
+      ["継続は力なり。", "Persistence is power. (proverb)", 3],
+    ],
+    w: [["dog","犬 (inu)"],["water","水 (mizu)"],["book","本 (hon)"],["house","家 (ie)"],["red","赤い (akai)"],["to eat","食べる (taberu)"],["night","夜 (yoru)"],["friend","友達 (tomodachi)"]],
+    p: [
+      ["a.ɾi.ɡa.toː","ありがとう (arigatō)","thank you",["excuse me","good morning","let's go"]],
+      ["ko.n.ni.tɕi.wa","こんにちは (konnichiwa)","hello / good afternoon",["good night","cheers","welcome home"]],
+      ["ne.ko","ねこ (neko)","cat",["dog","root","sleep"]],
+      ["mi.zɯ","みず (mizu)","water",["ear","road","store"]],
+    ],
+    f: [
+      ["わたしは にほんご ___ はなします。",["を","が","に","で"],0,"を (o) marks the direct object — the thing being spoken: Japanese."],
+      ["がっこう ___ いきます。",["に","を","が","の"],0,"に (ni) marks the destination of movement: to school."],
+      ["これ ___ ほんです。",["は","を","に","で"],0,"は (wa) marks the topic: as for this, it's a book."],
+      ["とうきょう ___ すんでいます。",["に","を","へ","が"],0,"住む (to live) takes に for the place you live in."],
+    ],
+  },
+  tr: {
+    s: [
+      ["Kedi her sabah pencerenin önünde uyuyor.", "The cat sleeps in front of the window every morning.", 1],
+      ["Yarın arkadaşlarımla denize gidiyoruz.", "Tomorrow we're going to the sea with my friends.", 1],
+      ["En yakın otobüs durağı nerede?", "Where is the nearest bus stop?", 1],
+      ["Türkçe öğrenmek çok keyifli bir yolculuk.", "Learning Turkish is a very enjoyable journey.", 2],
+      ["Damlaya damlaya göl olur.", "Drop by drop, a lake forms. (proverb)", 3],
+    ],
+    w: [["dog","köpek"],["water","su"],["book","kitap"],["house","ev"],["red","kırmızı"],["to eat","yemek"],["night","gece"],["friend","arkadaş"]],
+    p: [
+      ["te.ʃek.ˈkyɾ","teşekkür","thank you",["welcome","excuse me","congratulations"]],
+      ["ɟy.ˈzel","güzel","beautiful",["ugly","fast","autumn"]],
+      ["aɾ.ka.ˈdaʃ","arkadaş","friend",["behind","stone","market"]],
+      ["ˈe.vet","evet","yes",["no","maybe","house"]],
+    ],
+    f: [
+      ["Ben biraz Türkçe ___.",["konuşuyorum","konuşuyorsun","konuşuyor","konuşuyoruz"],0,"\"Ben\" (I) takes the -um ending: konuşuyorum."],
+      ["O, İstanbul'da ___.",["yaşıyor","yaşıyorum","yaşıyorsun","yaşıyorlar"],0,"Third person singular has no personal ending: o yaşıyor."],
+      ["Biz her sabah çay ___.",["içiyoruz","içiyorum","içiyor","içiyorsunuz"],0,"\"Biz\" (we) takes -uz: içiyoruz."],
+      ["Sen nereye ___?",["gidiyorsun","gidiyorum","gidiyor","gidiyoruz"],0,"\"Sen\" (you) takes -sun: gidiyorsun."],
+    ],
+  },
+  pt: {
+    s: [
+      ["O gato dorme na varanda todas as tardes.", "The cat sleeps on the porch every afternoon.", 2],
+      ["Amanhã vamos à praia com os nossos amigos.", "Tomorrow we're going to the beach with our friends.", 2],
+      ["Onde fica a estação de comboios mais próxima?", "Where is the nearest train station?", 2],
+      ["Eu adoro tomar café de manhã bem cedo.", "I love having breakfast really early.", 2],
+      ["Quem não arrisca, não petisca.", "Nothing ventured, nothing gained. (proverb)", 3],
+    ],
+    w: [["dog","o cachorro"],["water","a água"],["book","o livro"],["house","a casa"],["red","vermelho"],["to eat","comer"],["night","a noite"],["friend","o amigo"]],
+    p: [
+      ["o.bɾi.ˈɡa.du","obrigado","thank you",["obligated","tired","welcome"]],
+      ["sɐw.ˈda.dʒi","saudade","longing / nostalgic missing",["health","Saturday","greeting"]],
+      ["ko.ɾa.ˈsɐ̃w̃","coração","heart",["crown","reason","race"]],
+      ["ˈa.ɡwɐ","água","water",["needle","eagle","grape"]],
+    ],
+    f: [
+      ["Eu ___ um pouco de português.",["falo","falas","fala","falamos"],0,"With \"eu\" (I), -ar verbs take -o: eu falo."],
+      ["Ela ___ no Brasil há cinco anos.",["mora","moro","moras","moram"],0,"Third person singular of morar is mora."],
+      ["Nós ___ pão fresco de manhã.",["comemos","como","comes","comem"],0,"\"Nós\" (we) takes -emos with -er verbs: comemos."],
+      ["Tu ___ um irmão mais velho?",["tens","tenho","tem","temos"],0,"Ter with tu is tens (European Portuguese)."],
+    ],
+  },
+  it: {
+    s: [
+      ["Il gatto dorme sul divano tutto il giorno.", "The cat sleeps on the couch all day.", 1],
+      ["Domani andiamo al mare con gli amici.", "Tomorrow we're going to the sea with friends.", 2],
+      ["Dove si trova la stazione più vicina?", "Where is the nearest station?", 2],
+      ["Mi piace molto il caffè della mattina.", "I really like morning coffee.", 1],
+      ["Chi va piano va sano e va lontano.", "Slow and steady wins the race. (proverb)", 3],
+    ],
+    w: [["dog","il cane"],["water","l'acqua"],["book","il libro"],["house","la casa"],["red","rosso"],["to eat","mangiare"],["night","la notte"],["friend","l'amico"]],
+    p: [
+      ["ˈɡrat.tsje","grazie","thank you",["grace","please","greetings"]],
+      ["a.ˈmo.re","amore","love",["bitter","armor","again"]],
+      ["ˈdɔn.na","donna","woman",["gift","door","sleep"]],
+      ["ˈnɔt.te","notte","night",["note","ninth","nothing"]],
+    ],
+    f: [
+      ["Io ___ un po' di italiano.",["parlo","parli","parla","parliamo"],0,"With \"io\" (I), -are verbs take -o: io parlo."],
+      ["Lei ___ a Roma da tre anni.",["vive","vivo","vivi","vivono"],0,"Third person singular of vivere is vive."],
+      ["Noi ___ la pizza il sabato.",["mangiamo","mangio","mangi","mangiano"],0,"\"Noi\" (we) takes -iamo: mangiamo."],
+      ["Tu ___ un fratello?",["hai","ho","ha","abbiamo"],0,"Avere with tu is hai: tu hai."],
+    ],
+  },
+  ko: {
+    s: [
+      ["고양이가 매일 창가에서 잠을 잡니다.", "The cat sleeps by the window every day.", 1],
+      ["내일 친구들과 영화를 보러 갑니다.", "Tomorrow I'm going to see a movie with friends.", 1],
+      ["가장 가까운 지하철역이 어디예요?", "Where is the nearest subway station?", 1],
+      ["한국어 공부는 정말 재미있어요.", "Studying Korean is really fun.", 2],
+      ["시작이 반이다.", "Starting is half the battle. (proverb)", 3],
+    ],
+    w: [["dog","개 (gae)"],["water","물 (mul)"],["book","책 (chaek)"],["house","집 (jip)"],["red","빨간 (ppalgan)"],["to eat","먹다 (meokda)"],["night","밤 (bam)"],["friend","친구 (chingu)"]],
+    p: [
+      ["kam.sa.ham.ni.da","감사합니다 (gamsahamnida)","thank you",["nice to meet you","I'm sorry","goodbye"]],
+      ["an.njʌŋ","안녕 (annyeong)","hi / bye (casual)",["good night only","stranger","angel"]],
+      ["sa.ɾaŋ","사랑 (sarang)","love",["person","salary","living room"]],
+      ["tɕin.ɡu","친구 (chingu)","friend",["penguin","really","nine"]],
+    ],
+    f: [
+      ["저는 한국어___ 공부해요.",["를","이","은","에"],0,"를 (reul) marks the direct object after a vowel: the thing being studied."],
+      ["학교___ 가요.",["에","를","은","가"],0,"에 (e) marks the destination: to school."],
+      ["이것___ 책이에요.",["은","를","에","로"],0,"은 (eun) marks the topic after a consonant: as for this…"],
+      ["물___ 마셔요.",["을","이","에","는"],0,"을 (eul) marks the direct object after a consonant: drink water."],
+    ],
+  },
+};
+
+/* =====================================================================
+   CHALLENGE GENERATOR — assembles rounds from the bank, avoids repeats
+   ===================================================================== */
+const TYPES = ["guess", "translate", "phonetic", "fill"];
+const TYPE_LABEL = { guess: "Guess the language", translate: "Translate", phonetic: "Sound it out", fill: "Fill the blank" };
+const shuffle = (a) => { const x = [...a]; for (let i = x.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [x[i], x[j]] = [x[j], x[i]]; } return x; };
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+
+function makeGenerator(langCodes) {
+  const used = new Set();
+  const fresh = (key, poolSize) => {
+    // returns an unused index for this key, resetting when the pool is spent
+    const open = [];
+    for (let i = 0; i < poolSize; i++) if (!used.has(key + i)) open.push(i);
+    if (open.length === 0) { for (let i = 0; i < poolSize; i++) used.delete(key + i); return Math.floor(Math.random() * poolSize); }
+    const idx = pick(open);
+    used.add(key + idx);
+    return idx;
+  };
+
+  return function nextChallenge() {
+    const lang = pick(langCodes);
+    const type = pick(TYPES);
+    const bank = BANK[lang];
+    const L = LANGS[lang].name;
+
+    if (type === "guess") {
+      const i = fresh(lang + ":s", bank.s.length);
+      const [sentence, meaning, diff] = bank.s[i];
+      const others = shuffle(LANG_CODES.filter((c) => c !== lang)).slice(0, 5);
+      const opts = shuffle([lang, ...others]);
+      return {
+        type, lang, difficulty: diff,
+        question: "Which language is this?",
+        display: "“" + sentence + "”",
+        options: opts.map((c) => LANGS[c].flag + " " + LANGS[c].name),
+        correctIndex: opts.indexOf(lang),
+        explanation: "That was " + L + ". It means: “" + meaning + "”",
+      };
+    }
+    if (type === "translate") {
+      const i = fresh(lang + ":w", bank.w.length);
+      const [en, target] = bank.w[i];
+      const distractors = shuffle(bank.w.filter((_, j) => j !== i)).slice(0, 3).map((x) => x[1]);
+      const opts = shuffle([target, ...distractors]);
+      return {
+        type, lang, difficulty: 2,
+        question: "Translate into " + L + ":",
+        display: "“" + en + "”",
+        options: opts,
+        correctIndex: opts.indexOf(target),
+        explanation: "“" + en + "” is " + target + " in " + L + ".",
+      };
+    }
+    if (type === "phonetic") {
+      const i = fresh(lang + ":p", bank.p.length);
+      const [ipa, word, meaning, wrong] = bank.p[i];
+      const opts = shuffle([meaning, ...wrong]);
+      return {
+        type, lang, difficulty: 2, phonetic: true,
+        question: "You hear this in " + L + " — what does it mean?",
+        display: "/ " + ipa + " /",
+        options: opts,
+        correctIndex: opts.indexOf(meaning),
+        explanation: "/" + ipa + "/ is the " + L + " word " + word + ".",
+      };
+    }
+    // fill
+    const i = fresh(lang + ":f", bank.f.length);
+    const [sentence, options, correctIndex, why] = bank.f[i];
+    return {
+      type, lang, difficulty: 3,
+      question: "Fill the blank (" + L + "):",
+      display: sentence,
+      options: [...options].map(String),
+      correctIndex,
+      explanation: why + " → " + sentence.replace("___", options[correctIndex]),
+    };
+  };
+}
+
+/* =====================================================================
+   GAME CONSTANTS
+   ===================================================================== */
+const MAX_HP = 5000;
+const ROUND_SECONDS = 15;
+const BASE_SCORE = 500;   // for a correct answer
+const SPEED_SCORE = 500;  // linear bonus by time remaining
+const DIFFS = {
+  easy:   { name: "Easy",         acc: 0.55, tMin: 5.0, tMax: 12.5, rating: 850,  blurb: "Slow, sloppy — a warm-up bot." },
+  ranked: { name: "Ranked",       acc: 0.72, tMin: 3.5, tMax: 9.5,  rating: 1150, blurb: "A fair fight. Speed matters." },
+  pro:    { name: "Polyglot Pro", acc: 0.90, tMin: 2.0, tMax: 6.0,  rating: 1450, blurb: "Fast and nearly flawless. Good luck." },
+};
+const multiplierFor = (round) => 1 + 0.5 * Math.floor((round - 1) / 4);
+const scoreFor = (correct, timeLeft) => (correct ? BASE_SCORE + Math.round(SPEED_SCORE * Math.max(0, timeLeft) / ROUND_SECONDS) : 0);
+const eloDelta = (me, opp, won) => Math.round(32 * ((won ? 1 : 0) - 1 / (1 + Math.pow(10, (opp - me) / 400))));
+
+/* =====================================================================
+   COMPONENTS
+   ===================================================================== */
+function HpBar({ side, name, hp, dmgEvent }) {
+  const pct = Math.max(0, hp) / MAX_HP * 100;
+  return (
+    <div className={"hp-side" + (dmgEvent ? " shake" : "")} key={dmgEvent ? dmgEvent.id : "still"}>
+      <div className="hp-name">
+        {side === "me" ? <span className="me">{name}</span> : <span className="hp-num">{Math.max(0, hp)}</span>}
+        {side === "me" ? <span className="hp-num">{Math.max(0, hp)}</span> : <span className="them">{name}</span>}
+      </div>
+      <div className="hp-track">
+        <div className={"hp-fill " + side} style={{ width: pct + "%" }} />
+        {dmgEvent && (
+          <div className="dmg-pop" style={side === "me" ? { right: 4, color: "var(--red)" } : { left: 4, color: "var(--gold)" }}>
+            -{dmgEvent.amount}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Hud({ hp, oppHp, round, oppName, dmg }) {
+  const mult = multiplierFor(round);
+  return (
+    <div className="hud">
+      <div className="hp-row">
+        <HpBar side="me" name="YOU" hp={hp} dmgEvent={dmg && dmg.to === "me" ? dmg : null} />
+        <div className="vs-badge">
+          <div className="round">RD {round}</div>
+          <div className={"mult" + (mult > 1 ? " hot" : "")}>{mult}×</div>
+        </div>
+        <HpBar side="them" name={oppName.toUpperCase()} hp={oppHp} dmgEvent={dmg && dmg.to === "them" ? dmg : null} />
+      </div>
+    </div>
+  );
+}
+
+function Timer({ timeLeft, streak }) {
+  const pct = Math.max(0, timeLeft) / ROUND_SECONDS * 100;
+  const color = pct > 50 ? "linear-gradient(90deg,#06b6d4,#22d3ee)" : pct > 25 ? "linear-gradient(90deg,#f59e0b,#fbbf24)" : "linear-gradient(90deg,#dc2626,#f87171)";
+  return (
+    <div className="timer-wrap">
+      <div className="timer-track"><div className="timer-fill" style={{ width: pct + "%", background: color }} /></div>
+      <div className="timer-meta">
+        <span>{Math.ceil(Math.max(0, timeLeft))}s</span>
+        <span className="streak">{streak >= 2 ? "🔥 " + streak + " STREAK" : ""}</span>
+      </div>
+    </div>
+  );
+}
+
+function Challenge({ ch, picked, revealed, onPick, oppLocked }) {
+  const longOpts = ch.options.some((o) => o.length > 14);
+  return (
+    <div className="card">
+      <span className="type-chip">{TYPE_LABEL[ch.type]} · {LANGS[ch.lang].flag} {ch.type === "guess" ? "???" : LANGS[ch.lang].name}</span>
+      <div className="prompt-q">{ch.question}</div>
+      <div className={"prompt-main" + (ch.phonetic ? " phonetic" : "")}>{ch.display}</div>
+      <div className={"options" + (longOpts ? " long" : "")}>
+        {ch.options.map((opt, i) => {
+          let cls = "opt";
+          if (revealed) {
+            if (i === ch.correctIndex) cls += " correct";
+            else if (i === picked) cls += " wrong";
+          } else if (i === picked) cls += " picked";
+          return (
+            <button key={i} className={cls} disabled={picked !== null || revealed} onClick={() => onPick(i)}>
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+      <div className="opp-status">
+        {oppLocked
+          ? <span className="locked">⚔️ Opponent locked in!</span>
+          : <span>Opponent is thinking<span className="pulse-dot"> ●●●</span></span>}
+      </div>
+    </div>
+  );
+}
+
+function RoundResult({ r, hp, oppHp, oppName, onNext }) {
+  const over = hp <= 0 || oppHp <= 0;
+  const title = r.dmg === 0 ? ["tie", "DRAW ROUND"] : r.dmgTo === "them" ? ["win", "YOU WIN THE ROUND"] : ["lose", "ROUND LOST"];
+  return (
+    <div className="overlay">
+      <div className="card result-card">
+        <div className={"result-title " + title[0]}>{title[1]}</div>
+        <div className="score-duel">
+          <div className="side">
+            <div className="who">YOU {r.pCorrect ? "✅" : "❌"}</div>
+            <div className="pts me">{r.pScore}</div>
+            <div className="sub">{r.pAnswered ? r.pTime.toFixed(1) + "s" : "no answer"}</div>
+          </div>
+          <div className="side">
+            <div className="who">{oppName.toUpperCase()} {r.aiCorrect ? "✅" : "❌"}</div>
+            <div className="pts them">{r.aiScore}</div>
+            <div className="sub">{r.aiAnswered ? r.aiTime.toFixed(1) + "s" : "no answer"}</div>
+          </div>
+        </div>
+        <div className="dmg-line">
+          {r.dmg === 0
+            ? "No damage — dead even."
+            : (r.dmgTo === "them" ? "💥 You deal " : "🩸 You take ") + r.dmg + " damage" + (r.mult > 1 ? " (" + r.mult + "× multiplier)" : "")}
+        </div>
+        <div className="explain"><b>Answer:</b> {r.ch.options[r.ch.correctIndex]} — {r.ch.explanation}</div>
+        <button className="btn primary" style={{ width: "100%" }} onClick={onNext}>
+          {over ? "SEE RESULTS" : "NEXT ROUND ⚡"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function LangAccuracyList({ stats }) {
+  const rows = Object.entries(stats).filter(([, v]) => v.t > 0);
+  if (rows.length === 0) return <div style={{ color: "var(--dim)", fontSize: 14 }}>No answers recorded yet.</div>;
+  return (
+    <div>
+      {rows.sort((a, b) => b[1].t - a[1].t).map(([code, v]) => {
+        const pct = Math.round(100 * v.c / v.t);
+        return (
+          <div className="lang-acc-row" key={code}>
+            <div className="flag">{LANGS[code].flag} {LANGS[code].name}</div>
+            <div className="track"><div className="fill" style={{ width: pct + "%" }} /></div>
+            <div className="pct">{pct}% ({v.c}/{v.t})</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* =====================================================================
+   MAIN APP
+   ===================================================================== */
+function App() {
+  const [screen, setScreen] = useState("menu"); // menu | game | end | stats
+  const [profile, setProfile] = useState(DEFAULT_PROFILE);
+  const [selLangs, setSelLangs] = useState(["es"]);
+  const [polyglot, setPolyglot] = useState(false);
+  const [diffKey, setDiffKey] = useState("ranked");
+  const [lastGame, setLastGame] = useState(null);
+
+  useEffect(() => {
+    store.get(PROFILE_KEY).then((raw) => {
+      if (raw) { try { setProfile({ ...DEFAULT_PROFILE, ...JSON.parse(raw) }); } catch (e) { /* corrupt -> defaults */ } }
+    });
+  }, []);
+  const saveProfile = (p) => { setProfile(p); store.set(PROFILE_KEY, JSON.stringify(p)); };
+
+  const toggleLang = (code) => {
+    setPolyglot(false);
+    setSelLangs((cur) => {
+      if (cur.includes(code)) return cur.length > 1 ? cur.filter((c) => c !== code) : cur;
+      return cur.length >= 3 ? [...cur.slice(1), code] : [...cur, code];
+    });
+  };
+
+  const finishGame = (result) => {
+    const won = result.oppHp <= 0 && result.hp > 0;
+    const dRating = eloDelta(profile.rating, DIFFS[diffKey].rating, won);
+    const langStats = { ...profile.langStats };
+    for (const [code, v] of Object.entries(result.gameLangStats)) {
+      const prev = langStats[code] || { c: 0, t: 0 };
+      langStats[code] = { c: prev.c + v.c, t: prev.t + v.t };
+    }
+    saveProfile({
+      ...profile,
+      rating: profile.rating + dRating,
+      wins: profile.wins + (won ? 1 : 0),
+      losses: profile.losses + (won ? 0 : 1),
+      games: profile.games + 1,
+      bestStreak: Math.max(profile.bestStreak, result.bestStreak),
+      langStats,
+    });
+    setLastGame({ ...result, won, dRating });
+    setScreen("end");
+  };
+
+  if (screen === "game") {
+    return (
+      <Game
+        langCodes={polyglot ? LANG_CODES : selLangs}
+        diffKey={diffKey}
+        onFinish={finishGame}
+        onQuit={() => setScreen("menu")}
+      />
+    );
+  }
+  if (screen === "end" && lastGame) {
+    return <EndScreen g={lastGame} oppName={DIFFS[diffKey].name} onAgain={() => setScreen("game")} onMenu={() => setScreen("menu")} />;
+  }
+  if (screen === "stats") {
+    return (
+      <div className="app">
+        <div className="logo">STATS</div>
+        <div className="rating-pill"><span className="label">RATING</span><span className="num">{profile.rating}</span>
+          <span className="label">RECORD</span><span className="num" style={{ color: "var(--text)" }}>{profile.wins}W – {profile.losses}L</span>
+        </div>
+        <div className="stat-grid">
+          <div className="stat-tile"><div className="v">{profile.games}</div><div className="k">Duels played</div></div>
+          <div className="stat-tile"><div className="v">{profile.games ? Math.round(100 * profile.wins / profile.games) : 0}%</div><div className="k">Win rate</div></div>
+          <div className="stat-tile"><div className="v">🔥 {profile.bestStreak}</div><div className="k">Best streak</div></div>
+        </div>
+        <div className="card" style={{ marginBottom: 16 }}>
+          <span className="label" style={{ display: "block", marginBottom: 12 }}>Accuracy by language (all time)</span>
+          <LangAccuracyList stats={profile.langStats} />
+        </div>
+        <button className="btn ghost" onClick={() => setScreen("menu")}>← Back</button>
+      </div>
+    );
+  }
+
+  // menu
+  return (
+    <div className="app">
+      <div className="logo">LINGUADUEL</div>
+      <div className="tagline">GUESS · TRANSLATE · SURVIVE — 5000 HP, ONE WINNER</div>
+      <div className="rating-pill">
+        <span className="label">RATING</span><span className="num">{profile.rating}</span>
+        <span className="label">RECORD</span><span className="num" style={{ color: "var(--text)" }}>{profile.wins}W – {profile.losses}L</span>
+      </div>
+      <div className="menu-section">
+        <span className="label">Target languages (pick 1–3)</span>
+        <div className="chip-row">
+          {LANG_CODES.map((code) => (
+            <button key={code} className={"chip" + (!polyglot && selLangs.includes(code) ? " on" : "")} onClick={() => toggleLang(code)}>
+              {LANGS[code].flag} {LANGS[code].name}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="menu-section">
+        <span className="label">Or go all in</span>
+        <div className="chip-row">
+          <button className={"chip gold" + (polyglot ? " on" : "")} onClick={() => setPolyglot(!polyglot)}>
+            🌍 POLYGLOT MODE — all 8 languages mixed
+          </button>
+        </div>
+      </div>
+      <div className="menu-section">
+        <span className="label">Opponent</span>
+        <div className="chip-row">
+          {Object.entries(DIFFS).map(([k, d]) => (
+            <button key={k} className={"chip" + (diffKey === k ? " on" : "")} onClick={() => setDiffKey(k)}>{d.name}</button>
+          ))}
+        </div>
+        <div style={{ marginTop: 8, fontSize: 13, color: "var(--dim)" }}>{DIFFS[diffKey].blurb}</div>
+      </div>
+      <div className="menu-footer">
+        <button className="btn primary" onClick={() => setScreen("game")}>⚔️ Start Duel</button>
+        <button className="btn ghost" onClick={() => setScreen("stats")}>📊 My Stats</button>
+      </div>
+    </div>
+  );
+}
+
+function Game({ langCodes, diffKey, onFinish, onQuit }) {
+  const diff = DIFFS[diffKey];
+  const genRef = useRef(null);
+  if (!genRef.current) genRef.current = makeGenerator(langCodes);
+
+  const [round, setRound] = useState(1);
+  const [hp, setHp] = useState(MAX_HP);
+  const [oppHp, setOppHp] = useState(MAX_HP);
+  const [ch, setCh] = useState(() => genRef.current());
+  const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS);
+  const [picked, setPicked] = useState(null);
+  const [result, setResult] = useState(null);
+  const [dmgEvent, setDmgEvent] = useState(null);
+  const [streak, setStreak] = useState(0);
+  const [oppLocked, setOppLocked] = useState(false);
+
+  const gameRef = useRef({ bestStreak: 0, pCorrectCount: 0, dmgDealt: 0, dmgTaken: 0, gameLangStats: {}, rounds: 0 });
+  const roundRef = useRef(null);
+  if (!roundRef.current) roundRef.current = newAiPlan(ch, diff);
+
+  function newAiPlan(challenge, d) {
+    const acc = Math.min(0.97, Math.max(0.15, d.acc - (challenge.difficulty - 2) * 0.07));
+    const willBeCorrect = Math.random() < acc;
+    const wrongOpts = challenge.options.map((_, i) => i).filter((i) => i !== challenge.correctIndex);
+    return {
+      start: Date.now(),
+      answerAt: d.tMin + Math.random() * (d.tMax - d.tMin),
+      willBeCorrect,
+      index: willBeCorrect ? challenge.correctIndex : pick(wrongOpts),
+      playerPick: null,
+      playerTime: null,
+    };
+  }
+
+  const resolveRound = useCallback(() => {
+    const R = roundRef.current;
+    if (R.resolved) return;
+    R.resolved = true;
+
+    const pAnswered = R.playerPick !== null;
+    const pCorrect = pAnswered && R.playerPick === ch.correctIndex;
+    const pTimeLeft = pAnswered ? Math.max(0, ROUND_SECONDS - R.playerTime) : 0;
+    const elapsed = (Date.now() - R.start) / 1000;
+    const aiAnswered = R.answerAt <= Math.min(elapsed, ROUND_SECONDS);
+    const aiCorrect = aiAnswered && R.willBeCorrect;
+    const aiTimeLeft = aiAnswered ? Math.max(0, ROUND_SECONDS - R.answerAt) : 0;
+
+    const pScore = scoreFor(pCorrect, pTimeLeft);
+    const aiScore = scoreFor(aiCorrect, aiTimeLeft);
+    const mult = multiplierFor(round);
+    const dmg = Math.round(Math.abs(pScore - aiScore) * mult);
+    const dmgTo = pScore === aiScore ? null : pScore > aiScore ? "them" : "me";
+
+    const G = gameRef.current;
+    G.rounds = round;
+    const ls = G.gameLangStats[ch.lang] || { c: 0, t: 0 };
+    G.gameLangStats[ch.lang] = { c: ls.c + (pCorrect ? 1 : 0), t: ls.t + 1 };
+    if (pCorrect) { G.pCorrectCount++; }
+    const newStreak = pCorrect ? streak + 1 : 0;
+    G.bestStreak = Math.max(G.bestStreak, newStreak);
+    setStreak(newStreak);
+
+    if (dmgTo === "me") { setHp((h) => h - dmg); G.dmgTaken += dmg; }
+    if (dmgTo === "them") { setOppHp((h) => h - dmg); G.dmgDealt += dmg; }
+    if (dmg > 0) setDmgEvent({ id: Date.now(), to: dmgTo, amount: dmg });
+
+    setResult({
+      ch, mult, dmg, dmgTo,
+      pAnswered, pCorrect, pScore, pTime: R.playerTime || 0,
+      aiAnswered, aiCorrect, aiScore, aiTime: R.answerAt,
+    });
+  }, [ch, round, streak]);
+
+  // master tick
+  useEffect(() => {
+    if (result) return;
+    const iv = setInterval(() => {
+      const R = roundRef.current;
+      const elapsed = (Date.now() - R.start) / 1000;
+      const left = ROUND_SECONDS - elapsed;
+      setTimeLeft(left > 0 ? left : 0);
+      const aiDone = elapsed >= R.answerAt;
+      setOppLocked(aiDone);
+      const playerDone = R.playerPick !== null;
+      if (left <= 0 || (aiDone && playerDone)) {
+        clearInterval(iv);
+        setTimeout(resolveRound, playerDone && aiDone ? 350 : 0);
+      }
+    }, 100);
+    return () => clearInterval(iv);
+  }, [result, resolveRound, round]);
+
+  const onPick = (i) => {
+    const R = roundRef.current;
+    if (R.playerPick !== null || result) return;
+    R.playerPick = i;
+    R.playerTime = Math.min(ROUND_SECONDS, (Date.now() - R.start) / 1000);
+    setPicked(i);
+  };
+
+  const nextRound = () => {
+    if (hp <= 0 || oppHp <= 0) {
+      const G = gameRef.current;
+      onFinish({
+        hp, oppHp,
+        rounds: G.rounds,
+        accuracy: G.rounds ? Math.round(100 * G.pCorrectCount / G.rounds) : 0,
+        dmgDealt: G.dmgDealt, dmgTaken: G.dmgTaken,
+        bestStreak: G.bestStreak,
+        gameLangStats: G.gameLangStats,
+      });
+      return;
+    }
+    const nextCh = genRef.current();
+    roundRef.current = newAiPlan(nextCh, diff);
+    setCh(nextCh);
+    setRound((r) => r + 1);
+    setPicked(null);
+    setOppLocked(false);
+    setTimeLeft(ROUND_SECONDS);
+    setResult(null);
+  };
+
+  return (
+    <div className="app">
+      <Hud hp={hp} oppHp={oppHp} round={round} oppName={diff.name} dmg={dmgEvent} />
+      <Timer timeLeft={timeLeft} streak={streak} />
+      <Challenge ch={ch} picked={picked} revealed={!!result} onPick={onPick} oppLocked={oppLocked} />
+      <div style={{ textAlign: "center", marginTop: 18 }}>
+        <button className="btn ghost" style={{ fontSize: 13, padding: "8px 14px" }} onClick={onQuit}>Forfeit duel</button>
+      </div>
+      {result && <RoundResult r={result} hp={hp} oppHp={oppHp} oppName={diff.name} onNext={nextRound} />}
+    </div>
+  );
+}
+
+function EndScreen({ g, oppName, onAgain, onMenu }) {
+  return (
+    <div className="app">
+      <div className={"end-title " + (g.won ? "win" : "lose")}>{g.won ? "VICTORY" : "DEFEAT"}</div>
+      <div className="end-sub">{g.won ? "You destroyed " + oppName + " in " + g.rounds + " rounds" : oppName + " took you down in " + g.rounds + " rounds"}</div>
+      <div className="stat-grid">
+        <div className="stat-tile">
+          <div className={"v elo-delta " + (g.dRating >= 0 ? "up" : "down")}>{g.dRating >= 0 ? "+" : ""}{g.dRating}</div>
+          <div className="k">Rating</div>
+        </div>
+        <div className="stat-tile"><div className="v">{g.accuracy}%</div><div className="k">Accuracy</div></div>
+        <div className="stat-tile"><div className="v">🔥 {g.bestStreak}</div><div className="k">Best streak</div></div>
+        <div className="stat-tile"><div className="v">{g.dmgDealt}</div><div className="k">Damage dealt</div></div>
+        <div className="stat-tile"><div className="v">{g.dmgTaken}</div><div className="k">Damage taken</div></div>
+        <div className="stat-tile"><div className="v">{g.rounds}</div><div className="k">Rounds</div></div>
+      </div>
+      <div className="card" style={{ marginBottom: 18 }}>
+        <span className="label" style={{ display: "block", marginBottom: 12 }}>Accuracy by language (this duel)</span>
+        <LangAccuracyList stats={g.gameLangStats} />
+      </div>
+      <div className="menu-footer">
+        <button className="btn primary" onClick={onAgain}>⚔️ Rematch</button>
+        <button className="btn ghost" onClick={onMenu}>Menu</button>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
