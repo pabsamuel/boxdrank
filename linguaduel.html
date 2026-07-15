@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#0a0e1a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <title>LinguaDuel — Language Battle Arena</title>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -775,13 +778,15 @@ const DIFFS = {
   },
   ranked: {
     name: "Ranked", bot: "VerbHunter ⚔️", acc: 0.72, tMin: 3.5, tMax: 9.5, rating: 1150,
-    blurb: "VerbHunter ⚔️ — a fair fight. Speed matters.",
+    blurb: "VerbHunter ⚔️ — a fair fight. Strong in Romance languages, shaky in Japanese and Korean.",
+    langMod: { es: 0.07, fr: 0.07, it: 0.07, pt: 0.07, ja: -0.12, ko: -0.12 },
     winTaunts: ["Too slow.", "Read faster.", "That one was free."],
     loseTaunts: ["Lucky round.", "Won't happen again.", "Hm. Decent."],
   },
   pro: {
     name: "Polyglot Pro", bot: "BabelKing 👑", acc: 0.90, tMin: 2.0, tMax: 6.0, rating: 1450,
-    blurb: "BabelKing 👑 — fast and nearly flawless. Good luck.",
+    blurb: "BabelKing 👑 — fast and nearly flawless. Only Turkish slows him down.",
+    langMod: { tr: -0.10, es: 0.03, fr: 0.03, de: 0.03, it: 0.03, pt: 0.03 },
     winTaunts: ["I speak twelve languages. You?", "Precision.", "Predictable."],
     loseTaunts: ["…noted.", "Interesting.", "A statistical anomaly."],
   },
@@ -1117,10 +1122,13 @@ function App() {
       langStats: merge(profile.langStats, result.gameLangStats),
       typeStats: merge(profile.typeStats || {}, result.gameTypeStats || {}),
     };
+    const ghostUsed = isDaily && !!(profile.dailyGhost && profile.dailyGhost.num === dNum);
     if (isDaily) {
-      // dailies are rating-neutral; only the first attempt of the day counts
+      // dailies are rating-neutral; only the first attempt of the day counts,
+      // and that first run becomes the ghost you can race afterwards
       if (!profile.lastDaily || profile.lastDaily.num !== dNum) {
         next.lastDaily = { num: dNum, won, accuracy: result.accuracy };
+        next.dailyGhost = { num: dNum, rounds: result.ghostTrack };
       }
     } else {
       next.rating = profile.rating + dRating;
@@ -1139,23 +1147,28 @@ function App() {
     const earned = ACHIEVEMENTS.filter((a) => !owned.includes(a.id) && a.test(ctx));
     if (earned.length) next.achievements = [...owned, ...earned.map((a) => a.id)];
     saveProfile(next);
-    setLastGame({ ...result, won, dRating, dailyNum: isDaily ? dNum : null, newAchievements: earned });
+    setLastGame({
+      ...result, won, dRating, dailyNum: isDaily ? dNum : null, newAchievements: earned,
+      oppName: ghostUsed ? "Your Ghost 👻" : DIFFS[ctx.diffKey].bot,
+    });
     setScreen("end");
   };
 
   const activeDiffKey = mode === "daily" ? "ranked" : diffKey;
+  const todaysGhost = profile.dailyGhost && profile.dailyGhost.num === dailyNumber() ? profile.dailyGhost : null;
   if (screen === "game") {
     return (
       <Game
         langCodes={mode === "daily" || polyglot ? LANG_CODES : selLangs}
         diffKey={activeDiffKey}
+        ghost={mode === "daily" ? todaysGhost : null}
         onFinish={finishGame}
         onQuit={() => setScreen("menu")}
       />
     );
   }
   if (screen === "end" && lastGame) {
-    return <EndScreen g={lastGame} oppName={DIFFS[activeDiffKey].bot} onAgain={() => startGame(mode)} onMenu={() => setScreen("menu")} />;
+    return <EndScreen g={lastGame} oppName={lastGame.oppName} onAgain={() => startGame(mode)} onMenu={() => setScreen("menu")} />;
   }
   if (screen === "stats") {
     return (
@@ -1273,7 +1286,9 @@ function App() {
           </button>
         </div>
         <div style={{ marginTop: 8, fontSize: 13, color: "var(--dim)" }}>
-          All 8 languages vs VerbHunter ⚔️ — rating-neutral, first attempt counts.
+          {profile.lastDaily && profile.lastDaily.num === dailyNumber()
+            ? "👻 Replay to race your ghost — the opponent replays your first run exactly."
+            : "All 8 languages vs VerbHunter ⚔️ — rating-neutral, first attempt counts."}
         </div>
       </div>
       <div className="menu-footer">
@@ -1284,8 +1299,9 @@ function App() {
   );
 }
 
-function Game({ langCodes, diffKey, onFinish, onQuit }) {
+function Game({ langCodes, diffKey, ghost, onFinish, onQuit }) {
   const diff = DIFFS[diffKey];
+  const oppLabel = ghost ? "Your Ghost 👻" : diff.bot;
   const genRef = useRef(null);
   if (!genRef.current) genRef.current = makeGenerator(langCodes);
 
@@ -1305,13 +1321,14 @@ function Game({ langCodes, diffKey, onFinish, onQuit }) {
   const gameRef = useRef({
     bestStreak: 0, pCorrectCount: 0, dmgDealt: 0, dmgTaken: 0,
     gameLangStats: {}, gameTypeStats: {}, rounds: 0,
-    myHp: MAX_HP, oppHpNow: MAX_HP, minHp: MAX_HP, fastCorrect: false, timeline: [],
+    myHp: MAX_HP, oppHpNow: MAX_HP, minHp: MAX_HP, fastCorrect: false, timeline: [], ghostTrack: [],
   });
   const roundRef = useRef(null);
-  if (!roundRef.current) roundRef.current = newAiPlan(ch, diff);
+  if (!roundRef.current) roundRef.current = planFor(ch, 1);
 
   function newAiPlan(challenge, d) {
-    const acc = Math.min(0.97, Math.max(0.15, d.acc - (challenge.difficulty - 2) * 0.07));
+    const langMod = (d.langMod && d.langMod[challenge.lang]) || 0;
+    const acc = Math.min(0.97, Math.max(0.15, d.acc + langMod - (challenge.difficulty - 2) * 0.07));
     const willBeCorrect = rand() < acc;
     const wrongOpts = challenge.options.map((_, i) => i).filter((i) => i !== challenge.correctIndex);
     const wrongIndex = wrongOpts[Math.floor(rand() * wrongOpts.length)];
@@ -1320,9 +1337,29 @@ function Game({ langCodes, diffKey, onFinish, onQuit }) {
       answerAt: d.tMin + rand() * (d.tMax - d.tMin),
       willBeCorrect,
       index: willBeCorrect ? challenge.correctIndex : wrongIndex,
+      wrongIndex,
       playerPick: null,
       playerTime: null,
     };
+  }
+
+  // Ghost mode (daily replay): the opponent replays YOUR recorded first run.
+  // newAiPlan still burns its seeded RNG draws first so the challenge stream
+  // stays identical to the original attempt; the ghost then overrides them.
+  function planFor(challenge, roundNum) {
+    const plan = newAiPlan(challenge, diff);
+    if (ghost) {
+      const gr = ghost.rounds[roundNum - 1];
+      if (gr && gr.t != null) {
+        plan.willBeCorrect = gr.c;
+        plan.answerAt = gr.t;
+        plan.index = gr.c ? challenge.correctIndex : plan.wrongIndex;
+      } else {
+        plan.willBeCorrect = false;
+        plan.answerAt = ROUND_SECONDS + 1; // the ghost never answered here
+      }
+    }
+    return plan;
   }
 
   const resolveRound = useCallback(() => {
@@ -1360,13 +1397,14 @@ function Game({ langCodes, diffKey, onFinish, onQuit }) {
     G.minHp = Math.min(G.minHp, G.myHp);
     if (pCorrect && R.playerTime < 2) G.fastCorrect = true;
     G.timeline.push({ hp: Math.max(0, G.myHp), opp: Math.max(0, G.oppHpNow), pCorrect, dmg, dmgTo });
+    G.ghostTrack.push({ t: pAnswered ? Math.round(R.playerTime * 100) / 100 : null, c: pCorrect });
     if (dmg > 0) setDmgEvent({ id: Date.now(), to: dmgTo, amount: dmg });
     SND.play(pCorrect ? "good" : "bad");
     if (dmg > 0) setTimeout(() => SND.play("hit"), 260);
 
     // taunts stay on Math.random — pick() would consume the daily seed
     const tauntPool = dmgTo === "me" ? diff.winTaunts : diff.loseTaunts;
-    const taunt = dmgTo && Math.random() < 0.65
+    const taunt = !ghost && dmgTo && Math.random() < 0.65
       ? tauntPool[Math.floor(Math.random() * tauntPool.length)]
       : null;
     setResult({
@@ -1414,12 +1452,12 @@ function Game({ langCodes, diffKey, onFinish, onQuit }) {
         bestStreak: G.bestStreak,
         gameLangStats: G.gameLangStats,
         gameTypeStats: G.gameTypeStats,
-        timeline: G.timeline, minHp: G.minHp, fastCorrect: G.fastCorrect,
+        timeline: G.timeline, minHp: G.minHp, fastCorrect: G.fastCorrect, ghostTrack: G.ghostTrack,
       });
       return;
     }
     const nextCh = genRef.current();
-    roundRef.current = newAiPlan(nextCh, diff);
+    roundRef.current = planFor(nextCh, round + 1);
     const newMult = multiplierFor(round + 1);
     if (newMult > multiplierFor(round)) {
       setMultBanner(newMult);
@@ -1452,7 +1490,7 @@ function Game({ langCodes, diffKey, onFinish, onQuit }) {
 
   return (
     <div className="app">
-      <Hud hp={hp} oppHp={oppHp} round={round} oppName={diff.bot} dmg={dmgEvent} />
+      <Hud hp={hp} oppHp={oppHp} round={round} oppName={oppLabel} dmg={dmgEvent} />
       <Timer timeLeft={timeLeft} streak={streak} />
       <Challenge ch={ch} picked={picked} revealed={!!result} onPick={onPick} oppLocked={oppLocked} />
       <div style={{ textAlign: "center", marginTop: 18, display: "flex", gap: 10, justifyContent: "center" }}>
@@ -1463,7 +1501,7 @@ function Game({ langCodes, diffKey, onFinish, onQuit }) {
         </button>
       </div>
       {multBanner && <div className="mult-banner">⚡ DAMAGE ×{multBanner}</div>}
-      {result && <RoundResult r={result} hp={hp} oppHp={oppHp} oppName={diff.bot} onNext={nextRound} />}
+      {result && <RoundResult r={result} hp={hp} oppHp={oppHp} oppName={oppLabel} onNext={nextRound} />}
     </div>
   );
 }
