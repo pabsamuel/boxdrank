@@ -289,7 +289,7 @@ const store = {
   },
 };
 const PROFILE_KEY = "linguaduel_profile_v1";
-const DEFAULT_PROFILE = { rating: 1000, wins: 0, losses: 0, games: 0, bestStreak: 0, langStats: {}, typeStats: {}, history: [1000], results: [], lastDaily: null, achievements: [] };
+const DEFAULT_PROFILE = { rating: 1000, wins: 0, losses: 0, games: 0, bestStreak: 0, langStats: {}, typeStats: {}, history: [1000], results: [], lastDaily: null, achievements: [], srs: {} };
 
 /* =====================================================================
    CONTENT BANK — curated, offline, no API needed
@@ -629,7 +629,7 @@ function speak(text, lang) {
   } catch (e) { /* no TTS available */ }
 }
 
-function makeGenerator(langCodes) {
+function makeGenerator(langCodes, srs) {
   const used = new Set();
   // Cross-language rounds need 2+ active languages; in polyglot-style pools
   // (4+ languages) they make up half the rotation — that's the show.
@@ -641,28 +641,43 @@ function makeGenerator(langCodes) {
     ...(crossOK && langCodes.length >= 4 ? ["xword", "xsent"] : []),
   ];
   const pickTwoLangs = () => shuffle(langCodes).slice(0, 2);
-  const fresh = (key, poolSize) => {
+  const fresh = (key, poolSize, srsKey) => {
     // returns an unused index for this key, resetting when the pool is spent
-    const open = [];
+    let open = [];
     for (let i = 0; i < poolSize; i++) if (!used.has(key + i)) open.push(i);
-    if (open.length === 0) { for (let i = 0; i < poolSize; i++) used.delete(key + i); return Math.floor(rand() * poolSize); }
+    if (open.length === 0) {
+      for (let i = 0; i < poolSize; i++) used.delete(key + i);
+      open = Array.from({ length: poolSize }, (_, i) => i);
+    }
+    // Leitner bias (never in seeded daily games — srs is null there):
+    // when items in this pool are due for review, usually serve the one
+    // in the lowest box (the shakiest memory) instead of a random pick.
+    if (srs) {
+      const now = Date.now();
+      const due = open.filter((i) => { const r = srs[(srsKey || key) + i]; return r && r.due <= now && r.box < 5; });
+      if (due.length && rand() < 0.65) {
+        due.sort((a, b) => srs[(srsKey || key) + a].box - srs[(srsKey || key) + b].box);
+        used.add(key + due[0]);
+        return due[0];
+      }
+    }
     const idx = pick(open);
     used.add(key + idx);
     return idx;
   };
 
-  return function nextChallenge() {
+  const nextChallenge = function () {
     const type = pick(typePool);
 
     if (type === "xword") {
       const [src, dst] = pickTwoLangs();
-      const i = fresh("xw:" + dst, BANK[dst].w.length);
+      const i = fresh("xw:" + dst, BANK[dst].w.length, dst + ":w");
       const [en, dstWord] = BANK[dst].w[i];
       const srcWord = BANK[src].w[i][1];
       const distractors = shuffle(BANK[dst].w.filter((_, j) => j !== i)).slice(0, 3).map((x) => x[1]);
       const opts = shuffle([dstWord, ...distractors]);
       return {
-        type, lang: dst, srcLang: src, difficulty: 3,
+        type, lang: dst, srcLang: src, difficulty: 3, srsId: dst + ":w" + i,
         question: "Translate this " + LANGS[src].name + " word into " + LANGS[dst].name + ":",
         display: "“" + srcWord + "”",
         options: opts,
@@ -672,13 +687,13 @@ function makeGenerator(langCodes) {
     }
     if (type === "xsent") {
       const [src, dst] = pickTwoLangs();
-      const i = fresh("xs", PARALLEL.length);
+      const i = fresh("xs", PARALLEL.length, "xs:" + dst + ":");
       const [en, versions] = PARALLEL[i];
       const correct = versions[dst];
       const distractors = shuffle(PARALLEL.filter((_, j) => j !== i)).slice(0, 3).map((p) => p[1][dst]);
       const opts = shuffle([correct, ...distractors]);
       return {
-        type, lang: dst, srcLang: src, difficulty: 3,
+        type, lang: dst, srcLang: src, difficulty: 3, srsId: "xs:" + dst + ":" + i,
         question: "How do you say this in " + LANGS[dst].name + "?",
         display: "“" + versions[src] + "”",
         options: opts,
@@ -697,7 +712,7 @@ function makeGenerator(langCodes) {
       const others = shuffle(LANG_CODES.filter((c) => c !== lang)).slice(0, 5);
       const opts = shuffle([lang, ...others]);
       return {
-        type, lang, difficulty: diff,
+        type, lang, difficulty: diff, srsId: lang + ":s" + i,
         question: "Which language is this?",
         display: "“" + sentence + "”",
         options: opts.map((c) => LANGS[c].flag + " " + LANGS[c].name),
@@ -711,7 +726,7 @@ function makeGenerator(langCodes) {
       const distractors = shuffle(bank.w.filter((_, j) => j !== i)).slice(0, 3).map((x) => x[1]);
       const opts = shuffle([target, ...distractors]);
       return {
-        type, lang, difficulty: 2,
+        type, lang, difficulty: 2, srsId: lang + ":w" + i,
         question: "Translate into " + L + ":",
         display: "“" + en + "”",
         options: opts,
@@ -724,7 +739,7 @@ function makeGenerator(langCodes) {
       const [ipa, word, meaning, wrong] = bank.p[i];
       const opts = shuffle([meaning, ...wrong]);
       return {
-        type, lang, difficulty: 2, phonetic: true,
+        type, lang, difficulty: 2, phonetic: true, srsId: lang + ":p" + i,
         question: "You hear this in " + L + " — what does it mean?",
         display: "/ " + ipa + " /",
         options: opts,
@@ -739,7 +754,7 @@ function makeGenerator(langCodes) {
       const [ipa, word, meaning, wrong] = bank.p[i];
       const opts = shuffle([meaning, ...wrong]);
       return {
-        type, lang, difficulty: 2,
+        type, lang, difficulty: 2, srsId: lang + ":p" + i,
         speak: word.replace(/\s*\(.*\)$/, ""),
         question: "Listen — what does this " + L + " word mean?",
         display: "",
@@ -752,13 +767,22 @@ function makeGenerator(langCodes) {
     const i = fresh(lang + ":f", bank.f.length);
     const [sentence, options, correctIndex, why] = bank.f[i];
     return {
-      type, lang, difficulty: 3,
+      type, lang, difficulty: 3, srsId: lang + ":f" + i,
       question: "Fill the blank (" + L + "):",
       display: sentence,
       options: [...options].map(String),
       correctIndex,
       explanation: why + " → " + sentence.replace("___", options[correctIndex]),
     };
+  };
+
+  return function () {
+    const ch = nextChallenge();
+    if (srs && ch.srsId) {
+      const r = srs[ch.srsId];
+      if (r && r.seen > 0 && r.due <= Date.now() && r.box < 5) ch.isReview = true;
+    }
+    return ch;
   };
 }
 
@@ -792,6 +816,27 @@ const DIFFS = {
   },
 };
 const multiplierFor = (round) => 1 + 0.5 * Math.floor((round - 1) / 4);
+
+/* =====================================================================
+   SPACED REPETITION (Leitner system)
+   Every item you answer gets a box 0-5. Correct → next box, wrong → back
+   to box 0. Each box has an expanding review interval; when an item is
+   due, the generator prefers it over fresh material. Combined with the
+   quiz format itself (retrieval practice), mixed types/languages
+   (interleaving), and post-round explanations (immediate feedback),
+   this is the evidence-backed core of the learning loop.
+   ===================================================================== */
+const BOX_INTERVAL_DAYS = [0, 1, 3, 7, 14, 30]; // box 0 = due immediately
+const srsAfterAnswer = (rec, correct) => {
+  const prev = rec || { box: 0, seen: 0, lapses: 0, due: 0 };
+  const box = correct ? Math.min(prev.box + 1, 5) : 0;
+  return {
+    box,
+    seen: prev.seen + 1,
+    lapses: prev.lapses + (correct ? 0 : 1),
+    due: Date.now() + BOX_INTERVAL_DAYS[box] * 86400000,
+  };
+};
 
 // Achievements — checked after every game; ctx carries the game result plus
 // the freshly merged lifetime stats.
@@ -897,7 +942,7 @@ function Challenge({ ch, picked, revealed, onPick, oppLocked }) {
       : LANGS[ch.lang].flag + " " + LANGS[ch.lang].name;
   return (
     <div className="card">
-      <span className="type-chip">{TYPE_LABEL[ch.type]} · {chipLang}</span>
+      <span className="type-chip">{TYPE_LABEL[ch.type]} · {chipLang}{ch.isReview ? " · 📚 REVIEW" : ""}</span>
       <div className="prompt-q">{ch.question}</div>
       {ch.type === "listen"
         ? <button className="speak-btn" onClick={() => speak(ch.speak, ch.lang)}>🔊 Play sound</button>
@@ -1116,11 +1161,14 @@ function App() {
       }
       return out;
     };
+    const srs = { ...(profile.srs || {}) };
+    for (const u of result.srsUpdates || []) srs[u.id] = srsAfterAnswer(srs[u.id], u.c);
     const next = {
       ...profile,
       bestStreak: Math.max(profile.bestStreak, result.bestStreak),
       langStats: merge(profile.langStats, result.gameLangStats),
       typeStats: merge(profile.typeStats || {}, result.gameTypeStats || {}),
+      srs,
     };
     const ghostUsed = isDaily && !!(profile.dailyGhost && profile.dailyGhost.num === dNum);
     if (isDaily) {
@@ -1162,6 +1210,7 @@ function App() {
         langCodes={mode === "daily" || polyglot ? LANG_CODES : selLangs}
         diffKey={activeDiffKey}
         ghost={mode === "daily" ? todaysGhost : null}
+        srs={mode === "daily" ? null : profile.srs || {}}
         onFinish={finishGame}
         onQuit={() => setScreen("menu")}
       />
@@ -1214,6 +1263,32 @@ function App() {
               })}
         </div>
         <div className="card" style={{ marginBottom: 16 }}>
+          <span className="label" style={{ display: "block", marginBottom: 12 }}>Learning engine (spaced repetition)</span>
+          {(() => {
+            const recs = Object.values(profile.srs || {}).filter((r) => r.seen > 0);
+            const now2 = Date.now();
+            const mastered = recs.filter((r) => r.box >= 5).length;
+            const learning = recs.filter((r) => r.box > 0 && r.box < 5).length;
+            const struggling = recs.filter((r) => r.box === 0).length;
+            const due = recs.filter((r) => r.due <= now2 && r.box < 5).length;
+            return (
+              <div>
+                <div className="stat-grid" style={{ marginBottom: 10 }}>
+                  <div className="stat-tile"><div className="v" style={{ color: "var(--green)" }}>{mastered}</div><div className="k">Mastered</div></div>
+                  <div className="stat-tile"><div className="v" style={{ color: "var(--gold)" }}>{learning}</div><div className="k">Learning</div></div>
+                  <div className="stat-tile"><div className="v" style={{ color: "var(--red)" }}>{struggling}</div><div className="k">Relearning</div></div>
+                  <div className="stat-tile"><div className="v" style={{ color: "var(--purple)" }}>{due}</div><div className="k">Due now</div></div>
+                </div>
+                <div style={{ fontSize: 12, color: "var(--dim)", lineHeight: 1.5 }}>
+                  Every answer is retrieval practice. Correct answers push an item up the Leitner
+                  ladder (reviews at 1, 3, 7, 14, 30 days); misses send it back to the start.
+                  Due items are woven into your duels as 📚 REVIEW rounds.
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+        <div className="card" style={{ marginBottom: 16 }}>
           <span className="label" style={{ display: "block", marginBottom: 12 }}>
             Trophy case ({(profile.achievements || []).length}/{ACHIEVEMENTS.length})
           </span>
@@ -1235,10 +1310,17 @@ function App() {
   }
 
   // menu
+  const now = Date.now();
+  const dueCount = Object.values(profile.srs || {}).filter((r) => r.seen > 0 && r.due <= now && r.box < 5).length;
   return (
     <div className="app">
       <div className="logo">LINGUADUEL</div>
       <div className="tagline">GUESS · TRANSLATE · SURVIVE — 5000 HP, ONE WINNER</div>
+      {dueCount > 0 && (
+        <div style={{ textAlign: "center", marginBottom: 14, fontSize: 13, fontWeight: 800, color: "var(--purple)" }}>
+          📚 {dueCount} item{dueCount > 1 ? "s" : ""} due for review — they'll appear in your next duel
+        </div>
+      )}
       <div className="rating-pill">
         <span className="label">RATING</span><span className="num">{profile.rating}</span>
         <span className="label">RECORD</span><span className="num" style={{ color: "var(--text)" }}>{profile.wins}W – {profile.losses}L</span>
@@ -1299,11 +1381,11 @@ function App() {
   );
 }
 
-function Game({ langCodes, diffKey, ghost, onFinish, onQuit }) {
+function Game({ langCodes, diffKey, ghost, srs, onFinish, onQuit }) {
   const diff = DIFFS[diffKey];
   const oppLabel = ghost ? "Your Ghost 👻" : diff.bot;
   const genRef = useRef(null);
-  if (!genRef.current) genRef.current = makeGenerator(langCodes);
+  if (!genRef.current) genRef.current = makeGenerator(langCodes, srs);
 
   const [round, setRound] = useState(1);
   const [hp, setHp] = useState(MAX_HP);
@@ -1321,7 +1403,7 @@ function Game({ langCodes, diffKey, ghost, onFinish, onQuit }) {
   const gameRef = useRef({
     bestStreak: 0, pCorrectCount: 0, dmgDealt: 0, dmgTaken: 0,
     gameLangStats: {}, gameTypeStats: {}, rounds: 0,
-    myHp: MAX_HP, oppHpNow: MAX_HP, minHp: MAX_HP, fastCorrect: false, timeline: [], ghostTrack: [],
+    myHp: MAX_HP, oppHpNow: MAX_HP, minHp: MAX_HP, fastCorrect: false, timeline: [], ghostTrack: [], srsUpdates: [],
   });
   const roundRef = useRef(null);
   if (!roundRef.current) roundRef.current = planFor(ch, 1);
@@ -1398,6 +1480,7 @@ function Game({ langCodes, diffKey, ghost, onFinish, onQuit }) {
     if (pCorrect && R.playerTime < 2) G.fastCorrect = true;
     G.timeline.push({ hp: Math.max(0, G.myHp), opp: Math.max(0, G.oppHpNow), pCorrect, dmg, dmgTo });
     G.ghostTrack.push({ t: pAnswered ? Math.round(R.playerTime * 100) / 100 : null, c: pCorrect });
+    if (ch.srsId) G.srsUpdates.push({ id: ch.srsId, c: pCorrect });
     if (dmg > 0) setDmgEvent({ id: Date.now(), to: dmgTo, amount: dmg });
     SND.play(pCorrect ? "good" : "bad");
     if (dmg > 0) setTimeout(() => SND.play("hit"), 260);
@@ -1453,6 +1536,7 @@ function Game({ langCodes, diffKey, ghost, onFinish, onQuit }) {
         gameLangStats: G.gameLangStats,
         gameTypeStats: G.gameTypeStats,
         timeline: G.timeline, minHp: G.minHp, fastCorrect: G.fastCorrect, ghostTrack: G.ghostTrack,
+        srsUpdates: G.srsUpdates,
       });
       return;
     }
