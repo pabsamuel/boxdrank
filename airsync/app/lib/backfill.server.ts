@@ -41,7 +41,13 @@ export async function startBackfill(shopDomain: string): Promise<string | null> 
   const shopRow = await db.shop.findUnique({ where: { shop: shopDomain } });
   if (!shopRow) return "Shop not found — reload the page and try again.";
   if (shopRow.backfillStatus === "running") {
-    return "A sync is already running.";
+    // A healthy backfill updates the row every page (few seconds). If it
+    // hasn't in 15 minutes, the server restarted mid-run and the status is
+    // stale — let the merchant start over instead of being stuck forever.
+    const staleMs = 15 * 60 * 1000;
+    if (Date.now() - shopRow.updatedAt.getTime() < staleMs) {
+      return "A sync is already running.";
+    }
   }
   const ctx = await getSyncContext(shopDomain);
   if (!ctx) {

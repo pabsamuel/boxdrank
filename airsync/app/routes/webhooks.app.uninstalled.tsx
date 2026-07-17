@@ -7,7 +7,15 @@ import { authenticate } from "../shopify.server";
 import { deleteShopData } from "../lib/sync.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { shop, session, topic } = await authenticate.webhook(request);
+  let shop: string, topic: string, session: unknown;
+  try {
+    ({ shop, topic, session } = await authenticate.webhook(request));
+  } catch (err) {
+    if (err instanceof Response) throw err; // 401 for bad HMAC — required
+    console.error("Malformed uninstall webhook:", err);
+    return new Response();
+  }
+
   console.log(`Received ${topic} webhook for ${shop}`);
 
   // This webhook can fire more than once; deleteMany-based cleanup is

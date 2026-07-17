@@ -6,15 +6,24 @@
 //    straight into the MERCHANT'S OWN Airtable base; we only keep the
 //    Shopify-ID → Airtable-record-ID mapping, which contains no PII.
 //
-// authenticate.webhook verifies the HMAC and automatically returns 401 for
-// invalid signatures — a hard requirement for compliance webhooks.
+// authenticate.webhook verifies the HMAC and returns a 401 Response for
+// invalid signatures — a hard requirement for compliance webhooks, so that
+// Response is allowed through. Everything else is logged and answered 200.
 
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { deleteShopData, logSyncError } from "../lib/sync.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { shop, topic } = await authenticate.webhook(request);
+  let shop: string, topic: string;
+  try {
+    ({ shop, topic } = await authenticate.webhook(request));
+  } catch (err) {
+    if (err instanceof Response) throw err; // 401 for bad HMAC — required
+    console.error("Malformed compliance webhook:", err);
+    return new Response();
+  }
+
   console.log(`Received ${topic} compliance webhook for ${shop}`);
 
   try {
