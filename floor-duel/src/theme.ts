@@ -1,0 +1,16 @@
+export const colors = {
+  bg: '#070810',
+  panel: '#0d0f1a',
+  card: '#12152290',
+  divider: '#04050a',
+  line: '#1d2233',
+  text: '#f5f6fa',
+  dim: '#8a8fa3',
+  p1: '#38bdf8',
+  p1Dark: '#0b3550',
+  p2: '#fb3b5c',
+  p2Dark: '#4a0e1c',
+  gold: '#f5c518',
+  warn: '#ffb020',
+  danger: '#ff4757',
+};
