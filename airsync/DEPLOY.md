@@ -126,18 +126,19 @@ distribution**, then create the listing. Checklist:
 - [x] App works end-to-end on a clean install (test on a fresh dev store!)
 
 **Things only you can do:**
-- [ ] **App listing content**: app name ("AirSync — Airtable Order & Product
-      Sync"), 100-character tagline, description (what syncs, how fast,
-      what's in free vs Pro), app icon (1200×1200 px), 3+ desktop
-      screenshots (1600×900 px) of the settings page inside the admin.
+- [ ] **App listing content**: ready-to-paste name, taglines, description,
+      pricing text, and review-team instructions are drafted in
+      [LISTING.md](./LISTING.md). Still needed from you: app icon
+      (1200×1200 px) and 3+ desktop screenshots (1600×900 px) of the
+      settings page inside the admin.
 - [ ] **Pricing section**: Free plan (50 orders/month) and Pro
       ($14.99/month, 7-day trial) — must match the code exactly.
 - [ ] **Support**: support email + (optionally) support URL.
-- [ ] **Privacy policy URL** — required. It must mention: what you store
-      (encrypted Airtable token, Shopify↔Airtable record ID mappings, sync
-      settings), that order/customer data is written to the merchant's own
-      Airtable base, and your data deletion behavior (everything deleted on
-      uninstall / `shop/redact`).
+- [ ] **Privacy policy URL** — required. A complete draft matching what
+      the app actually stores is in
+      [PRIVACY_POLICY.md](./PRIVACY_POLICY.md): fill in the two
+      `[FILL IN]` values, host it at a public URL, and paste that URL into
+      the listing.
 - [ ] **Protected customer data access** (app → API access → Protected
       customer data): request access, level "Protected customer data"
       (name/email needed for the Customer name/email columns). Fill in the
