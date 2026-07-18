@@ -1,0 +1,59 @@
+# CI for the AirSync app (airsync/). Runs the same pipeline used during
+# development: install → prisma setup (SQLite) → build → typecheck → lint →
+# offline test suite (mapping/crypto, Airtable throttle+retry, free-plan
+# metering). No Shopify or Airtable credentials needed.
+name: AirSync CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "airsync/**"
+      - ".github/workflows/airsync-ci.yml"
+  pull_request:
+    paths:
+      - "airsync/**"
+      - ".github/workflows/airsync-ci.yml"
+
+concurrency:
+  group: airsync-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: airsync
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: airsync/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prisma generate + migrate (SQLite dev DB)
+        run: npm run setup
+
+      - name: Validate production (PostgreSQL) schema
+        run: npx prisma validate --schema prisma/schema.production.prisma
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+
+      - name: Build
+        run: npm run build
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test suite (mapping, throttle, metering)
+        run: npm run test:sync
