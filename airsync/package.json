@@ -13,6 +13,7 @@
     "docker-start": "prisma generate && prisma db push && npm run start",
     "setup": "prisma generate && prisma migrate deploy",
     "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint .",
+    "test:sync": "node tests/mapping.test.mjs && node tests/throttle.test.mjs && node tests/metering.test.mjs",
     "shopify": "shopify",
     "prisma": "prisma",
     "graphql-codegen": "graphql-codegen",

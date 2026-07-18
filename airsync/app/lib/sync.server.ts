@@ -196,12 +196,17 @@ function currentMonthKey(): string {
   return new Date().toISOString().slice(0, 7); // "2026-07"
 }
 
-// Rolls the monthly counter if the calendar month changed. Returns fresh row.
+// Re-reads the Shop row and rolls the monthly counter if the calendar month
+// changed. Always fetches fresh from the DB — callers (especially the
+// backfill) may be holding a Shop row loaded minutes ago, and metering
+// against a stale counter would let the free-plan cap slip.
 async function rollMonth(shopRow: Shop): Promise<Shop> {
   const monthKey = currentMonthKey();
-  if (shopRow.monthKey === monthKey) return shopRow;
+  const fresh =
+    (await db.shop.findUnique({ where: { id: shopRow.id } })) ?? shopRow;
+  if (fresh.monthKey === monthKey) return fresh;
   return db.shop.update({
-    where: { id: shopRow.id },
+    where: { id: fresh.id },
     data: { monthKey, ordersThisMonth: 0, limitReached: false },
   });
 }

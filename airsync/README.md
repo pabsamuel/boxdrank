@@ -85,6 +85,18 @@ To test the sync you'll need an Airtable Personal Access Token
 `data.records:write`, `schema.bases:read`, `schema.bases:write`, granted
 access to at least one base or workspace.
 
+### Tests
+
+```bash
+npm run test:sync
+```
+
+Runs the offline test suite (no Shopify/Airtable accounts needed): field
+mapping + token encryption, Airtable throttling/retry behavior (mocked
+API), and free-plan metering against the real dev database (needs
+`npx prisma migrate dev` to have run once). Takes ~20s — most of it is the
+throttle test genuinely waiting out the rate limit.
+
 ## Environment variables
 
 | Variable | Dev | Production | Purpose |
