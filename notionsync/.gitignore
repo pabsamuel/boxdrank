@@ -1,0 +1,26 @@
+node_modules
+.DS_Store
+
+/.cache
+/build
+/app/build
+/public/build/
+/public/_dev
+/app/public/build
+/prisma/dev.sqlite
+/prisma/dev.sqlite-journal
+database.sqlite
+
+.env
+.env.*
+!.env.example
+
+# We commit package-lock.json (the Docker build needs it for `npm ci`).
+yarn.lock
+pnpm-lock.yaml
+
+/extensions/*/dist
+
+# Ignore shopify files created during app dev
+.shopify/*
+.shopify.lock
