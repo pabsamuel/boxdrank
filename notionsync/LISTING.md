@@ -45,7 +45,9 @@ dashboards, and anyone who wants store data next to their docs and plans.
 
 ## Assets you still need
 
-- App icon, 1200×1200 px (no text, simple mark on solid background)
+- App icon, 1200×1200 px — a ready-to-use starter is included at
+  [assets/app-icon.png](./assets/app-icon.png) (charcoal, document + sync
+  arrows); replace it with custom artwork whenever you like
 - 3–6 desktop screenshots, 1600×900 px — suggested shots: the three-step
   settings page, the status panel after a sync, the resulting Notion
   Orders database with rows in it
