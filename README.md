@@ -147,6 +147,19 @@ docker run -d -p 8000:8000 \
 
 ---
 
+## Also in this repository
+
+Besides BoxdRank (this directory), the repo hosts two standalone Shopify
+apps, each self-contained with its own README, deployment guide, tests,
+and CI workflow:
+
+- [`airsync/`](airsync/) — **AirSync**: syncs Shopify orders & products
+  into a merchant's Airtable base in near real-time
+- [`notionsync/`](notionsync/) — **NotionSync**: the same connector for
+  Notion databases
+
+---
+
 ## Contributing
 
 Contributions are welcome! Feel free to open issues or submit pull requests.
