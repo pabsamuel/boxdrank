@@ -1,0 +1,101 @@
+// Prisma schema — DEVELOPMENT (SQLite).
+// The production schema (PostgreSQL) lives in prisma/schema.production.prisma
+// and must be kept identical except for the `datasource` block.
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.sqlite"
+}
+
+// Shopify session storage — required by the Shopify app template. Do not modify.
+model Session {
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+// One row per installed store. Holds the (encrypted) Airtable token,
+// which base/tables to sync into, the merchant's toggles, and sync status.
+model Shop {
+  id        String   @id @default(cuid())
+  shop      String   @unique // e.g. "my-store.myshopify.com"
+
+  // Airtable connection. The token is AES-256-GCM encrypted — never stored
+  // or logged in plain text. Null until the merchant connects.
+  airtableToken    String?
+  airtableBaseId   String?
+  airtableBaseName String?
+  ordersTableId    String?
+  productsTableId  String?
+
+  // What to sync (merchant toggles on the settings page).
+  syncOrders   Boolean @default(true)
+  syncProducts Boolean @default(true)
+
+  // Billing. "free" or "pro". Kept in sync with Shopify's billing API on
+  // every settings-page load (the billing API is the source of truth).
+  plan String @default("free")
+
+  // Free-plan usage metering: how many NEW orders were synced in `monthKey`
+  // (a calendar month like "2026-07"). Resets automatically when the month
+  // rolls over. When the free cap is hit, `limitReached` pauses order sync
+  // and the settings page shows an upgrade banner.
+  monthKey        String?
+  ordersThisMonth Int     @default(0)
+  limitReached    Boolean @default(false)
+
+  // Initial 90-day backfill status: "idle" | "running" | "done" | "error".
+  backfillStatus  String  @default("idle")
+  backfillMessage String?
+
+  lastSyncAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+// Maps a Shopify resource (order/product) to the Airtable record we created
+// for it, so webhook updates modify the existing row instead of duplicating.
+model RecordMap {
+  id               String   @id @default(cuid())
+  shop             String
+  resourceType     String // "order" | "product"
+  shopifyId        String // Shopify's numeric ID, stored as a string
+  airtableRecordId String // Airtable record ID like "recXXXXXXXXXXXXXX"
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([shop, resourceType, shopifyId])
+  @@index([shop])
+}
+
+// A sync attempt that failed after all retries. Surfaced on the status page.
+model SyncError {
+  id           String   @id @default(cuid())
+  shop         String
+  resourceType String // "order" | "product" | "system"
+  shopifyId    String?
+  topic        String? // webhook topic or "backfill"
+  message      String
+  createdAt    DateTime @default(now())
+
+  @@index([shop, createdAt])
+}
