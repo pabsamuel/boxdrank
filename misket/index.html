@@ -274,15 +274,18 @@ const RARITY = [
 const TYPES = [
   { id: 'kedigozu', name: 'Kedigözü', rarity: 0, w: 38  },  // cat's eye — the everyday marble
   { id: 'sutlu',    name: 'Sütlü',    rarity: 0, w: 26  },  // milky pastel
+  { id: 'boncuk',   name: 'Boncuk',   rarity: 0, w: 10, r: 13 }, // glossy bead with its little hole
   { id: 'gazoz',    name: 'Gazoz',    rarity: 1, w: 14  },  // soda-bottle aqua glass
   { id: 'ebruli',   name: 'Ebruli',   rarity: 1, w: 11  },  // multicolor marbled swirls
+  { id: 'cincik',   name: 'Cıncık',   rarity: 1, w: 8, r: 12 }, // tiny sparkling candy glass
   { id: 'camgoz',   name: 'Camgöz',   rarity: 2, w: 6   },  // clear glass with an eye core
   { id: 'petrol',   name: 'Petrol',   rarity: 2, w: 3.5 },  // dark iridescent oil sheen
   { id: 'dobi',     name: 'Dobi',     rarity: 2, w: 4, r: 24, val: 4 }, // the big one — heavy, hard to eject
   { id: 'kemik',    name: 'Kemik',    rarity: 3, w: 2   },  // prized ivory bone marble
+  { id: 'demirli',  name: 'Demirli',  rarity: 3, w: 1.5, r: 13, dens: 3.2, val: 5 }, // steel bearing — small, brutally heavy
 ];
 const TYPE_COLOR = {
-  gazoz: '#7fd4e5', ebruli: '#b8bfc7', petrol: '#39414f', kemik: '#e9dfc6',
+  gazoz: '#7fd4e5', ebruli: '#b8bfc7', petrol: '#39414f', kemik: '#e9dfc6', demirli: '#8f98a3',
 };
 function pickType() {
   let r = Math.random() * TYPES.reduce((s, t) => s + t.w, 0);
@@ -344,6 +347,28 @@ function makeSprite(r, kind, color) {
     x.fillStyle = '#1c1712'; x.beginPath(); x.arc(0, 0, R * .2, 0, 7); x.fill();  // pupil
     x.fillStyle = 'rgba(255,255,255,.85)'; x.beginPath(); x.arc(-R * .08, -R * .09, R * .06, 0, 7); x.fill();
     rim(.3);
+  } else if (kind === 'boncuk') {
+    base('rgba(255,255,255,.9)', mix(color, 'w', .3), color, mix(color, 'b', .4));
+    x.fillStyle = 'rgba(30,15,5,.75)';                             // the bead hole
+    x.beginPath(); x.arc(0, 0, R * .14, 0, 7); x.fill();
+    x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = R * .05;
+    x.beginPath(); x.arc(0, 0, R * .2, 0, 7); x.stroke();
+    rim(.35);
+  } else if (kind === 'cincik') {
+    base('rgba(255,255,255,.97)', mix(color, 'w', .6), mix(color, 'w', .2), mix(color, 'b', .35));
+    x.strokeStyle = 'rgba(255,255,255,.85)'; x.lineWidth = R * .05; // star glints
+    for (const [gx, gy, l] of [[-R * .25, -R * .2, R * .18], [R * .3, R * .25, R * .12]]) {
+      x.beginPath(); x.moveTo(gx - l, gy); x.lineTo(gx + l, gy);
+      x.moveTo(gx, gy - l); x.lineTo(gx, gy + l); x.stroke();
+    }
+    bubbles(3, .4); rim(.3);
+  } else if (kind === 'demirli') {
+    base('#ffffff', '#d9dde2', '#9aa3ad', '#4a525c');              // polished steel
+    x.strokeStyle = 'rgba(255,255,255,.25)'; x.lineWidth = R * .08;
+    x.beginPath(); x.arc(0, 0, R * .55, .6, 2.4); x.stroke();      // brushed rings
+    x.strokeStyle = 'rgba(20,25,30,.3)';
+    x.beginPath(); x.arc(0, 0, R * .72, 3.6, 5.2); x.stroke();
+    rim(.5);
   } else if (kind === 'dobi') {
     base('rgba(255,255,255,.95)', mix(color, 'w', .45), color, mix(color, 'b', .5));
     for (let i = 0; i < 4; i++)                                    // broad tornado bands
@@ -387,7 +412,8 @@ function makeMarble(x, y, r, type, owner = -1, forceT = null) {
           : kind === 'dobi'   ? ['#2e7d32', '#c62828', '#1565c0'][(Math.random() * 3) | 0]
           : (TYPE_COLOR[kind] || PALETTE[(Math.random() * PALETTE.length) | 0]);
   }
-  const m = { x, y, vx: 0, vy: 0, r, m: r * r * r / 1000, rot: rand(6.28), type, owner,
+  const m = { x, y, vx: 0, vy: 0, r, m: r * r * r / 1000 * ((t && t.dens) || 1), // density: Demirli is steel
+              rot: rand(6.28), type, owner,
               color, alive: true, sprite: makeSprite(r, kind, color) };
   if (t) { m.tname = t.name; m.rarity = t.rarity; m.val = t.val || RARITY[t.rarity].val; m.rcol = RARITY[t.rarity].col; }
   return m;
@@ -881,11 +907,13 @@ function updateMenuStats() {
 // marble guide on the start screen: one live sprite per model
 (function buildGuide() {
   const wrap = $('guide');
-  const sample = { kedigozu: '#e74c3c', sutlu: '#9b59b6', camgoz: '#c98a2b', dobi: '#2e7d32' };
+  const sample = { kedigozu: '#e74c3c', sutlu: '#9b59b6', camgoz: '#c98a2b', dobi: '#2e7d32',
+                   boncuk: '#f1c40f', cincik: '#fd79a8' };
   for (const t of TYPES) {
     const d = document.createElement('div'); d.className = 'gitem';
-    const sp = makeSprite(t.r ? 17 : 14, t.id, sample[t.id] || TYPE_COLOR[t.id] || '#3498db');
-    if (t.r) { sp.style.width = sp.style.height = '34px'; }   // Dobi shown bigger, like it is
+    const sp = makeSprite(14, t.id, sample[t.id] || TYPE_COLOR[t.id] || '#3498db');
+    const px = Math.round(28 * (t.r || MARBLE_R) / MARBLE_R);  // shown at true relative size
+    sp.style.width = sp.style.height = px + 'px';
     d.appendChild(sp);
     const n = document.createElement('div'); n.className = 'gname'; n.textContent = t.name;
     d.appendChild(n);
