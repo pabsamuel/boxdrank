@@ -283,22 +283,32 @@ const RARITY = [
   { name: 'Rare',      col: '#4fc3f7', val: 2 },
   { name: 'Epic',      col: '#b388ff', val: 3 },
   { name: 'Legendary', col: '#ffd54f', val: 5 },
+  { name: 'Mythic',    col: '#ff5ca8', val: 8 },
 ];
 const TYPES = [
   { id: 'kedigozu', name: 'Kedigözü', rarity: 0, w: 38  },  // cat's eye — the everyday marble
   { id: 'sutlu',    name: 'Sütlü',    rarity: 0, w: 26  },  // milky pastel
   { id: 'boncuk',   name: 'Boncuk',   rarity: 0, w: 10, r: 13 }, // glossy bead with its little hole
+  { id: 'seffaf',   name: 'Şeffaf',   rarity: 0, w: 8   },  // humble clear glass
   { id: 'gazoz',    name: 'Gazoz',    rarity: 1, w: 14  },  // soda-bottle aqua glass
   { id: 'ebruli',   name: 'Ebruli',   rarity: 1, w: 11  },  // multicolor marbled swirls
   { id: 'cincik',   name: 'Cıncık',   rarity: 1, w: 8, r: 12 }, // tiny sparkling candy glass
+  { id: 'ates',     name: 'Ateş',     rarity: 1, w: 7   },  // flame swirls
+  { id: 'zebra',    name: 'Zebra',    rarity: 1, w: 7   },  // bold stripes
   { id: 'camgoz',   name: 'Camgöz',   rarity: 2, w: 6   },  // clear glass with an eye core
   { id: 'petrol',   name: 'Petrol',   rarity: 2, w: 3.5 },  // dark iridescent oil sheen
   { id: 'dobi',     name: 'Dobi',     rarity: 2, w: 4, r: 24, val: 4 }, // the big one — heavy, hard to eject
+  { id: 'yakut',    name: 'Yakut',    rarity: 2, w: 3   },  // glowing ruby glass
+  { id: 'inci',     name: 'İnci',     rarity: 2, w: 3   },  // iridescent pearl
   { id: 'kemik',    name: 'Kemik',    rarity: 3, w: 2   },  // prized ivory bone marble
   { id: 'demirli',  name: 'Demirli',  rarity: 3, w: 1.5, r: 13, dens: 3.2, val: 5 }, // steel bearing — small, brutally heavy
+  { id: 'galaksi',  name: 'Galaksi',  rarity: 3, w: 1.2 },  // night sky trapped in glass
+  { id: 'altin',    name: 'Altın',    rarity: 4, w: 0.8, val: 8 }, // gold-stone glass — the stuff of legend
 ];
 const TYPE_COLOR = {
   gazoz: '#7fd4e5', ebruli: '#b8bfc7', petrol: '#39414f', kemik: '#e9dfc6', demirli: '#8f98a3',
+  seffaf: '#dfe8e5', ates: '#f4511e', zebra: '#b9b6ac', yakut: '#c62828', inci: '#f3e3da',
+  galaksi: '#283593', altin: '#f9a825',
 };
 function pickType() {
   let r = Math.random() * TYPES.reduce((s, t) => s + t.w, 0);
@@ -360,6 +370,58 @@ function makeSprite(r, kind, color) {
     x.fillStyle = '#1c1712'; x.beginPath(); x.arc(0, 0, R * .2, 0, 7); x.fill();  // pupil
     x.fillStyle = 'rgba(255,255,255,.85)'; x.beginPath(); x.arc(-R * .08, -R * .09, R * .06, 0, 7); x.fill();
     rim(.3);
+  } else if (kind === 'seffaf') {
+    base('rgba(255,255,255,.98)', '#f2f7f6', '#dbe7e4', '#9fb4ad');
+    bubbles(5, .35); rim(.25);
+  } else if (kind === 'ates') {
+    base('rgba(255,255,255,.9)', '#ffb74d', '#f4511e', '#8e2409');
+    for (let i = 0; i < 4; i++)                                    // licking flames
+      blade(i * Math.PI / 2 + .6, i % 2 ? 'rgba(255,235,59,.55)' : 'rgba(183,28,28,.5)', 1.05);
+    bubbles(2, .2); rim(.4);
+  } else if (kind === 'zebra') {
+    base('#ffffff', '#f5f5f2', '#e4e2da', '#a9a79e');
+    x.strokeStyle = 'rgba(30,28,25,.75)'; x.lineCap = 'round';     // bold stripes
+    for (let i = -2; i <= 2; i++) {
+      x.lineWidth = R * .15;
+      x.beginPath(); x.moveTo(-R, i * R * .34 - R * .1);
+      x.quadraticCurveTo(0, i * R * .34 + R * .2, R, i * R * .34 - R * .1);
+      x.stroke();
+    }
+    rim(.35);
+  } else if (kind === 'yakut') {
+    base('rgba(255,255,255,.92)', '#ff6b6b', '#c62828', '#5e0f0f');
+    let g = x.createRadialGradient(0, 0, 0, 0, 0, R * .5);         // inner ember glow
+    g.addColorStop(0, 'rgba(255,205,210,.6)'); g.addColorStop(1, 'rgba(255,205,210,0)');
+    x.fillStyle = g; x.beginPath(); x.arc(0, 0, R * .5, 0, 7); x.fill();
+    x.strokeStyle = 'rgba(255,255,255,.5)'; x.lineWidth = R * .04; // facet glints
+    x.beginPath(); x.moveTo(-R * .4, -R * .1); x.lineTo(-R * .05, -R * .45); x.stroke();
+    rim(.45);
+  } else if (kind === 'inci') {
+    base('#ffffff', '#fdf6f0', '#f3e9e2', '#c9b8ae');
+    for (const [col, rot] of [['rgba(255,182,193,.2)', .7], ['rgba(173,216,230,.2)', 2.8], ['rgba(152,251,152,.16)', 4.7]]) {
+      x.save(); x.rotate(rot);                                     // mother-of-pearl sheen
+      x.beginPath(); x.ellipse(R * .15, 0, R * .6, R * .34, 0, 0, 7);
+      x.fillStyle = col; x.fill(); x.restore();
+    }
+    rim(.2);
+  } else if (kind === 'galaksi') {
+    base('#7986cb', '#3949ab', '#1a1f4b', '#05071c');
+    blade(.8, 'rgba(236,64,122,.28)', 1.1);                        // nebulae
+    blade(3.6, 'rgba(0,229,255,.22)', 1.1);
+    for (let i = 0; i < 18; i++) {                                 // stars
+      x.beginPath(); x.arc(rand(-R * .75, R * .75), rand(-R * .75, R * .75), rand(.6, R * .035), 0, 7);
+      x.fillStyle = `rgba(255,255,255,${rand(.4, .95)})`; x.fill();
+    }
+    rim(.5);
+  } else if (kind === 'altin') {
+    base('rgba(255,255,255,.95)', '#ffe082', '#f9a825', '#7a4a00');
+    for (let i = 0; i < 22; i++) {                                 // gold-stone glitter
+      x.save(); x.translate(rand(-R * .7, R * .7), rand(-R * .7, R * .7)); x.rotate(rand(6.28));
+      const s = rand(R * .03, R * .08);
+      x.fillStyle = `rgba(255,${(rand(210, 245)) | 0},130,${rand(.5, 1)})`;
+      x.fillRect(-s / 2, -s / 2, s, s); x.restore();
+    }
+    rim(.4);
   } else if (kind === 'boncuk') {
     base('rgba(255,255,255,.9)', mix(color, 'w', .3), color, mix(color, 'b', .4));
     x.fillStyle = 'rgba(30,15,5,.75)';                             // the bead hole
@@ -642,7 +704,8 @@ function resolveShot() {
       game.roundCaps[game.current] += m.val; game.totalCaps[game.current] += m.val;
       game.capturedRound[game.current].push(m); game.capturedAll[game.current].push(m);
       if (m.rarity > bestRare) { bestRare = m.rarity; bestName = m.tname; }
-      if (m.rarity >= 3) burst(m.x, m.y, ['#ffd54f', '#fff3c0', '#ffab40', '#ffffff'], 46, true);
+      if (m.rarity >= 4) burst(m.x, m.y, ['#ff5ca8', '#ffd54f', '#ffffff', '#ffab40'], 72, true);
+      else if (m.rarity >= 3) burst(m.x, m.y, ['#ffd54f', '#fff3c0', '#ffab40', '#ffffff'], 46, true);
       else if (m.rarity === 2) burst(m.x, m.y, [m.rcol, '#ffffff'], 18, false);
       game.fx.push({ x: m.x, y: m.y, r: m.r, sprite: m.sprite, t: 0 });
       game.floats.push({ x: m.x, y: m.y, t: 0,
