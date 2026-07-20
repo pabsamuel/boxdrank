@@ -278,6 +278,7 @@ const TYPES = [
   { id: 'ebruli',   name: 'Ebruli',   rarity: 1, w: 11  },  // multicolor marbled swirls
   { id: 'camgoz',   name: 'Camgöz',   rarity: 2, w: 6   },  // clear glass with an eye core
   { id: 'petrol',   name: 'Petrol',   rarity: 2, w: 3.5 },  // dark iridescent oil sheen
+  { id: 'dobi',     name: 'Dobi',     rarity: 2, w: 4, r: 24, val: 4 }, // the big one — heavy, hard to eject
   { id: 'kemik',    name: 'Kemik',    rarity: 3, w: 2   },  // prized ivory bone marble
 ];
 const TYPE_COLOR = {
@@ -343,6 +344,11 @@ function makeSprite(r, kind, color) {
     x.fillStyle = '#1c1712'; x.beginPath(); x.arc(0, 0, R * .2, 0, 7); x.fill();  // pupil
     x.fillStyle = 'rgba(255,255,255,.85)'; x.beginPath(); x.arc(-R * .08, -R * .09, R * .06, 0, 7); x.fill();
     rim(.3);
+  } else if (kind === 'dobi') {
+    base('rgba(255,255,255,.95)', mix(color, 'w', .45), color, mix(color, 'b', .5));
+    for (let i = 0; i < 4; i++)                                    // broad tornado bands
+      blade(i * Math.PI / 2 + .3, i % 2 ? 'rgba(255,255,255,.55)' : mix(color, 'b', .3, .7), 1.2);
+    bubbles(5); rim(.45);
   } else if (kind === 'petrol') {
     base('#6a7486', '#454e60', '#2b3140', '#151922');
     for (const [col, rot] of [['rgba(64,224,208,.20)', .5], ['rgba(255,0,180,.16)', 2.6], ['rgba(170,255,90,.14)', 4.4]]) {
@@ -371,18 +377,19 @@ function makeSprite(r, kind, color) {
   }
   return c;
 }
-function makeMarble(x, y, r, type, owner = -1) {
+function makeMarble(x, y, r, type, owner = -1, forceT = null) {
   let kind, color, t = null;
   if (type === 'shooter') {
     kind = 'enek'; color = owner === 0 ? '#00b4d8' : '#d62828';
   } else {
-    t = pickType(); kind = t.id;
+    t = forceT || pickType(); kind = t.id;
     color = kind === 'camgoz' ? ['#c98a2b', '#3d7dae', '#4d8a4d'][(Math.random() * 3) | 0]
+          : kind === 'dobi'   ? ['#2e7d32', '#c62828', '#1565c0'][(Math.random() * 3) | 0]
           : (TYPE_COLOR[kind] || PALETTE[(Math.random() * PALETTE.length) | 0]);
   }
   const m = { x, y, vx: 0, vy: 0, r, m: r * r * r / 1000, rot: rand(6.28), type, owner,
               color, alive: true, sprite: makeSprite(r, kind, color) };
-  if (t) { m.tname = t.name; m.rarity = t.rarity; m.val = RARITY[t.rarity].val; m.rcol = RARITY[t.rarity].col; }
+  if (t) { m.tname = t.name; m.rarity = t.rarity; m.val = t.val || RARITY[t.rarity].val; m.rcol = RARITY[t.rarity].col; }
   return m;
 }
 
@@ -535,13 +542,17 @@ function save() {
 
 function scatterTargets() {
   const n = 9 + ((Math.random() * 7) | 0);        // 9..15 marbles
-  const placed = []; let guard = 0;
-  while (placed.length < n && guard++ < 5000) {
-    const a = rand(6.283), d = Math.sqrt(Math.random()) * (CIRCLE.r - 70);
+  const picks = []; for (let i = 0; i < n; i++) picks.push(pickType());
+  const placed = []; let guard = 0, i = 0;
+  while (i < picks.length && guard++ < 6000) {    // size-aware placement (Dobi is big)
+    const t = picks[i], r = t.r || MARBLE_R;
+    const a = rand(6.283), d = Math.sqrt(Math.random()) * (CIRCLE.r - 60 - r);
     const x = CIRCLE.x + Math.cos(a) * d, y = CIRCLE.y + Math.sin(a) * d;
-    if (placed.every(p => Math.hypot(p.x - x, p.y - y) > MARBLE_R * 2.6)) placed.push({ x, y });
+    if (placed.every(p => Math.hypot(p.x - x, p.y - y) > p.r + r + 10)) {
+      placed.push({ x, y, r, t }); i++;
+    }
   }
-  for (const p of placed) game.marbles.push(makeMarble(p.x, p.y, MARBLE_R, 'target'));
+  for (const p of placed) game.marbles.push(makeMarble(p.x, p.y, p.r, 'target', -1, p.t));
 }
 function startMatch() {
   game.roundNum = 1; game.roundWins = [0, 0]; game.totalCaps = [0, 0];
@@ -870,15 +881,17 @@ function updateMenuStats() {
 // marble guide on the start screen: one live sprite per model
 (function buildGuide() {
   const wrap = $('guide');
-  const sample = { kedigozu: '#e74c3c', sutlu: '#9b59b6', camgoz: '#c98a2b' };
+  const sample = { kedigozu: '#e74c3c', sutlu: '#9b59b6', camgoz: '#c98a2b', dobi: '#2e7d32' };
   for (const t of TYPES) {
     const d = document.createElement('div'); d.className = 'gitem';
-    d.appendChild(makeSprite(14, t.id, sample[t.id] || TYPE_COLOR[t.id] || '#3498db'));
+    const sp = makeSprite(t.r ? 17 : 14, t.id, sample[t.id] || TYPE_COLOR[t.id] || '#3498db');
+    if (t.r) { sp.style.width = sp.style.height = '34px'; }   // Dobi shown bigger, like it is
+    d.appendChild(sp);
     const n = document.createElement('div'); n.className = 'gname'; n.textContent = t.name;
     d.appendChild(n);
     const tag = document.createElement('span'); tag.className = 'gtag';
     tag.style.background = RARITY[t.rarity].col;
-    tag.textContent = `${RARITY[t.rarity].name} · ${RARITY[t.rarity].val} pt`;
+    tag.textContent = `${RARITY[t.rarity].name} · ${t.val || RARITY[t.rarity].val} pt`;
     d.appendChild(tag);
     wrap.appendChild(d);
   }
