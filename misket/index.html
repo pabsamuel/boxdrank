@@ -92,6 +92,10 @@ html,body{height:100%;overflow:hidden;background:#5d3f26;
 .gitem canvas{width:28px;height:28px;display:block;margin:0 auto 3px}
 .gname{font-size:11.5px;color:#6b4423;line-height:1.1}
 .gtag{display:inline-block;font-size:9.5px;border-radius:7px;padding:1px 7px;margin-top:3px;color:#3b2a10;font-weight:bold}
+.showLbl{font-size:13px;margin-top:8px;text-align:left;opacity:.85}
+.showcase{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;align-items:center;
+  background:#fff7e8;border:2px solid #b98a5d;border-radius:10px;padding:6px;margin-top:3px;
+  max-height:92px;overflow-y:auto}
 #stats{font-size:13px;margin-top:12px;opacity:.7}
 .score{font-size:34px;margin:6px 0;color:#7a4514}
 .pipsBig{font-size:20px;letter-spacing:4px;margin-bottom:6px}
@@ -130,7 +134,12 @@ html,body{height:100%;overflow:hidden;background:#5d3f26;
       <div id="logo"></div>
       <h1>Misket</h1>
       <div class="sub">The classic Turkish street marbles game</div>
-      <div class="lbl">Difficulty</div>
+      <div class="lbl">Opponent</div>
+      <div class="seg" id="modeSeg">
+        <button data-m="ai" class="sel">vs AI</button>
+        <button data-m="2p">2 Players</button>
+      </div>
+      <div class="lbl" id="diffLbl">Difficulty</div>
       <div class="seg" id="diffSeg">
         <button data-d="easy">Easy</button>
         <button data-d="normal" class="sel">Normal</button>
@@ -177,6 +186,10 @@ html,body{height:100%;overflow:hidden;background:#5d3f26;
       <h2 id="matchTitle">🎉 You win the match!</h2>
       <div class="score" id="matchScore">2 — 1</div>
       <div class="sub" id="matchSub">Marbles captured: 15 — 9</div>
+      <div class="showLbl" id="showLblP"></div>
+      <div class="showcase" id="showP"></div>
+      <div class="showLbl" id="showLblA"></div>
+      <div class="showcase" id="showA"></div>
       <button class="big" id="btnRematch">Rematch ▸</button>
       <button class="big alt" id="btnMenu">Menu</button>
     </div>
@@ -547,11 +560,11 @@ const game = {
   screen: 'menu', paused: false,
   phase: 'idle',                 // aim | moving | over
   current: 0,                    // 0 = human, 1 = AI
-  marbles: [], shooters: [], fx: [], floats: [],
+  marbles: [], shooters: [], fx: [], floats: [], parts: [],
   roundNum: 1, roundWins: [0, 0], roundCaps: [0, 0], totalCaps: [0, 0],
   capturedRound: [[], []], capturedAll: [[], []],
   settleTimer: 0, shake: 0, ai: null, time: 0,
-  settings: { difficulty: 'normal', kanli: false, muted: false },
+  settings: { difficulty: 'normal', kanli: false, muted: false, mode: 'ai' },
   stats: { matches: 0, wins: 0, best: 0 },
 };
 // persistence (best score, match wins, settings)
@@ -566,6 +579,16 @@ function save() {
   } catch (e) {}
 }
 
+const pname = i => game.settings.mode === '2p' ? `Player ${i + 1}` : (i === 0 ? 'You' : 'AI');
+// confetti burst for special captures
+function burst(x, y, cols, n, big) {
+  for (let i = 0; i < n; i++) {
+    const a = rand(6.283), sp = rand(120, big ? 520 : 320);
+    game.parts.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+      w: rand(4, big ? 9 : 6), h: rand(2.5, 5), rot: rand(6.28), vr: rand(-9, 9),
+      col: cols[(Math.random() * cols.length) | 0], t: 0, life: rand(.6, big ? 1.4 : 1) });
+  }
+}
 function scatterTargets() {
   const n = 9 + ((Math.random() * 7) | 0);        // 9..15 marbles
   const picks = []; for (let i = 0; i < n; i++) picks.push(pickType());
@@ -586,7 +609,7 @@ function startMatch() {
   startRound();
 }
 function startRound() {
-  game.marbles.length = 0; game.fx.length = 0; game.floats.length = 0;
+  game.marbles.length = 0; game.fx.length = 0; game.floats.length = 0; game.parts.length = 0;
   makeBackground();
   scatterTargets();
   // eneks start OUTSIDE the circle (classic first shot)
@@ -598,9 +621,12 @@ function startRound() {
   game.current = (game.roundNum % 2 === 1) ? 0 : 1;   // alternate opening player
   game.screen = 'play'; game.phase = 'aim'; game.paused = false;
   hideOverlays(); $('hud').classList.add('on'); $('btns').style.display = 'flex';
+  document.querySelector('#pouchP .pname').textContent = pname(0);
+  document.querySelector('#pouchA .pname').textContent = pname(1);
   updateHUD();
-  showCallout(game.current === 0 ? 'Your turn!' : "AI starts…");
-  if (game.current === 1) startAIThink();
+  if (game.settings.mode === '2p') showCallout(`${pname(game.current)} starts!`);
+  else showCallout(game.current === 0 ? 'Your turn!' : 'AI starts…');
+  if (game.current === 1 && game.settings.mode !== '2p') startAIThink();
 }
 function fireShot(sh, vx, vy) {
   sh.vx = vx; sh.vy = vy;
@@ -616,6 +642,8 @@ function resolveShot() {
       game.roundCaps[game.current] += m.val; game.totalCaps[game.current] += m.val;
       game.capturedRound[game.current].push(m); game.capturedAll[game.current].push(m);
       if (m.rarity > bestRare) { bestRare = m.rarity; bestName = m.tname; }
+      if (m.rarity >= 3) burst(m.x, m.y, ['#ffd54f', '#fff3c0', '#ffab40', '#ffffff'], 46, true);
+      else if (m.rarity === 2) burst(m.x, m.y, [m.rcol, '#ffffff'], 18, false);
       game.fx.push({ x: m.x, y: m.y, r: m.r, sprite: m.sprite, t: 0 });
       game.floats.push({ x: m.x, y: m.y, t: 0,
         txt: m.rarity >= 1 ? `${m.tname} +${m.val}` : '+1',
@@ -629,23 +657,26 @@ function resolveShot() {
   const sh = game.shooters[game.current];
   const bonus = captured > 0 && distC(sh) < CIRCLE.r; // captured AND enek stayed inside
   const rareMsg = bestRare >= 2 ? `${bestName}! ✨ ` : '';
+  const twoP = game.settings.mode === '2p';
   if (bonus) {
-    showCallout(rareMsg + (game.current === 0 ? 'Bonus shot!' : 'AI bonus shot!'));
+    showCallout(rareMsg + (twoP || game.current === 0 ? 'Bonus shot!' : 'AI bonus shot!'));
   } else {
     game.current ^= 1;
     showCallout(bestRare >= 2 ? rareMsg.trim()
+      : twoP ? `${pname(game.current)}'s turn!`
       : (game.current === 0 ? 'Your turn!' : "AI's turn"));
   }
   game.phase = 'aim'; updateHUD();
-  if (game.current === 1) startAIThink();
+  if (game.current === 1 && !twoP) startAIThink();
 }
 function endRound() {
   game.phase = 'over';
   const [p, a] = game.roundCaps;
-  game.stats.best = Math.max(game.stats.best, p);
+  const twoP = game.settings.mode === '2p';
+  if (!twoP) game.stats.best = Math.max(game.stats.best, p);
   let title;
-  if (p > a) { game.roundWins[0]++; title = '🎉 You win the round!'; sfx.jingle(); }
-  else if (a > p) { game.roundWins[1]++; title = 'AI wins the round'; sfx.sad(); }
+  if (p > a) { game.roundWins[0]++; title = twoP ? '🎉 Player 1 wins the round!' : '🎉 You win the round!'; sfx.jingle(); }
+  else if (a > p) { game.roundWins[1]++; title = twoP ? '🎉 Player 2 wins the round!' : 'AI wins the round'; twoP ? sfx.jingle() : sfx.sad(); }
   else title = 'Round tied!';
   const done = game.roundWins[0] >= 2 || game.roundWins[1] >= 2 || game.roundNum >= 7;
   updateHUD(); save();
@@ -656,15 +687,30 @@ function endRound() {
   $('roundOv').classList.remove('hidden');
 }
 function showMatchEnd() {
+  const twoP = game.settings.mode === '2p';
   let [wp, wa] = game.roundWins;
   if (wp === wa) { wp = game.totalCaps[0]; wa = game.totalCaps[1]; } // 7-round safety tiebreak
-  const win = wp > wa;
-  game.stats.matches++; if (win) game.stats.wins++;
-  save(); updateMenuStats();
-  if (win) sfx.jingle(); else sfx.sad();
-  $('matchTitle').textContent = win ? '🎉 You win the match!' : (wp === wa ? "It's a draw!" : '😢 AI wins the match');
+  const win = wp > wa, draw = wp === wa;
+  if (!twoP) { game.stats.matches++; if (win) game.stats.wins++; save(); updateMenuStats(); }
+  if (win || (twoP && !draw)) sfx.jingle(); else if (draw) sfx.pop(); else sfx.sad();
+  $('matchTitle').textContent = draw ? "It's a draw!"
+    : twoP ? `🏆 ${wp > wa ? 'Player 1' : 'Player 2'} wins the match!`
+    : (win ? '🎉 You win the match!' : '😢 AI wins the match');
   $('matchScore').textContent = `${game.roundWins[0]} — ${game.roundWins[1]}`;
   $('matchSub').textContent = `Points captured: ${game.totalCaps[0]} — ${game.totalCaps[1]}`;
+  // trophy showcase: every marble each player captured, rarest first
+  for (const [lbl, box, i] of [['showLblP', 'showP', 0], ['showLblA', 'showA', 1]]) {
+    const list = game.capturedAll[i].slice().sort((a, b) => b.rarity - a.rarity || b.val - a.val);
+    $(lbl).textContent = `${pname(i)} — ${list.length} marble${list.length === 1 ? '' : 's'} · ${game.totalCaps[i]} pts`;
+    const el = $(box); el.innerHTML = '';
+    for (const m of list) {
+      const s = m.sprite, px = Math.round(20 * m.r / MARBLE_R);
+      s.style.width = s.style.height = px + 'px';
+      if (m.rarity >= 2) s.style.filter = `drop-shadow(0 0 3px ${m.rcol})`;
+      el.appendChild(s);
+    }
+    if (!list.length) el.innerHTML = '<span style="font-size:11px;opacity:.6">— nothing captured —</span>';
+  }
   $('matchOv').classList.remove('hidden');
 }
 
@@ -738,11 +784,12 @@ addEventListener('resize', resize); addEventListener('orientationchange', resize
 const toWorld = e => ({ x: (e.clientX - view.ox) / view.s, y: (e.clientY - view.oy) / view.s });
 
 const drag = { on: false, x: 0, y: 0 };
-const canAim = () => game.screen === 'play' && !game.paused && game.phase === 'aim' && game.current === 0;
+const isHumanTurn = () => game.settings.mode === '2p' || game.current === 0;
+const canAim = () => game.screen === 'play' && !game.paused && game.phase === 'aim' && isHumanTurn();
 cv.addEventListener('pointerdown', e => {
   audio();                                        // unlock sound on first gesture
   if (!canAim()) return;
-  const p = toWorld(e), sh = game.shooters[0];
+  const p = toWorld(e), sh = game.shooters[game.current];
   if (Math.hypot(p.x - sh.x, p.y - sh.y) < Math.max(64, sh.r * 3)) {
     drag.on = true; drag.x = p.x; drag.y = p.y;
     cv.setPointerCapture(e.pointerId);
@@ -753,7 +800,7 @@ function endDrag(e) {
   if (!drag.on) return;
   drag.on = false;
   if (!canAim()) return;
-  const sh = game.shooters[0];
+  const sh = game.shooters[game.current];
   const dx = sh.x - drag.x, dy = sh.y - drag.y, len = Math.hypot(dx, dy);
   if (len < 26) return;                           // cancel zone — released on the enek
   const pow = clamp(len / MAX_DRAG, 0, 1);
@@ -824,7 +871,7 @@ function render(t) {
   }
   // player aim: slingshot dots + power arc + cancel ✕
   if (drag.on && canAim()) {
-    const sh = game.shooters[0];
+    const sh = game.shooters[game.current];
     const dx = sh.x - drag.x, dy = sh.y - drag.y, len = Math.hypot(dx, dy);
     if (len < 26) {
       ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center';
@@ -850,6 +897,13 @@ function render(t) {
     const r = f.r * (1 + k * 1.1);
     ctx.drawImage(f.sprite, f.x - r, f.y - r - k * 26, r * 2, r * 2);
     ctx.globalAlpha = 1;
+  }
+  // confetti
+  for (const p of game.parts) {
+    ctx.save(); ctx.globalAlpha = 1 - p.t / p.life;
+    ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+    ctx.fillStyle = p.col; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    ctx.restore();
   }
   ctx.textAlign = 'center';
   for (const f of game.floats) {
@@ -888,6 +942,7 @@ function updateHUD() {
   $('turnBanner').textContent =
     game.phase === 'moving' ? '…rolling…' :
     game.phase === 'over' ? '' :
+    game.settings.mode === '2p' ? `${pname(game.current)} — flick the Enek!` :
     game.current === 0 ? 'Your turn — flick the Enek!' : 'AI is thinking…';
   $('pouchP').classList.toggle('turn', game.current === 0 && game.phase === 'aim');
   $('pouchA').classList.toggle('turn', game.current === 1 && game.phase === 'aim');
@@ -951,6 +1006,14 @@ document.querySelectorAll('#diffSeg button').forEach(b => b.onclick = () => {
   document.querySelectorAll('#diffSeg button').forEach(x => x.classList.remove('sel'));
   b.classList.add('sel'); game.settings.difficulty = b.dataset.d; save();
 });
+function dimDiff() {  // difficulty only matters against the AI
+  const o = game.settings.mode === '2p' ? .35 : 1;
+  $('diffLbl').style.opacity = o; $('diffSeg').style.opacity = o;
+}
+document.querySelectorAll('#modeSeg button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#modeSeg button').forEach(x => x.classList.remove('sel'));
+  b.classList.add('sel'); game.settings.mode = b.dataset.m; save(); dimDiff();
+});
 $('tglKanli').onclick = () => {
   game.settings.kanli = !game.settings.kanli;
   $('tglKanli').classList.toggle('on', game.settings.kanli); save();
@@ -958,6 +1021,10 @@ $('tglKanli').onclick = () => {
 // restore saved settings into the UI
 document.querySelectorAll('#diffSeg button').forEach(b =>
   b.classList.toggle('sel', b.dataset.d === game.settings.difficulty));
+if (!['ai', '2p'].includes(game.settings.mode)) game.settings.mode = 'ai';
+document.querySelectorAll('#modeSeg button').forEach(b =>
+  b.classList.toggle('sel', b.dataset.m === game.settings.mode));
+dimDiff();
 $('tglKanli').classList.toggle('on', game.settings.kanli);
 $('btnMute').textContent = game.settings.muted ? '🔇' : '🔊';
 updateMenuStats();
@@ -969,8 +1036,13 @@ function update(dt) {
   if (game.shake < 0.15) game.shake = 0;
   for (const f of game.fx) f.t += dt;
   for (const f of game.floats) f.t += dt;
+  for (const p of game.parts) {
+    p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt;
+    p.vx *= (1 - 2.5 * dt); p.vy *= (1 - 2.5 * dt); p.rot += p.vr * dt;
+  }
   game.fx = game.fx.filter(f => f.t < 0.5);
   game.floats = game.floats.filter(f => f.t < 1.1);
+  game.parts = game.parts.filter(p => p.t < p.life);
   if (game.screen !== 'play' || game.paused) return;
   if (game.phase === 'moving') {
     stepWorld(game.marbles, dt, true);
