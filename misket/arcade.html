@@ -205,10 +205,12 @@ const RARITY = [
 const TYPES = [
   { id: 'kedigozu', name: 'Kedigözü', rarity: 0, w: 38  },
   { id: 'sutlu',    name: 'Sütlü',    rarity: 0, w: 26  },
+  { id: 'susam',    name: 'Susam',    rarity: 0, w: 9   },
   { id: 'boncuk',   name: 'Boncuk',   rarity: 0, w: 10, r: 17 },
   { id: 'seffaf',   name: 'Şeffaf',   rarity: 0, w: 8   },
   { id: 'gazoz',    name: 'Gazoz',    rarity: 1, w: 14  },
   { id: 'ebruli',   name: 'Ebruli',   rarity: 1, w: 11  },
+  { id: 'zeytin',   name: 'Zeytinyağlı', rarity: 1, w: 6 },
   { id: 'cincik',   name: 'Cıncık',   rarity: 1, w: 8, r: 15 },
   { id: 'ates',     name: 'Ateş',     rarity: 1, w: 7   },
   { id: 'zebra',    name: 'Zebra',    rarity: 1, w: 7   },
@@ -225,7 +227,7 @@ const TYPES = [
 const TYPE_COLOR = {
   gazoz: '#7fd4e5', ebruli: '#b8bfc7', petrol: '#39414f', kemik: '#e9dfc6', demirli: '#8f98a3',
   seffaf: '#dfe8e5', ates: '#f4511e', zebra: '#b9b6ac', yakut: '#c62828', inci: '#f3e3da',
-  galaksi: '#283593', altin: '#f9a825',
+  galaksi: '#283593', altin: '#f9a825', susam: '#e6d49c', zeytin: '#9caa3a',
 };
 function pickType() {
   let r = Math.random() * TYPES.reduce((s, t) => s + t.w, 0);
@@ -271,6 +273,24 @@ function makeSprite(r, kind, color) {
     base('#ffffff', mix(color, 'w', .78), mix(color, 'w', .55), mix(color, 'w', .25));
     for (let i = 0; i < 2; i++) blade(i * Math.PI + .9, 'rgba(255,255,255,.45)', 1.15);
     rim(.2);
+  } else if (kind === 'susam') {
+    base('rgba(255,255,255,.95)', '#f4e8c4', '#e3d09a', '#b19a60');
+    for (let i = 0; i < 18; i++) {                                // sesame seeds
+      x.save(); x.translate(rand(-R * .62, R * .62), rand(-R * .62, R * .62)); x.rotate(rand(6.28));
+      x.fillStyle = `rgba(${(rand(85,135))|0},${(rand(65,105))|0},${(rand(35,65))|0},${rand(.5,.85)})`;
+      x.beginPath(); x.ellipse(0, 0, R * .085, R * .05, 0, 0, 7); x.fill(); x.restore();
+    }
+    rim(.3);
+  } else if (kind === 'zeytin') {
+    base('rgba(255,255,255,.9)', '#eae58e', '#9caa3a', '#4a5510');
+    let gz = x.createRadialGradient(-R * .2, -R * .22, 0, -R * .2, -R * .22, R * .72);
+    gz.addColorStop(0, 'rgba(255,247,182,.55)'); gz.addColorStop(1, 'rgba(255,247,182,0)');
+    x.fillStyle = gz; x.beginPath(); x.arc(-R * .2, -R * .22, R * .72, 0, 7); x.fill();  // oily sheen
+    for (const [col, rot] of [['rgba(190,205,70,.30)', .6], ['rgba(120,140,30,.28)', 3.2]]) {
+      x.save(); x.rotate(rot);
+      x.beginPath(); x.ellipse(R * .12, 0, R * .58, R * .26, 0, 0, 7); x.fillStyle = col; x.fill(); x.restore();
+    }
+    bubbles(3, .35); rim(.42);
   } else if (kind === 'seffaf') {
     base('rgba(255,255,255,.98)', '#f2f7f6', '#dbe7e4', '#9fb4ad');
     bubbles(5, .35); rim(.25);
