@@ -1,0 +1,33 @@
+{
+  "name": "@global-emotes/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@global-emotes/asset-pipeline": "workspace:*",
+    "@global-emotes/auth": "workspace:*",
+    "@global-emotes/billing": "workspace:*",
+    "@global-emotes/config": "workspace:*",
+    "@global-emotes/contracts": "workspace:*",
+    "@global-emotes/database": "workspace:*",
+    "@global-emotes/entitlement-engine": "workspace:*",
+    "@global-emotes/notifications": "workspace:*",
+    "@global-emotes/observability": "workspace:*",
+    "@global-emotes/provider-sdk": "workspace:*",
+    "bullmq": "^5.34.0",
+    "drizzle-orm": "^0.38.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "sharp": "^0.34.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
