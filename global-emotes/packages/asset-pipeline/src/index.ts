@@ -210,3 +210,4 @@ export function variantKey(contentHash: string, kind: EmoteVariant['kind']): str
 export function originalKey(contentHash: string, format: DetectedFormat): string {
   return `originals/${contentHash.slice(0, 2)}/${contentHash}.${format}`;
 }
+export * from './storage';

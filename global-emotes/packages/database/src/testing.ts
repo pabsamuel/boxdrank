@@ -7,6 +7,15 @@ import * as schema from './schema/index';
 
 export type TestDb = PgliteDatabase<typeof schema>;
 
+/**
+ * The API is typed against the node-postgres Db; PGlite exposes the same
+ * Drizzle query surface for everything we use, so tests reuse it via this
+ * explicit seam instead of ad-hoc casts.
+ */
+export function asDb(db: TestDb): import('./index').Db {
+  return db as unknown as import('./index').Db;
+}
+
 const migrationsFolder = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'drizzle');
 
 /**
