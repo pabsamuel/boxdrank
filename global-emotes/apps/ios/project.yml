@@ -1,0 +1,74 @@
+# XcodeGen spec — run `xcodegen generate` to produce GlobalEmotes.xcodeproj.
+# Bundle ids are config-driven (OWNER_ACTIONS: final brand/domain).
+name: GlobalEmotes
+options:
+  bundleIdPrefix: app.globalemotes
+  deploymentTarget:
+    iOS: "16.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+targets:
+  GlobalEmotes:
+    type: application
+    platform: iOS
+    sources: [GlobalEmotes, Shared]
+    entitlements:
+      path: GlobalEmotes/GlobalEmotes.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.app.globalemotes.shared
+    info:
+      path: GlobalEmotes/Info.plist
+      properties:
+        CFBundleDisplayName: Global Emotes
+        UILaunchScreen: {}
+        CFBundleURLTypes:
+          - CFBundleURLSchemes: [globalemotes]
+
+  EmoteKeyboard:
+    type: app-extension
+    platform: iOS
+    sources: [EmoteKeyboard, Shared]
+    entitlements:
+      path: EmoteKeyboard/EmoteKeyboard.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.app.globalemotes.shared
+    info:
+      path: EmoteKeyboard/Info.plist
+      properties:
+        CFBundleDisplayName: Global Emotes Keyboard
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.keyboard-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KeyboardViewController
+          NSExtensionAttributes:
+            IsASCIICapable: false
+            PrefersRightToLeft: false
+            PrimaryLanguage: en-US
+            # Designed to work WITHOUT full access: the host app syncs packs
+            # into the app group; the keyboard reads the local cache only.
+            RequestsOpenAccess: false
+
+  EmoteShare:
+    type: app-extension
+    platform: iOS
+    sources: [EmoteShare, Shared]
+    entitlements:
+      path: EmoteShare/EmoteShare.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.app.globalemotes.shared
+    info:
+      path: EmoteShare/Info.plist
+      properties:
+        CFBundleDisplayName: Share Emote
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
