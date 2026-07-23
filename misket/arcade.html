@@ -49,7 +49,8 @@ html,body{height:100%;overflow:hidden;background:#4a3320;
 .title .a{color:#2e7d32}
 .tag{font-size:14.5px;opacity:.85;margin:6px 0 16px}
 #modeGrid{display:grid;grid-template-columns:1fr;gap:12px}
-@media(min-width:460px){#modeGrid{grid-template-columns:1fr 1fr 1fr}}
+@media(min-width:460px){#modeGrid{grid-template-columns:1fr 1fr}}
+@media(min-width:720px){#modeGrid{grid-template-columns:1fr 1fr 1fr 1fr}}
 .mode{background:#fff7e8;border:2px solid #b98a5d;border-radius:16px;padding:14px 12px;cursor:pointer;
   text-align:center;transition:transform .12s,box-shadow .12s,border-color .12s;position:relative}
 .mode:hover,.mode:active{transform:translateY(-3px);border-color:#2e7d32;box-shadow:0 8px 18px rgba(20,8,0,.25)}
@@ -140,6 +141,9 @@ const MODES = {
   avci:   { name: 'Avcı', en: 'Hunter',
     blurb: 'Hit target marbles head-on to catch them.',
     how: 'Tak! No circle — just hunt. Your enek captures any marble it strikes, and it keeps rolling, so line them up and chain hits down the field for combos.' },
+  dizi:   { name: 'Dizi', en: 'The String',
+    blurb: 'Hit the string — everything left of your hit is yours.',
+    how: 'Marbles are lined up like beads on a string. Flick your enek into the row: the marble you strike AND every marble to its left are captured at once. Aim deep down the line for a huge combo.' },
 };
 
 /* ============================== UTILS ============================== */
@@ -213,15 +217,15 @@ const TYPES = [
   { id: 'zeytin',   name: 'Zeytinyağlı', rarity: 1, w: 6 },
   { id: 'cincik',   name: 'Cıncık',   rarity: 1, w: 8, r: 15 },
   { id: 'ates',     name: 'Ateş',     rarity: 1, w: 7   },
-  { id: 'zebra',    name: 'Zebra',    rarity: 1, w: 7   },
+  { id: 'zebra',    name: 'Alaca',    rarity: 1, w: 7   },
   { id: 'camgoz',   name: 'Camgöz',   rarity: 2, w: 6   },
-  { id: 'petrol',   name: 'Petrol',   rarity: 2, w: 3.5 },
+  { id: 'petrol',   name: 'Duman',   rarity: 2, w: 3.5 },
   { id: 'dobi',     name: 'Dobi',     rarity: 2, w: 4, r: 29, val: 4 },
-  { id: 'yakut',    name: 'Yakut',    rarity: 2, w: 3   },
-  { id: 'inci',     name: 'İnci',     rarity: 2, w: 3   },
+  { id: 'yakut',    name: 'Nar',    rarity: 2, w: 3   },
+  { id: 'inci',     name: 'Sedef',     rarity: 2, w: 3   },
   { id: 'kemik',    name: 'Kemik',    rarity: 3, w: 2   },
   { id: 'demirli',  name: 'Demirli',  rarity: 3, w: 1.5, r: 16, dens: 3.2, val: 5 },
-  { id: 'galaksi',  name: 'Galaksi',  rarity: 3, w: 1.2 },
+  { id: 'galaksi',  name: 'Yıldız',  rarity: 3, w: 1.2 },
   { id: 'altin',    name: 'Altın',    rarity: 4, w: 0.9, val: 8 },
 ];
 const TYPE_COLOR = {
@@ -466,6 +470,13 @@ function makeBackground(mode) {
     x.strokeStyle = 'rgba(250,246,238,.5)'; x.lineWidth = 3;
     x.beginPath(); x.arc(HOLE.x, HOLE.y, HOLE.r + 8, 0, 7); x.stroke();
   }
+  // the scratched string line for dizi
+  if (mode === 'dizi') {
+    x.strokeStyle = 'rgba(250,246,238,.45)'; x.lineWidth = 3; x.lineCap = 'round';
+    x.setLineDash([2, 11]);
+    x.beginPath(); x.moveTo(44, ROW_Y); x.lineTo(W - 44, ROW_Y); x.stroke();
+    x.setLineDash([]);
+  }
   g = x.createRadialGradient(CENTER.x, CENTER.y - 60, 140, CENTER.x, CENTER.y, 720);
   g.addColorStop(0, 'rgba(255,214,140,.10)'); g.addColorStop(.6, 'rgba(0,0,0,0)');
   g.addColorStop(1, 'rgba(55,28,8,.30)');
@@ -514,6 +525,7 @@ function stepWorld(ms, dt, fx, sub = 3) {
     }
     // in avcı capture happens on contact, mid-motion, so check inside the substep
     if (fx && game.mode === 'avci') avciContact();
+    if (fx && game.mode === 'dizi') diziContact();
     for (let i = 0; i < ms.length; i++)
       for (let j = i + 1; j < ms.length; j++) collide(ms[i], ms[j], fx);
   }
@@ -524,9 +536,9 @@ const allStopped = ms => ms.every(m => m.vx === 0 && m.vy === 0);
 const game = {
   screen: 'hub', phase: 'idle', mode: 'cember',
   marbles: [], shooter: null, fx: [], floats: [], parts: [], sinks: [],
-  shots: 0, score: 0, collected: [], captThisShot: 0,
+  shots: 0, score: 0, collected: [], captThisShot: 0, rowHit: null,
   settleTimer: 0, shake: 0, time: 0,
-  muted: false, best: { cember: 0, cukur: 0, avci: 0 }, runs: 0,
+  muted: false, best: { cember: 0, cukur: 0, avci: 0, dizi: 0 }, runs: 0,
 };
 try {
   const s = JSON.parse(localStorage.getItem('misketarcade') || '{}');
@@ -563,15 +575,37 @@ function placeTargets(n) {
   }
   return placed;
 }
+// dizi: lay marbles in a tidy horizontal string, left→right, each tagged with its place in the row
+const ROW_Y = 250;
+function placeRow() {
+  game.marbles = game.marbles.filter(m => m.type === 'shooter');
+  const gap = 6, maxSpan = W - 90;
+  const picks = []; let span = 0;
+  while (picks.length < 12) {                       // fill the string until it would overflow
+    const t = pickType(), r = t.r || MARBLE_R;
+    const add = (picks.length ? gap : 0) + 2 * r;
+    if (span + add > maxSpan) break;
+    picks.push(t); span += add;
+  }
+  let x = CENTER.x - span / 2;
+  for (let i = 0; i < picks.length; i++) {
+    const t = picks[i], r = t.r || MARBLE_R;
+    x += r;
+    const m = makeMarble(x, ROW_Y, r, 'target', t);
+    m.rowIndex = i;                                 // 0 = leftmost
+    game.marbles.push(m);
+    x += r + gap;
+  }
+}
 function startRun(mode) {
   game.mode = mode;
   game.marbles.length = 0; game.fx.length = 0; game.floats.length = 0;
   game.parts.length = 0; game.sinks.length = 0;
   makeBackground(mode);
-  placeTargets(mode === 'avci' ? 10 : 12);
+  if (mode === 'dizi') placeRow(); else placeTargets(mode === 'avci' ? 10 : 12);
   game.shooter = makeMarble(SPAWN.x, SPAWN.y, SHOOTER_R, 'shooter');
   game.marbles.push(game.shooter);
-  game.shots = START_SHOTS; game.score = 0; game.collected = [];
+  game.shots = START_SHOTS; game.score = 0; game.collected = []; game.rowHit = null;
   game.screen = 'play'; game.phase = 'aim'; game.settleTimer = 0;
   $('hub').classList.add('hidden'); $('overOv').classList.add('hidden');
   $('hud').classList.add('on');
@@ -580,7 +614,7 @@ function startRun(mode) {
 }
 function fireShot(vx, vy) {
   game.shooter.vx = vx; game.shooter.vy = vy;
-  game.shots--; game.phase = 'moving'; game.settleTimer = 0; game.captThisShot = 0;
+  game.shots--; game.phase = 'moving'; game.settleTimer = 0; game.captThisShot = 0; game.rowHit = null;
   sfx.flick(); updateHUD();
 }
 // capture one marble: score, effects, collection
@@ -605,6 +639,18 @@ function avciContact() {
     if (Math.hypot(m.x - sh.x, m.y - sh.y) < sh.r + m.r) { capture(m, false); sfx.pop(); }
   }
 }
+// dizi: remember the first bead the enek touches (physics still bounces it normally)
+function diziContact() {
+  if (game.rowHit) return;
+  const sh = game.shooter; if (!sh) return;
+  let best = null, bestD = 1e9;
+  for (const m of game.marbles) {
+    if (m.type !== 'target' || !m.alive || m.rowIndex == null) continue;
+    const d = Math.hypot(m.x - sh.x, m.y - sh.y);
+    if (d < sh.r + m.r + 1 && d < bestD) { bestD = d; best = m; }
+  }
+  if (best) game.rowHit = best;
+}
 function resolveShot() {
   let bestRare = -1, bestName = '', pts = 0, bonusShots = 0, sunkAny = false;
   if (game.mode === 'cember') {
@@ -622,6 +668,17 @@ function resolveShot() {
     }
     // sinking your enek into the pot earns a bonus flick
     if (Math.hypot(game.shooter.x - HOLE.x, game.shooter.y - HOLE.y) < HOLE.r) bonusShots++;
+  } else if (game.mode === 'dizi') {
+    // capture the struck bead and everything to its LEFT in the string
+    if (game.rowHit) {
+      const hi = game.rowHit.rowIndex;
+      for (const m of game.marbles) {
+        if (m.type !== 'target' || m.rowIndex == null || m.rowIndex > hi) continue;
+        pts += m.val; if (m.rarity >= 3) bonusShots++;
+        if (m.rarity > bestRare) { bestRare = m.rarity; bestName = m.tname; }
+        capture(m, false);
+      }
+    }
   }
   // (avcı captures already happened on contact; tallied below)
 
@@ -656,7 +713,9 @@ function resolveShot() {
   game.shooter.vx = game.shooter.vy = 0;
 
   const targetsLeft = game.marbles.filter(m => m.type === 'target').length;
-  if (targetsLeft < (game.mode === 'avci' ? 4 : 6)) {
+  if (game.mode === 'dizi') {
+    if (targetsLeft < 5 && game.shots > 0) { placeRow(); showCallout('Fresh string!'); }
+  } else if (targetsLeft < (game.mode === 'avci' ? 4 : 6)) {
     if (placeTargets(game.mode === 'avci' ? 6 : 6) > 0 && game.shots > 0) showCallout('Fresh marbles!');
   }
   updateHUD();
@@ -846,8 +905,8 @@ function showCallout(txt) {
 // build the three mode cards, each with a little animated preview sprite
 function buildHub() {
   const grid = $('modeGrid'); grid.innerHTML = '';
-  const icons = { cember: ['kedigozu', '#e74c3c'], cukur: ['galaksi', '#283593'], avci: ['demirli', '#8f98a3'] };
-  for (const key of ['cember', 'cukur', 'avci']) {
+  const icons = { cember: ['kedigozu', '#e74c3c'], cukur: ['galaksi', '#283593'], avci: ['demirli', '#8f98a3'], dizi: ['ates', '#f4511e'] };
+  for (const key of ['cember', 'cukur', 'avci', 'dizi']) {
     const M = MODES[key];
     const d = document.createElement('div'); d.className = 'mode'; d.dataset.mode = key;
     const [kind, col] = icons[key];
@@ -858,7 +917,7 @@ function buildHub() {
     d.onclick = () => { audio(); startRun(key); };
     grid.appendChild(d);
   }
-  $('hubFoot').textContent = `18 marble models · 5 rarities · ${game.runs} runs played`;
+  $('hubFoot').textContent = `20 marble models · 5 rarities · ${game.runs} runs played`;
 }
 function goHub() {
   game.screen = 'hub'; game.phase = 'idle';
