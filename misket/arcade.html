@@ -141,9 +141,9 @@ const MODES = {
   avci:   { name: 'Avcı', en: 'Hunter',
     blurb: 'Hit target marbles head-on to catch them.',
     how: 'Tak! No circle — just hunt. Your enek captures any marble it strikes, and it keeps rolling, so line them up and chain hits down the field for combos.' },
-  dizi:   { name: 'Dizi', en: 'The String',
-    blurb: 'Hit the string — everything left of your hit is yours.',
-    how: 'Marbles are lined up like beads on a string. Flick your enek into the row: the marble you strike AND every marble to its left are captured at once. Aim deep down the line for a huge combo.' },
+  dizi:   { name: 'Dizi', en: 'Call Your Shot',
+    blurb: 'Call a bead, hit it, take everything to its left.',
+    how: 'Beads are lined up like a string. First TAP the bead you are calling, then flick your enek at it. Strike the one you called and you take it plus every bead to its left — but if your enek hits a different bead (or misses), you get nothing. Survivors stay wherever they scatter; a fresh string only comes when the board is clear.' },
 };
 
 /* ============================== UTILS ============================== */
@@ -536,7 +536,7 @@ const allStopped = ms => ms.every(m => m.vx === 0 && m.vy === 0);
 const game = {
   screen: 'hub', phase: 'idle', mode: 'cember',
   marbles: [], shooter: null, fx: [], floats: [], parts: [], sinks: [],
-  shots: 0, score: 0, collected: [], captThisShot: 0, rowHit: null,
+  shots: 0, score: 0, collected: [], captThisShot: 0, rowHit: null, called: null,
   settleTimer: 0, shake: 0, time: 0,
   muted: false, best: { cember: 0, cukur: 0, avci: 0, dizi: 0 }, runs: 0,
 };
@@ -605,12 +605,12 @@ function startRun(mode) {
   if (mode === 'dizi') placeRow(); else placeTargets(mode === 'avci' ? 10 : 12);
   game.shooter = makeMarble(SPAWN.x, SPAWN.y, SHOOTER_R, 'shooter');
   game.marbles.push(game.shooter);
-  game.shots = START_SHOTS; game.score = 0; game.collected = []; game.rowHit = null;
+  game.shots = START_SHOTS; game.score = 0; game.collected = []; game.rowHit = null; game.called = null;
   game.screen = 'play'; game.phase = 'aim'; game.settleTimer = 0;
   $('hub').classList.add('hidden'); $('overOv').classList.add('hidden');
   $('hud').classList.add('on');
   $('modeLbl').textContent = MODES[mode].name.toUpperCase();
-  updateHUD(); showCallout(MODES[mode].name + ' — flick it!');
+  updateHUD(); showCallout(mode === 'dizi' ? 'Tap a bead to call it!' : MODES[mode].name + ' — flick it!');
 }
 function fireShot(vx, vy) {
   game.shooter.vx = vx; game.shooter.vy = vy;
@@ -652,7 +652,7 @@ function diziContact() {
   if (best) game.rowHit = best;
 }
 function resolveShot() {
-  let bestRare = -1, bestName = '', pts = 0, bonusShots = 0, sunkAny = false;
+  let bestRare = -1, bestName = '', pts = 0, bonusShots = 0, sunkAny = false, diziMiss = false;
   if (game.mode === 'cember') {
     for (const m of game.marbles) {
       if (m.type !== 'target') continue;
@@ -669,16 +669,17 @@ function resolveShot() {
     // sinking your enek into the pot earns a bonus flick
     if (Math.hypot(game.shooter.x - HOLE.x, game.shooter.y - HOLE.y) < HOLE.r) bonusShots++;
   } else if (game.mode === 'dizi') {
-    // capture the struck bead and everything to its LEFT in the string
-    if (game.rowHit) {
-      const hi = game.rowHit.rowIndex;
+    // you only score if the enek FIRST strikes the very bead you called
+    if (game.called && game.rowHit === game.called && game.called.alive) {
+      const hi = game.called.rowIndex;
       for (const m of game.marbles) {
-        if (m.type !== 'target' || m.rowIndex == null || m.rowIndex > hi) continue;
+        if (m.type !== 'target' || !m.alive || m.rowIndex == null || m.rowIndex > hi) continue;
         pts += m.val; if (m.rarity >= 3) bonusShots++;
         if (m.rarity > bestRare) { bestRare = m.rarity; bestName = m.tname; }
         capture(m, false);
       }
-    }
+    } else diziMiss = true;
+    game.called = null;
   }
   // (avcı captures already happened on contact; tallied below)
 
@@ -707,6 +708,7 @@ function resolveShot() {
   } else if (bestRare >= 2) showCallout(`${bestName}! ✨`);
   else if (game.captThisShot >= 3) showCallout(`MEGA x${game.captThisShot}!`);
   else if (game.captThisShot === 2) showCallout('Double!');
+  else if (game.mode === 'dizi' && diziMiss) showCallout(game.rowHit ? 'Wrong bead! ✗' : 'Missed! ✗');
 
   // the enek returns to your thumb (unless it fell in the pot — then a fresh one)
   game.shooter.x = SPAWN.x; game.shooter.y = SPAWN.y;
@@ -714,7 +716,7 @@ function resolveShot() {
 
   const targetsLeft = game.marbles.filter(m => m.type === 'target').length;
   if (game.mode === 'dizi') {
-    if (targetsLeft < 5 && game.shots > 0) { placeRow(); showCallout('Fresh string!'); }
+    if (targetsLeft === 0 && game.shots > 0) { placeRow(); showCallout('Fresh string!'); }
   } else if (targetsLeft < (game.mode === 'avci' ? 4 : 6)) {
     if (placeTargets(game.mode === 'avci' ? 6 : 6) > 0 && game.shots > 0) showCallout('Fresh marbles!');
   }
@@ -764,7 +766,23 @@ cv.addEventListener('pointerdown', e => {
   audio();
   if (!canAim()) return;
   const p = toWorld(e), sh = game.shooter;
+  // dizi: first TAP the bead you are calling
+  if (game.mode === 'dizi') {
+    let picked = null, pd = 1e9;
+    for (const m of game.marbles) {
+      if (m.type !== 'target' || !m.alive) continue;
+      const d = Math.hypot(m.x - p.x, m.y - p.y);
+      if (d < m.r + 14 && d < pd) { pd = d; picked = m; }
+    }
+    if (picked) {
+      game.called = picked;
+      if (!game.muted) tone(760, 0.05, 0.22, 'sine', 0, 980);
+      showCallout(`Calling ${picked.tname || 'it'} — now flick!`);
+      return;
+    }
+  }
   if (Math.hypot(p.x - sh.x, p.y - sh.y) < Math.max(95, sh.r * 3.5)) {
+    if (game.mode === 'dizi' && !game.called) { showCallout('Tap a bead to call it first!'); return; }
     drag.on = true; drag.x = p.x; drag.y = p.y;
     cv.setPointerCapture(e.pointerId);
   }
@@ -842,6 +860,19 @@ function render(t) {
     const g = ctx.createRadialGradient(m.x - m.r * .35, m.y - m.r * .42, 0, m.x - m.r * .35, m.y - m.r * .42, m.r * .5);
     g.addColorStop(0, 'rgba(255,255,255,.85)'); g.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(m.x - m.r * .35, m.y - m.r * .42, m.r * .5, 0, 7); ctx.fill();
+  }
+  // dizi: reticle on the bead you called
+  if (game.mode === 'dizi' && game.phase === 'aim' && game.called && game.called.alive) {
+    const m = game.called, rr = m.r + 8 + Math.sin(t * 6) * 2;
+    ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 3.5;
+    ctx.beginPath(); ctx.arc(m.x, m.y, rr, 0, 7); ctx.stroke();
+    for (let k = 0; k < 4; k++) {
+      const a = k * Math.PI / 2 + t;
+      ctx.beginPath();
+      ctx.moveTo(m.x + Math.cos(a) * (rr - 3), m.y + Math.sin(a) * (rr - 3));
+      ctx.lineTo(m.x + Math.cos(a) * (rr + 7), m.y + Math.sin(a) * (rr + 7));
+      ctx.stroke();
+    }
   }
   // aim
   if (drag.on && canAim()) {
