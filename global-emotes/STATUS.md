@@ -22,7 +22,7 @@ Phase 8 complete — all 9 phases delivered. Repository is feature-complete for 
 
 ## Test status
 
-`pnpm verify` → format check + typecheck (11 packages) + 100 Node-side tests, all green (see `docs/QA_TEST_PLAN.md` for the suite map). Mobile suites (5 JVM + 2 XCTest) require Android SDK / Xcode.
+`pnpm verify` → format check + typecheck (11 packages) + 104 Node-side tests + 5 Playwright browser e2e, all green (see `docs/QA_TEST_PLAN.md` for the suite map). Mobile suites (5 JVM + 2 XCTest) require Android SDK / Xcode.
 
 ## Blockers
 
@@ -30,7 +30,7 @@ None for development. Launch requires owner inputs only: credentials (Twitch/Dis
 
 ## Known gaps (honest, tracked in QA_TEST_PLAN.md)
 
-Playwright browser e2e · load-test scripts · malware-scan hook in pipeline (Stage 2) · data-export archive job body · Telegram export worker body (adapter + variant + flag exist) · Gradle wrapper commit for blocking Android CI.
+Malware-scan hook in pipeline (Stage 2) · Gradle wrapper commit for blocking Android CI. Closed post-Phase-8: Playwright e2e (5 browser tests), k6 load scripts, data-export job, Telegram export job.
 
 ## Next exact action
 

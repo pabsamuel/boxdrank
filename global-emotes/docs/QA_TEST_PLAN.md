@@ -1,6 +1,6 @@
 # QA TEST PLAN
 
-## Automated (run: `pnpm verify` — 100 tests green as of Phase 8)
+## Automated (run: `pnpm verify` — 109 tests green (104 vitest + 5 Playwright))
 
 | Suite                   | Where                       | Covers                                                                                                                                                                                                                                                            |
 | ----------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -28,4 +28,4 @@
 
 ## Known gaps (tracked, honest)
 
-Playwright browser e2e (web flows covered via API-level tests; add before GA) · load tests for manifest + redeem endpoints (k6 scripts = pre-launch ticket) · malware scanning hook (Stage 2) · data-export archive assembly job.
+Malware scanning hook (Stage 2) · Android/iOS device matrix pass. Closed: Playwright browser e2e (5 tests, `pnpm --filter @global-emotes/web e2e`), k6 load scripts (`infrastructure/scripts/load/`), data-export + Telegram-export worker jobs (4 tests).

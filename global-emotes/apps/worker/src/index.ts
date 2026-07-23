@@ -12,6 +12,8 @@ import {
   handleTokenRefresh,
   type HandlerDeps,
 } from './handlers';
+import { TelegramClient, handleTelegramExport, type TelegramExportPayload } from './telegram';
+import { handleDataExport } from './data-export';
 
 /**
  * Worker process: BullMQ consumers + repeatable maintenance jobs. Handlers are
@@ -42,6 +44,27 @@ async function main(): Promise<void> {
         if (result.status === 'failed') throw new Error(result.reason);
       },
       { connection, concurrency: 4 },
+    ),
+    new Worker(
+      'telegram-export',
+      async (job) => {
+        const result = await handleTelegramExport(
+          { ...deps, telegram: new TelegramClient(env.TELEGRAM_BOT_TOKEN) },
+          job.data as TelegramExportPayload,
+        );
+        log.info({ jobId: job.id, result }, 'telegram-export done');
+        if (result.status === 'failed') throw new Error(result.reason);
+      },
+      { connection, concurrency: 1 },
+    ),
+    new Worker(
+      'data-export',
+      async (job) => {
+        const result = await handleDataExport(deps, job.data as { requestId: string });
+        log.info({ jobId: job.id, result }, 'data-export done');
+        if (result.status === 'failed') throw new Error(result.reason);
+      },
+      { connection, concurrency: 2 },
     ),
     new Worker(
       'maintenance',
