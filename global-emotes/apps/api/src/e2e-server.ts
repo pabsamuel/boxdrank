@@ -10,3 +10,5 @@ const { createTestApp } = await import('./test-helpers');
 const t = await createTestApp();
 await t.app.listen({ port, host: '127.0.0.1' });
 console.log(`e2e api ready on :${port}`);
+
+export {};
