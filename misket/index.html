@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Misket — Turkish Marbles</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%2300b4d8'/><circle cx='35' cy='35' r='14' fill='white' opacity='.8'/></svg>">
+<style>
+/* ============================== BASE / LAYOUT ============================== */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#5d3f26;
+  font-family:'Segoe Print','Bradley Hand','Chalkboard SE','Comic Sans MS',cursive;
+  user-select:none;-webkit-user-select:none}
+#stage{position:fixed;inset:0}
+#cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+
+/* ============================== HUD ============================== */
+#hud{position:absolute;top:0;left:0;right:0;display:none;justify-content:space-between;
+  align-items:flex-start;padding:10px 12px;pointer-events:none;color:#fff8ec;
+  text-shadow:0 2px 3px rgba(40,20,5,.55)}
+#hud.on{display:flex}
+.pouch{background:rgba(52,30,12,.55);border:2px solid rgba(255,240,210,.35);border-radius:16px;
+  padding:6px 12px;min-width:118px;backdrop-filter:blur(2px)}
+.pouch .pname{font-size:15px;opacity:.9}
+.pouch .pcount{font-size:26px;line-height:1;margin-left:8px;font-weight:bold}
+.pouch.turn{border-color:#ffd166;box-shadow:0 0 14px rgba(255,209,102,.55)}
+.dots{margin-top:4px;display:flex;flex-wrap:wrap;gap:3px;max-width:150px;min-height:10px}
+.dot{width:10px;height:10px;border-radius:50%;box-shadow:inset -2px -2px 3px rgba(0,0,0,.4),inset 2px 2px 3px rgba(255,255,255,.55)}
+.dots .more{font-size:11px;opacity:.85}
+#mid{text-align:center;padding-top:2px}
+#roundInfo{font-size:15px;opacity:.95}
+#pips{font-size:13px;letter-spacing:2px;margin-top:1px}
+#turnBanner{font-size:17px;color:#ffd166;margin-top:2px}
+#kanliChip{display:none;font-size:12px;background:#a4161a;border-radius:10px;padding:1px 9px;margin-top:3px}
+#kanliChip.on{display:inline-block}
+#btns{position:absolute;top:64px;right:12px;display:flex;flex-direction:column;gap:8px;pointer-events:auto}
+#btns button{width:44px;height:44px;font-size:20px;border-radius:50%;border:2px solid rgba(255,240,210,.4);
+  background:rgba(52,30,12,.6);color:#fff8ec;cursor:pointer}
+#btns button:active{transform:scale(.92)}
+
+/* ============================== CALLOUT ============================== */
+#callout{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);pointer-events:none;
+  font-size:clamp(26px,5vw,44px);color:#fff;text-shadow:0 3px 8px rgba(30,10,0,.7),0 0 22px rgba(255,190,80,.5);
+  opacity:0;white-space:nowrap}
+#callout.pop{animation:pop 1.5s ease-out forwards}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
+ 12%{opacity:1;transform:translate(-50%,-50%) scale(1.12)}
+ 22%{transform:translate(-50%,-50%) scale(1)}
+ 75%{opacity:1}100%{opacity:0;transform:translate(-50%,-62%) scale(1)}}
+
+/* ============================== OVERLAYS ============================== */
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(38,20,6,.55);backdrop-filter:blur(3px);z-index:5}
+.overlay.hidden{display:none}
+.card{background:linear-gradient(160deg,#fdf3e0,#f3e0be);border-radius:22px;padding:26px 30px;
+  max-width:min(430px,92vw);width:100%;text-align:center;color:#4a2f14;
+  box-shadow:0 18px 50px rgba(20,8,0,.55),inset 0 0 0 3px rgba(160,110,50,.25);
+  max-height:92vh;overflow-y:auto}
+.card h1{font-size:52px;line-height:1;color:#7a4514;letter-spacing:2px}
+.card h2{font-size:30px;margin-bottom:8px;color:#7a4514}
+.card .sub{font-size:15px;opacity:.85;margin:6px 0 14px}
+#logo{width:74px;height:74px;border-radius:50%;margin:0 auto 8px;
+  background:radial-gradient(circle at 32% 30%,#fff 0%,#9be7ff 18%,#00b4d8 55%,#01546b 100%);
+  box-shadow:0 8px 16px rgba(30,10,0,.4),inset -6px -8px 14px rgba(0,40,60,.45);
+  position:relative;animation:bob 3.4s ease-in-out infinite}
+#logo::after{content:"";position:absolute;left:16%;top:14%;width:26%;height:20%;border-radius:50%;
+  background:rgba(255,255,255,.9);filter:blur(1px)}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-7px) rotate(3deg)}}
+.seg{display:flex;gap:8px;justify-content:center;margin:8px 0 4px}
+.seg button{flex:1;padding:9px 4px;font-family:inherit;font-size:16px;border-radius:12px;cursor:pointer;
+  border:2px solid #b98a5d;background:#fff7e8;color:#6b4423}
+.seg button.sel{background:#7a4514;color:#ffe9c4;border-color:#7a4514}
+.lbl{font-size:14px;opacity:.8;margin-top:12px;text-align:left}
+.toggleRow{display:flex;align-items:center;justify-content:space-between;margin-top:12px;
+  background:#fff7e8;border:2px solid #b98a5d;border-radius:12px;padding:8px 12px}
+.toggleRow small{display:block;font-size:11.5px;opacity:.75;text-align:left;max-width:230px}
+.tgl{position:relative;width:52px;height:28px;border-radius:14px;background:#c9b18e;cursor:pointer;flex-shrink:0;
+  transition:background .2s}
+.tgl::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;
+  background:#fff;transition:left .2s;box-shadow:0 2px 4px rgba(0,0,0,.3)}
+.tgl.on{background:#a4161a}.tgl.on::after{left:27px}
+.big{margin-top:18px;width:100%;padding:13px;font-family:inherit;font-size:22px;border-radius:14px;
+  border:none;cursor:pointer;background:linear-gradient(180deg,#2f9e44,#237032);color:#fff;
+  box-shadow:0 5px 0 #1b5426,0 8px 18px rgba(20,8,0,.35)}
+.big:active{transform:translateY(3px);box-shadow:0 2px 0 #1b5426}
+.big.alt{background:linear-gradient(180deg,#b98a5d,#8f6237);box-shadow:0 5px 0 #6e4a27}
+.big.alt:active{box-shadow:0 2px 0 #6e4a27}
+#howto{font-size:13.5px;line-height:1.45;margin-top:14px;text-align:left;opacity:.85}
+#guide{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px}
+.gitem{width:92px;background:#fff7e8;border:2px solid #b98a5d;border-radius:10px;padding:6px 2px 5px;text-align:center}
+.gtag{white-space:nowrap}
+.gitem canvas{width:28px;height:28px;display:block;margin:0 auto 3px}
+.gname{font-size:11.5px;color:#6b4423;line-height:1.1}
+.gtag{display:inline-block;font-size:9.5px;border-radius:7px;padding:1px 7px;margin-top:3px;color:#3b2a10;font-weight:bold}
+.showLbl{font-size:13px;margin-top:8px;text-align:left;opacity:.85}
+.showcase{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;align-items:center;
+  background:#fff7e8;border:2px solid #b98a5d;border-radius:10px;padding:6px;margin-top:3px;
+  max-height:92px;overflow-y:auto}
+#stats{font-size:13px;margin-top:12px;opacity:.7}
+.score{font-size:34px;margin:6px 0;color:#7a4514}
+.pipsBig{font-size:20px;letter-spacing:4px;margin-bottom:6px}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="cv"></canvas>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="pouch" id="pouchP">
+      <span class="pname">You</span><span class="pcount" id="countP">0</span>
+      <div class="dots" id="dotsP"></div>
+    </div>
+    <div id="mid">
+      <div id="roundInfo">Round 1 · first to 2</div>
+      <div id="pips">○○ · ○○</div>
+      <div id="turnBanner">Your turn</div>
+      <span id="kanliChip">Kanlı — for keeps</span>
+    </div>
+    <div class="pouch" id="pouchA">
+      <span class="pname">AI</span><span class="pcount" id="countA">0</span>
+      <div class="dots" id="dotsA"></div>
+    </div>
+  </div>
+  <div id="btns" style="display:none">
+    <button id="btnMute" title="Mute">🔊</button>
+    <button id="btnPause" title="Pause">⏸</button>
+  </div>
+  <div id="callout"></div>
+
+  <!-- START SCREEN -->
+  <div class="overlay" id="menu">
+    <div class="card">
+      <div id="logo"></div>
+      <h1>Misket</h1>
+      <div class="sub">The classic Turkish street marbles game</div>
+      <div class="lbl">Opponent</div>
+      <div class="seg" id="modeSeg">
+        <button data-m="ai" class="sel">vs AI</button>
+        <button data-m="2p">2 Players</button>
+      </div>
+      <div class="lbl" id="diffLbl">Difficulty</div>
+      <div class="seg" id="diffSeg">
+        <button data-d="easy">Easy</button>
+        <button data-d="normal" class="sel">Normal</button>
+        <button data-d="hard">Hard</button>
+      </div>
+      <div class="toggleRow">
+        <small><b>Kanlı (for keeps)</b><br>Captured marbles stay in your pouch across rounds.</small>
+        <div class="tgl" id="tglKanli"></div>
+      </div>
+      <button class="big" id="btnStart">Play ▸</button>
+      <div id="howto">🎯 Drag back from your blue shooter (<b>Enek</b>) and release to flick.
+        Knock marbles fully out of the chalk circle to capture them.
+        Capture one and keep your enek inside the circle for a <b>bonus shot</b>.
+        Most <b>points</b> wins the round — first to 2 rounds wins the match.</div>
+      <div class="lbl">Marble guide — rarer models are worth more</div>
+      <div id="guide"></div>
+      <div id="stats"></div>
+    </div>
+  </div>
+
+  <!-- PAUSE -->
+  <div class="overlay hidden" id="pauseOv">
+    <div class="card">
+      <h2>Paused</h2>
+      <button class="big" id="btnResume">Resume ▸</button>
+      <button class="big alt" id="btnRestartRound">Restart round</button>
+      <button class="big alt" id="btnQuit">Quit to menu</button>
+    </div>
+  </div>
+
+  <!-- ROUND END -->
+  <div class="overlay hidden" id="roundOv">
+    <div class="card">
+      <h2 id="roundTitle">You win the round!</h2>
+      <div class="score" id="roundScore">6 — 4</div>
+      <div class="pipsBig" id="roundPips">●○ · ○○</div>
+      <button class="big" id="btnNextRound">Next round ▸</button>
+    </div>
+  </div>
+
+  <!-- MATCH END -->
+  <div class="overlay hidden" id="matchOv">
+    <div class="card">
+      <h2 id="matchTitle">🎉 You win the match!</h2>
+      <div class="score" id="matchScore">2 — 1</div>
+      <div class="sub" id="matchSub">Marbles captured: 15 — 9</div>
+      <div class="showLbl" id="showLblP"></div>
+      <div class="showcase" id="showP"></div>
+      <div class="showLbl" id="showLblA"></div>
+      <div class="showcase" id="showA"></div>
+      <button class="big" id="btnRematch">Rematch ▸</button>
+      <button class="big alt" id="btnMenu">Menu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* =========================================================================
+   MISKET — classic Turkish circle-marbles, in one file.
+   Sections: config · utils · audio · sprites/background · physics ·
+             game state · AI · input · rendering · UI wiring · main loop
+   ========================================================================= */
+
+/* ============================== CONFIG ============================== */
+const W = 900, H = 980;                          // logical world size
+const CIRCLE = { x: 450, y: 500, r: 255 };       // chalk circle
+const MARBLE_R = 16, SHOOTER_R = 21;
+const MIN_SPEED = 260, MAX_SPEED = 1500, MAX_DRAG = 240;
+const FRICTION_LIN = 2.1, FRICTION_QUAD = 0.0006;// dirt drag
+const RESTITUTION = 0.93, WALL_E = 0.5, SLEEP_V = 14;
+const WALL_M = 18;                               // keep marbles on screen
+const STEP = 1 / 120;                            // fixed physics timestep
+const PALETTE = ['#e74c3c','#3498db','#2ecc71','#f1c40f','#9b59b6','#e67e22','#1abc9c','#fd79a8'];
+const DIFF = {
+  easy:   { targets: 2, angles: [0],            powers: [0.6, 1.0],       aimErr: 0.120, powErr: 0.20, shuffle: true  },
+  normal: { targets: 4, angles: [0, .05, -.05], powers: [0.6, 1.0],       aimErr: 0.055, powErr: 0.10, shuffle: false },
+  hard:   { targets: 6, angles: [0, .05, -.05], powers: [0.55, 0.8, 1.0], aimErr: 0.022, powErr: 0.05, shuffle: false },
+};
+
+/* ============================== UTILS ============================== */
+const rand = (a = 1, b) => b === undefined ? Math.random() * a : a + Math.random() * (b - a);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+function gauss() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function hexRGB(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+function mix(h, t, w, al = 1) { const c = hexRGB(h), o = t === 'w' ? 255 : 0;
+  return `rgba(${c.map(x => Math.round(x + (o - x) * w)).join(',')},${al})`; }
+const distC = m => Math.hypot(m.x - CIRCLE.x, m.y - CIRCLE.y);
+const $ = id => document.getElementById(id);
+
+/* ============================== AUDIO (procedural, Web Audio) ============================== */
+let actx = null, master = null, noiseBuf = null, lastClickT = 0;
+function audio() {
+  if (!actx) {
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    master = actx.createGain(); master.gain.value = 0.5; master.connect(actx.destination);
+    noiseBuf = actx.createBuffer(1, actx.sampleRate * 0.15, actx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  if (actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function tone(freq, dur, vol, type = 'triangle', when = 0, slide = 0) {
+  const c = audio(), t = c.currentTime + when;
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.02);
+}
+const sfx = {
+  // marble "clack" — pitch & volume scale with impact force
+  click(imp) {
+    if (game.settings.muted) return;
+    const c = audio();
+    if (c.currentTime - lastClickT < 0.025) return;
+    lastClickT = c.currentTime;
+    const k = clamp(imp / 1400, 0.08, 1);
+    tone(900 + k * 2300, 0.05, 0.10 + k * 0.5, 'triangle');
+    const src = c.createBufferSource(); src.buffer = noiseBuf;
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2600 + k * 2000; bp.Q.value = 1.2;
+    const g = c.createGain(); g.gain.setValueAtTime(k * 0.45, c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.04);
+    src.connect(bp); bp.connect(g); g.connect(master); src.start(); src.stop(c.currentTime + 0.05);
+  },
+  flick()  { if (!game.settings.muted) tone(180, 0.09, 0.18, 'sine', 0, 90); },
+  pop()    { if (!game.settings.muted) tone(340, 0.13, 0.4, 'sine', 0, 980); },
+  rare()   { if (!game.settings.muted) [880, 1175, 1760].forEach((f, i) => tone(f, 0.16, 0.32, 'triangle', i * 0.09)); },
+  jingle() { if (!game.settings.muted) [659, 784, 988, 1319].forEach((f, i) => tone(f, 0.22, 0.3, 'triangle', i * 0.13)); },
+  sad()    { if (!game.settings.muted) [392, 294].forEach((f, i) => tone(f, 0.3, 0.28, 'triangle', i * 0.2)); },
+};
+
+/* ============================== MARBLE MODELS & SPRITES ==============================
+   The classic Turkish marble models, each with its own look and rarity tier.
+   Rarer marbles are worth more points when captured. */
+const RARITY = [
+  { name: 'Common',    col: '#cfc8b8', val: 1 },
+  { name: 'Rare',      col: '#4fc3f7', val: 2 },
+  { name: 'Epic',      col: '#b388ff', val: 3 },
+  { name: 'Legendary', col: '#ffd54f', val: 5 },
+  { name: 'Mythic',    col: '#ff5ca8', val: 8 },
+];
+const TYPES = [
+  { id: 'kedigozu', name: 'Kedigözü', rarity: 0, w: 38  },  // cat's eye — the everyday marble
+  { id: 'sutlu',    name: 'Sütlü',    rarity: 0, w: 26  },  // milky pastel
+  { id: 'susam',    name: 'Susam',    rarity: 0, w: 9   },  // sesame-speckled (a real schoolyard name)
+  { id: 'boncuk',   name: 'Boncuk',   rarity: 0, w: 10, r: 13 }, // glossy bead with its little hole
+  { id: 'seffaf',   name: 'Şeffaf',   rarity: 0, w: 8   },  // humble clear glass
+  { id: 'gazoz',    name: 'Gazoz',    rarity: 1, w: 14  },  // soda-bottle aqua glass
+  { id: 'ebruli',   name: 'Ebruli',   rarity: 1, w: 11  },  // multicolor marbled swirls
+  { id: 'zeytin',   name: 'Zeytinyağlı', rarity: 1, w: 6 }, // oily olive-gold glass (a real schoolyard name)
+  { id: 'cincik',   name: 'Cıncık',   rarity: 1, w: 8, r: 12 }, // tiny sparkling candy glass
+  { id: 'ates',     name: 'Ateş',     rarity: 1, w: 7   },  // flame swirls
+  { id: 'zebra',    name: 'Alaca',    rarity: 1, w: 7   },  // bold stripes
+  { id: 'camgoz',   name: 'Camgöz',   rarity: 2, w: 6   },  // clear glass with an eye core
+  { id: 'petrol',   name: 'Duman',   rarity: 2, w: 3.5 },  // dark iridescent oil sheen
+  { id: 'dobi',     name: 'Dobi',     rarity: 2, w: 4, r: 24, val: 4 }, // the big one — heavy, hard to eject
+  { id: 'yakut',    name: 'Nar',    rarity: 2, w: 3   },  // glowing ruby glass
+  { id: 'inci',     name: 'Sedef',     rarity: 2, w: 3   },  // iridescent pearl
+  { id: 'kemik',    name: 'Kemik',    rarity: 3, w: 2   },  // prized ivory bone marble
+  { id: 'demirli',  name: 'Demirli',  rarity: 3, w: 1.5, r: 13, dens: 3.2, val: 5 }, // steel bearing — small, brutally heavy
+  { id: 'galaksi',  name: 'Yıldız',  rarity: 3, w: 1.2 },  // night sky trapped in glass
+  { id: 'altin',    name: 'Altın',    rarity: 4, w: 0.8, val: 8 }, // gold-stone glass — the stuff of legend
+];
+const TYPE_COLOR = {
+  gazoz: '#7fd4e5', ebruli: '#b8bfc7', petrol: '#39414f', kemik: '#e9dfc6', demirli: '#8f98a3',
+  seffaf: '#dfe8e5', ates: '#f4511e', zebra: '#b9b6ac', yakut: '#c62828', inci: '#f3e3da',
+  galaksi: '#283593', altin: '#f9a825', susam: '#e6d49c', zeytin: '#9caa3a',
+};
+function pickType() {
+  let r = Math.random() * TYPES.reduce((s, t) => s + t.w, 0);
+  for (const t of TYPES) { r -= t.w; if (r <= 0) return t; }
+  return TYPES[0];
+}
+function makeSprite(r, kind, color) {
+  const S = Math.ceil(r * 5), R = S / 2;
+  const c = document.createElement('canvas'); c.width = c.height = S;
+  const x = c.getContext('2d');
+  x.translate(R, R);
+  x.beginPath(); x.arc(0, 0, R - 1, 0, 7); x.clip();
+  const base = (c0, c1, c2, c3) => {
+    const g = x.createRadialGradient(-R * .32, -R * .36, R * .08, 0, 0, R);
+    g.addColorStop(0, c0); g.addColorStop(.28, c1); g.addColorStop(.72, c2); g.addColorStop(1, c3);
+    x.fillStyle = g; x.fillRect(-R, -R, S, S);
+  };
+  const blade = (rot, fill, sc = 1) => {
+    x.save(); x.rotate(rot); x.scale(sc, 1);
+    x.beginPath(); x.moveTo(0, 0);
+    x.bezierCurveTo(R * .52, -R * .16, R * .78, R * .30, R * .16, R * .52);
+    x.bezierCurveTo(R * .42, R * .10, R * .26, -R * .05, 0, 0);
+    x.closePath(); x.fillStyle = fill; x.fill(); x.restore();
+  };
+  const bubbles = (n, a = .3) => {
+    for (let i = 0; i < n; i++) {
+      x.beginPath(); x.arc(rand(-R * .55, R * .55), rand(-R * .55, R * .55), rand(1, R * .07), 0, 7);
+      x.fillStyle = `rgba(255,255,255,${a})`; x.fill();
+    }
+  };
+  const rim = (al = .42) => {
+    const g = x.createRadialGradient(0, 0, R * .55, 0, 0, R);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(15,5,0,${al})`);
+    x.fillStyle = g; x.fillRect(-R, -R, S, S);
+  };
+  if (kind === 'enek' || kind === 'kedigozu') {
+    base('rgba(255,255,255,.95)', mix(color, 'w', .55), color, mix(color, 'b', .45));
+    const nb = kind === 'enek' ? 4 : 3;
+    for (let i = 0; i < nb; i++)
+      blade(i * Math.PI * 2 / nb + .45, i % 2 ? 'rgba(255,255,255,.5)' : mix(color, 'b', .28, .6));
+    bubbles(4); rim();
+  } else if (kind === 'sutlu') {
+    base('#ffffff', mix(color, 'w', .78), mix(color, 'w', .55), mix(color, 'w', .25));
+    for (let i = 0; i < 2; i++) blade(i * Math.PI + .9, 'rgba(255,255,255,.45)', 1.15);
+    rim(.2);
+  } else if (kind === 'gazoz') {
+    base('rgba(255,255,255,.97)', '#dff5fa', '#a9e2ee', '#57aec3');
+    bubbles(13, .5); rim(.28);
+  } else if (kind === 'ebruli') {
+    base('rgba(255,255,255,.9)', '#e2e5e9', '#c3c9d1', '#7e858f');
+    for (let i = 0; i < 6; i++)
+      blade(i * Math.PI / 3 + .3, mix(PALETTE[i % PALETTE.length], 'b', .05, .55), .7);
+    bubbles(3); rim(.35);
+  } else if (kind === 'camgoz') {
+    base('rgba(255,255,255,.96)', '#eaf1f2', '#d3dfe1', '#93a9ae');
+    let g = x.createRadialGradient(0, 0, R * .1, 0, 0, R * .46);   // iris
+    g.addColorStop(0, mix(color, 'w', .15)); g.addColorStop(.75, color); g.addColorStop(1, mix(color, 'b', .5));
+    x.fillStyle = g; x.beginPath(); x.arc(0, 0, R * .46, 0, 7); x.fill();
+    x.fillStyle = '#1c1712'; x.beginPath(); x.arc(0, 0, R * .2, 0, 7); x.fill();  // pupil
+    x.fillStyle = 'rgba(255,255,255,.85)'; x.beginPath(); x.arc(-R * .08, -R * .09, R * .06, 0, 7); x.fill();
+    rim(.3);
+  } else if (kind === 'susam') {
+    base('rgba(255,255,255,.95)', '#f4e8c4', '#e3d09a', '#b19a60');
+    for (let i = 0; i < 18; i++) {                                // sesame seeds
+      x.save(); x.translate(rand(-R * .62, R * .62), rand(-R * .62, R * .62)); x.rotate(rand(6.28));
+      x.fillStyle = `rgba(${(rand(85,135))|0},${(rand(65,105))|0},${(rand(35,65))|0},${rand(.5,.85)})`;
+      x.beginPath(); x.ellipse(0, 0, R * .085, R * .05, 0, 0, 7); x.fill(); x.restore();
+    }
+    rim(.3);
+  } else if (kind === 'zeytin') {
+    base('rgba(255,255,255,.9)', '#eae58e', '#9caa3a', '#4a5510');
+    let gz = x.createRadialGradient(-R * .2, -R * .22, 0, -R * .2, -R * .22, R * .72);
+    gz.addColorStop(0, 'rgba(255,247,182,.55)'); gz.addColorStop(1, 'rgba(255,247,182,0)');
+    x.fillStyle = gz; x.beginPath(); x.arc(-R * .2, -R * .22, R * .72, 0, 7); x.fill();  // oily sheen
+    for (const [col, rot] of [['rgba(190,205,70,.30)', .6], ['rgba(120,140,30,.28)', 3.2]]) {
+      x.save(); x.rotate(rot);
+      x.beginPath(); x.ellipse(R * .12, 0, R * .58, R * .26, 0, 0, 7); x.fillStyle = col; x.fill(); x.restore();
+    }
+    bubbles(3, .35); rim(.42);
+  } else if (kind === 'seffaf') {
+    base('rgba(255,255,255,.98)', '#f2f7f6', '#dbe7e4', '#9fb4ad');
+    bubbles(5, .35); rim(.25);
+  } else if (kind === 'ates') {
+    base('rgba(255,255,255,.9)', '#ffb74d', '#f4511e', '#8e2409');
+    for (let i = 0; i < 4; i++)                                    // licking flames
+      blade(i * Math.PI / 2 + .6, i % 2 ? 'rgba(255,235,59,.55)' : 'rgba(183,28,28,.5)', 1.05);
+    bubbles(2, .2); rim(.4);
+  } else if (kind === 'zebra') {
+    base('#ffffff', '#f5f5f2', '#e4e2da', '#a9a79e');
+    x.strokeStyle = 'rgba(30,28,25,.75)'; x.lineCap = 'round';     // bold stripes
+    for (let i = -2; i <= 2; i++) {
+      x.lineWidth = R * .15;
+      x.beginPath(); x.moveTo(-R, i * R * .34 - R * .1);
+      x.quadraticCurveTo(0, i * R * .34 + R * .2, R, i * R * .34 - R * .1);
+      x.stroke();
+    }
+    rim(.35);
+  } else if (kind === 'yakut') {
+    base('rgba(255,255,255,.92)', '#ff6b6b', '#c62828', '#5e0f0f');
+    let g = x.createRadialGradient(0, 0, 0, 0, 0, R * .5);         // inner ember glow
+    g.addColorStop(0, 'rgba(255,205,210,.6)'); g.addColorStop(1, 'rgba(255,205,210,0)');
+    x.fillStyle = g; x.beginPath(); x.arc(0, 0, R * .5, 0, 7); x.fill();
+    x.strokeStyle = 'rgba(255,255,255,.5)'; x.lineWidth = R * .04; // facet glints
+    x.beginPath(); x.moveTo(-R * .4, -R * .1); x.lineTo(-R * .05, -R * .45); x.stroke();
+    rim(.45);
+  } else if (kind === 'inci') {
+    base('#ffffff', '#fdf6f0', '#f3e9e2', '#c9b8ae');
+    for (const [col, rot] of [['rgba(255,182,193,.2)', .7], ['rgba(173,216,230,.2)', 2.8], ['rgba(152,251,152,.16)', 4.7]]) {
+      x.save(); x.rotate(rot);                                     // mother-of-pearl sheen
+      x.beginPath(); x.ellipse(R * .15, 0, R * .6, R * .34, 0, 0, 7);
+      x.fillStyle = col; x.fill(); x.restore();
+    }
+    rim(.2);
+  } else if (kind === 'galaksi') {
+    base('#7986cb', '#3949ab', '#1a1f4b', '#05071c');
+    blade(.8, 'rgba(236,64,122,.28)', 1.1);                        // nebulae
+    blade(3.6, 'rgba(0,229,255,.22)', 1.1);
+    for (let i = 0; i < 18; i++) {                                 // stars
+      x.beginPath(); x.arc(rand(-R * .75, R * .75), rand(-R * .75, R * .75), rand(.6, R * .035), 0, 7);
+      x.fillStyle = `rgba(255,255,255,${rand(.4, .95)})`; x.fill();
+    }
+    rim(.5);
+  } else if (kind === 'altin') {
+    base('rgba(255,255,255,.95)', '#ffe082', '#f9a825', '#7a4a00');
+    for (let i = 0; i < 22; i++) {                                 // gold-stone glitter
+      x.save(); x.translate(rand(-R * .7, R * .7), rand(-R * .7, R * .7)); x.rotate(rand(6.28));
+      const s = rand(R * .03, R * .08);
+      x.fillStyle = `rgba(255,${(rand(210, 245)) | 0},130,${rand(.5, 1)})`;
+      x.fillRect(-s / 2, -s / 2, s, s); x.restore();
+    }
+    rim(.4);
+  } else if (kind === 'boncuk') {
+    base('rgba(255,255,255,.9)', mix(color, 'w', .3), color, mix(color, 'b', .4));
+    x.fillStyle = 'rgba(30,15,5,.75)';                             // the bead hole
+    x.beginPath(); x.arc(0, 0, R * .14, 0, 7); x.fill();
+    x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = R * .05;
+    x.beginPath(); x.arc(0, 0, R * .2, 0, 7); x.stroke();
+    rim(.35);
+  } else if (kind === 'cincik') {
+    base('rgba(255,255,255,.97)', mix(color, 'w', .6), mix(color, 'w', .2), mix(color, 'b', .35));
+    x.strokeStyle = 'rgba(255,255,255,.85)'; x.lineWidth = R * .05; // star glints
+    for (const [gx, gy, l] of [[-R * .25, -R * .2, R * .18], [R * .3, R * .25, R * .12]]) {
+      x.beginPath(); x.moveTo(gx - l, gy); x.lineTo(gx + l, gy);
+      x.moveTo(gx, gy - l); x.lineTo(gx, gy + l); x.stroke();
+    }
+    bubbles(3, .4); rim(.3);
+  } else if (kind === 'demirli') {
+    base('#ffffff', '#d9dde2', '#9aa3ad', '#4a525c');              // polished steel
+    x.strokeStyle = 'rgba(255,255,255,.25)'; x.lineWidth = R * .08;
+    x.beginPath(); x.arc(0, 0, R * .55, .6, 2.4); x.stroke();      // brushed rings
+    x.strokeStyle = 'rgba(20,25,30,.3)';
+    x.beginPath(); x.arc(0, 0, R * .72, 3.6, 5.2); x.stroke();
+    rim(.5);
+  } else if (kind === 'dobi') {
+    base('rgba(255,255,255,.95)', mix(color, 'w', .45), color, mix(color, 'b', .5));
+    for (let i = 0; i < 4; i++)                                    // broad tornado bands
+      blade(i * Math.PI / 2 + .3, i % 2 ? 'rgba(255,255,255,.55)' : mix(color, 'b', .3, .7), 1.2);
+    bubbles(5); rim(.45);
+  } else if (kind === 'petrol') {
+    base('#6a7486', '#454e60', '#2b3140', '#151922');
+    for (const [col, rot] of [['rgba(64,224,208,.20)', .5], ['rgba(255,0,180,.16)', 2.6], ['rgba(170,255,90,.14)', 4.4]]) {
+      x.save(); x.rotate(rot);
+      x.beginPath(); x.ellipse(R * .18, 0, R * .62, R * .3, 0, 0, 7);
+      x.fillStyle = col; x.fill(); x.restore();
+    }
+    bubbles(2, .18); rim(.5);
+  } else if (kind === 'kemik') {
+    base('#fffdf6', '#f5edd9', '#eadcc0', '#c2ab80');
+    for (let i = 0; i < 5; i++) {                                  // bone mottling
+      const px = rand(-R * .5, R * .5), py = rand(-R * .5, R * .5), pr = rand(R * .12, R * .3);
+      const g = x.createRadialGradient(px, py, 0, px, py, pr);
+      g.addColorStop(0, 'rgba(190,165,120,.20)'); g.addColorStop(1, 'rgba(190,165,120,0)');
+      x.fillStyle = g; x.beginPath(); x.arc(px, py, pr, 0, 7); x.fill();
+    }
+    x.strokeStyle = 'rgba(160,135,95,.4)'; x.lineWidth = 1.2;      // hairline crackles
+    for (let i = 0; i < 2; i++) {
+      const a0 = rand(6.28), r0 = R * rand(.3, .75), a1 = a0 + rand(1, 2);
+      x.beginPath(); x.moveTo(Math.cos(a0) * r0, Math.sin(a0) * r0);
+      x.quadraticCurveTo(rand(-R * .4, R * .4), rand(-R * .4, R * .4),
+                         Math.cos(a1) * R * rand(.3, .75), Math.sin(a1) * R * rand(.3, .75));
+      x.stroke();
+    }
+    rim(.28);
+  }
+  return c;
+}
+function makeMarble(x, y, r, type, owner = -1, forceT = null) {
+  let kind, color, t = null;
+  if (type === 'shooter') {
+    kind = 'enek'; color = owner === 0 ? '#00b4d8' : '#d62828';
+  } else {
+    t = forceT || pickType(); kind = t.id;
+    color = kind === 'camgoz' ? ['#c98a2b', '#3d7dae', '#4d8a4d'][(Math.random() * 3) | 0]
+          : kind === 'dobi'   ? ['#2e7d32', '#c62828', '#1565c0'][(Math.random() * 3) | 0]
+          : (TYPE_COLOR[kind] || PALETTE[(Math.random() * PALETTE.length) | 0]);
+  }
+  const m = { x, y, vx: 0, vy: 0, r, m: r * r * r / 1000 * ((t && t.dens) || 1), // density: Demirli is steel
+              rot: rand(6.28), type, owner,
+              color, alive: true, sprite: makeSprite(r, kind, color) };
+  if (t) { m.tname = t.name; m.rarity = t.rarity; m.val = t.val || RARITY[t.rarity].val; m.rcol = RARITY[t.rarity].col; }
+  return m;
+}
+
+/* ============================== BACKGROUND (procedural dirt + chalk) ============================== */
+const bg = document.createElement('canvas'); const BG_S = 1.4;
+function makeBackground() {
+  bg.width = W * BG_S; bg.height = H * BG_S;
+  const x = bg.getContext('2d'); x.scale(BG_S, BG_S);
+  // warm packed dirt
+  let g = x.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#bc8d5f'); g.addColorStop(1, '#a06e46');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  // large soft patches
+  for (let i = 0; i < 26; i++) {
+    const px = rand(W), py = rand(H), pr = rand(60, 190);
+    g = x.createRadialGradient(px, py, 0, px, py, pr);
+    const dark = Math.random() < 0.5;
+    g.addColorStop(0, dark ? `rgba(90,55,25,${rand(.05,.13)})` : `rgba(235,200,150,${rand(.05,.11)})`);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = g; x.beginPath(); x.arc(px, py, pr, 0, 7); x.fill();
+  }
+  // speckles
+  for (let i = 0; i < 4200; i++) {
+    const v = (rand(60, 200)) | 0;
+    x.fillStyle = `rgba(${v},${(v * .72) | 0},${(v * .45) | 0},${rand(.04,.15)})`;
+    x.fillRect(rand(W), rand(H), rand(1, 2.4), rand(1, 2.4));
+  }
+  // pebbles (decorative, outside the circle)
+  for (let i = 0; i < 26; i++) {
+    const px = rand(30, W - 30), py = rand(30, H - 30);
+    if (Math.hypot(px - CIRCLE.x, py - CIRCLE.y) < CIRCLE.r + 34) continue;
+    const pr = rand(3, 8), a = rand(6.28);
+    x.save(); x.translate(px, py); x.rotate(a);
+    x.fillStyle = 'rgba(50,32,15,.3)'; x.beginPath(); x.ellipse(1.5, 2.2, pr, pr * .75, 0, 0, 7); x.fill();
+    g = x.createRadialGradient(-pr * .3, -pr * .35, 0, 0, 0, pr);
+    const gv = (rand(120, 185)) | 0;
+    g.addColorStop(0, `rgb(${gv+45},${gv+40},${gv+30})`); g.addColorStop(1, `rgb(${gv-35},${gv-40},${gv-45})`);
+    x.fillStyle = g; x.beginPath(); x.ellipse(0, 0, pr, pr * .75, 0, 0, 7); x.fill(); x.restore();
+  }
+  // grass tufts along the edges
+  for (let i = 0; i < 34; i++) {
+    const edge = (Math.random() * 4) | 0;
+    const px = edge < 2 ? rand(W) : (edge === 2 ? rand(0, 26) : rand(W - 26, W));
+    const py = edge === 0 ? rand(0, 26) : (edge === 1 ? rand(H - 26, H) : rand(H));
+    for (let b = 0; b < 6; b++) {
+      x.strokeStyle = `rgba(${(rand(70,110))|0},${(rand(120,165))|0},${(rand(40,70))|0},${rand(.5,.9)})`;
+      x.lineWidth = rand(1.2, 2.2); x.lineCap = 'round';
+      x.beginPath(); x.moveTo(px + rand(-6, 6), py + rand(-3, 3));
+      const h = rand(9, 20), sway = rand(-7, 7);
+      x.quadraticCurveTo(px + sway * .4, py - h * .6, px + sway, py - h); x.stroke();
+    }
+  }
+  // hand-drawn chalk circle
+  const seed = rand(9);
+  x.lineCap = 'round';
+  let prev = null;
+  for (let a = 0; a <= Math.PI * 2 + 0.03; a += 0.02) {
+    const wob = Math.sin(a * 7 + seed) * 2.6 + Math.sin(a * 13 + seed * 2) * 1.5 + rand(-1.2, 1.2);
+    const rr = CIRCLE.r + wob;
+    const px = CIRCLE.x + Math.cos(a) * rr, py = CIRCLE.y + Math.sin(a) * rr;
+    if (prev) {
+      x.strokeStyle = `rgba(250,246,238,${rand(.45,.85)})`; x.lineWidth = rand(4, 7);
+      x.beginPath(); x.moveTo(prev.x, prev.y); x.lineTo(px, py); x.stroke();
+    }
+    prev = { x: px, y: py };
+  }
+  for (let i = 0; i < 260; i++) { // chalk dust
+    const a = rand(6.28), rr = CIRCLE.r + rand(-9, 9);
+    x.fillStyle = `rgba(250,246,238,${rand(.08,.3)})`;
+    x.fillRect(CIRCLE.x + Math.cos(a) * rr, CIRCLE.y + Math.sin(a) * rr, rand(1, 2.2), rand(1, 2.2));
+  }
+  // late-afternoon light + vignette
+  g = x.createRadialGradient(CIRCLE.x, CIRCLE.y - 60, 140, CIRCLE.x, CIRCLE.y, 740);
+  g.addColorStop(0, 'rgba(255,214,140,.10)'); g.addColorStop(.6, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(55,28,8,.30)');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+}
+
+/* ============================== PHYSICS ============================== */
+function onImpact(imp, x, y) {
+  if (imp > 90) sfx.click(imp);
+  if (imp > 650) game.shake = Math.min(9, game.shake + (imp - 650) / 320);
+}
+function collide(a, b, fx) {
+  const dx = b.x - a.x, dy = b.y - a.y, min = a.r + b.r;
+  if (Math.abs(dx) > min || Math.abs(dy) > min) return;
+  const d = Math.hypot(dx, dy);
+  if (d === 0 || d >= min) return;
+  const nx = dx / d, ny = dy / d, overlap = min - d;
+  const ta = b.m / (a.m + b.m), tb = a.m / (a.m + b.m);
+  a.x -= nx * overlap * ta; a.y -= ny * overlap * ta;
+  b.x += nx * overlap * tb; b.y += ny * overlap * tb;
+  const vn = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+  if (vn >= 0) return;
+  const j = -(1 + RESTITUTION) * vn / (1 / a.m + 1 / b.m);
+  a.vx -= j * nx / a.m; a.vy -= j * ny / a.m;
+  b.vx += j * nx / b.m; b.vy += j * ny / b.m;
+  if (fx) onImpact(-vn, (a.x + b.x) / 2, (a.y + b.y) / 2);
+}
+// sub-stepped so fast marbles never tunnel through each other
+function stepWorld(ms, dt, fx, sub = 3) {
+  const h = dt / sub;
+  for (let s = 0; s < sub; s++) {
+    for (const m of ms) {
+      if (!m.alive) continue;
+      const sp = Math.hypot(m.vx, m.vy);
+      if (sp > 0) {
+        const f = Math.max(0, 1 - (FRICTION_LIN + FRICTION_QUAD * sp) * h);
+        m.vx *= f; m.vy *= f;
+        if (Math.hypot(m.vx, m.vy) < SLEEP_V) { m.vx = 0; m.vy = 0; }
+        else if (fx) m.rot += Math.hypot(m.vx, m.vy) * h / m.r * 0.55; // rolling spin
+      }
+      m.x += m.vx * h; m.y += m.vy * h;
+      if (m.x - m.r < WALL_M) { m.x = WALL_M + m.r; m.vx = Math.abs(m.vx) * WALL_E; }
+      if (m.x + m.r > W - WALL_M) { m.x = W - WALL_M - m.r; m.vx = -Math.abs(m.vx) * WALL_E; }
+      if (m.y - m.r < WALL_M) { m.y = WALL_M + m.r; m.vy = Math.abs(m.vy) * WALL_E; }
+      if (m.y + m.r > H - WALL_M) { m.y = H - WALL_M - m.r; m.vy = -Math.abs(m.vy) * WALL_E; }
+    }
+    for (let i = 0; i < ms.length; i++) {
+      if (!ms[i].alive) continue;
+      for (let j = i + 1; j < ms.length; j++) if (ms[j].alive) collide(ms[i], ms[j], fx);
+    }
+  }
+}
+const allStopped = ms => ms.every(m => m.vx === 0 && m.vy === 0);
+
+/* ============================== GAME STATE ============================== */
+const game = {
+  screen: 'menu', paused: false,
+  phase: 'idle',                 // aim | moving | over
+  current: 0,                    // 0 = human, 1 = AI
+  marbles: [], shooters: [], fx: [], floats: [], parts: [],
+  roundNum: 1, roundWins: [0, 0], roundCaps: [0, 0], totalCaps: [0, 0],
+  capturedRound: [[], []], capturedAll: [[], []],
+  settleTimer: 0, shake: 0, ai: null, time: 0,
+  settings: { difficulty: 'normal', kanli: false, muted: false, mode: 'ai' },
+  stats: { matches: 0, wins: 0, best: 0 },
+};
+// persistence (best score, match wins, settings)
+try {
+  Object.assign(game.settings, JSON.parse(localStorage.getItem('misket.settings') || '{}'));
+  Object.assign(game.stats, JSON.parse(localStorage.getItem('misket.stats') || '{}'));
+} catch (e) {}
+function save() {
+  try {
+    localStorage.setItem('misket.settings', JSON.stringify(game.settings));
+    localStorage.setItem('misket.stats', JSON.stringify(game.stats));
+  } catch (e) {}
+}
+
+const pname = i => game.settings.mode === '2p' ? `Player ${i + 1}` : (i === 0 ? 'You' : 'AI');
+// confetti burst for special captures
+function burst(x, y, cols, n, big) {
+  for (let i = 0; i < n; i++) {
+    const a = rand(6.283), sp = rand(120, big ? 520 : 320);
+    game.parts.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+      w: rand(4, big ? 9 : 6), h: rand(2.5, 5), rot: rand(6.28), vr: rand(-9, 9),
+      col: cols[(Math.random() * cols.length) | 0], t: 0, life: rand(.6, big ? 1.4 : 1) });
+  }
+}
+function scatterTargets() {
+  const n = 9 + ((Math.random() * 7) | 0);        // 9..15 marbles
+  const picks = []; for (let i = 0; i < n; i++) picks.push(pickType());
+  const placed = []; let guard = 0, i = 0;
+  while (i < picks.length && guard++ < 6000) {    // size-aware placement (Dobi is big)
+    const t = picks[i], r = t.r || MARBLE_R;
+    const a = rand(6.283), d = Math.sqrt(Math.random()) * (CIRCLE.r - 60 - r);
+    const x = CIRCLE.x + Math.cos(a) * d, y = CIRCLE.y + Math.sin(a) * d;
+    if (placed.every(p => Math.hypot(p.x - x, p.y - y) > p.r + r + 10)) {
+      placed.push({ x, y, r, t }); i++;
+    }
+  }
+  for (const p of placed) game.marbles.push(makeMarble(p.x, p.y, p.r, 'target', -1, p.t));
+}
+function startMatch() {
+  game.roundNum = 1; game.roundWins = [0, 0]; game.totalCaps = [0, 0];
+  game.capturedAll = [[], []];
+  startRound();
+}
+function startRound() {
+  game.marbles.length = 0; game.fx.length = 0; game.floats.length = 0; game.parts.length = 0;
+  makeBackground();
+  scatterTargets();
+  // eneks start OUTSIDE the circle (classic first shot)
+  const ps = makeMarble(450, 868, SHOOTER_R, 'shooter', 0);
+  const as = makeMarble(450, 132, SHOOTER_R, 'shooter', 1);
+  game.shooters = [ps, as]; game.marbles.push(ps, as);
+  game.roundCaps = [0, 0]; game.capturedRound = [[], []];
+  game.settleTimer = 0; game.ai = null;
+  game.current = (game.roundNum % 2 === 1) ? 0 : 1;   // alternate opening player
+  game.screen = 'play'; game.phase = 'aim'; game.paused = false;
+  hideOverlays(); $('hud').classList.add('on'); $('btns').style.display = 'flex';
+  document.querySelector('#pouchP .pname').textContent = pname(0);
+  document.querySelector('#pouchA .pname').textContent = pname(1);
+  updateHUD();
+  if (game.settings.mode === '2p') showCallout(`${pname(game.current)} starts!`);
+  else showCallout(game.current === 0 ? 'Your turn!' : 'AI starts…');
+  if (game.current === 1 && game.settings.mode !== '2p') startAIThink();
+}
+function fireShot(sh, vx, vy) {
+  sh.vx = vx; sh.vy = vy;
+  game.phase = 'moving'; game.settleTimer = 0;
+  sfx.flick(); updateHUD();
+}
+function resolveShot() {
+  let captured = 0, bestRare = -1, bestName = '';
+  for (const m of game.marbles) {
+    if (m.type !== 'target') continue;
+    if (distC(m) > CIRCLE.r + m.r) {              // fully outside the chalk line
+      m.alive = false; captured++;
+      game.roundCaps[game.current] += m.val; game.totalCaps[game.current] += m.val;
+      game.capturedRound[game.current].push(m); game.capturedAll[game.current].push(m);
+      if (m.rarity > bestRare) { bestRare = m.rarity; bestName = m.tname; }
+      if (m.rarity >= 4) burst(m.x, m.y, ['#ff5ca8', '#ffd54f', '#ffffff', '#ffab40'], 72, true);
+      else if (m.rarity >= 3) burst(m.x, m.y, ['#ffd54f', '#fff3c0', '#ffab40', '#ffffff'], 46, true);
+      else if (m.rarity === 2) burst(m.x, m.y, [m.rcol, '#ffffff'], 18, false);
+      game.fx.push({ x: m.x, y: m.y, r: m.r, sprite: m.sprite, t: 0 });
+      game.floats.push({ x: m.x, y: m.y, t: 0,
+        txt: m.rarity >= 1 ? `${m.tname} +${m.val}` : '+1',
+        col: m.rarity >= 1 ? m.rcol : (game.current === 0 ? '#7ff0ff' : '#ffb3b3') });
+    }
+  }
+  game.marbles = game.marbles.filter(m => m.alive);
+  if (captured > 0) { sfx.pop(); if (bestRare >= 2) sfx.rare(); }
+  updateHUD();
+  if (!game.marbles.some(m => m.type === 'target')) { endRound(); return; }
+  const sh = game.shooters[game.current];
+  const bonus = captured > 0 && distC(sh) < CIRCLE.r; // captured AND enek stayed inside
+  const rareMsg = bestRare >= 2 ? `${bestName}! ✨ ` : '';
+  const twoP = game.settings.mode === '2p';
+  if (bonus) {
+    showCallout(rareMsg + (twoP || game.current === 0 ? 'Bonus shot!' : 'AI bonus shot!'));
+  } else {
+    game.current ^= 1;
+    showCallout(bestRare >= 2 ? rareMsg.trim()
+      : twoP ? `${pname(game.current)}'s turn!`
+      : (game.current === 0 ? 'Your turn!' : "AI's turn"));
+  }
+  game.phase = 'aim'; updateHUD();
+  if (game.current === 1 && !twoP) startAIThink();
+}
+function endRound() {
+  game.phase = 'over';
+  const [p, a] = game.roundCaps;
+  const twoP = game.settings.mode === '2p';
+  if (!twoP) game.stats.best = Math.max(game.stats.best, p);
+  let title;
+  if (p > a) { game.roundWins[0]++; title = twoP ? '🎉 Player 1 wins the round!' : '🎉 You win the round!'; sfx.jingle(); }
+  else if (a > p) { game.roundWins[1]++; title = twoP ? '🎉 Player 2 wins the round!' : 'AI wins the round'; twoP ? sfx.jingle() : sfx.sad(); }
+  else title = 'Round tied!';
+  const done = game.roundWins[0] >= 2 || game.roundWins[1] >= 2 || game.roundNum >= 7;
+  updateHUD(); save();
+  if (done) { showMatchEnd(); return; }
+  $('roundTitle').textContent = title;
+  $('roundScore').textContent = `${p} — ${a}`;
+  $('roundPips').textContent = pips();
+  $('roundOv').classList.remove('hidden');
+}
+function showMatchEnd() {
+  const twoP = game.settings.mode === '2p';
+  let [wp, wa] = game.roundWins;
+  if (wp === wa) { wp = game.totalCaps[0]; wa = game.totalCaps[1]; } // 7-round safety tiebreak
+  const win = wp > wa, draw = wp === wa;
+  if (!twoP) { game.stats.matches++; if (win) game.stats.wins++; save(); updateMenuStats(); }
+  if (win || (twoP && !draw)) sfx.jingle(); else if (draw) sfx.pop(); else sfx.sad();
+  $('matchTitle').textContent = draw ? "It's a draw!"
+    : twoP ? `🏆 ${wp > wa ? 'Player 1' : 'Player 2'} wins the match!`
+    : (win ? '🎉 You win the match!' : '😢 AI wins the match');
+  $('matchScore').textContent = `${game.roundWins[0]} — ${game.roundWins[1]}`;
+  $('matchSub').textContent = `Points captured: ${game.totalCaps[0]} — ${game.totalCaps[1]}`;
+  // trophy showcase: every marble each player captured, rarest first
+  for (const [lbl, box, i] of [['showLblP', 'showP', 0], ['showLblA', 'showA', 1]]) {
+    const list = game.capturedAll[i].slice().sort((a, b) => b.rarity - a.rarity || b.val - a.val);
+    $(lbl).textContent = `${pname(i)} — ${list.length} marble${list.length === 1 ? '' : 's'} · ${game.totalCaps[i]} pts`;
+    const el = $(box); el.innerHTML = '';
+    for (const m of list) {
+      const s = m.sprite, px = Math.round(20 * m.r / MARBLE_R);
+      s.style.width = s.style.height = px + 'px';
+      if (m.rarity >= 2) s.style.filter = `drop-shadow(0 0 3px ${m.rcol})`;
+      el.appendChild(s);
+    }
+    if (!list.length) el.innerHTML = '<span style="font-size:11px;opacity:.6">— nothing captured —</span>';
+  }
+  $('matchOv').classList.remove('hidden');
+}
+
+/* ============================== AI OPPONENT ============================== */
+function startAIThink() {
+  const sh = game.shooters[1];
+  const D = DIFF[game.settings.difficulty];
+  const targets = game.marbles.filter(m => m.type === 'target')
+    .sort((a, b) => Math.hypot(a.x - sh.x, a.y - sh.y) - Math.hypot(b.x - sh.x, b.y - sh.y));
+  const chosen = (D.shuffle ? shuffle(targets.slice()) : targets).slice(0, D.targets);
+  const cands = [];
+  for (const t of chosen) {
+    // ghost-ball aim: hit the target so it departs radially out of the circle
+    let px = t.x - CIRCLE.x, py = t.y - CIRCLE.y, pl = Math.hypot(px, py);
+    if (pl < 1) { px = t.x - sh.x; py = t.y - sh.y; pl = Math.hypot(px, py) || 1; }
+    px /= pl; py /= pl;
+    const gx = t.x - px * (t.r + sh.r), gy = t.y - py * (t.r + sh.r);
+    const base = Math.atan2(gy - sh.y, gx - sh.x);
+    for (const off of D.angles) for (const pw of D.powers)
+      cands.push({ angle: base + off, speed: MIN_SPEED + (MAX_SPEED - MIN_SPEED) * pw });
+  }
+  if (!cands.length) cands.push({ angle: Math.atan2(CIRCLE.y - sh.y, CIRCLE.x - sh.x), speed: MAX_SPEED * 0.8 });
+  game.ai = { t: 0, delay: 0.8 + rand(0.7), cands, idx: 0, best: cands[0], bestScore: -1e9, fired: false };
+}
+// headless rollout of one candidate shot on a copy of the world
+function simulateShot(angle, speed) {
+  const si = game.marbles.indexOf(game.shooters[1]);
+  const ms = game.marbles.map(m => ({ x: m.x, y: m.y, vx: 0, vy: 0, r: m.r, m: m.m, type: m.type, val: m.val || 0, alive: true }));
+  ms[si].vx = Math.cos(angle) * speed; ms[si].vy = Math.sin(angle) * speed;
+  for (let i = 0; i < 300; i++) { stepWorld(ms, 1 / 60, false, 2); if (allStopped(ms)) break; }
+  let caps = 0, capsVal = 0, spread = 0;
+  for (const m of ms) {
+    if (m.type !== 'target') continue;
+    const d = Math.hypot(m.x - CIRCLE.x, m.y - CIRCLE.y);
+    if (d > CIRCLE.r + m.r) { caps++; capsVal += m.val; } else spread += d;
+  }
+  const sh = ms[si], shIn = Math.hypot(sh.x - CIRCLE.x, sh.y - CIRCLE.y) < CIRCLE.r;
+  // value-weighted: the AI hunts rare marbles harder, just like the kids did
+  return capsVal * 8 + caps * 2 + (caps > 0 && shIn ? 4 : 0) + spread * 0.004 + rand(0.01);
+}
+function tickAI(dt) {
+  const ai = game.ai; if (!ai) return;
+  ai.t += dt;
+  let budget = 2;  // spread rollouts over frames — no hitching while AI "thinks"
+  while (ai.idx < ai.cands.length && budget-- > 0) {
+    const c = ai.cands[ai.idx++];
+    const s = simulateShot(c.angle, c.speed);
+    if (s > ai.bestScore) { ai.bestScore = s; ai.best = c; }
+  }
+  if (ai.idx >= ai.cands.length && ai.t >= ai.delay && !ai.fired) {
+    ai.fired = true;
+    const D = DIFF[game.settings.difficulty];
+    const a = ai.best.angle + gauss() * D.aimErr;                       // human-like aim error
+    const sp = clamp(ai.best.speed * (1 + gauss() * D.powErr), MIN_SPEED, MAX_SPEED);
+    game.ai = null;
+    fireShot(game.shooters[1], Math.cos(a) * sp, Math.sin(a) * sp);
+  }
+}
+
+/* ============================== INPUT (mouse + touch via pointer events) ============================== */
+const cv = $('cv'), ctx = cv.getContext('2d');
+const view = { s: 1, ox: 0, oy: 0, dpr: 1 };
+function resize() {
+  view.dpr = window.devicePixelRatio || 1;
+  const cw = innerWidth, ch = innerHeight;
+  cv.width = cw * view.dpr; cv.height = ch * view.dpr;
+  view.s = Math.min(cw / W, ch / H);
+  view.ox = (cw - W * view.s) / 2; view.oy = (ch - H * view.s) / 2;
+}
+addEventListener('resize', resize); addEventListener('orientationchange', resize); resize();
+const toWorld = e => ({ x: (e.clientX - view.ox) / view.s, y: (e.clientY - view.oy) / view.s });
+
+const drag = { on: false, x: 0, y: 0 };
+const isHumanTurn = () => game.settings.mode === '2p' || game.current === 0;
+const canAim = () => game.screen === 'play' && !game.paused && game.phase === 'aim' && isHumanTurn();
+cv.addEventListener('pointerdown', e => {
+  audio();                                        // unlock sound on first gesture
+  if (!canAim()) return;
+  const p = toWorld(e), sh = game.shooters[game.current];
+  if (Math.hypot(p.x - sh.x, p.y - sh.y) < Math.max(64, sh.r * 3)) {
+    drag.on = true; drag.x = p.x; drag.y = p.y;
+    cv.setPointerCapture(e.pointerId);
+  }
+});
+cv.addEventListener('pointermove', e => { if (drag.on) { const p = toWorld(e); drag.x = p.x; drag.y = p.y; } });
+function endDrag(e) {
+  if (!drag.on) return;
+  drag.on = false;
+  if (!canAim()) return;
+  const sh = game.shooters[game.current];
+  const dx = sh.x - drag.x, dy = sh.y - drag.y, len = Math.hypot(dx, dy);
+  if (len < 26) return;                           // cancel zone — released on the enek
+  const pow = clamp(len / MAX_DRAG, 0, 1);
+  const sp = MIN_SPEED + (MAX_SPEED - MIN_SPEED) * pow;
+  fireShot(sh, dx / len * sp, dy / len * sp);
+}
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', () => { drag.on = false; });
+cv.addEventListener('contextmenu', e => e.preventDefault());
+addEventListener('keydown', e => {
+  if (e.key === 'Escape' && game.screen === 'play' && game.phase !== 'over') togglePause();
+  if (e.key === 'm' || e.key === 'M') toggleMute();
+});
+
+/* ============================== RENDERING ============================== */
+function dottedLine(x0, y0, ang, len, t) {
+  const n = Math.max(3, (len / 21) | 0);
+  for (let i = 1; i <= n; i++) {
+    const d = i / n * len;
+    ctx.beginPath();
+    ctx.arc(x0 + Math.cos(ang) * d, y0 + Math.sin(ang) * d, 4.4 - i / n * 2.2, 0, 7);
+    ctx.fillStyle = `rgba(255,255,255,${0.85 - i / n * 0.45})`; ctx.fill();
+  }
+  const hx = x0 + Math.cos(ang) * (len + 12), hy = y0 + Math.sin(ang) * (len + 12);
+  ctx.save(); ctx.translate(hx, hy); ctx.rotate(ang);
+  ctx.beginPath(); ctx.moveTo(8, 0); ctx.lineTo(-6, -7); ctx.lineTo(-6, 7); ctx.closePath();
+  ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fill(); ctx.restore();
+}
+function render(t) {
+  const dpr = view.dpr;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#5d3f26'; ctx.fillRect(0, 0, cv.width, cv.height);
+  const shx = game.shake ? rand(-game.shake, game.shake) : 0;
+  const shy = game.shake ? rand(-game.shake, game.shake) : 0;
+  ctx.setTransform(dpr * view.s, 0, 0, dpr * view.s, dpr * (view.ox + shx * view.s), dpr * (view.oy + shy * view.s));
+  if (bg.width) ctx.drawImage(bg, 0, 0, W, H);
+
+  // shadows
+  for (const m of game.marbles) {
+    ctx.beginPath(); ctx.ellipse(m.x + 3, m.y + 5, m.r * 1.02, m.r * 0.88, 0, 0, 7);
+    ctx.fillStyle = 'rgba(48,28,10,.32)'; ctx.fill();
+  }
+  // active enek pulse ring
+  if (game.screen === 'play' && game.phase === 'aim') {
+    const sh = game.shooters[game.current];
+    if (sh) {
+      ctx.beginPath(); ctx.arc(sh.x, sh.y, sh.r + 8 + Math.sin(t * 4) * 2.4, 0, 7);
+      ctx.strokeStyle = game.current === 0 ? 'rgba(255,225,130,.85)' : 'rgba(255,140,120,.7)';
+      ctx.lineWidth = 3; ctx.setLineDash([7, 8]); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+  // rarity halo under Epic/Legendary marbles so they're spottable in the pack
+  for (const m of game.marbles) {
+    if (!(m.rarity >= 2)) continue;
+    const pulse = 0.22 + Math.sin(t * 3 + m.rot) * 0.08;
+    const g = ctx.createRadialGradient(m.x, m.y, m.r * .5, m.x, m.y, m.r * 2);
+    g.addColorStop(0, mix(m.rcol, 'w', 0, pulse)); g.addColorStop(1, mix(m.rcol, 'w', 0, 0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(m.x, m.y, m.r * 2, 0, 7); ctx.fill();
+  }
+  // marbles (sprite rotates as it rolls; shine stays put like real light)
+  for (const m of game.marbles) {
+    ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(m.rot);
+    ctx.drawImage(m.sprite, -m.r, -m.r, m.r * 2, m.r * 2);
+    ctx.restore();
+    const g = ctx.createRadialGradient(m.x - m.r * .35, m.y - m.r * .42, 0, m.x - m.r * .35, m.y - m.r * .42, m.r * .5);
+    g.addColorStop(0, 'rgba(255,255,255,.85)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(m.x - m.r * .35, m.y - m.r * .42, m.r * .5, 0, 7); ctx.fill();
+  }
+  // player aim: slingshot dots + power arc + cancel ✕
+  if (drag.on && canAim()) {
+    const sh = game.shooters[game.current];
+    const dx = sh.x - drag.x, dy = sh.y - drag.y, len = Math.hypot(dx, dy);
+    if (len < 26) {
+      ctx.font = 'bold 30px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(255,90,80,.95)'; ctx.fillText('✕', sh.x, sh.y - sh.r - 16);
+    } else {
+      const pow = clamp(len / MAX_DRAG, 0, 1), ang = Math.atan2(dy, dx);
+      dottedLine(sh.x, sh.y, ang, 55 + pow * 235, t);
+      ctx.beginPath(); ctx.arc(sh.x, sh.y, sh.r + 11, -Math.PI / 2, -Math.PI / 2 + pow * Math.PI * 2);
+      ctx.strokeStyle = `hsl(${115 - pow * 115},85%,55%)`; ctx.lineWidth = 5.5; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(sh.x, sh.y); ctx.lineTo(drag.x, drag.y); // the pull-back band
+      ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = 3; ctx.setLineDash([4, 7]); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+  // AI visible aim line while it thinks
+  if (game.ai && game.ai.best && game.phase === 'aim') {
+    const sh = game.shooters[1];
+    dottedLine(sh.x, sh.y, game.ai.best.angle + Math.sin(t * 9) * 0.06, 110, t);
+  }
+  // capture ghosts + floating "+1"
+  for (const f of game.fx) {
+    const k = f.t / 0.5;
+    ctx.globalAlpha = 1 - k;
+    const r = f.r * (1 + k * 1.1);
+    ctx.drawImage(f.sprite, f.x - r, f.y - r - k * 26, r * 2, r * 2);
+    ctx.globalAlpha = 1;
+  }
+  // confetti
+  for (const p of game.parts) {
+    ctx.save(); ctx.globalAlpha = 1 - p.t / p.life;
+    ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+    ctx.fillStyle = p.col; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    ctx.restore();
+  }
+  ctx.textAlign = 'center';
+  for (const f of game.floats) {
+    const k = f.t / 1.1;
+    ctx.globalAlpha = 1 - k;
+    ctx.font = "bold 30px 'Segoe Print','Comic Sans MS',cursive";
+    ctx.strokeStyle = 'rgba(40,20,5,.8)'; ctx.lineWidth = 5;
+    ctx.strokeText(f.txt, f.x, f.y - k * 55);
+    ctx.fillStyle = f.col; ctx.fillText(f.txt, f.x, f.y - k * 55);
+    ctx.globalAlpha = 1;
+  }
+}
+
+/* ============================== UI WIRING ============================== */
+function hideOverlays() { for (const id of ['menu', 'pauseOv', 'roundOv', 'matchOv']) $(id).classList.add('hidden'); }
+function pips() {
+  const p = w => '●'.repeat(w) + '○'.repeat(Math.max(0, 2 - w));
+  return `${p(game.roundWins[0])} · ${p(game.roundWins[1])}`;
+}
+function updateHUD() {
+  const caps = game.settings.kanli ? game.totalCaps : game.roundCaps;
+  const lists = game.settings.kanli ? game.capturedAll : game.capturedRound;
+  $('countP').textContent = caps[0]; $('countA').textContent = caps[1];
+  for (const [el, list] of [[$('dotsP'), lists[0]], [$('dotsA'), lists[1]]]) {
+    el.innerHTML = '';
+    for (const m of list.slice(0, 12)) {          // each dot is the actual captured marble
+      const d = document.createElement('span'); d.className = 'dot';
+      d.style.background = m.color;
+      if (m.rarity >= 2) d.style.boxShadow = `0 0 5px 1.5px ${m.rcol}`;
+      el.appendChild(d);
+    }
+    if (list.length > 12) { const s = document.createElement('span'); s.className = 'more'; s.textContent = `+${list.length - 12}`; el.appendChild(s); }
+  }
+  $('roundInfo').textContent = `Round ${game.roundNum} · first to 2`;
+  $('pips').textContent = pips();
+  $('turnBanner').textContent =
+    game.phase === 'moving' ? '…rolling…' :
+    game.phase === 'over' ? '' :
+    game.settings.mode === '2p' ? `${pname(game.current)} — flick the Enek!` :
+    game.current === 0 ? 'Your turn — flick the Enek!' : 'AI is thinking…';
+  $('pouchP').classList.toggle('turn', game.current === 0 && game.phase === 'aim');
+  $('pouchA').classList.toggle('turn', game.current === 1 && game.phase === 'aim');
+  $('kanliChip').classList.toggle('on', game.settings.kanli);
+}
+let calloutTimer = null;
+function showCallout(txt) {
+  const el = $('callout');
+  el.textContent = txt; el.classList.remove('pop');
+  void el.offsetWidth;                           // restart CSS animation
+  el.classList.add('pop');
+}
+function updateMenuStats() {
+  $('stats').textContent =
+    `Matches won: ${game.stats.wins}/${game.stats.matches} · Best round haul: ${game.stats.best} pts`;
+}
+// marble guide on the start screen: one live sprite per model
+(function buildGuide() {
+  const wrap = $('guide');
+  const sample = { kedigozu: '#e74c3c', sutlu: '#9b59b6', camgoz: '#c98a2b', dobi: '#2e7d32',
+                   boncuk: '#f1c40f', cincik: '#fd79a8' };
+  for (const t of TYPES) {
+    const d = document.createElement('div'); d.className = 'gitem';
+    const sp = makeSprite(14, t.id, sample[t.id] || TYPE_COLOR[t.id] || '#3498db');
+    const px = Math.round(28 * (t.r || MARBLE_R) / MARBLE_R);  // shown at true relative size
+    sp.style.width = sp.style.height = px + 'px';
+    d.appendChild(sp);
+    const n = document.createElement('div'); n.className = 'gname'; n.textContent = t.name;
+    d.appendChild(n);
+    const tag = document.createElement('span'); tag.className = 'gtag';
+    tag.style.background = RARITY[t.rarity].col;
+    tag.textContent = `${RARITY[t.rarity].name} · ${t.val || RARITY[t.rarity].val} pt`;
+    d.appendChild(tag);
+    wrap.appendChild(d);
+  }
+})();
+function togglePause() {
+  if (game.screen !== 'play') return;
+  game.paused = !game.paused;
+  $('pauseOv').classList.toggle('hidden', !game.paused);
+}
+function toggleMute() {
+  game.settings.muted = !game.settings.muted;
+  $('btnMute').textContent = game.settings.muted ? '🔇' : '🔊';
+  save();
+}
+$('btnStart').onclick = () => { audio(); startMatch(); };
+$('btnPause').onclick = togglePause;
+$('btnResume').onclick = togglePause;
+$('btnRestartRound').onclick = () => { game.paused = false; startRound(); };
+$('btnQuit').onclick = () => {
+  game.paused = false; game.screen = 'menu'; game.phase = 'idle';
+  hideOverlays(); $('menu').classList.remove('hidden');
+  $('hud').classList.remove('on'); $('btns').style.display = 'none';
+};
+$('btnNextRound').onclick = () => { game.roundNum++; startRound(); };
+$('btnRematch').onclick = () => startMatch();
+$('btnMenu').onclick = () => $('btnQuit').onclick();
+$('btnMute').onclick = toggleMute;
+document.querySelectorAll('#diffSeg button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#diffSeg button').forEach(x => x.classList.remove('sel'));
+  b.classList.add('sel'); game.settings.difficulty = b.dataset.d; save();
+});
+function dimDiff() {  // difficulty only matters against the AI
+  const o = game.settings.mode === '2p' ? .35 : 1;
+  $('diffLbl').style.opacity = o; $('diffSeg').style.opacity = o;
+}
+document.querySelectorAll('#modeSeg button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#modeSeg button').forEach(x => x.classList.remove('sel'));
+  b.classList.add('sel'); game.settings.mode = b.dataset.m; save(); dimDiff();
+});
+$('tglKanli').onclick = () => {
+  game.settings.kanli = !game.settings.kanli;
+  $('tglKanli').classList.toggle('on', game.settings.kanli); save();
+};
+// restore saved settings into the UI
+document.querySelectorAll('#diffSeg button').forEach(b =>
+  b.classList.toggle('sel', b.dataset.d === game.settings.difficulty));
+if (!['ai', '2p'].includes(game.settings.mode)) game.settings.mode = 'ai';
+document.querySelectorAll('#modeSeg button').forEach(b =>
+  b.classList.toggle('sel', b.dataset.m === game.settings.mode));
+dimDiff();
+$('tglKanli').classList.toggle('on', game.settings.kanli);
+$('btnMute').textContent = game.settings.muted ? '🔇' : '🔊';
+updateMenuStats();
+
+/* ============================== MAIN LOOP (fixed timestep) ============================== */
+function update(dt) {
+  game.time += dt;
+  game.shake *= Math.pow(0.0005, dt);
+  if (game.shake < 0.15) game.shake = 0;
+  for (const f of game.fx) f.t += dt;
+  for (const f of game.floats) f.t += dt;
+  for (const p of game.parts) {
+    p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt;
+    p.vx *= (1 - 2.5 * dt); p.vy *= (1 - 2.5 * dt); p.rot += p.vr * dt;
+  }
+  game.fx = game.fx.filter(f => f.t < 0.5);
+  game.floats = game.floats.filter(f => f.t < 1.1);
+  game.parts = game.parts.filter(p => p.t < p.life);
+  if (game.screen !== 'play' || game.paused) return;
+  if (game.phase === 'moving') {
+    stepWorld(game.marbles, dt, true);
+    if (allStopped(game.marbles)) {
+      game.settleTimer += dt;
+      if (game.settleTimer > 0.25) { game.settleTimer = 0; resolveShot(); }
+    } else game.settleTimer = 0;
+  } else if (game.phase === 'aim' && game.current === 1) {
+    tickAI(dt);
+  }
+}
+// menu backdrop: a still-life scatter behind the start screen
+makeBackground(); scatterTargets();
+
+let last = performance.now(), acc = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  let dt = (now - last) / 1000; last = now;
+  if (dt > 0.1) dt = 0.1;
+  acc += dt; let n = 0;
+  while (acc >= STEP && n++ < 10) { update(STEP); acc -= STEP; }
+  render(now / 1000);
+}
+requestAnimationFrame(frame);
+
+// small debug/testing hook (harmless in production)
+window.__misket = { game, view, CIRCLE };
+</script>
+</body>
+</html>
