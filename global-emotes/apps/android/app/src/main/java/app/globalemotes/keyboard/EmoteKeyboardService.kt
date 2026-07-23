@@ -1,5 +1,6 @@
 package app.globalemotes.keyboard
 
+import app.globalemotes.R
 import android.inputmethodservice.InputMethodService
 import android.view.View
 import android.widget.Toast
