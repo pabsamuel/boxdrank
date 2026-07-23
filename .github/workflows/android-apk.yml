@@ -13,6 +13,8 @@ on:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: global-emotes/apps/android
@@ -44,3 +46,18 @@ jobs:
           name: global-emotes-apk
           path: global-emotes/apps/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      # Publish a clean, direct-download APK as a rolling GitHub Release so it
+      # can be installed on a phone from the browser without unzipping an
+      # Actions artifact. Only on main.
+      - name: Publish APK to GitHub Release
+        if: github.ref == 'refs/heads/main'
+        working-directory: ${{ github.workspace }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp global-emotes/apps/android/app/build/outputs/apk/debug/app-debug.apk global-emotes.apk
+          gh release delete android-latest --yes --cleanup-tag || true
+          gh release create android-latest global-emotes.apk \
+            --title "Global Emotes keyboard — latest build" \
+            --notes "Sideloadable debug APK. Install it, then enable the **Global Emotes** keyboard in Android Settings → System → Languages & input → On-screen keyboard."
