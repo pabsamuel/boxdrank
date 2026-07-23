@@ -64,9 +64,17 @@ const FORMAT_MIME: Record<DetectedFormat, string> = {
   gif: 'image/gif',
 };
 
+export interface AssetLimitOverrides {
+  maxUploadBytes?: number;
+  maxDimension?: number;
+  minDimension?: number;
+  maxAnimationFrames?: number;
+  maxAnimationDurationMs?: number;
+}
+
 export interface ValidateOptions {
   claimedMimeType?: string;
-  limits?: Partial<typeof ASSET_LIMITS>;
+  limits?: AssetLimitOverrides;
 }
 
 export async function validateAsset(
