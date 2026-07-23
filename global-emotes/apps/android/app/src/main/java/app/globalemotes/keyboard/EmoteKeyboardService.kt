@@ -23,6 +23,9 @@ class EmoteKeyboardService : InputMethodService() {
     override fun onCreate() {
         super.onCreate()
         repository = PackRepository(applicationContext)
+        // Standalone build: make sure the starter pack exists even if the host
+        // app hasn't been opened yet.
+        repository.ensureSeed()
     }
 
     override fun onCreateInputView(): View {

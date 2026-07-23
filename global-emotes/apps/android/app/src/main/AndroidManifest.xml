@@ -5,7 +5,7 @@
 
     <application
         android:label="Global Emotes"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/ic_launcher"
         android:allowBackup="false"
         android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
 

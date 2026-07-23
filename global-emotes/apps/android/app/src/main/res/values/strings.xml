@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="setup_title">Set up your emote keyboard</string>
+    <string name="add_emote">Add your own emote</string>
     <string name="enable_keyboard">1. Enable Global Emotes keyboard</string>
-    <string name="switch_keyboard">2. Switch to it</string>
+    <string name="switch_keyboard">2. Switch to it (tap 🌐 while typing)</string>
     <string name="emote_not_cached">Emote not synced yet — open the app to sync</string>
     <string name="copied_paste_to_send">Copied — paste to send</string>
     <string name="keyboard_privacy_explainer">This keyboard never reads, stores, or sends what you type. It shows your unlocked emote packs from an offline cache and inserts the emote you tap. Some apps accept emotes directly; in others we copy the emote so you can paste it.</string>
