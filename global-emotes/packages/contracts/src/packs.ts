@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { slugSchema } from './common.js';
-import { entitlementRuleKindSchema } from './entitlements.js';
+import { slugSchema } from './common';
+import { entitlementRuleKindSchema } from './entitlements';
 
 export const packVisibilitySchema = z.enum(['draft', 'published', 'unlisted', 'suspended']);
 export type PackVisibility = z.infer<typeof packVisibilitySchema>;

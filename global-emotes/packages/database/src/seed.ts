@@ -1,5 +1,5 @@
 import { FEATURE_FLAG_DEFAULTS } from '@global-emotes/config';
-import * as schema from './schema/index.js';
+import * as schema from './schema/index';
 
 type AnyDb = {
   insert: (table: unknown) => {

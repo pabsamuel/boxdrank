@@ -1,6 +1,6 @@
 import { loadEnv } from '@global-emotes/config';
-import { createDb } from './index.js';
-import { seed } from './seed.js';
+import { createDb } from './index';
+import { seed } from './seed';
 
 const env = loadEnv();
 const { db, pool } = createDb({ connectionString: env.DATABASE_URL, max: 1 });

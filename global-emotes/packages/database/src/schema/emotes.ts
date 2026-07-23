@@ -9,7 +9,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { creatorProfiles, users } from './identity.js';
+import { creatorProfiles, users } from './identity';
 
 const id = () =>
   uuid('id')

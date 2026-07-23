@@ -8,8 +8,8 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { users } from './identity.js';
-import { emotes } from './emotes.js';
+import { users } from './identity';
+import { emotes } from './emotes';
 
 const id = () =>
   uuid('id')

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
-import * as schema from './schema/index.js';
+import * as schema from './schema/index';
 
 export type TestDb = PgliteDatabase<typeof schema>;
 

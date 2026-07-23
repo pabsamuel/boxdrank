@@ -1,8 +1,8 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { createTestDb, type TestDb } from './testing.js';
-import { seed } from './seed.js';
-import * as schema from './schema/index.js';
+import { createTestDb, type TestDb } from './testing';
+import { seed } from './seed';
+import * as schema from './schema/index';
 
 let db: TestDb;
 let close: () => Promise<void>;

@@ -8,7 +8,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { users } from './identity.js';
+import { users } from './identity';
 
 const id = () =>
   uuid('id')

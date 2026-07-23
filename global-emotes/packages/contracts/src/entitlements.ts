@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { providerIdSchema } from './providers.js';
+import { providerIdSchema } from './providers';
 
 export const entitlementStatusSchema = z.enum([
   'pending',
