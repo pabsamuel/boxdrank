@@ -52,7 +52,12 @@ afterAll(async () => {
 describe('asset processing handler', () => {
   it('processes a queued upload end to end and is idempotent', async () => {
     const png = await sharp({
-      create: { width: 96, height: 96, channels: 4, background: { r: 255, g: 128, b: 0, alpha: 1 } },
+      create: {
+        width: 96,
+        height: 96,
+        channels: 4,
+        background: { r: 255, g: 128, b: 0, alpha: 1 },
+      },
     })
       .png()
       .toBuffer();
@@ -87,7 +92,10 @@ describe('asset processing handler', () => {
     expect(await deps.storage.get(deps.env.S3_BUCKET_QUARANTINE, 'incoming/test/e1')).toBeNull();
 
     // Re-running is a no-op, not a duplicate version.
-    const second = await handleAssetProcessing(deps, { emoteId, quarantineKey: 'incoming/test/e1' });
+    const second = await handleAssetProcessing(deps, {
+      emoteId,
+      quarantineKey: 'incoming/test/e1',
+    });
     expect(second.status).toBe('skipped');
   });
 
@@ -109,7 +117,10 @@ describe('asset processing handler', () => {
       .returning();
     const emoteId = emoteRows[0]!.id;
     await db.insert(schema.assetProcessingJobs).values({ emoteId, status: 'queued' });
-    const result = await handleAssetProcessing(deps, { emoteId, quarantineKey: 'incoming/test/bad' });
+    const result = await handleAssetProcessing(deps, {
+      emoteId,
+      quarantineKey: 'incoming/test/bad',
+    });
     expect(result.status).toBe('failed');
     const emote = await db.select().from(schema.emotes).where(eq(schema.emotes.id, emoteId));
     expect(emote[0]!.status).toBe('rejected');
@@ -155,9 +166,7 @@ describe('entitlement sweep handler', () => {
       .where(eq(schema.entitlements.id, lapsedActive[0]!.id));
     expect(activeRow[0]!.status).toBe('grace');
     // Grace anchors at expiresAt + 72h (mock provider default).
-    expect(activeRow[0]!.graceUntil!.getTime()).toBe(
-      NOW.getTime() - 3_600_000 + 72 * 3_600_000,
-    );
+    expect(activeRow[0]!.graceUntil!.getTime()).toBe(NOW.getTime() - 3_600_000 + 72 * 3_600_000);
 
     const graceRow = await db
       .select()

@@ -51,7 +51,12 @@ export const registerCreatorRoutes: FastifyPluginAsync = async (app) => {
         targetKind: 'creator',
         targetId: profile.id,
       });
-      return { id: profile.id, handle: profile.handle, displayName: profile.displayName, plan: profile.plan };
+      return {
+        id: profile.id,
+        handle: profile.handle,
+        displayName: profile.displayName,
+        plan: profile.plan,
+      };
     },
   );
 
@@ -162,12 +167,7 @@ export async function ownedCreator(
   const rows = await app.ctx.db
     .select()
     .from(schema.creatorProfiles)
-    .where(
-      and(
-        eq(schema.creatorProfiles.id, creatorId),
-        isNull(schema.creatorProfiles.deletedAt),
-      ),
-    )
+    .where(and(eq(schema.creatorProfiles.id, creatorId), isNull(schema.creatorProfiles.deletedAt)))
     .limit(1);
   const profile = rows[0];
   if (!profile) throw notFound('creator profile not found');

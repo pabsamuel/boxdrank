@@ -49,7 +49,10 @@ export function detectFormat(buffer: Buffer): DetectedFormat | null {
     return 'png';
   }
   if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'jpeg';
-  if (buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'WEBP') {
+  if (
+    buffer.subarray(0, 4).toString('ascii') === 'RIFF' &&
+    buffer.subarray(8, 12).toString('ascii') === 'WEBP'
+  ) {
     return 'webp';
   }
   const gifHeader = buffer.subarray(0, 6).toString('ascii');
@@ -120,13 +123,19 @@ export async function validateAsset(
     throw new AssetValidationError('bad_dimensions', `maximum ${limits.maxDimension}px per side`);
   }
   if (frameCount > limits.maxAnimationFrames) {
-    throw new AssetValidationError('too_many_frames', `maximum ${limits.maxAnimationFrames} frames`);
+    throw new AssetValidationError(
+      'too_many_frames',
+      `maximum ${limits.maxAnimationFrames} frames`,
+    );
   }
 
   const delays: number[] = Array.isArray(meta.delay) ? meta.delay : [];
   const durationMs = delays.reduce((total, d) => total + (Number.isFinite(d) ? d : 0), 0);
   if (durationMs > limits.maxAnimationDurationMs) {
-    throw new AssetValidationError('too_long', `maximum ${limits.maxAnimationDurationMs}ms animation`);
+    throw new AssetValidationError(
+      'too_long',
+      `maximum ${limits.maxAnimationDurationMs}ms animation`,
+    );
   }
 
   return {

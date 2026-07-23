@@ -27,7 +27,9 @@ export const registerWebhookRoutes: FastifyPluginAsync = async (app) => {
         const { providerId } = req.params as { providerId: ProviderId };
         const adapter = providers.get(providerId);
         if (!adapter.handleWebhook) {
-          return reply.status(404).send({ error: { code: 'not_found', message: 'no webhook support' } });
+          return reply
+            .status(404)
+            .send({ error: { code: 'not_found', message: 'no webhook support' } });
         }
 
         const events = await adapter.handleWebhook({

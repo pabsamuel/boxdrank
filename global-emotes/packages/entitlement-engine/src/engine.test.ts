@@ -73,7 +73,13 @@ describe('state machine', () => {
 
 describe('decideEntitlement — grants', () => {
   it('creates an active entitlement from positive evidence with no prior state', () => {
-    const d = decideEntitlement({ now: NOW, rule, current: null, evidence: evidence(), graceHours: 72 });
+    const d = decideEntitlement({
+      now: NOW,
+      rule,
+      current: null,
+      evidence: evidence(),
+      graceHours: 72,
+    });
     expect(d).toMatchObject({ action: 'create', status: 'active', tier: '1000' });
   });
 
@@ -212,7 +218,11 @@ describe('decideEntitlement — ordering, duplicates, admin states', () => {
       now: LATER,
       rule,
       current: snapshot({ status: 'revoked' }),
-      evidence: evidence({ kind: 'admin_action', externalRef: 'admin-restore-1', observedAt: LATER }),
+      evidence: evidence({
+        kind: 'admin_action',
+        externalRef: 'admin-restore-1',
+        observedAt: LATER,
+      }),
       graceHours: 72,
     });
     expect(d).toMatchObject({ action: 'transition', to: 'active' });
@@ -223,7 +233,12 @@ describe('decideEntitlement — ordering, duplicates, admin states', () => {
       now: LATER,
       rule,
       current: snapshot(),
-      evidence: evidence({ kind: 'admin_action', active: false, observedAt: LATER, externalRef: 'ban-1' }),
+      evidence: evidence({
+        kind: 'admin_action',
+        active: false,
+        observedAt: LATER,
+        externalRef: 'ban-1',
+      }),
       graceHours: 72,
     });
     expect(d).toMatchObject({ action: 'transition', to: 'revoked' });
@@ -232,11 +247,7 @@ describe('decideEntitlement — ordering, duplicates, admin states', () => {
 
 describe('sweepEntitlement — reconciliation without provider events', () => {
   it('moves active → grace when hard expiry lapses (provider outage tolerance)', () => {
-    const d = sweepEntitlement(
-      NOW,
-      snapshot({ expiresAt: EARLIER }),
-      72,
-    );
+    const d = sweepEntitlement(NOW, snapshot({ expiresAt: EARLIER }), 72);
     expect(d).toMatchObject({ action: 'transition', to: 'grace' });
     // Grace anchors to the expiry, not the sweep time — late sweeps don't extend access.
     expect((d as { graceUntil: Date }).graceUntil.getTime()).toBe(
@@ -274,7 +285,9 @@ describe('rule matching', () => {
   });
 
   it('rejects cross-provider evidence', () => {
-    expect(ruleMatchesEvidence(rule, { ...baseEvidence, providerId: 'discord' as never })).toBe(false);
+    expect(ruleMatchesEvidence(rule, { ...baseEvidence, providerId: 'discord' as never })).toBe(
+      false,
+    );
   });
 
   it('matches discord role rules against guild and role ids', () => {
@@ -297,7 +310,9 @@ describe('rule matching', () => {
     expect(
       ruleMatchesEvidence(discordRule, { ...discordEvidence, raw: { guildId: 'other' } }),
     ).toBe(false);
-    expect(ruleMatchesEvidence(discordRule, { ...discordEvidence, tier: 'role-basic' })).toBe(false);
+    expect(ruleMatchesEvidence(discordRule, { ...discordEvidence, tier: 'role-basic' })).toBe(
+      false,
+    );
   });
 
   it('public rules never match evidence (public needs none)', () => {

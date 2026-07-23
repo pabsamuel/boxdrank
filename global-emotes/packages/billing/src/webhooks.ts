@@ -59,7 +59,11 @@ export function verifyStripeSignature(input: VerifyStripeSignatureInput): void {
 }
 
 /** Test helper mirroring stripe-node's generateTestHeaderString. */
-export function generateStripeTestSignature(rawBody: string, secret: string, at = new Date()): string {
+export function generateStripeTestSignature(
+  rawBody: string,
+  secret: string,
+  at = new Date(),
+): string {
   const t = Math.floor(at.getTime() / 1000);
   const v1 = createHmac('sha256', secret).update(`${t}.${rawBody}`).digest('hex');
   return `t=${t},v1=${v1}`;
@@ -83,8 +87,20 @@ export type BillingAction =
       currentPeriodEnd: Date | null;
       cancelAtPeriodEnd: boolean;
     }
-  | { kind: 'checkout_completed'; stripeCustomerId: string; stripeSubscriptionId: string | null; clientReferenceId: string | null }
-  | { kind: 'invoice_recorded'; stripeInvoiceId: string; amountDue: number; currency: string; status: string; stripeSubscriptionId: string | null }
+  | {
+      kind: 'checkout_completed';
+      stripeCustomerId: string;
+      stripeSubscriptionId: string | null;
+      clientReferenceId: string | null;
+    }
+  | {
+      kind: 'invoice_recorded';
+      stripeInvoiceId: string;
+      amountDue: number;
+      currency: string;
+      status: string;
+      stripeSubscriptionId: string | null;
+    }
   | { kind: 'payment_failed'; stripeCustomerId: string; stripeSubscriptionId: string | null }
   | { kind: 'ignored'; reason: string };
 
@@ -96,7 +112,11 @@ export function normalizeStripeEvent(event: StripeEventLike): BillingAction {
     case 'customer.subscription.updated':
     case 'customer.subscription.deleted': {
       const items = object['items'] as
-        | { data?: Array<{ price?: { lookup_key?: string | null; metadata?: Record<string, string> } }> }
+        | {
+            data?: Array<{
+              price?: { lookup_key?: string | null; metadata?: Record<string, string> };
+            }>;
+          }
         | undefined;
       const price = items?.data?.[0]?.price;
       const productKey = price?.lookup_key ?? price?.metadata?.['product_key'] ?? null;
@@ -105,7 +125,8 @@ export function normalizeStripeEvent(event: StripeEventLike): BillingAction {
         kind: 'subscription_sync',
         stripeSubscriptionId: String(object['id']),
         stripeCustomerId: String(object['customer']),
-        status: event.type === 'customer.subscription.deleted' ? 'canceled' : String(object['status']),
+        status:
+          event.type === 'customer.subscription.deleted' ? 'canceled' : String(object['status']),
         productKey,
         currentPeriodEnd: typeof periodEnd === 'number' ? new Date(periodEnd * 1000) : null,
         cancelAtPeriodEnd: Boolean(object['cancel_at_period_end']),
@@ -116,7 +137,9 @@ export function normalizeStripeEvent(event: StripeEventLike): BillingAction {
         kind: 'checkout_completed',
         stripeCustomerId: String(object['customer']),
         stripeSubscriptionId: object['subscription'] ? String(object['subscription']) : null,
-        clientReferenceId: object['client_reference_id'] ? String(object['client_reference_id']) : null,
+        clientReferenceId: object['client_reference_id']
+          ? String(object['client_reference_id'])
+          : null,
       };
     case 'invoice.paid':
     case 'invoice.payment_succeeded':

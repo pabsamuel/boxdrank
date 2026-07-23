@@ -64,8 +64,16 @@ async function main(): Promise<void> {
 
   // Repeatable schedules.
   const maintenance = new Queue('maintenance', { connection });
-  await maintenance.upsertJobScheduler('entitlement-sweep', { every: 15 * 60_000 }, { name: 'entitlement-sweep' });
-  await maintenance.upsertJobScheduler('token-refresh', { every: 10 * 60_000 }, { name: 'token-refresh' });
+  await maintenance.upsertJobScheduler(
+    'entitlement-sweep',
+    { every: 15 * 60_000 },
+    { name: 'entitlement-sweep' },
+  );
+  await maintenance.upsertJobScheduler(
+    'token-refresh',
+    { every: 10 * 60_000 },
+    { name: 'token-refresh' },
+  );
   await maintenance.upsertJobScheduler('cleanup', { every: 60 * 60_000 }, { name: 'cleanup' });
 
   log.info('worker started');

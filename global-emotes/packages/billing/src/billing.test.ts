@@ -43,7 +43,12 @@ describe('stripe webhook signatures', () => {
       }),
     ).toThrow(/signature mismatch/);
     expect(() =>
-      verifyStripeSignature({ rawBody: body, signatureHeader: header, secret: 'other', now: () => NOW }),
+      verifyStripeSignature({
+        rawBody: body,
+        signatureHeader: header,
+        secret: 'other',
+        now: () => NOW,
+      }),
     ).toThrow(/signature mismatch/);
   });
 
@@ -115,11 +120,17 @@ describe('plan resolution and enforcement', () => {
       ),
     ).toBe('creator_business');
     expect(
-      resolveCreatorPlan([{ productKey: 'creator_pro', status: 'canceled', currentPeriodEnd: null }], NOW),
+      resolveCreatorPlan(
+        [{ productKey: 'creator_pro', status: 'canceled', currentPeriodEnd: null }],
+        NOW,
+      ),
     ).toBe('creator_free');
     // past_due keeps access during dunning
     expect(
-      resolveCreatorPlan([{ productKey: 'creator_pro', status: 'past_due', currentPeriodEnd: null }], NOW),
+      resolveCreatorPlan(
+        [{ productKey: 'creator_pro', status: 'past_due', currentPeriodEnd: null }],
+        NOW,
+      ),
     ).toBe('creator_pro');
     // expired period ends access even if status lags
     expect(

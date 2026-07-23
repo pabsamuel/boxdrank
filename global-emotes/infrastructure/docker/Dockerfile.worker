@@ -1,0 +1,18 @@
+# Worker container. Build from the monorepo root (global-emotes/):
+#   docker build -f infrastructure/docker/Dockerfile.worker -t globalemotes-worker .
+FROM node:22-alpine AS base
+RUN corepack enable
+WORKDIR /repo
+
+FROM base AS deps
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY apps/worker/package.json apps/worker/
+COPY packages ./packages
+RUN pnpm install --frozen-lockfile --filter @global-emotes/worker...
+
+FROM base AS runtime
+ENV NODE_ENV=production
+COPY --from=deps /repo /repo
+COPY apps/worker ./apps/worker
+USER node
+CMD ["node_modules/.bin/tsx", "apps/worker/src/index.ts"]

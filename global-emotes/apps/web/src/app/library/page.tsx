@@ -133,7 +133,12 @@ export default function LibraryPage() {
             ))}
           </ul>
           {providers.map((p) => (
-            <button key={p.id} className="btn secondary" style={{ marginRight: 8, marginTop: 8 }} onClick={() => connect(p.id)}>
+            <button
+              key={p.id}
+              className="btn secondary"
+              style={{ marginRight: 8, marginTop: 8 }}
+              onClick={() => connect(p.id)}
+            >
               Connect {p.name}
             </button>
           ))}
@@ -161,8 +166,8 @@ export default function LibraryPage() {
         <div className="card">
           <h3>Get the keyboard</h3>
           <p className="muted">
-            Android: rich insertion where supported. iOS: fast copy &amp; share. Never logs what
-            you type.
+            Android: rich insertion where supported. iOS: fast copy &amp; share. Never logs what you
+            type.
           </p>
           <span className="badge">Android beta</span> <span className="badge">iOS beta</span>
         </div>
@@ -187,7 +192,9 @@ export default function LibraryPage() {
               <td>{e.providerId ?? '—'}</td>
               <td>{e.tier ?? '—'}</td>
               <td>
-                <span className={`badge ${e.status === 'active' ? 'ok' : e.status === 'grace' ? 'warn' : ''}`}>
+                <span
+                  className={`badge ${e.status === 'active' ? 'ok' : e.status === 'grace' ? 'warn' : ''}`}
+                >
                   {e.status}
                   {e.status === 'grace' && e.graceUntil
                     ? ` until ${new Date(e.graceUntil).toLocaleDateString()}`

@@ -12,8 +12,8 @@ export default function HomePage() {
           in every chat that matters.
         </h1>
         <p>
-          {BRAND} turns creator memberships into portable, official emote access. Fans connect
-          their accounts, packs unlock automatically, and a fast mobile keyboard puts emotes into
+          {BRAND} turns creator memberships into portable, official emote access. Fans connect their
+          accounts, packs unlock automatically, and a fast mobile keyboard puts emotes into
           supported apps — with honest copy &amp; share fallbacks everywhere else.
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -30,8 +30,8 @@ export default function HomePage() {
         <div className="card">
           <h3>Official, always</h3>
           <p className="muted">
-            Only verified creators publish their own emotes. Membership checks use official
-            platform APIs — never scraping, never passwords.
+            Only verified creators publish their own emotes. Membership checks use official platform
+            APIs — never scraping, never passwords.
           </p>
         </div>
         <div className="card">
@@ -44,8 +44,8 @@ export default function HomePage() {
         <div className="card">
           <h3>A keyboard, not a keylogger</h3>
           <p className="muted">
-            The keyboard never reads, stores, or transmits what you type. Analytics are an
-            allowlist of anonymous product events — enforced in code and CI.
+            The keyboard never reads, stores, or transmits what you type. Analytics are an allowlist
+            of anonymous product events — enforced in code and CI.
           </p>
         </div>
       </section>

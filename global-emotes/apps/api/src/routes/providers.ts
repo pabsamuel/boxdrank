@@ -39,7 +39,12 @@ export const registerProviderRoutes: FastifyPluginAsync = async (app) => {
 
   app.get(
     '/providers/:providerId/connect',
-    { schema: { params: providerIdParam, querystring: z.object({ role: z.enum(['fan', 'creator']).default('fan') }) } },
+    {
+      schema: {
+        params: providerIdParam,
+        querystring: z.object({ role: z.enum(['fan', 'creator']).default('fan') }),
+      },
+    },
     async (req, reply) => {
       const user = requireUser(req);
       const { providerId } = req.params as { providerId: ProviderId };

@@ -44,7 +44,9 @@ export async function providerFetch<T>(
     if (res.status === 403) throw new ProviderError('permission_denied', 'insufficient scope');
     if (res.status === 404) throw new ProviderError('not_found', `not found: ${url}`);
     if (res.status === 429) {
-      const retryAfter = Number(res.headers.get('retry-after') ?? res.headers.get('ratelimit-reset') ?? 1);
+      const retryAfter = Number(
+        res.headers.get('retry-after') ?? res.headers.get('ratelimit-reset') ?? 1,
+      );
       lastError = new ProviderError('rate_limited', 'rate limited', retryAfter * 1000);
       if (attempt < retries) {
         await sleep(Math.max(retryAfter * 1000, backoffDelay(attempt, options.baseDelayMs)));

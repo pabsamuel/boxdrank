@@ -60,7 +60,9 @@ export function decideEntitlement(input: DecideInput): EngineDecision {
         tier: evidence.tier,
         expiresAt: evidence.expiresAt,
         lastVerifiedAt: evidence.observedAt,
-        reason: tierChanged ? `tier ${current.tier ?? 'none'} -> ${evidence.tier ?? 'none'}` : 'expiry updated',
+        reason: tierChanged
+          ? `tier ${current.tier ?? 'none'} -> ${evidence.tier ?? 'none'}`
+          : 'expiry updated',
       };
     }
     // pending/grace/expired (+ admin restore of revoked/disputed) → active

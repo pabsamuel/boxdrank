@@ -82,7 +82,8 @@ export class DiscordAdapter implements ProviderAdapter {
 
   async getAuthorizationUrl(input: AuthorizationInput): Promise<string> {
     this.assertConfigured();
-    const scopes = input.role === 'creator' ? this.metadata().creatorScopes : this.metadata().fanScopes;
+    const scopes =
+      input.role === 'creator' ? this.metadata().creatorScopes : this.metadata().fanScopes;
     const params = new URLSearchParams({
       client_id: this.options.clientId,
       redirect_uri: input.redirectUri,
@@ -186,7 +187,9 @@ export class DiscordAdapter implements ProviderAdapter {
     return {
       verified: Boolean(match),
       externalAccountId: claimed ?? '',
-      evidence: match ? { guildName: match.name, owner: match.owner } : { reason: 'not_owner_or_manager' },
+      evidence: match
+        ? { guildName: match.name, owner: match.owner }
+        : { reason: 'not_owner_or_manager' },
     };
   }
 

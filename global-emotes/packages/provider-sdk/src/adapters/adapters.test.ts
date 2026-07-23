@@ -93,7 +93,9 @@ describe('TwitchAdapter', () => {
     const fetchFn: FetchFn = async (input) => {
       const url = String(input);
       if (url.includes('broadcaster_id=streamer-yes')) {
-        return jsonResponse({ data: [{ broadcaster_id: 'streamer-yes', tier: '2000', is_gift: false }] });
+        return jsonResponse({
+          data: [{ broadcaster_id: 'streamer-yes', tier: '2000', is_gift: false }],
+        });
       }
       return new Response('not found', { status: 404 });
     };
@@ -120,7 +122,9 @@ describe('TwitchAdapter', () => {
     const messageId = 'msg-1';
     const signature =
       'sha256=' +
-      createHmac('sha256', 'webhook-secret').update(messageId + timestamp + body).digest('hex');
+      createHmac('sha256', 'webhook-secret')
+        .update(messageId + timestamp + body)
+        .digest('hex');
 
     const events = await adapter.handleWebhook({
       headers: {
@@ -158,7 +162,10 @@ describe('TwitchAdapter', () => {
 
     const oldTimestamp = new Date(NOW.getTime() - 11 * 60_000).toISOString();
     const oldSig =
-      'sha256=' + createHmac('sha256', 'webhook-secret').update('m' + oldTimestamp + body).digest('hex');
+      'sha256=' +
+      createHmac('sha256', 'webhook-secret')
+        .update('m' + oldTimestamp + body)
+        .digest('hex');
     await expect(
       adapter.handleWebhook({
         headers: {
@@ -177,7 +184,10 @@ describe('TwitchAdapter', () => {
     const body = JSON.stringify({ challenge: 'pong' });
     const timestamp = NOW.toISOString();
     const sig =
-      'sha256=' + createHmac('sha256', 'webhook-secret').update('m2' + timestamp + body).digest('hex');
+      'sha256=' +
+      createHmac('sha256', 'webhook-secret')
+        .update('m2' + timestamp + body)
+        .digest('hex');
     const events = await adapter.handleWebhook({
       headers: {
         'twitch-eventsub-message-id': 'm2',
@@ -233,13 +243,22 @@ describe('DiscordAdapter', () => {
       ]);
     const adapter = new DiscordAdapter({ ...options, fetchFn });
     await expect(
-      adapter.verifyCreatorOwnership({ context: { accessToken: 't' }, claimedExternalAccountId: 'guild-1' }),
+      adapter.verifyCreatorOwnership({
+        context: { accessToken: 't' },
+        claimedExternalAccountId: 'guild-1',
+      }),
     ).resolves.toMatchObject({ verified: true });
     await expect(
-      adapter.verifyCreatorOwnership({ context: { accessToken: 't' }, claimedExternalAccountId: 'guild-2' }),
+      adapter.verifyCreatorOwnership({
+        context: { accessToken: 't' },
+        claimedExternalAccountId: 'guild-2',
+      }),
     ).resolves.toMatchObject({ verified: true });
     await expect(
-      adapter.verifyCreatorOwnership({ context: { accessToken: 't' }, claimedExternalAccountId: 'guild-3' }),
+      adapter.verifyCreatorOwnership({
+        context: { accessToken: 't' },
+        claimedExternalAccountId: 'guild-3',
+      }),
     ).resolves.toMatchObject({ verified: false });
   });
 });

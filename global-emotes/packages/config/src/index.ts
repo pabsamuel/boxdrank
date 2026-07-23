@@ -11,9 +11,7 @@ const envSchema = z.object({
   PUBLIC_WEB_URL: z.string().url().default('http://localhost:3000'),
   PUBLIC_API_URL: z.string().url().default('http://localhost:3001'),
 
-  DATABASE_URL: z
-    .string()
-    .default('postgres://globalemotes:localdev@localhost:5432/globalemotes'),
+  DATABASE_URL: z.string().default('postgres://globalemotes:localdev@localhost:5432/globalemotes'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
 
   SESSION_SECRET: z.string().min(32).default('dev-session-secret-change-me-please-0000'),

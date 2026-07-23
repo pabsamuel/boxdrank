@@ -32,7 +32,11 @@ export async function api<T>(
     error?: { code: string; message: string };
   };
   if (!res.ok) {
-    throw new ApiError(res.status, body.error?.code ?? 'unknown', body.error?.message ?? 'request failed');
+    throw new ApiError(
+      res.status,
+      body.error?.code ?? 'unknown',
+      body.error?.message ?? 'request failed',
+    );
   }
   return body;
 }

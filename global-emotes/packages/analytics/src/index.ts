@@ -16,7 +16,11 @@ export function sanitizeBatch(raw: unknown): SanitizedBatch {
   if (parsed.success) return { accepted: parsed.data.events, rejected: 0 };
 
   // Salvage valid events from a partially-invalid batch instead of dropping all.
-  if (typeof raw === 'object' && raw !== null && Array.isArray((raw as { events?: unknown[] }).events)) {
+  if (
+    typeof raw === 'object' &&
+    raw !== null &&
+    Array.isArray((raw as { events?: unknown[] }).events)
+  ) {
     const events = (raw as { events: unknown[] }).events;
     const accepted: AnalyticsEvent[] = [];
     let rejected = 0;
@@ -41,7 +45,14 @@ export const FUNNELS = {
     'keyboard_enabled',
     'insertion_succeeded',
   ],
-  creator_activation: ['creator_signup', 'creator_verified', 'pack_created', 'emote_uploaded', 'pack_published', 'share_link_copied'],
+  creator_activation: [
+    'creator_signup',
+    'creator_verified',
+    'pack_created',
+    'emote_uploaded',
+    'pack_published',
+    'share_link_copied',
+  ],
   monetization: ['checkout_started', 'checkout_completed'],
 } as const;
 

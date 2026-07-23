@@ -71,9 +71,7 @@ export const registerPublicRoutes: FastifyPluginAsync = async (app) => {
           schema.creatorProfiles,
           eq(schema.emotePacks.creatorId, schema.creatorProfiles.id),
         )
-        .where(
-          and(eq(schema.creatorProfiles.handle, handle), eq(schema.emotePacks.slug, slug)),
-        )
+        .where(and(eq(schema.creatorProfiles.handle, handle), eq(schema.emotePacks.slug, slug)))
         .limit(1);
       const row = rows[0];
       if (!row || row.pack.visibility === 'draft' || row.pack.visibility === 'suspended') {
@@ -81,7 +79,10 @@ export const registerPublicRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const rules = await db
-        .select({ kind: schema.entitlementRules.kind, providerId: schema.entitlementRules.providerId })
+        .select({
+          kind: schema.entitlementRules.kind,
+          providerId: schema.entitlementRules.providerId,
+        })
         .from(schema.entitlementRules)
         .where(eq(schema.entitlementRules.packId, row.pack.id));
 

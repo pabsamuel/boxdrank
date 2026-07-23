@@ -46,7 +46,11 @@ export default function LoginPage() {
               placeholder="you@example.com"
             />
             {state === 'error' && <p style={{ color: 'var(--accent)' }}>{error}</p>}
-            <button className="btn" style={{ marginTop: 16, width: '100%' }} disabled={state === 'sending'}>
+            <button
+              className="btn"
+              style={{ marginTop: 16, width: '100%' }}
+              disabled={state === 'sending'}
+            >
               {state === 'sending' ? 'Sending…' : 'Email me a sign-in link'}
             </button>
             <p className="muted" style={{ marginTop: 12 }}>

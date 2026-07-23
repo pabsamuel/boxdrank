@@ -30,7 +30,10 @@ export const registerBillingRoutes: FastifyPluginAsync = async (app) => {
     },
     async (req) => {
       const user = requireUser(req);
-      const { productKey, interval } = req.body as { productKey: string; interval: 'month' | 'year' };
+      const { productKey, interval } = req.body as {
+        productKey: string;
+        interval: 'month' | 'year';
+      };
 
       const priceRows = await db
         .select({ stripePriceId: schema.prices.stripePriceId })
@@ -45,7 +48,8 @@ export const registerBillingRoutes: FastifyPluginAsync = async (app) => {
         )
         .limit(1);
       const priceId = priceRows[0]?.stripePriceId;
-      if (!priceId) throw notFound(`no active price for ${productKey}/${interval} — configure prices first`);
+      if (!priceId)
+        throw notFound(`no active price for ${productKey}/${interval} — configure prices first`);
 
       let customerRows = await db
         .select()

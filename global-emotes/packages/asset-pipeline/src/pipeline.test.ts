@@ -68,7 +68,9 @@ describe('validateAsset', () => {
   });
 
   it('rejects MIME spoofing (claimed png, actual jpeg)', async () => {
-    const jpeg = await sharp(await makePng()).jpeg().toBuffer();
+    const jpeg = await sharp(await makePng())
+      .jpeg()
+      .toBuffer();
     await expect(validateAsset(jpeg, { claimedMimeType: 'image/png' })).rejects.toMatchObject({
       code: 'mime_mismatch',
     });
@@ -89,9 +91,9 @@ describe('validateAsset', () => {
 
   it('enforces byte-size limit', async () => {
     const png = await makePng(512, 512);
-    await expect(
-      validateAsset(png, { limits: { maxUploadBytes: 100 } }),
-    ).rejects.toMatchObject({ code: 'too_large' });
+    await expect(validateAsset(png, { limits: { maxUploadBytes: 100 } })).rejects.toMatchObject({
+      code: 'too_large',
+    });
   });
 
   it('detects animation, per-frame dimensions and duration in animated gif', async () => {
@@ -135,9 +137,7 @@ describe('generateVariants', () => {
   it('derives deterministic content-addressed storage keys', async () => {
     const png = await makePng();
     const hash = hashContent(png);
-    expect(variantKey(hash, 'keyboard')).toBe(
-      `emotes/${hash.slice(0, 2)}/${hash}/keyboard.webp`,
-    );
+    expect(variantKey(hash, 'keyboard')).toBe(`emotes/${hash.slice(0, 2)}/${hash}/keyboard.webp`);
   });
 });
 

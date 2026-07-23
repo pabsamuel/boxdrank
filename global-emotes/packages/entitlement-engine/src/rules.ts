@@ -25,7 +25,8 @@ export function ruleMatchesEvidence(rule: EngineRule, evidence: ExternalEntitlem
       if (evidence.kind !== 'discord_role') return false;
       const guildId = rule.config['guildId'];
       if (typeof guildId === 'string' && guildId.length > 0) {
-        const evidenceGuild = (evidence.raw?.['guildId'] ?? evidence.externalCreatorAccountId) as string;
+        const evidenceGuild = (evidence.raw?.['guildId'] ??
+          evidence.externalCreatorAccountId) as string;
         if (evidenceGuild !== guildId) return false;
       }
       const roles = asStringArray(rule.config['roleIds']);

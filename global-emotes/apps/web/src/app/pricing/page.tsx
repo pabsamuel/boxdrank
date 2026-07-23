@@ -6,7 +6,13 @@ const TIERS = [
   {
     name: 'Creator Free',
     price: '$0',
-    features: ['1 connected platform', '3 packs · 30 emotes', 'Static emotes', 'Basic analytics', 'Access codes'],
+    features: [
+      '1 connected platform',
+      '3 packs · 30 emotes',
+      'Static emotes',
+      'Basic analytics',
+      'Access codes',
+    ],
   },
   {
     name: 'Creator Pro',
@@ -24,7 +30,13 @@ const TIERS = [
   {
     name: 'Creator Business',
     price: '$49/mo',
-    features: ['Multiple brands', 'Highest limits', 'Priority support', 'Audit exports', 'Contract billing'],
+    features: [
+      'Multiple brands',
+      'Highest limits',
+      'Priority support',
+      'Audit exports',
+      'Contract billing',
+    ],
   },
 ];
 

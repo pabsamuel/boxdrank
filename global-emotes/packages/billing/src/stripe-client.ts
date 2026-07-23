@@ -88,7 +88,10 @@ export class StripeBillingProvider implements BillingProvider {
     return { url: json.url, sessionId: json.id };
   }
 
-  async createPortalSession(input: { customerId: string; returnUrl: string }): Promise<{ url: string }> {
+  async createPortalSession(input: {
+    customerId: string;
+    returnUrl: string;
+  }): Promise<{ url: string }> {
     const json = await this.post<{ url: string }>('/billing_portal/sessions', {
       customer: input.customerId,
       return_url: input.returnUrl,

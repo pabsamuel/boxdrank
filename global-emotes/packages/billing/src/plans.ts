@@ -29,7 +29,10 @@ export function resolveFanPlan(subscriptions: SubscriptionRow[], now = new Date(
   return entitled ? 'fan_plus' : 'fan_free';
 }
 
-export function resolveCreatorPlan(subscriptions: SubscriptionRow[], now = new Date()): CreatorPlan {
+export function resolveCreatorPlan(
+  subscriptions: SubscriptionRow[],
+  now = new Date(),
+): CreatorPlan {
   const has = (key: string) =>
     subscriptions.some(
       (s) =>
@@ -69,14 +72,22 @@ export function assertCanAddEmote(plan: CreatorPlan, currentEmoteCount: number):
 
 export function assertCanUploadAnimated(plan: CreatorPlan): void {
   if (!CREATOR_PLAN_LIMITS[plan].animatedAllowed) {
-    throw new PlanLimitError('animatedAllowed', plan, `plan ${plan} does not include animated emotes`);
+    throw new PlanLimitError(
+      'animatedAllowed',
+      plan,
+      `plan ${plan} does not include animated emotes`,
+    );
   }
 }
 
 export function assertCanConnectProvider(plan: CreatorPlan, currentConnections: number): void {
   const max = CREATOR_PLAN_LIMITS[plan].maxProviderConnections;
   if (currentConnections >= max) {
-    throw new PlanLimitError('maxProviderConnections', plan, `plan ${plan} allows ${max} connections`);
+    throw new PlanLimitError(
+      'maxProviderConnections',
+      plan,
+      `plan ${plan} allows ${max} connections`,
+    );
   }
 }
 

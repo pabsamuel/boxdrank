@@ -181,7 +181,13 @@ export const registerEntitlementRoutes: FastifyPluginAsync = async (app) => {
           quantity: z.number().int().min(1).max(10_000).default(1),
           tier: z.string().max(32).nullable().default(null),
           maxRedemptions: z.number().int().min(1).max(100_000).default(1),
-          grantDurationHours: z.number().int().min(1).max(24 * 365).nullable().default(null),
+          grantDurationHours: z
+            .number()
+            .int()
+            .min(1)
+            .max(24 * 365)
+            .nullable()
+            .default(null),
           expiresAt: z.string().datetime().nullable().default(null),
         }),
       },

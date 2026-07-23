@@ -223,6 +223,10 @@ export const creatorVerifications = pgTable(
     createdAt: createdAt(),
   },
   (t) => [
-    uniqueIndex('creator_verifications_unique_idx').on(t.creatorId, t.providerId, t.externalAccountId),
+    uniqueIndex('creator_verifications_unique_idx').on(
+      t.creatorId,
+      t.providerId,
+      t.externalAccountId,
+    ),
   ],
 );

@@ -13,7 +13,13 @@ interface PublicPack {
     accessSummary: string[];
     emoteCount: number;
   };
-  emotes: Array<{ id: string; name: string; shortcode: string; animated: boolean; previewUrl: string | null }>;
+  emotes: Array<{
+    id: string;
+    name: string;
+    shortcode: string;
+    animated: boolean;
+    previewUrl: string | null;
+  }>;
   installUrl: string;
 }
 

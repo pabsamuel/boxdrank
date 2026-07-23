@@ -3,7 +3,22 @@ import pg from 'pg';
 import * as schema from './schema/index';
 
 export * as schema from './schema/index';
-export { sql, eq, and, or, desc, asc, inArray, isNull, lt, gt, gte, lte, ilike, count } from 'drizzle-orm';
+export {
+  sql,
+  eq,
+  and,
+  or,
+  desc,
+  asc,
+  inArray,
+  isNull,
+  lt,
+  gt,
+  gte,
+  lte,
+  ilike,
+  count,
+} from 'drizzle-orm';
 
 export type Db = NodePgDatabase<typeof schema>;
 

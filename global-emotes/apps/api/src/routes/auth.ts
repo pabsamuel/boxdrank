@@ -2,12 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { and, eq, isNull } from 'drizzle-orm';
 import { schema } from '@global-emotes/database';
-import {
-  generateToken,
-  hashToken,
-  magicLinkExpiry,
-  sessionExpiry,
-} from '@global-emotes/auth';
+import { generateToken, hashToken, magicLinkExpiry, sessionExpiry } from '@global-emotes/auth';
 import { magicLinkEmail } from '@global-emotes/notifications';
 import { clearSessionCookie, requireUser, setSessionCookie } from '../plugins/auth';
 import { validation } from '../errors';

@@ -49,9 +49,17 @@ describe('auth', () => {
     });
     const mail = [...t.sentEmails].reverse().find((m) => m.to === 'single@test.local');
     const token = mail!.text.match(/token=([A-Za-z0-9_-]+)/)![1];
-    const first = await t.app.inject({ method: 'POST', url: '/v1/auth/verify', payload: { token } });
+    const first = await t.app.inject({
+      method: 'POST',
+      url: '/v1/auth/verify',
+      payload: { token },
+    });
     expect(first.statusCode).toBe(200);
-    const second = await t.app.inject({ method: 'POST', url: '/v1/auth/verify', payload: { token } });
+    const second = await t.app.inject({
+      method: 'POST',
+      url: '/v1/auth/verify',
+      payload: { token },
+    });
     expect(second.statusCode).toBe(400);
   });
 });
@@ -88,7 +96,12 @@ describe('creator journey: profile → upload → pack → publish', () => {
 
   it('uploads a real PNG through grant → content → emote, processed to active', async () => {
     const png = await sharp({
-      create: { width: 128, height: 128, channels: 4, background: { r: 90, g: 60, b: 220, alpha: 1 } },
+      create: {
+        width: 128,
+        height: 128,
+        channels: 4,
+        background: { r: 90, g: 60, b: 220, alpha: 1 },
+      },
     })
       .png()
       .toBuffer();
@@ -244,9 +257,12 @@ describe('fan journey: codes + provider sync + manifest', () => {
       headers: { cookie: fanCookie },
     });
     const items = entitlements.json().items;
-    expect(items.some((e: { packId: string; status: string }) => e.packId === t.seeded.packId && e.status === 'active')).toBe(
-      true,
-    );
+    expect(
+      items.some(
+        (e: { packId: string; status: string }) =>
+          e.packId === t.seeded.packId && e.status === 'active',
+      ),
+    ).toBe(true);
   });
 
   it('rejects double redemption and invalid codes', async () => {
@@ -489,7 +505,9 @@ describe('admin', () => {
     });
     expect(suspended.statusCode).toBe(200);
     const actions = await t.ctx.db.select().from(schema.adminActions);
-    expect(actions.some((a) => a.action === 'pack.suspended' && a.reason === 'test takedown')).toBe(true);
+    expect(actions.some((a) => a.action === 'pack.suspended' && a.reason === 'test takedown')).toBe(
+      true,
+    );
   });
 
   it('shows integration health with honest statuses', async () => {

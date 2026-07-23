@@ -83,9 +83,7 @@ export const providerWebhookSubscriptions = pgTable(
       .notNull(),
     createdAt: createdAt(),
   },
-  (t) => [
-    uniqueIndex('provider_webhooks_external_idx').on(t.providerId, t.externalSubscriptionId),
-  ],
+  (t) => [uniqueIndex('provider_webhooks_external_idx').on(t.providerId, t.externalSubscriptionId)],
 );
 
 export const providerSyncRuns = pgTable(

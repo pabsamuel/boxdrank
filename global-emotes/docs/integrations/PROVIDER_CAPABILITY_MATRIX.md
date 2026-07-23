@@ -4,20 +4,20 @@ Honest, per-provider capability record (master spec §4.1). Statuses: `productio
 
 ## Twitch — `credentials_required` (production-ready design)
 
-| Capability | Status | Mechanism |
-|---|---|---|
-| OAuth | ✅ | OIDC/OAuth2 authorization code + PKCE |
-| Creator identity | ✅ | Helix `GET /users` (self) |
-| Fan identity | ✅ | Helix `GET /users` (self) |
-| Fan membership verification | ✅ **fan-side self-serve** | Helix `GET /subscriptions/user?broadcaster_id&user_id`, fan scope `user:read:subscriptions` |
-| Creator-side member list | ✅ | Helix `GET /subscriptions`, broadcaster scope `channel:read:subscriptions` |
-| Tier access | ✅ | tiers 1000/2000/3000 in sub response |
-| Emote import | ✅ creator-authorized | Helix `GET /chat/emotes` (channel emotes; images via CDN template) — import only with creator's connected account |
-| Webhooks | ✅ | EventSub `channel.subscribe`, `channel.subscription.end`, `channel.subscription.gift` (webhook transport, HMAC-SHA256 signed, 10-min replay window) |
-| Polling need | Low | reconcile daily + on-login |
-| Token lifetime | ~4h access, refresh token | refresh worker |
-| Approval | None beyond app registration | rate limit: token-bucket per client |
-| Fallback | access codes | — |
+| Capability                  | Status                       | Mechanism                                                                                                                                           |
+| --------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OAuth                       | ✅                           | OIDC/OAuth2 authorization code + PKCE                                                                                                               |
+| Creator identity            | ✅                           | Helix `GET /users` (self)                                                                                                                           |
+| Fan identity                | ✅                           | Helix `GET /users` (self)                                                                                                                           |
+| Fan membership verification | ✅ **fan-side self-serve**   | Helix `GET /subscriptions/user?broadcaster_id&user_id`, fan scope `user:read:subscriptions`                                                         |
+| Creator-side member list    | ✅                           | Helix `GET /subscriptions`, broadcaster scope `channel:read:subscriptions`                                                                          |
+| Tier access                 | ✅                           | tiers 1000/2000/3000 in sub response                                                                                                                |
+| Emote import                | ✅ creator-authorized        | Helix `GET /chat/emotes` (channel emotes; images via CDN template) — import only with creator's connected account                                   |
+| Webhooks                    | ✅                           | EventSub `channel.subscribe`, `channel.subscription.end`, `channel.subscription.gift` (webhook transport, HMAC-SHA256 signed, 10-min replay window) |
+| Polling need                | Low                          | reconcile daily + on-login                                                                                                                          |
+| Token lifetime              | ~4h access, refresh token    | refresh worker                                                                                                                                      |
+| Approval                    | None beyond app registration | rate limit: token-bucket per client                                                                                                                 |
+| Fallback                    | access codes                 | —                                                                                                                                                   |
 
 ## Discord — `credentials_required` (production-ready design)
 

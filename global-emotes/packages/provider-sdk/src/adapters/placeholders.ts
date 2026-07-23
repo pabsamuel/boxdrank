@@ -27,7 +27,13 @@ export class PlaceholderAdapter implements ProviderAdapter {
   ) {}
 
   metadata(): ProviderMetadata {
-    return { id: this.id, name: this.name, authorizationKind: 'oauth', fanScopes: [], creatorScopes: [] };
+    return {
+      id: this.id,
+      name: this.name,
+      authorizationKind: 'oauth',
+      fanScopes: [],
+      creatorScopes: [],
+    };
   }
 
   capabilities(): ProviderCapabilities {
@@ -67,6 +73,11 @@ export class PlaceholderAdapter implements ProviderAdapter {
     this.blocked();
   }
   async healthCheck(): Promise<ProviderHealth> {
-    return { ok: false, status: this.status, detail: this.notes, checkedAt: new Date().toISOString() };
+    return {
+      ok: false,
+      status: this.status,
+      detail: this.notes,
+      checkedAt: new Date().toISOString(),
+    };
   }
 }

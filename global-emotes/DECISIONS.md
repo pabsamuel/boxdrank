@@ -2,11 +2,11 @@
 
 Architecture Decision Records live in `docs/architecture/ADR-*.md`. Index:
 
-| ADR | Title | Status |
-| --- | ----- | ------ |
+| ADR                                                                 | Title                                                                                                                               | Status   |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------- |
 | [ADR-0001](docs/architecture/ADR-0001-foundational-architecture.md) | Foundational architecture: modular monolith, Fastify + Drizzle + PostgreSQL + Redis + BullMQ, Next.js web, native mobile extensions | Accepted |
-| [ADR-0002](docs/architecture/ADR-0002-spec-merge.md) | Merge of the two master specifications (Global Emotes + EmoteHub) | Accepted |
-| [ADR-0003](docs/architecture/ADR-0003-pglite-tests.md) | Embedded PGlite for database/integration tests; real PostgreSQL for dev/prod | Accepted |
+| [ADR-0002](docs/architecture/ADR-0002-spec-merge.md)                | Merge of the two master specifications (Global Emotes + EmoteHub)                                                                   | Accepted |
+| [ADR-0003](docs/architecture/ADR-0003-pglite-tests.md)              | Embedded PGlite for database/integration tests; real PostgreSQL for dev/prod                                                        | Accepted |
 
 Decision highlights (details in ADRs):
 

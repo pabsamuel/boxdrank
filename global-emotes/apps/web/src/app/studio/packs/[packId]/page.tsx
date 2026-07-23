@@ -126,7 +126,12 @@ export default function PackEditorPage({ params }: { params: Promise<{ packId: s
           <h3>Upload an emote</h3>
           <form onSubmit={uploadEmote}>
             <label>Name</label>
-            <input className="input" value={emoteName} onChange={(e) => setEmoteName(e.target.value)} required />
+            <input
+              className="input"
+              value={emoteName}
+              onChange={(e) => setEmoteName(e.target.value)}
+              required
+            />
             <label>Shortcode</label>
             <input
               className="input"

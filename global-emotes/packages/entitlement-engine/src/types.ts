@@ -56,7 +56,13 @@ export type EngineDecision =
       lastVerifiedAt?: Date;
       reason: string;
     }
-  | { action: 'extend'; tier: string | null; expiresAt: Date | null; lastVerifiedAt: Date; reason: string }
+  | {
+      action: 'extend';
+      tier: string | null;
+      expiresAt: Date | null;
+      lastVerifiedAt: Date;
+      reason: string;
+    }
   | { action: 'ignore'; reason: 'stale_evidence' | 'duplicate' | 'no_change' | 'terminal_state' };
 
 export interface DecideInput {

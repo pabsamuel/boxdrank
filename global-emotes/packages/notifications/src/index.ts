@@ -83,7 +83,12 @@ export function entitlementExpiringEmail(
   };
 }
 
-export function packPublishedEmail(brand: string, to: string, packName: string, packUrl: string): EmailMessage {
+export function packPublishedEmail(
+  brand: string,
+  to: string,
+  packName: string,
+  packUrl: string,
+): EmailMessage {
   return {
     to,
     subject: `Your pack "${packName}" is live`,

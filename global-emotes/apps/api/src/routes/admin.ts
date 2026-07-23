@@ -20,7 +20,10 @@ export const registerAdminRoutes: FastifyPluginAsync = async (app) => {
       db.select({ n: count() }).from(schema.creatorProfiles),
       db.select({ n: count() }).from(schema.emotePacks),
       db.select({ n: count() }).from(schema.emotes),
-      db.select({ n: count() }).from(schema.entitlements).where(eq(schema.entitlements.status, 'active')),
+      db
+        .select({ n: count() })
+        .from(schema.entitlements)
+        .where(eq(schema.entitlements.status, 'active')),
       db.select({ n: count() }).from(schema.reports).where(eq(schema.reports.status, 'open')),
     ]);
     return {
@@ -120,7 +123,10 @@ export const registerAdminRoutes: FastifyPluginAsync = async (app) => {
       const admin = requireAdmin(req);
       const { emoteId } = req.params as { emoteId: string };
       const { reason } = req.body as { reason: string };
-      await db.update(schema.emotes).set({ status: 'takedown' }).where(eq(schema.emotes.id, emoteId));
+      await db
+        .update(schema.emotes)
+        .set({ status: 'takedown' })
+        .where(eq(schema.emotes.id, emoteId));
       await db.insert(schema.adminActions).values({
         adminUserId: admin.id,
         action: 'emote.takedown',
@@ -193,7 +199,11 @@ export const registerAdminRoutes: FastifyPluginAsync = async (app) => {
 
   app.get(
     '/admin/audit-logs',
-    { schema: { querystring: z.object({ limit: z.coerce.number().int().min(1).max(200).default(50) }) } },
+    {
+      schema: {
+        querystring: z.object({ limit: z.coerce.number().int().min(1).max(200).default(50) }),
+      },
+    },
     async (req) => {
       requireAdmin(req);
       const { limit } = req.query as { limit: number };

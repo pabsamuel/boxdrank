@@ -23,7 +23,13 @@ const ruleConfigSchema = z.object({
   ]),
   providerId: z.string().nullable().default(null),
   config: z.record(z.unknown()).default({}),
-  graceHoursOverride: z.number().int().min(0).max(24 * 30).nullable().default(null),
+  graceHoursOverride: z
+    .number()
+    .int()
+    .min(0)
+    .max(24 * 30)
+    .nullable()
+    .default(null),
 });
 
 export const registerPackRoutes: FastifyPluginAsync = async (app) => {
@@ -46,7 +52,9 @@ export const registerPackRoutes: FastifyPluginAsync = async (app) => {
       const packCount = await db
         .select({ n: count() })
         .from(schema.emotePacks)
-        .where(and(eq(schema.emotePacks.creatorId, creatorId), isNull(schema.emotePacks.deletedAt)));
+        .where(
+          and(eq(schema.emotePacks.creatorId, creatorId), isNull(schema.emotePacks.deletedAt)),
+        );
       assertCanCreatePack(creator.plan as CreatorPlan, packCount[0]?.n ?? 0);
 
       const slug = body.slug ?? normalizeSlug(body.name);
@@ -118,7 +126,10 @@ export const registerPackRoutes: FastifyPluginAsync = async (app) => {
     {
       schema: {
         params: z.object({ packId: z.string().uuid() }),
-        body: z.object({ emoteId: z.string().uuid(), position: z.number().int().min(0).default(0) }),
+        body: z.object({
+          emoteId: z.string().uuid(),
+          position: z.number().int().min(0).default(0),
+        }),
       },
     },
     async (req) => {

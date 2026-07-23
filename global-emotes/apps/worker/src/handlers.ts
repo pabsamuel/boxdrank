@@ -207,7 +207,11 @@ export async function handleEntitlementSweep(
         .where(eq(schema.users.id, row.userId))
         .limit(1);
       const packRows = row.packId
-        ? await db.select().from(schema.emotePacks).where(eq(schema.emotePacks.id, row.packId)).limit(1)
+        ? await db
+            .select()
+            .from(schema.emotePacks)
+            .where(eq(schema.emotePacks.id, row.packId))
+            .limit(1)
         : [];
       const creatorRows = await db
         .select()
@@ -234,7 +238,9 @@ export async function handleEntitlementSweep(
 
 // ── Provider token refresh ───────────────────────────────────────────────────
 
-export async function handleTokenRefresh(deps: HandlerDeps): Promise<{ refreshed: number; failed: number }> {
+export async function handleTokenRefresh(
+  deps: HandlerDeps,
+): Promise<{ refreshed: number; failed: number }> {
   const { db, providers, env } = deps;
   const now = deps.now?.() ?? new Date();
   const soon = new Date(now.getTime() + 30 * 60_000);
@@ -252,7 +258,10 @@ export async function handleTokenRefresh(deps: HandlerDeps): Promise<{ refreshed
       eq(schema.providerTokens.connectionId, schema.providerConnections.id),
     )
     .where(
-      and(lt(schema.providerTokens.expiresAt, soon), eq(schema.providerConnections.status, 'active')),
+      and(
+        lt(schema.providerTokens.expiresAt, soon),
+        eq(schema.providerConnections.status, 'active'),
+      ),
     )
     .limit(500);
 
@@ -288,7 +297,9 @@ export async function handleTokenRefresh(deps: HandlerDeps): Promise<{ refreshed
 
 // ── Cleanup ──────────────────────────────────────────────────────────────────
 
-export async function handleCleanup(deps: HandlerDeps): Promise<{ expiredGrants: number; expiredTokens: number }> {
+export async function handleCleanup(
+  deps: HandlerDeps,
+): Promise<{ expiredGrants: number; expiredTokens: number }> {
   const { db } = deps;
   const now = deps.now?.() ?? new Date();
   const grants = await db

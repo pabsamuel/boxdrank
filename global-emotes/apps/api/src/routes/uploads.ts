@@ -2,7 +2,11 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { and, count, eq } from 'drizzle-orm';
 import { schema } from '@global-emotes/database';
-import { requestUploadSchema, createEmoteRequestSchema, shortcodeSchema } from '@global-emotes/contracts';
+import {
+  requestUploadSchema,
+  createEmoteRequestSchema,
+  shortcodeSchema,
+} from '@global-emotes/contracts';
 import { assertCanAddEmote, assertCanUploadAnimated } from '@global-emotes/billing';
 import { detectFormat, validateAsset } from '@global-emotes/asset-pipeline';
 import type { CreatorPlan } from '@global-emotes/config';
@@ -18,33 +22,29 @@ import { ownedCreator } from './creators';
 export const registerUploadRoutes: FastifyPluginAsync = async (app) => {
   const { db, env, storage, jobs } = app.ctx;
 
-  app.post(
-    '/uploads',
-    { schema: { body: requestUploadSchema } },
-    async (req) => {
-      const user = requireUser(req);
-      const body = req.body as z.infer<typeof requestUploadSchema>;
-      const key = `incoming/${user.id}/${crypto.randomUUID()}`;
-      const inserted = await db
-        .insert(schema.uploadGrants)
-        .values({
-          userId: user.id,
-          objectKey: key,
-          mimeType: body.mimeType,
-          maxBytes: body.bytes,
-          expiresAt: new Date(Date.now() + 15 * 60_000),
-        })
-        .returning();
-      const grant = inserted[0]!;
-      return {
-        grantId: grant.id,
-        // Local/simple deployments PUT to this API; S3 presigned PUT is the
-        // production path (worker docs) — same grant model either way.
-        uploadUrl: `${env.PUBLIC_API_URL}/v1/uploads/${grant.id}/content`,
-        expiresAt: grant.expiresAt.toISOString(),
-      };
-    },
-  );
+  app.post('/uploads', { schema: { body: requestUploadSchema } }, async (req) => {
+    const user = requireUser(req);
+    const body = req.body as z.infer<typeof requestUploadSchema>;
+    const key = `incoming/${user.id}/${crypto.randomUUID()}`;
+    const inserted = await db
+      .insert(schema.uploadGrants)
+      .values({
+        userId: user.id,
+        objectKey: key,
+        mimeType: body.mimeType,
+        maxBytes: body.bytes,
+        expiresAt: new Date(Date.now() + 15 * 60_000),
+      })
+      .returning();
+    const grant = inserted[0]!;
+    return {
+      grantId: grant.id,
+      // Local/simple deployments PUT to this API; S3 presigned PUT is the
+      // production path (worker docs) — same grant model either way.
+      uploadUrl: `${env.PUBLIC_API_URL}/v1/uploads/${grant.id}/content`,
+      expiresAt: grant.expiresAt.toISOString(),
+    };
+  });
 
   /** Raw byte upload into quarantine. */
   app.addContentTypeParser(
@@ -110,7 +110,10 @@ export const registerUploadRoutes: FastifyPluginAsync = async (app) => {
         .select()
         .from(schema.uploadGrants)
         .where(
-          and(eq(schema.uploadGrants.id, body.uploadGrantId), eq(schema.uploadGrants.userId, user.id)),
+          and(
+            eq(schema.uploadGrants.id, body.uploadGrantId),
+            eq(schema.uploadGrants.userId, user.id),
+          ),
         )
         .limit(1);
       const grant = grants[0];
@@ -129,10 +132,7 @@ export const registerUploadRoutes: FastifyPluginAsync = async (app) => {
         .select({ id: schema.emotes.id })
         .from(schema.emotes)
         .where(
-          and(
-            eq(schema.emotes.creatorId, creatorId),
-            eq(schema.emotes.shortcode, body.shortcode),
-          ),
+          and(eq(schema.emotes.creatorId, creatorId), eq(schema.emotes.shortcode, body.shortcode)),
         )
         .limit(1);
       if (dupes.length > 0) throw conflict('shortcode already used by this creator');

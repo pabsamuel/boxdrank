@@ -99,7 +99,11 @@ export async function buildServer(ctx: AppContext): Promise<Server> {
     }
     if (err instanceof WebhookVerificationError) {
       return reply.status(400).send({
-        error: { code: ErrorCodes.VALIDATION, message: 'invalid webhook signature', requestId: req.id },
+        error: {
+          code: ErrorCodes.VALIDATION,
+          message: 'invalid webhook signature',
+          requestId: req.id,
+        },
       });
     }
     if (err instanceof PlanLimitError) {
@@ -109,7 +113,12 @@ export async function buildServer(ctx: AppContext): Promise<Server> {
     }
     if (err instanceof AssetValidationError) {
       return reply.status(400).send({
-        error: { code: ErrorCodes.VALIDATION, message: err.message, requestId: req.id, details: { asset: err.code } },
+        error: {
+          code: ErrorCodes.VALIDATION,
+          message: err.message,
+          requestId: req.id,
+          details: { asset: err.code },
+        },
       });
     }
     if (err instanceof ProviderError) {
