@@ -1,5 +1,6 @@
 package app.globalemotes.keyboard
 
+import app.globalemotes.R
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
