@@ -1,10 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="setup_title">Set up your emote keyboard</string>
+    <string name="app_name">Global Emotes</string>
+
+    <!-- Hero -->
+    <string name="hero_badge">OFFLINE · PRIVATE · YOURS</string>
+    <string name="hero_title">Global Emotes</string>
+    <string name="hero_tagline">Your emotes. Every chat. Let’s gooo 🔥</string>
+
+    <!-- Setup card -->
+    <string name="setup_kicker">GET ROLLING IN 10 SECONDS</string>
+    <string name="setup_title">Wire up the keyboard</string>
+    <string name="step1_title">Turn me on</string>
+    <string name="step1_body">Flip the switch for Global Emotes in your keyboard settings.</string>
+    <string name="step2_title">Tap me in</string>
+    <string name="step2_body">Hit 🌐 while typing anywhere and pick Global Emotes.</string>
+    <string name="enable_keyboard">Enable keyboard</string>
+    <string name="switch_keyboard">Switch to it</string>
+
+    <!-- Pack card -->
+    <string name="pack_kicker">YOUR PACK</string>
+    <string name="pack_title">Make it yours</string>
+    <string name="pack_count">🔥 %1$d emotes locked and loaded</string>
+    <string name="pack_body">Drop in any pic and it’s ready to fire off in every app.</string>
     <string name="add_emote">Add your own emote</string>
-    <string name="enable_keyboard">1. Enable Global Emotes keyboard</string>
-    <string name="switch_keyboard">2. Switch to it (tap 🌐 while typing)</string>
+
+    <!-- Privacy card -->
+    <string name="privacy_kicker">🔒 REAL TALK</string>
+    <string name="keyboard_privacy_explainer">I never read, store, or send a single thing you type. I just show your unlocked packs and drop in the emote you tap. Some apps take emotes straight; in the rest I copy it so you can paste. That’s the whole deal.</string>
+
+    <!-- Footer -->
+    <string name="footer_sig">made with 💜 for people who overuse emotes</string>
+
+    <!-- Keyboard panel -->
+    <string name="kb_brand">Global Emotes</string>
+    <string name="kb_private">🔒 private</string>
+    <string name="kb_footer_hint">tap to drop • never sees what you type</string>
+    <string name="kb_empty">No emotes yet — open the app to add some 👀</string>
+
+    <!-- Toasts -->
     <string name="emote_not_cached">Emote not synced yet — open the app to sync</string>
-    <string name="copied_paste_to_send">Copied — paste to send</string>
-    <string name="keyboard_privacy_explainer">This keyboard never reads, stores, or sends what you type. It shows your unlocked emote packs from an offline cache and inserts the emote you tap. Some apps accept emotes directly; in others we copy the emote so you can paste it.</string>
+    <string name="copied_paste_to_send">Copied — paste it and send 🚀</string>
+    <string name="added_toast">Locked in! Tap 🌐 and switch to Global Emotes to use it 🔥</string>
+    <string name="read_image_failed">Couldn’t read that image, try another one</string>
 </resources>
