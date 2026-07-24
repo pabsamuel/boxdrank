@@ -24,11 +24,12 @@ class MainActivity : AppCompatActivity() {
         if (uri == null) return@registerForActivityResult
         val bmp = contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
         if (bmp == null) {
-            Toast.makeText(this, "Couldn't read that image", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.read_image_failed, Toast.LENGTH_SHORT).show()
             return@registerForActivityResult
         }
         repo.addEmote(bmp, "Emote")
-        Toast.makeText(this, "Added! Switch to the Global Emotes keyboard to use it", Toast.LENGTH_LONG).show()
+        refreshCount()
+        Toast.makeText(this, R.string.added_toast, Toast.LENGTH_LONG).show()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,8 +38,7 @@ class MainActivity : AppCompatActivity() {
 
         repo = PackRepository(applicationContext)
         repo.ensureSeed()
-
-        findViewById<TextView>(R.id.privacy_text).setText(R.string.keyboard_privacy_explainer)
+        refreshCount()
 
         findViewById<Button>(R.id.add_emote).setOnClickListener { pickImage.launch("image/*") }
         findViewById<Button>(R.id.enable_keyboard).setOnClickListener {
@@ -47,5 +47,10 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.switch_keyboard).setOnClickListener {
             (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager).showInputMethodPicker()
         }
+    }
+
+    private fun refreshCount() {
+        val count = repo.loadUnlockedEmotes().size
+        findViewById<TextView>(R.id.pack_count).text = getString(R.string.pack_count, count)
     }
 }

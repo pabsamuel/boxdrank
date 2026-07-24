@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand palette — vibrant streamer/creator energy. -->
+    <color name="brand_purple">#6D43FF</color>
+    <color name="brand_violet">#8A6BFF</color>
+    <color name="brand_pink">#FF4D8D</color>
+    <color name="brand_magenta">#C33BFF</color>
+    <color name="brand_cyan">#2DD4E0</color>
+    <color name="brand_amber">#FFC93F</color>
+
+    <color name="white">#FFFFFF</color>
+    <color name="black">#0B0A12</color>
+
+    <!-- Material role colors (light) -->
+    <color name="on_primary">#FFFFFF</color>
+    <color name="primary_container">#EBE4FF</color>
+    <color name="on_primary_container">#22135C</color>
+    <color name="secondary_container">#FFE1EC</color>
+    <color name="on_secondary_container">#5C0A2A</color>
+
+    <color name="app_bg">#F6F4FF</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="on_surface">#1A1826</color>
+    <color name="on_surface_muted">#6B6880</color>
+    <color name="outline">#E5E1F2</color>
+
+    <!-- Keyboard surface -->
+    <color name="kb_surface">#F4F2FB</color>
+    <color name="kb_footer">#7A7690</color>
+    <color name="cell_tile">#0F6D43FF</color>
+    <color name="ripple">#336D43FF</color>
+</resources>

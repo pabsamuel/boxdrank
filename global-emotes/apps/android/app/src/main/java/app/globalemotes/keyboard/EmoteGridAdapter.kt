@@ -16,12 +16,19 @@ class EmoteGridAdapter(
     class Holder(val image: ImageView) : RecyclerView.ViewHolder(image)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
-        val size = parent.resources.getDimensionPixelSize(R.dimen.emote_cell)
+        val res = parent.resources
+        val size = res.getDimensionPixelSize(R.dimen.emote_cell)
+        val margin = (res.displayMetrics.density * 3f).toInt()
         val image = ImageView(parent.context).apply {
-            layoutParams = ViewGroup.LayoutParams(size, size)
+            layoutParams = ViewGroup.MarginLayoutParams(size, size).apply {
+                setMargins(margin, margin, margin, margin)
+            }
             scaleType = ImageView.ScaleType.FIT_CENTER
-            val pad = size / 8
+            val pad = size / 7
             setPadding(pad, pad, pad, pad)
+            setBackgroundResource(R.drawable.emote_cell_bg)
+            isClickable = true
+            isFocusable = true
         }
         return Holder(image)
     }
