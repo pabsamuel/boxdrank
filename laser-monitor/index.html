@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f14" />
+  <title>Nukon Lazer İzleme</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="assets/icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Üst bar -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">◆</span>
+      <div>
+        <div class="brand-name" id="machineName">Nukon Fiber Lazer</div>
+        <div class="brand-sub">Mobil İzleme Paneli</div>
+      </div>
+    </div>
+    <div class="conn">
+      <span class="conn-dot" id="connDot"></span>
+      <span id="connText">Simülasyon</span>
+      <span class="conn-time" id="updatedAt">—</span>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- Durum kartı -->
+    <section class="card status-card" id="statusCard" aria-live="polite">
+      <div class="status-big" id="statusBig">—</div>
+      <div class="status-sub" id="statusSub">Bağlanıyor…</div>
+    </section>
+
+    <!-- Aktif iş -->
+    <section class="card">
+      <h2 class="card-title">Aktif İş</h2>
+      <div class="job">
+        <div class="ring" id="ring" style="--p:0">
+          <span class="ring-pct" id="ringPct">0%</span>
+        </div>
+        <div class="job-info">
+          <div class="job-name" id="jobName">—</div>
+          <div class="job-meta">
+            <span id="jobMaterial">—</span> ·
+            <span id="jobThickness">—</span> ·
+            <span class="gas" id="jobGas">—</span>
+          </div>
+          <div class="times">
+            <div><span class="lbl">Geçen</span><b id="elapsed">—</b></div>
+            <div><span class="lbl">Kalan</span><b id="remaining">—</b></div>
+            <div><span class="lbl">Parça</span><b id="parts">—</b></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sensörler -->
+    <section class="card">
+      <h2 class="card-title">Sensörler</h2>
+      <div class="sensors">
+        <div class="sensor"><span class="lbl">Gaz Basıncı</span><b id="gasP">—</b><span class="unit">bar</span></div>
+        <div class="sensor"><span class="lbl">Chiller</span><b id="chiller">—</b><span class="unit">°C</span></div>
+        <div class="sensor"><span class="lbl">Kapak</span><b id="cover">—</b></div>
+      </div>
+    </section>
+
+    <!-- Uyarılar -->
+    <section class="card">
+      <h2 class="card-title">Uyarılar</h2>
+      <ul class="alerts" id="alerts"><li class="alert-empty">Uyarı yok</li></ul>
+    </section>
+
+    <!-- Vardiya özeti -->
+    <section class="card">
+      <h2 class="card-title">Vardiya Özeti</h2>
+      <div class="shift">
+        <div class="stat"><b id="shRuntime">—</b><span>Çalışma</span></div>
+        <div class="stat"><b id="shJobs">—</b><span>İş</span></div>
+        <div class="stat"><b id="shParts">—</b><span>Parça</span></div>
+        <div class="stat"><b id="shOee">—</b><span>OEE</span></div>
+      </div>
+    </section>
+
+    <!-- Kontrol (devre dışı) -->
+    <section class="card control-card">
+      <h2 class="card-title">Kontrol</h2>
+      <div class="controls">
+        <button class="ctrl" disabled>⏸ Duraklat</button>
+        <button class="ctrl stop" disabled>⏹ Durdur</button>
+      </div>
+      <p class="safety">🔒 Güvenlik: Uzaktan kontrol yalnızca Nukon onayı ve makinede
+        operatör kilidi ile açılabilir. Bu sürüm <b>salt görüntüleme</b>.</p>
+    </section>
+
+    <!-- Demo senaryoları -->
+    <section class="card demo-card">
+      <h2 class="card-title">Demo Senaryoları</h2>
+      <div class="demo-btns">
+        <button data-scn="running">▶ Kesim</button>
+        <button data-scn="done">✔ İş Bitti</button>
+        <button data-scn="gaslow">⚠ Gaz Düşük</button>
+        <button data-scn="alarm">⛔ Alarm</button>
+        <button data-scn="idle">⏻ Boşta</button>
+      </div>
+      <button class="notif-btn" id="notifBtn">🔔 Bildirimleri Aç</button>
+    </section>
+
+    <footer class="foot">
+      Bu bir <b>simülasyon</b> demosudur — gerçek makineye bağlı değildir.<br />
+      Bağlanmak için köprü servisi <code>GET /api/status</code> gerekir.
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
