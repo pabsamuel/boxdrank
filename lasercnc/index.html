@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LazerHesap — Lazer Kesim Teklif & Maliyet Hesaplayıcı</title>
+  <meta name="description" content="SVG/DXF yükle, kesim uzunluğu, süre ve maliyeti anında hesapla." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <div class="logo">✦</div>
+    <div>
+      <h1>LazerHesap</h1>
+      <div class="sub">Lazer Kesim Teklif & Maliyet Hesaplayıcı</div>
+    </div>
+    <div class="spacer"></div>
+    <a href="https://github.com/pabsamuel/boxdrank/tree/main/lasercnc" target="_blank" rel="noopener">Kaynak kod →</a>
+  </header>
+
+  <main>
+    <!-- SOL: giriş -->
+    <section class="card">
+      <h2>1 · Çizim & Parametreler</h2>
+
+      <div id="drop" class="drop">
+        <div>Dosyayı buraya sürükle veya <b>seçmek için tıkla</b></div>
+        <div class="row-note">SVG veya DXF · ya da aşağıdan elle gir</div>
+        <input id="file" type="file" accept=".svg,.dxf" hidden />
+      </div>
+
+      <div class="preview" id="preview"><span class="empty">Önizleme burada görünecek</span></div>
+
+      <div style="height:16px"></div>
+
+      <div class="grid2">
+        <div class="field">
+          <label>Malzeme</label>
+          <select id="material"></select>
+        </div>
+        <div class="field">
+          <label>Kalınlık (mm)</label>
+          <input id="thickness" type="number" value="3" min="0.1" step="0.1" />
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label>Kesim uzunluğu (mm)</label>
+          <input id="cutLength" type="number" value="0" min="0" step="1" />
+          <div class="row-note">Dosyadan otomatik gelir, elle de değiştirebilirsin</div>
+        </div>
+        <div class="field">
+          <label>Delme sayısı (pierce)</label>
+          <input id="pierces" type="number" value="1" min="0" step="1" />
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label>Parça eni (mm)</label>
+          <input id="w" type="number" value="100" min="0" step="1" />
+        </div>
+        <div class="field">
+          <label>Parça boyu (mm)</label>
+          <input id="h" type="number" value="100" min="0" step="1" />
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label>Adet</label>
+          <input id="qty" type="number" value="1" min="1" step="1" />
+        </div>
+        <div class="field">
+          <label>Birim ölçek (dosya → mm)</label>
+          <select id="unitScale">
+            <option value="1" selected>1 (mm)</option>
+            <option value="10">×10 (cm)</option>
+            <option value="25.4">×25.4 (inç)</option>
+            <option value="0.2645833">×0.2646 (px @96dpi)</option>
+          </select>
+        </div>
+      </div>
+
+      <h2 style="margin-top:8px">İşletme Ayarları</h2>
+      <div class="grid2">
+        <div class="field">
+          <label>Makine saat ücreti (₺/saat)</label>
+          <input id="machineRate" type="number" value="900" min="0" step="10" />
+        </div>
+        <div class="field">
+          <label>Kurulum ücreti (₺)</label>
+          <input id="setupFee" type="number" value="50" min="0" step="10" />
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Kâr marjı (%)</label>
+          <input id="margin" type="number" value="35" min="0" step="1" />
+        </div>
+        <div class="field">
+          <label>Fire (%)</label>
+          <input id="scrap" type="number" value="15" min="0" step="1" />
+        </div>
+      </div>
+
+      <div id="warn" class="warn"></div>
+    </section>
+
+    <!-- SAĞ: sonuç -->
+    <section class="card result">
+      <h2>2 · Teklif</h2>
+
+      <div class="big">
+        <span class="label">Toplam Fiyat</span>
+        <span class="val" id="total">₺0</span>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="k">Kesim hızı</div><div class="v" id="feed">—</div></div>
+        <div class="stat"><div class="k">Süre / adet</div><div class="v" id="time">—</div></div>
+        <div class="stat"><div class="k">Ağırlık / adet</div><div class="v" id="weight">—</div></div>
+      </div>
+
+      <table class="breakdown">
+        <tbody>
+          <tr><td>Malzeme (adet)</td><td id="bMaterial">—</td></tr>
+          <tr><td>Makine süresi (adet)</td><td id="bMachine">—</td></tr>
+          <tr class="strong"><td>Ham maliyet (adet)</td><td id="bBase">—</td></tr>
+          <tr><td>Kâr marjı sonrası (adet)</td><td id="bUnit">—</td></tr>
+          <tr class="muted"><td>Adet × <span id="bQty">1</span></td><td id="bQtyTotal">—</td></tr>
+          <tr class="muted"><td>Kurulum</td><td id="bSetup">—</td></tr>
+          <tr class="strong"><td>TOPLAM</td><td id="bTotal">—</td></tr>
+        </tbody>
+      </table>
+
+      <div class="actions">
+        <button id="copy">Teklifi kopyala</button>
+        <button id="print" class="ghost">Yazdır / PDF</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    LazerHesap · portföy projesi · tarayıcıda çalışır, veri hiçbir yere gönderilmez.
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
