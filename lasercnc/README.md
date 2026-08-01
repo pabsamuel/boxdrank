@@ -24,24 +24,23 @@ Bu araç o işi otomatikleştirir ve şunları gösterir:
 - 🧾 Teklifi kopyala / PDF olarak yazdır
 - 🌙 Karanlık, responsive arayüz
 
-## Çalıştırma
+## Çalıştırma & Deploy
 
-Statik dosyalar olduğu için basit bir sunucu yeterli (ES modülleri `file://` ile çalışmaz):
+> 🔰 **İlk kez app yayınlıyorsan:** adım adım Türkçe rehber → **[KURULUM.md](KURULUM.md)**
+
+Hızlı özet — yerelde çalıştır (ES modülleri `file://` ile çalışmaz, sunucu şart):
 
 ```bash
 cd lasercnc
-python3 -m http.server 8000
-# tarayıcıda: http://localhost:8000
+npm run dev            # = python3 -m http.server 8000
+# tarayıcıda: http://localhost:8000 → ornek.svg'yi yükle
+npm test               # hesap mantığını test et
 ```
 
-`ornek.svg` dosyasını yükleyerek deneyebilirsin.
-
-## Deploy (canlı link)
-
-GitHub Pages ile ücretsiz yayınlanır:
-
-1. Repo **Settings → Pages** → Source: `main` branch, `/lasercnc` klasörü (ya da klasörü kök yap)
-2. Birkaç dakikada `https://<kullanıcı>.github.io/<repo>/` adresinde yayında
+**Canlıya alma:** repoda hazır otomatik deploy var
+(`.github/workflows/lasercnc-pages.yml`). Tek seferlik ayar: **Settings → Pages →
+Source: "GitHub Actions"**. Sonra her push testleri koşar ve siteyi yayınlar.
+Tam anlatım [KURULUM.md](KURULUM.md)'de.
 
 ## Dosya yapısı
 

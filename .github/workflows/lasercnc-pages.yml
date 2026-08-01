@@ -1,0 +1,58 @@
+# LazerHesap (lasercnc/) için CI + GitHub Pages deploy.
+# Önce testleri çalıştırır, geçerse lasercnc/ klasörünü canlıya alır.
+# Tek seferlik ayar: repo Settings → Pages → Source: "GitHub Actions".
+name: LazerHesap Deploy
+
+on:
+  push:
+    branches: [main, "claude/lazer-cnc-app-project-vex6ml"]
+    paths:
+      - "lasercnc/**"
+      - ".github/workflows/lasercnc-pages.yml"
+  workflow_dispatch: {}
+
+# Pages deploy için gerekli izinler
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Aynı anda tek deploy çalışsın
+concurrency:
+  group: lasercnc-pages
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: lasercnc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax kontrolü
+        run: node --check app.js && node --check parsers.js && node --check pricing.js
+      - name: Testler
+        run: node test.mjs
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: lasercnc/ klasörünü paketle
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: lasercnc
+      - name: Pages'e deploy et
+        id: deployment
+        uses: actions/deploy-pages@v4
