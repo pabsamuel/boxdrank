@@ -11,7 +11,7 @@ Copy-paste prompts for building TrendGhost with Claude Code. One phase per sessi
 | `03-PHASE-3-ghost-overlay.md` | Ghost layer + playback clock + speed control. |
 | `04-PHASE-4-scoring.md` | The red→green engine, with fixtures. |
 | `05-PHASE-5-framing-coach.md` | Get the user correctly in frame before starting. |
-| `06-PHASE-6-learn-mode.md` | Step-by-step moves with text/voice cues. |
+| `06-PHASE-6-learn-mode.md` | The cue engine ("now", "cut it") + step-by-step learn mode. |
 | `07-PHASE-7-photo-mode.md` | Pose matching for stills + auto-shutter. |
 | `08-PHASE-8-record-review.md` | Record a take, review where sync was lost. |
 | `09-PHASE-9-polish-ship.md` | Library, onboarding, settings, ship prep. |

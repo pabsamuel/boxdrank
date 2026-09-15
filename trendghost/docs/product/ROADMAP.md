@@ -8,7 +8,7 @@ Live camera on a phone, MediaPipe pose landmarker running on-device, skeleton dr
 
 ## Phase 2 — Reference ingest
 
-Pick a video → decode frames → run the heavier pose model → normalise → write a `PoseTimeline` JSON → persist locally. Preview screen to confirm the dancer was tracked. Handles bad input honestly.
+Get a video in (share sheet where the platform supports it, camera roll everywhere) → decode frames → run the heavier pose model → normalise → write a `PoseTimeline` JSON → persist locally. Preview screen to confirm the dancer was tracked. Handles bad input honestly. See `docs/product/CONTENT_SOURCING.md` — no URL fetching, ever.
 
 ## Phase 3 — Ghost overlay
 
@@ -22,9 +22,9 @@ Reference video drawn over the camera at adjustable opacity, plus its skeleton. 
 
 Pre-start checks: whole body in frame, distance band, camera height/tilt, light level, single subject. One instruction at a time, then countdown.
 
-## Phase 6 — Learn mode
+## Phase 6 — Learn mode + the cue engine
 
-Segment the timeline into moves (key poses at motion minima + beat if available). Per-move gating: advance only when the user holds the key pose. Generated text cues from the biggest limb changes between key poses.
+Segment the timeline into moves (key poses at motion minima + beat if available), classify each move, and generate a **cue track** stored with the routine: "arms up next" → "now" → "cut it" → "hold". Lookahead timing, voice, haptics, count-in, one-cue-at-a-time priority — all per `docs/architecture/CUE_ENGINE.md`. Learn mode adds per-move gating on top: advance only when the user holds the key pose. The cue engine is then used by Practice, Record and Photo too, at different verbosity.
 
 ## Phase 7 — Photo mode
 
@@ -40,4 +40,4 @@ Routine library, empty states, permission pre-screen, settings (sensitivity, mir
 
 ## Later (explicitly not v1)
 
-Routine sharing via pose-timeline files · duet/two-person scoring · beat detection and on-beat scoring · streaks and practice history · native port (D1) · community routine library with rights-cleared content.
+Community template library (rights-cleared, ours or licensed) · duet/two-person scoring · on-beat *scoring* (beat-aligned cues land in Phase 6) · streaks and practice history · native port (D1) · community routine library with rights-cleared content.

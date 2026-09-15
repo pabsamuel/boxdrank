@@ -11,6 +11,12 @@ Phase 1 can start immediately.
 - [ ] **Product name.** "TrendGhost" is a placeholder. Check it's not taken on the stores before any branding work.
 - [ ] **Two or three reference videos to test against.** Ideally: one easy (arms-only, standing), one hard (full-body, fast, turning), one photo pose. Put them in `fixtures/` locally — do **not** commit third-party video to the repo.
 
+## Decide before the template pack ships (Phase 6+)
+
+- [ ] **How do we fill the template pack?** Film a dancer ourselves, or license from creators? Either costs money; see `docs/product/CONTENT_SOURCING.md` lane 3. Until it's decided, the app works fine with lanes 1 and 2 — this is not blocking.
+- [ ] **Music for template routines.** Our own or properly licensed. Trend audio is a separate rights holder from the video.
+- [ ] **Read `docs/product/CONTENT_SOURCING.md` and confirm you're happy with the "no downloader" line.** It's the one constraint the whole project's legal safety rests on, and every build prompt enforces it.
+
 ## Decide before Phase 9 (shipping)
 
 - [ ] **Distribution**: PWA on a URL, or native app stores? (See `DECISIONS.md` D1.)

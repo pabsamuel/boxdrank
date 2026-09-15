@@ -10,12 +10,23 @@ Someone who saw a dance/pose trend, wants to post their own version, and is curr
 
 ## The core loop
 
-1. **Add a routine** — pick a video from the camera roll. The app processes it into a pose timeline (progress bar, a few seconds for a short clip).
+1. **Add a routine** — three ways, see `CONTENT_SOURCING.md`: share the video straight from TikTok/Reels into the app (Android/native), pick it from the camera roll, or start from a built-in template. The app processes it into a pose timeline and a cue track (progress bar, a few seconds for a short clip).
 2. **Set up** — the framing coach tells you to step back / raise the phone / turn on a light until you're fully in frame. Green tick, then a 3-2-1 countdown.
 3. **Learn** — the ghost moves slowly, one move at a time, with a short text instruction ("left arm straight up", "step right, hips low"). It waits until you hit the pose before moving on.
-4. **Practice** — full speed, ghost at ~35% opacity, your limbs are coloured live. Accuracy % in the corner.
+4. **Practice** — full speed, ghost at ~35% opacity, your limbs are coloured live, and the cue engine calls the next move *before* it happens ("arms up next" → "now" → "cut it"). Accuracy % in the corner.
 5. **Record** — ghost fades to ~10%, it records your take with the music. Afterwards: your accuracy timeline, with the 2–3 moments you drifted marked, each replayable side-by-side with the ghost.
 6. **Repeat or export.**
+
+## Getting a trend in
+
+Full detail and the legal reasoning in [`CONTENT_SOURCING.md`](CONTENT_SOURCING.md). Summary:
+
+- **Share sheet** — from TikTok/Reels/Shorts, tap Share → TrendGhost. One tap, no file manager. Android PWA via Web Share Target; iOS needs the native app, so iOS users get the camera roll picker until then.
+- **Camera roll** — always available, everywhere.
+- **Template pack** — routines we film or license ourselves, bundled with the app so a first-time user has something to try immediately.
+- **Timeline sharing** — users can swap pose timelines (coordinates, no video) freely.
+
+We never fetch a video from a URL. That's the one lane that would end the project.
 
 ## Screens
 
@@ -33,7 +44,8 @@ Someone who saw a dance/pose trend, wants to post their own version, and is curr
 ## Feedback design (the part that matters)
 
 - **Colour per limb segment**, not per whole body: forearms, upper arms, thighs, shins, torso, head direction. Red `< 0.4`, amber `0.4–0.75`, green `> 0.75` on the per-limb score (thresholds configurable, one file — see `docs/architecture/POSE_MATCHING.md`).
-- **At most one text cue at a time**, chosen as the worst-scoring limb, phrased as a fix and not a complaint: "left arm higher", not "left arm wrong".
+- **Cues arrive early, not late.** Colour tells you how you're doing *now*; the cue engine tells you what's coming *next*, ~450ms before the move: "arms up next" → **"now"** → **"cut it"** → "hold… 2… 1". Voice, big on-screen text, and a haptic buzz on the beat, because the user is across the room and mid-turn. Full spec: [`../architecture/CUE_ENGINE.md`](../architecture/CUE_ENGINE.md).
+- **At most one cue on screen at a time**, ever. Corrections pick the worst-scoring limb and are phrased as a fix, not a complaint: "left arm higher", not "left arm wrong".
 - **Never all-red.** If tracking confidence collapses (you left the frame, it's too dark), the skeleton goes grey and the app says "I can't see you" — a known state, not a score of zero.
 - **Optional voice cues** in Learn mode, short and on the beat ("arm up… now step").
 - **Accuracy %** = time-weighted mean of the overall frame score across scored frames. Shown live and after a take. One number, always computed the same way.

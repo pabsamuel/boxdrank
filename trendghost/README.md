@@ -23,7 +23,7 @@ TrendGhost fixes all four: overlay instead of side-by-side, per-joint colour fee
 
 ## How it works (one paragraph)
 
-Every reference video is pre-processed once into a **pose timeline**: for each frame, the 33 body landmarks, normalised so body size and camera distance don't matter. At practice time the camera feed is run through the same pose model at ~30fps, normalised the same way, and compared against the reference frame for the current playback time. The comparison is done on **limb angles**, not pixel positions, so tall/short, near/far, left/right of frame all still score correctly. Each limb gets a score 0–1 → colour. See `docs/architecture/POSE_MATCHING.md`.
+You get a routine in by sharing it straight from TikTok/Reels into the app, picking it from your camera roll, or starting from a built-in template (`docs/product/CONTENT_SOURCING.md` — we never download anyone's video from a link). Every reference video is then pre-processed once into a **pose timeline** and a **cue track**: for each frame, the 33 body landmarks, normalised so body size and camera distance don't matter. At practice time the camera feed is run through the same pose model at ~30fps, normalised the same way, and compared against the reference frame for the current playback time. The comparison is done on **limb angles**, not pixel positions, so tall/short, near/far, left/right of frame all still score correctly. Each limb gets a score 0–1 → colour (`docs/architecture/POSE_MATCHING.md`), while the cue track fires ~450ms *ahead* of each move so you're told what's coming instead of just being marked on what you missed (`docs/architecture/CUE_ENGINE.md`).
 
 ---
 
@@ -31,8 +31,8 @@ Every reference video is pre-processed once into a **pose timeline**: for each f
 
 | Mode | What it does |
 | --- | --- |
-| **Learn** | Ghost plays at 0.25×–1× speed, step by step. Move-by-move instructions ("left arm up, then step right"). Waits for you to hit each key pose before advancing. |
-| **Practice** | Full-speed ghost, live per-joint colour feedback, live accuracy %. No recording. |
+| **Learn** | Ghost plays at 0.25×–1× speed, step by step, calling each move before it happens — "arms up next… **now**… **cut it**… hold, 2, 1". Waits for you to hit each key pose before advancing. |
+| **Practice** | Full-speed ghost, live per-joint colour feedback, live accuracy %, cues still calling the next move. No recording. |
 | **Record** | Full-speed, ghost fades to near-invisible, records your take with the music. Post-take timeline shows where you lost sync. |
 | **Photo** | Single target pose. Ghost outline + auto-shutter when you hold the match for ~0.6s. |
 

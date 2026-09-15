@@ -63,3 +63,21 @@ Decisions that shape the build. Each one: what, why, what it costs, and what wou
 **Decision.** The camera preview is mirrored (people expect a mirror), and the reference is mirrored to match, so "raise the arm on the same side as the ghost's raised arm" is literally true on screen. Internally everything is converted into subject-space first. A toggle switches to "anatomical" mode for users who want to copy left/right exactly.
 
 **Why.** Mirroring is the single most common source of confusion in dance tutorials, and of bugs in pose code. One documented convention, one helper, one toggle.
+
+## D9 — Three import lanes, and never a video downloader
+
+**Decision.** Routines enter the app by (1) the platform's own share sheet, (2) the camera roll picker, or (3) a bundled template pack we film or license. No URL input, no fetching, ever. Detail and reasoning in `docs/product/CONTENT_SOURCING.md`.
+
+**Why.** Lane 1 gives the user the "it just grabs it" experience they actually want, while the *platform* does the exporting under the creator's own download settings. A built-in downloader would give the same UX and take the whole project down with it (`RISKS.md` R1).
+
+**Cost.** iOS Safari has no Web Share Target, so iOS users are on the camera-roll picker until the native app exists. The template pack costs real money (a dancer, a shoot, or licensing) before it can ship.
+
+**Revisit when.** Never for the downloader. The template pack's size and sourcing is an open owner decision.
+
+## D10 — Cues lead the move; colour follows it
+
+**Decision.** A cue engine generates a **cue track** at ingest — "arms up next", "now", "cut it", "hold" — fired ~450ms *before* each move, on the playback clock, through voice + large text + haptics. Colour feedback stays as-is, reporting the present. Spec: `docs/architecture/CUE_ENGINE.md`.
+
+**Why.** Red/green alone is a mirror: by the time you're red, the moment is gone. Telling the user what's coming is what turns the app from a scoreboard into a teacher, and it's the thing that makes a fast trend learnable at all.
+
+**Cost.** Lead time is a real tuning problem (wrong in either direction feels broken), and the cue *phrasing* has to be generated from pose deltas, which is fiddly. Both are isolated: timings in `cues.config.ts`, wording in `coach/phrases.ts`.
