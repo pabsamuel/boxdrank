@@ -196,6 +196,26 @@ async function seedRoutine(page: Page, reloadTo = '/') {
   await expect(page.getByText('E2E routine')).toBeVisible();
 }
 
+/**
+ * The service worker is what receives a share, so it must be CONTROLLING the page
+ * before we post to it. `navigator.serviceWorker.ready` resolves once a worker is
+ * activated, which is earlier — a POST made in that window goes to the network
+ * instead and the share is silently missed.
+ */
+async function waitForServiceWorkerControl(page: Page) {
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+    if (navigator.serviceWorker.controller) return;
+    await new Promise<void>((resolve) => {
+      navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), { once: true });
+    });
+  });
+  // A worker that activated after this page loaded only controls it from the next
+  // navigation, so reload and confirm control before posting.
+  await page.reload();
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
+}
+
 async function completeOnboarding(page: Page) {
   for (const label of ['Next', 'Got it', 'Start']) {
     const button = page.getByRole('button', { name: label });
@@ -214,17 +234,7 @@ test('a photo shared from another app lands in TrendGhost and starts processing'
   await page.goto('/');
   await completeOnboarding(page);
 
-  // Wait for the service worker to control the page — it is what receives the share.
-  await page.evaluate(async () => {
-    await navigator.serviceWorker.ready;
-    if (!navigator.serviceWorker.controller) {
-      await new Promise<void>((resolve) =>
-        navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), {
-          once: true,
-        }),
-      );
-    }
-  });
+  await waitForServiceWorkerControl(page);
 
   // A real 1x1 PNG, posted exactly as the OS share sheet posts one.
   const redirected = await page.evaluate(async () => {
@@ -257,9 +267,7 @@ test('a photo shared from another app lands in TrendGhost and starts processing'
 test('a shared file is consumed once, not replayed on every reload', async ({ page }) => {
   await page.goto('/');
   await completeOnboarding(page);
-  await page.evaluate(async () => {
-    await navigator.serviceWorker.ready;
-  });
+  await waitForServiceWorkerControl(page);
 
   await page.evaluate(async () => {
     const bytes = Uint8Array.from(
