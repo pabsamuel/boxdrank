@@ -6,9 +6,10 @@
 ## Current state
 
 **v0.1.0 — the pipeline is complete and runs end to end offline.** Ten stages,
-five provider adapters, five target adapters, 100 tests green. No real provider
-has been exercised against a real account yet — that is the next milestone and
-it needs an API key, which only the owner can supply.
+five provider adapters, five target adapters, 119 tests green on Python
+3.10/3.11/3.12, with and without ffmpeg. No real *provider* has been exercised
+against a real account yet — that is the next milestone and it needs an API key,
+which only the owner can supply.
 
 ## Next exact action
 
@@ -43,17 +44,20 @@ drift. All of them are env-overridable for exactly this reason.
 
 ```
 python3 -m unittest discover -s tests -t .
-→ 100 tests, OK, ~13s, no network, no API keys
+→ 119 tests, OK, ~15s, no network, no API keys
 ```
 
-Run on this machine without ffmpeg, which means the stdlib fallback paths are
-the ones under test. **Re-run the suite on a machine with ffmpeg too** — the
-ffmpeg branches (format conversion, `atempo`, `loudnorm`, film muxing) are not
-currently covered.
+Both halves are covered. The main suite pins a non-existent ffmpeg binary, so it
+always exercises the stdlib fallbacks; `tests/test_ffmpeg_paths.py` (12 tests)
+covers the ffmpeg branches — decode/encode round-trip, `atempo`, `loudnorm`, the
+streamed and ducked film bed, muxing, and a full film run with a real video —
+and skips cleanly where ffmpeg is absent. CI runs the whole matrix both ways on
+3.10/3.11/3.12.
 
 ## Known gaps
 
-* No ffmpeg on the dev machine, so ffmpeg code paths are untested (see above).
+* The live-API adapters have still never run against a real account (see the
+  table above). Everything else is covered.
 * Packed-audio titles (Wwise `.bnk`, FMOD `.bank`, Unreal `.pak`) are
   deliberately not opened — we deliver import-ready audio plus instructions.
 * No web intake form; orders are folders an operator creates.
@@ -71,6 +75,7 @@ currently covered.
 | 3 | Ten stages, game + film paths | done |
 | 4 | Providers (mock/ElevenLabs/OpenAI/Claude/local), targets | done |
 | 5 | Tests, demo order, docs, prompt library | done |
+| 5b | ffmpeg path coverage; fixed 3 defects it found (see DECISIONS #17) | done |
 | 6 | First real order with a live provider | **next** |
 | 7 | Second title, second engine — prove the target adapters | not started |
 | 8 | Local model path, for cost and privacy | not started |

@@ -56,7 +56,9 @@ def _bed_stream(video: Path, sample_rate: int, channels: int, ffmpeg_bin: str):
         "-f", "s16le", "-acodec", "pcm_s16le",
         "-ar", str(sample_rate), "-ac", str(channels), "-",
     ]
-    proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # stderr goes to DEVNULL rather than a pipe nobody drains: a pipe we never
+    # read leaks a descriptor per file, and a film job streams a lot of files.
+    proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     assert proc.stdout is not None
     block_bytes = BLOCK_FRAMES * channels * 2
     try:
@@ -66,8 +68,15 @@ def _bed_stream(video: Path, sample_rate: int, channels: int, ffmpeg_bin: str):
                 break
             yield chunk
     finally:
+        # The caller usually stops early (the timeline ends before the bed
+        # does), so closing stdout is what tells ffmpeg to stop. Kill it if it
+        # does not take the hint, and always reap it.
         proc.stdout.close()
-        proc.wait()
+        try:
+            proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=10)
 
 
 def build_track(

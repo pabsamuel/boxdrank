@@ -55,16 +55,85 @@ def read_wav(path: Path) -> Audio:
             width = wf.getsampwidth()
             rate = wf.getframerate()
             raw = wf.readframes(wf.getnframes())
-    except wave.Error as exc:
-        raise AssetError(
-            f"{path.name} is a WAV file Python cannot read directly ({exc})",
-            "This is usually 32-bit float or a compressed WAV. Install ffmpeg and re-run; "
-            "VoxSwap will convert it automatically.",
-        ) from exc
+    except wave.Error:
+        # Python's `wave` rejects anything that is not a plain PCM header, which
+        # rules out two formats we meet constantly in the wild: float WAVs (game
+        # engines and DAWs export them) and WAVE_FORMAT_EXTENSIBLE (what ffmpeg
+        # writes for >2 channels or high sample rates — including its own
+        # loudnorm output). Both carry perfectly ordinary samples behind a
+        # longer header, so we parse them ourselves rather than telling the
+        # operator to go and install something.
+        return _read_wav_manual(path)
     except FileNotFoundError as exc:
         raise AssetError(f"missing audio file: {path}", "Check target.asset_root in order.json.") from exc
 
     return Audio(_to_int16(raw, width), rate, channels)
+
+
+_FORMAT_PCM = 0x0001
+_FORMAT_FLOAT = 0x0003
+_FORMAT_EXTENSIBLE = 0xFFFE
+
+
+def _read_wav_manual(path: Path) -> Audio:
+    """Minimal RIFF parser for the headers `wave` will not open."""
+    data = path.read_bytes()
+    if len(data) < 12 or data[:4] != b"RIFF" or data[8:12] != b"WAVE":
+        raise AssetError(
+            f"{path.name} is not a WAV file",
+            "Install ffmpeg and VoxSwap will convert it automatically.",
+        )
+
+    fmt: tuple[int, int, int, int] | None = None
+    body = b""
+    offset = 12
+    while offset + 8 <= len(data):
+        chunk_id = data[offset : offset + 4]
+        size = int.from_bytes(data[offset + 4 : offset + 8], "little")
+        payload = data[offset + 8 : offset + 8 + size]
+        if chunk_id == b"fmt ":
+            if len(payload) < 16:
+                raise AssetError(f"{path.name} has a truncated format header", "The file is corrupt.")
+            code = int.from_bytes(payload[0:2], "little")
+            channels = int.from_bytes(payload[2:4], "little")
+            rate = int.from_bytes(payload[4:8], "little")
+            bits = int.from_bytes(payload[14:16], "little")
+            if code == _FORMAT_EXTENSIBLE and len(payload) >= 26:
+                code = int.from_bytes(payload[24:26], "little")   # real format from the subformat GUID
+            fmt = (code, channels, rate, bits)
+        elif chunk_id == b"data":
+            body = payload
+        offset += 8 + size + (size % 2)                            # chunks are word-aligned
+
+    if fmt is None or not body:
+        raise AssetError(
+            f"{path.name} has no readable audio data",
+            "The file may be truncated. Install ffmpeg to let VoxSwap repair/convert it.",
+        )
+
+    code, channels, rate, bits = fmt
+    width = max(1, bits // 8)
+    if code == _FORMAT_PCM:
+        return Audio(_to_int16(body, width), rate, channels)
+    if code == _FORMAT_FLOAT:
+        return Audio(_float_to_int16(body, width), rate, channels)
+    raise AssetError(
+        f"{path.name} uses a compressed WAV codec (format {code}) that VoxSwap cannot decode",
+        "Install ffmpeg and re-run; VoxSwap will convert it automatically.",
+    )
+
+
+def _float_to_int16(raw: bytes, width: int) -> array:
+    """float32/float64 samples are in -1.0..1.0; scale and clamp."""
+    if width == 4:
+        count = len(raw) // 4
+        values = struct.unpack(f"<{count}f", raw[: count * 4])
+    elif width == 8:
+        count = len(raw) // 8
+        values = struct.unpack(f"<{count}d", raw[: count * 8])
+    else:
+        raise AssetError(f"unsupported float WAV width: {width * 8}-bit", "Install ffmpeg to convert it.")
+    return array("h", (_clip(int(v * 32767.0)) for v in values))
 
 
 def write_wav(path: Path, audio: Audio) -> None:
@@ -78,8 +147,15 @@ def write_wav(path: Path, audio: Audio) -> None:
 
 def probe_wav(path: Path) -> tuple[int, int, int]:
     """(duration_ms, sample_rate, channels) without loading the audio body."""
-    with wave.open(str(path), "rb") as wf:
-        frames, rate, channels = wf.getnframes(), wf.getframerate(), wf.getnchannels()
+    try:
+        with wave.open(str(path), "rb") as wf:
+            frames, rate, channels = wf.getnframes(), wf.getframerate(), wf.getnchannels()
+    except wave.Error:
+        # Float and extensible WAVs have to be parsed the long way. Consent
+        # checks probe the phrase recording, and a customer exporting float WAV
+        # from their DAW should not look like a missing recording.
+        audio = _read_wav_manual(path)
+        return audio.duration_ms, audio.sample_rate, audio.channels
     return int(round(frames * 1000.0 / rate)) if rate else 0, rate, channels
 
 

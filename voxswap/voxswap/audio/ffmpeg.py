@@ -121,12 +121,25 @@ def atempo(src: Path, dst: Path, factor: float, *, ffmpeg: str = "ffmpeg") -> Pa
     return dst
 
 
-def loudnorm(src: Path, dst: Path, target_lufs: float, *, true_peak: float = -1.5, ffmpeg: str = "ffmpeg") -> Path:
+def loudnorm(src: Path, dst: Path, target_lufs: float, *, true_peak: float = -1.5,
+             ffmpeg: str = "ffmpeg", ffprobe: str = "ffprobe") -> Path:
     """Single-pass EBU R128 normalisation. Two-pass is more accurate but doubles
-    the cost per line; single pass is within ~1 LU, which is inaudible here."""
-    filt = f"loudnorm=I={target_lufs}:TP={true_peak}:LRA=11:print_format=summary"
-    _run([ffmpeg, "-y", "-loglevel", "error", "-i", str(src), "-filter:a", filt, "-c:a", "pcm_s16le", str(dst)],
-         f"normalise {src.name}")
+    the cost per line; single pass is within ~1 LU, which is inaudible here.
+
+    The explicit `-ar`/`-ac` are not optional: the loudnorm filter resamples to
+    192 kHz internally, and ffmpeg then writes a WAVE_FORMAT_EXTENSIBLE header
+    for it. Forcing the input's own shape keeps the output a plain PCM WAV —
+    which is what the rest of the pipeline, and the game, expect back.
+    """
+    profile = audio_profile(src, ffprobe)
+    args = [ffmpeg, "-y", "-loglevel", "error", "-i", str(src),
+            "-filter:a", f"loudnorm=I={target_lufs}:TP={true_peak}:LRA=11:print_format=summary",
+            "-c:a", "pcm_s16le"]
+    if profile.get("sample_rate"):
+        args += ["-ar", str(profile["sample_rate"])]
+    if profile.get("channels"):
+        args += ["-ac", str(profile["channels"])]
+    _run(args + [str(dst)], f"normalise {src.name}")
     return dst
 
 

@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..audio import Audio, fit_to_slot, normalize_to, read_wav, resample, to_channels, write_wav
+from ..audio import Audio, estimate_lufs, fit_to_slot, normalize_to, read_wav, resample, to_channels, write_wav
 from ..audio import ffmpeg as ff
 from ..audio.loudness import match_loudness
 from ..models import Line, save_lines
@@ -67,7 +67,7 @@ class MasterStage(Stage):
                 if reference is not None:
                     out, applied = match_loudness(out, reference, fallback_lufs=options.target_lufs)
                 else:
-                    out, _, applied = normalize_to(out, options.target_lufs)
+                    out, applied = self._to_absolute_target(ctx, out, line, options.target_lufs)
 
                 if reference is not None:
                     out = to_channels(out, reference.channels)
@@ -116,6 +116,30 @@ class MasterStage(Stage):
                 )
             path = ff.to_wav(path, ctx.ws.tmp_dir / f"{line.line_id}.decoded.wav", ffmpeg=ctx.cfg.ffmpeg)
         return read_wav(path)
+
+    def _to_absolute_target(self, ctx: JobContext, audio: Audio, line: Line, target_lufs: float) -> tuple[Audio, float]:
+        """Normalise to a fixed LUFS target, used when there is no original clip
+        to match against (the film path).
+
+        Real EBU R128 via ffmpeg when it is available, our own estimate when it
+        is not. This is the one place an absolute target is the right tool —
+        everywhere else, matching the clip being replaced beats hitting a number.
+        """
+        before = estimate_lufs(audio)
+        if ctx.ffmpeg_ok:
+            try:
+                src = ctx.ws.tmp_dir / f"{line.line_id}.pre-norm.wav"
+                dst = ctx.ws.tmp_dir / f"{line.line_id}.norm.wav"
+                write_wav(src, audio)
+                ff.loudnorm(src, dst, target_lufs, ffmpeg=ctx.cfg.ffmpeg, ffprobe=ctx.cfg.ffprobe)
+                result = read_wav(dst)
+                src.unlink(missing_ok=True)
+                dst.unlink(missing_ok=True)
+                return result, round(target_lufs - before, 2)
+            except Exception as exc:                     # noqa: BLE001 - fall back rather than fail a line
+                ctx.log.debug(f"{line.line_id}: loudnorm unavailable ({exc}); using the built-in estimate")
+        out, _, applied = normalize_to(audio, target_lufs)
+        return out, applied
 
     def _reference(self, ctx: JobContext, line: Line) -> Audio | None:
         """The original clip, used as the loudness and format target.

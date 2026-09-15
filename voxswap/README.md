@@ -5,7 +5,7 @@
 
   ![Python](https://img.shields.io/badge/Python-3.10+-3776ab?style=flat-square&logo=python&logoColor=white)
   ![Dependencies](https://img.shields.io/badge/dependencies-none-00e054?style=flat-square)
-  ![Tests](https://img.shields.io/badge/tests-100-blue?style=flat-square)
+  ![Tests](https://img.shields.io/badge/tests-119-blue?style=flat-square)
 </div>
 
 ---
@@ -104,7 +104,11 @@ python3 -m voxswap purge ORD-123           # someone withdrew consent
 python3 -m unittest discover -s tests -t .
 ```
 
-100 tests, no dependencies, no network, no API keys, ~13 seconds.
+119 tests, no dependencies, no network, no API keys, ~15 seconds.
+
+12 of them cover the ffmpeg code paths and skip automatically when ffmpeg is
+not installed, so the suite stays runnable on a bare machine. CI runs half its
+matrix with ffmpeg so they do not quietly never run.
 
 ## Licence
 

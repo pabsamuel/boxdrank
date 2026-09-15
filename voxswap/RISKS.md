@@ -107,11 +107,17 @@ even ask Claude".
 for, and put a deadline on consent chasing. The order that drags for three weeks
 is the one that makes you hate this.
 
-## 10. ffmpeg paths are untested
+## 10. ffmpeg paths behave differently from the fallbacks
 
 **Damage:** something breaks on the machine you actually work on, not the one
 this was built on.
 
-**Status:** the fallbacks are tested; the ffmpeg branches (format conversion,
-`atempo`, `loudnorm`, film muxing) have never run here. Re-run the suite on a
-machine with ffmpeg installed and fix what surfaces. Tracked in `STATUS.md`.
+**Status:** both sides are now covered. `tests/test_ffmpeg_paths.py` exercises
+the ffmpeg branches (decode/encode round-trip, `atempo`, `loudnorm`, the
+streamed film bed, muxing, and a full film run) and skips where ffmpeg is
+absent; CI runs half its matrix with ffmpeg installed. Writing those tests
+found three real defects — see `DECISIONS.md` #17.
+
+**Still on you:** the ffmpeg you have is not the ffmpeg CI has. If a build of
+yours behaves differently, `python3 -m unittest tests.test_ffmpeg_paths` on
+your own machine is the first thing to run.

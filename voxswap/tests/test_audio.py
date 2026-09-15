@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import struct
 import tempfile
 import unittest
 from pathlib import Path
 
+from voxswap.errors import AssetError
 from voxswap.audio import (
     Audio, concat, duck, estimate_lufs, fit_to_slot, normalize_to, ola_stretch,
     overlay, pad_to, peak, probe_wav, read_wav, resample, rms, silence,
@@ -53,6 +55,78 @@ class WavIOTests(unittest.TestCase):
         mono = to_channels(stereo, 1)
         self.assertEqual(mono.channels, 1)
         self.assertAlmostEqual(mono.duration_ms, 400, delta=2)
+
+
+class AwkwardWavTests(unittest.TestCase):
+    """WAV headers Python's `wave` module refuses.
+
+    Both turn up constantly in real work: DAWs and game engines export float
+    WAVs, and ffmpeg writes WAVE_FORMAT_EXTENSIBLE for high sample rates and
+    multichannel files. The payload is ordinary PCM behind a longer header, so
+    the stdlib-only promise means we read them rather than demanding ffmpeg.
+    """
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._tmp.name)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    @staticmethod
+    def _riff(fmt_chunk: bytes, data: bytes) -> bytes:
+        body = b"WAVE" + b"fmt " + len(fmt_chunk).to_bytes(4, "little") + fmt_chunk \
+               + b"data" + len(data).to_bytes(4, "little") + data
+        return b"RIFF" + len(body).to_bytes(4, "little") + body
+
+    def _write_float_wav(self, path: Path, values: list[float], rate: int = 16000) -> None:
+        fmt = struct.pack("<HHIIHH", 3, 1, rate, rate * 4, 4, 32)
+        path.write_bytes(self._riff(fmt, struct.pack(f"<{len(values)}f", *values)))
+
+    def _write_extensible_wav(self, path: Path, samples: list[int], rate: int = 16000) -> None:
+        # fmt chunk: 0xFFFE + cbSize 22 + valid bits + channel mask + subformat GUID (PCM)
+        guid = (1).to_bytes(2, "little") + bytes.fromhex("000000001000800000aa00389b71")
+        fmt = struct.pack("<HHIIHH", 0xFFFE, 1, rate, rate * 2, 2, 16) \
+              + struct.pack("<HHI", 22, 16, 0x4) + guid
+        path.write_bytes(self._riff(fmt, struct.pack(f"<{len(samples)}h", *samples)))
+
+    def test_float32_wav_is_read_and_scaled(self) -> None:
+        path = self.tmp / "float.wav"
+        self._write_float_wav(path, [0.0, 0.5, -0.5, 1.0, -1.0])
+        audio = read_wav(path)
+        self.assertEqual(audio.sample_rate, 16000)
+        self.assertEqual(audio.channels, 1)
+        self.assertEqual(list(audio.samples), [0, 16383, -16383, 32767, -32767])
+
+    def test_extensible_wav_is_read_as_plain_pcm(self) -> None:
+        path = self.tmp / "ext.wav"
+        self._write_extensible_wav(path, [0, 1000, -1000, 32000])
+        audio = read_wav(path)
+        self.assertEqual(audio.sample_rate, 16000)
+        self.assertEqual(list(audio.samples), [0, 1000, -1000, 32000])
+
+    def test_probe_handles_them_too(self) -> None:
+        """Consent checks probe the phrase recording — a float WAV must not
+        look like a missing file."""
+        path = self.tmp / "float.wav"
+        self._write_float_wav(path, [0.1] * 16000)
+        duration, rate, channels = probe_wav(path)
+        self.assertEqual((duration, rate, channels), (1000, 16000, 1))
+
+    def test_a_file_that_is_not_a_wav_says_so(self) -> None:
+        path = self.tmp / "nope.wav"
+        path.write_bytes(b"OggS" + b"\x00" * 64)
+        with self.assertRaises(AssetError) as caught:
+            read_wav(path)
+        self.assertIn("ffmpeg", caught.exception.hint)
+
+    def test_a_compressed_wav_points_at_ffmpeg(self) -> None:
+        path = self.tmp / "adpcm.wav"
+        fmt = struct.pack("<HHIIHH", 0x0011, 1, 16000, 8000, 256, 4)   # IMA ADPCM
+        path.write_bytes(self._riff(fmt, b"\x00" * 64))
+        with self.assertRaises(AssetError) as caught:
+            read_wav(path)
+        self.assertIn("ffmpeg", caught.exception.hint)
 
 
 class EditingTests(unittest.TestCase):

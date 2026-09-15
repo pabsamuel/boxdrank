@@ -4,14 +4,16 @@ The single biggest giveaway of a swapped voice is level: the cloned line is
 louder or quieter than everything around it, so the player hears "a mod"
 instead of "the character". We fix that two ways:
 
-  1. ffmpeg `loudnorm` (real EBU R128) when ffmpeg is installed — preferred.
-  2. The estimator below when it is not: a K-weighting approximation plus a
-     gated mean-square, accurate to roughly ±1.5 LU on speech. Good enough to
-     sit a line in a mix; not good enough to certify a broadcast master.
-
-We also match the *neighbourhood*, not a fixed number, when the original clip
-is available: copying the original clip's loudness is always more convincing
-than hitting a spec value.
+  1. **Matching the clip we are replacing** — `match_loudness`, below. This is
+     what the game path does, and it is the better answer: the original clip's
+     loudness is by definition right for that moment in the mix, which no spec
+     value can be.
+  2. **An absolute target**, for the film path, where a single line has no
+     counterpart to match. There the `master` stage prefers ffmpeg's `loudnorm`
+     (real EBU R128) and falls back to `normalize_to` below — a K-weighting
+     approximation plus a gated mean-square, accurate to roughly ±1.5 LU on
+     speech. Good enough to sit a line in a mix; not good enough to certify a
+     broadcast master.
 """
 
 from __future__ import annotations

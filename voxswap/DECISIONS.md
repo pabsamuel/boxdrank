@@ -113,3 +113,27 @@ runtime.
 
 They are how you test a new title for free, reproduce a bug offline, and keep CI
 honest. A test suite that needs an API key is a test suite nobody runs.
+
+### 17. Awkward WAV headers are parsed, not refused
+
+Python's `wave` module opens only plain PCM headers. Two formats it rejects turn
+up constantly: float WAVs (DAWs and game engines export them) and
+WAVE_FORMAT_EXTENSIBLE (what ffmpeg writes for high sample rates or
+multichannel — including its own `loudnorm` output). Both carry ordinary samples
+behind a longer header, so `wavio` parses them itself rather than telling an
+operator to go and install something. "Works without ffmpeg" has to mean it.
+
+This was written after running the ffmpeg tests for the first time surfaced
+three real defects: `loudnorm` emitting a 192 kHz extensible WAV our own reader
+could not open, `probe_wav` having the same blind spot as `read_wav`, and the
+streaming film mixdown leaking a subprocess pipe per file. All three were
+invisible to a suite that only exercised the fallbacks.
+
+### 18. The absolute-loudness path uses ffmpeg where it exists
+
+`master` matches the loudness of the clip being replaced (decision 8) — but the
+film path has no clip to match, so it normalises to `options.target_lufs`
+instead. That is the one place an absolute target is correct, so it is the one
+place that calls ffmpeg's real EBU R128 `loudnorm`, falling back to our estimate
+when ffmpeg is absent. Before this, `loudness.py` claimed ffmpeg was "preferred"
+while nothing ever called it — a docstring that lied.
