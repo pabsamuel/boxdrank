@@ -180,8 +180,7 @@ class DialogueBoxView @JvmOverloads constructor(
 
     private fun buildLayouts(innerWidth: Int) {
         val current = line
-        val body = current?.text ?: placeholder ?: ""
-        bodyLayout = makeLayout(body, bodyPaint, innerWidth)
+        bodyLayout = makeLayout(bodyText(), bodyPaint, innerWidth)
 
         val translation = current?.translation
         transLayout = if (translation != null && displayMode == DisplayMode.LEARNING) {
