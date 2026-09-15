@@ -36,16 +36,26 @@ without a phone is guessing.
 
 ## Test status
 
-`npm run verify` → prettier + tsc + eslint + **25/25 unit tests**, green.
-`npm run test:e2e` → 5 Playwright smoke tests in a real Chromium with a fake camera,
-including the share-sheet handoff (a real multipart POST to `/share-target`).
-The third (camera + model + render loop) needed its IndexedDB seeding rewritten —
-it was racing the app's own schema creation. Re-run it before trusting a green
-board; if you touch storage, that test is the one that notices.
+`npm run verify` → prettier + tsc (src, scripts **and e2e**) + eslint + **25/25 unit
+tests**, green.
+`npm run test:e2e` → **5/5 Playwright tests**, green on **8 consecutive runs**
+(~27s each), in a real Chromium with a fake camera: onboarding and the camera
+pre-permission screen, no-URL-field, camera + model + render loop with zero
+off-device requests, and the share-sheet handoff via a real multipart POST.
 
 Unit coverage is deliberately concentrated where correctness is hard and testable:
 the 7 scoring fixtures from `docs/architecture/POSE_MATCHING.md` §9 and the cue
 engine's timing/priority rules.
+
+If the e2e suite starts failing intermittently again, read the failure output
+before changing anything — it prints browser console errors and what was actually
+rendered when an assertion timed out, and keeps a Playwright trace
+(`npx playwright show-trace test-results/<dir>/trace.zip`). Those diagnostics exist
+because several rounds were lost to guessing. The last such bug was a
+check-then-act race in the test helper itself: `isVisible()` returned true, the
+screen finished rendering away before the click landed, and the click then waited
+the full test timeout for an element that no longer existed. Never check
+visibility and then act on it — attempt the action with a short timeout instead.
 
 ## What is NOT verified
 
@@ -68,6 +78,7 @@ Be honest about this — it is the difference between "built" and "works":
 ## Session notes
 
 - _(newest first: date — what changed — what was verified)_
+- 2026-09-15 — Stabilised the e2e suite (8 consecutive green runs). The flakiness was a check-then-act race in the test helper, not the app, but chasing it surfaced two things worth keeping: onboarding was not persisted before navigation (a real app bug — finish onboarding, reopen, see it again), and `e2e/` was not typechecked, so a file that could not parse still passed `npm run verify`. Both fixed. Failure diagnostics (console, page dump, trace) added.
 - 2026-09-15 — Share flow hardened: the shared photo/video was being held in a service-worker variable, which loses the file in the normal case (app closed when the user taps Share, worker killed before the page loads). It is now parked in Cache Storage, consumed exactly once, and the ingest screen starts processing it by itself. Two e2e tests cover it. UI copy now tells the user the share route exists, and says something different on iOS (no Web Share Target) and when already installed.
 - 2026-09-15 — Built phases 1–7 and most of 8–9: pose-core (normalise/features/score/smooth/align/timeline), cue engine (segment/cues/phrases/voice), framing coach, MediaPipe wrapper, camera, playback clock, canvas renderer, IndexedDB+OPFS storage, video and photo ingest, all screens, PWA + share target, model fetch script. Two real bugs found and fixed by testing: the overall score was far too forgiving of one wrong limb (added the worst-segment blend, `POSE_MATCHING.md` §5), and the lighting check was doing a full-canvas GPU readback every frame (moved to a 32×32 offscreen sampler). `npm run verify` green, 22/22 unit tests, 3/3 e2e.
 - 2026-09-15 — Added `CONTENT_SOURCING.md` (three import lanes, never a downloader) and `CUE_ENGINE.md` (lookahead cues). Decisions D9/D10.
