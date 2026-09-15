@@ -1,0 +1,15 @@
+{
+  "name": "HomeSizer",
+  "tagline": "Sizing calculators for home equipment",
+  "description": "Free sizing calculators for generators, mini splits, recessed lighting, air purifiers and water heaters. Shows the math, not just the number.",
+  "base_url": "https://example.com",
+  "author": "CHANGE ME",
+  "author_bio": "CHANGE ME - one real paragraph about who you are and why you know this. Use your real name and a real photo. This is the page Google looks at to decide you are a person and not a farm.",
+  "amazon_tag": "",
+  "adsense_client": "",
+  "nav": [
+    { "label": "Calculators", "href": "/calculators/" },
+    { "label": "Buying guides", "href": "/guides/" },
+    { "label": "About", "href": "/about/" }
+  ]
+}

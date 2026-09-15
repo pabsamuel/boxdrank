@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ site.name }} — {{ site.tagline }}{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="wrap">
+    <h1>What size do I need?</h1>
+    <p class="lede">Sizing calculators for the equipment people buy once and live with for a decade. Each one shows the arithmetic, not just the answer.</p>
+  </div>
+</section>
+<div class="wrap prose">
+  <h2>Calculators</h2>
+  <ul class="card-list">
+    {% for c in calcs %}
+    <li><a class="card" href="/{{ c.slug }}/"><strong>{{ c.h1 }}</strong><span class="muted">{{ c.nav_label }}</span></a></li>
+    {% endfor %}
+  </ul>
+  {% if roundups %}
+  <h2>Buying guides</h2>
+  <ul class="card-list">
+    {% for r in roundups %}<li><a class="card" href="/guides/{{ r.slug }}/"><strong>{{ r.h1 }}</strong><span class="muted">{{ r.category }}</span></a></li>{% endfor %}
+  </ul>
+  {% endif %}
+</div>
+{% endblock %}

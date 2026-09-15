@@ -1,0 +1,48 @@
+{
+  "id": "recessed",
+  "slug": "recessed-lighting-layout-calculator",
+  "nav_label": "Recessed light layout",
+  "title": "Recessed Lighting Layout Calculator (Spacing + Diagram)",
+  "h1": "Recessed lighting layout calculator",
+  "meta_description": "Enter your room dimensions and ceiling height. Get the number of recessed lights, the spacing, the distance from each wall, and a diagram of where to cut.",
+  "engine": "recessed",
+  "updated": "2026-09-15",
+  "intro": "You are about to cut permanent holes in your ceiling, so the spacing is worth thirty seconds. This gives you the grid, the offset from each wall, the lumens each fixture needs to hit, and a scale drawing of the layout you can hold up against the room.",
+  "cta": "Measure the room",
+  "inputs": [
+    { "key": "length", "label": "Room length", "type": "number", "unit": "ft", "default": 16, "min": 4, "max": 80, "step": 0.5 },
+    { "key": "width", "label": "Room width", "type": "number", "unit": "ft", "default": 12, "min": 4, "max": 80, "step": 0.5 },
+    { "key": "ceiling", "label": "Ceiling height", "type": "number", "unit": "ft", "default": 8, "min": 7, "max": 20, "step": 0.5 },
+    { "key": "roomtype", "label": "Room type", "type": "select", "default": "living",
+      "options": [
+        { "value": "living", "label": "Living room / den", "fc": 15 },
+        { "value": "bedroom", "label": "Bedroom", "fc": 15 },
+        { "value": "kitchen", "label": "Kitchen", "fc": 40 },
+        { "value": "bathroom", "label": "Bathroom", "fc": 35 },
+        { "value": "office", "label": "Home office", "fc": 40 },
+        { "value": "hallway", "label": "Hallway / entry", "fc": 10 },
+        { "value": "garage", "label": "Garage / workshop", "fc": 50 },
+        { "value": "basement", "label": "Finished basement", "fc": 20 }
+      ]
+    }
+  ],
+  "method_html": "<p><strong>Spacing.</strong> The standard starting point is ceiling height divided by two. An 8 ft ceiling gives 4 ft between fixtures; a 10 ft ceiling gives 5 ft. This comes from the beam spread of a typical recessed downlight: at half the mounting height, adjacent cones overlap enough to avoid scalloping on the floor without washing out.</p><p><strong>Wall offset.</strong> Fixtures go half the spacing from the wall, so a 4 ft spacing puts the outer row 2 ft in. Closer than about 18 in and you light the wall rather than the room; further than half-spacing and the perimeter goes dark. If you have upper cabinets, measure the offset from the cabinet face, not the wall - people forget this and end up lighting the cabinet doors.</p><p><strong>How many.</strong> Rows and columns are the room dimensions divided by the spacing, rounded to a whole number, then the grid is re-centred so the actual spacing comes out even. That last step is why the number this gives you sometimes differs from dividing the area by a rule of thumb.</p><p><strong>Lumens per fixture.</strong> The room needs area times the footcandle target for its use (15 fc living room, 40 fc kitchen, 50 fc workshop). Divide by the number of fixtures for the lumens each one has to deliver. A 6 in LED downlight is typically 650-1,100 lm, a 4 in is 400-700 lm.</p><p><strong>Before you cut:</strong> find the joists. Joist bays are usually 16 in on centre and a recessed can needs to sit between them, so the ideal grid and the achievable grid are not always the same - shift the whole grid rather than moving one light out of line. In an insulated ceiling the fixture must be IC-rated. Over a shower or tub it needs to be wet-listed.</p>",
+  "chart": {
+    "title": "Spacing and typical count by ceiling height",
+    "columns": ["Ceiling height", "Spacing", "Wall offset", "Lights in a 12x16 ft room"],
+    "rows": [
+      ["8 ft", "4 ft", "2 ft", "12 (3 x 4)"],
+      ["9 ft", "4.5 ft", "2 ft 3 in", "9 (3 x 3)"],
+      ["10 ft", "5 ft", "2 ft 6 in", "6 (2 x 3)"],
+      ["12 ft", "6 ft", "3 ft", "6 (2 x 3)"]
+    ]
+  },
+  "faqs": [
+    { "q": "What size recessed lights, 4 inch or 6 inch?", "a": "6 in is the default for general ceiling lighting in rooms with 8 ft or higher ceilings - fewer fixtures, more output each. 4 in suits hallways, small bathrooms, accent runs over a counter, and any ceiling where a 6 in aperture would look heavy. Mixing sizes in one visible sightline reads as a mistake, so pick one per room." },
+    { "q": "What colour temperature should I use?", "a": "2700K for living rooms and bedrooms (warm, incandescent-like), 3000K for kitchens and bathrooms, 3500-4000K for garages, workshops and laundry. Above 4000K in a living space reads as clinical. Whatever you choose, keep it identical across the whole room - two slightly different whites in one ceiling is the most noticeable lighting error there is." },
+    { "q": "How far from the wall should recessed lights be?", "a": "Half the fixture spacing, so typically 2 to 3 ft. For lights intended to wash art or a bookshelf, move them closer, 18 to 24 in from the wall, and use an adjustable or wall-wash trim aimed at the surface." },
+    { "q": "Do I need a can, or can I use canless lights?", "a": "Canless (or 'wafer') LED downlights clip into the drywall with spring arms and only need a junction box in the ceiling cavity, which makes retrofit work dramatically easier - no can to fit between joists. They are the default for renovation now. Traditional cans still make sense in new construction and where you want a specific trim or a replaceable lamp." },
+    { "q": "Can I put them on one dimmer?", "a": "Yes, but check the dimmer is rated for LED loads and that the total wattage falls inside its range. LED downlights draw so little that a run of 12 of them may sit below the minimum load of an older dimmer, which shows up as flicker or a refusal to turn on at the bottom of the range." }
+  ],
+  "related": ["what-size-air-purifier-do-i-need", "mini-split-sizing-calculator"]
+}
