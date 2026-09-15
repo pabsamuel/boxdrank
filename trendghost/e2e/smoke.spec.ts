@@ -262,9 +262,13 @@ async function waitForServiceWorkerControl(page: Page) {
 async function completeOnboarding(page: Page) {
   const onboarding = page.locator('.onboarding');
 
+  // Short timeout on purpose: this is a local static app, so if onboarding is
+  // going to appear it appears well within a second. A long timeout here is paid
+  // on every navigation where onboarding is (correctly) absent — it cost ~30s a
+  // run before this was tuned down.
   for (let step = 0; step < 6; step += 1) {
     try {
-      await onboarding.getByRole('button').first().click({ timeout: 5_000 });
+      await onboarding.getByRole('button').first().click({ timeout: 1_500 });
     } catch {
       break;
     }
