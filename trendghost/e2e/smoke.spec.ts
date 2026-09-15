@@ -251,17 +251,23 @@ async function waitForServiceWorkerControl(page: Page) {
 /**
  * Click through onboarding, however many steps it has.
  *
- * Checking each button by name without waiting silently SKIPS a step when React
- * has not rendered it yet, leaving onboarding half-finished and every later
- * assertion mysteriously timing out. Drive it off the onboarding screen itself
- * instead, and assert it is actually gone at the end.
+ * Do NOT check isVisible() and then click: onboarding can finish rendering away
+ * in the gap between the two, and the click then waits the full test timeout for
+ * a button that no longer exists. (That race produced a two-minute "timeout" on a
+ * screen that had simply moved on — the page dump showed the library.)
+ *
+ * Instead, attempt each click with a short timeout and treat "not there" as
+ * "onboarding is done", then assert it really is gone.
  */
 async function completeOnboarding(page: Page) {
   const onboarding = page.locator('.onboarding');
 
   for (let step = 0; step < 6; step += 1) {
-    if (!(await onboarding.isVisible().catch(() => false))) return;
-    await onboarding.getByRole('button').first().click();
+    try {
+      await onboarding.getByRole('button').first().click({ timeout: 5_000 });
+    } catch {
+      break;
+    }
   }
 
   await expect(onboarding, 'onboarding should be finished').toBeHidden();
