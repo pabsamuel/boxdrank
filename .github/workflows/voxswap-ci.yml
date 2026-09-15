@@ -1,0 +1,98 @@
+# CI for VoxSwap (voxswap/). The core is stdlib-only, so this needs no install
+# step: it runs the offline test suite (consent gate, audio toolkit, script
+# parsing, full game + film pipelines on the mock providers) and then builds and
+# runs the demo order end to end. No API keys, no network.
+#
+# The suite runs twice: once without ffmpeg (exercising the stdlib fallbacks)
+# and once with it (exercising the ffmpeg paths), because both are real code
+# paths for real operators.
+name: VoxSwap CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "voxswap/**"
+      - ".github/workflows/voxswap-ci.yml"
+  pull_request:
+    paths:
+      - "voxswap/**"
+      - ".github/workflows/voxswap-ci.yml"
+
+concurrency:
+  group: voxswap-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: voxswap
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+        ffmpeg: [false, true]
+    name: py${{ matrix.python-version }}${{ matrix.ffmpeg && ' + ffmpeg' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install ffmpeg
+        if: matrix.ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Environment check
+        run: python -m voxswap doctor
+
+      - name: Tests
+        run: python -m unittest discover -s tests -t . -v
+
+      - name: Demo order runs end to end
+        run: |
+          python tools/make_example.py
+          python -m voxswap run EXAMPLE-GAME
+
+      - name: Delivery contains what it should
+        run: |
+          python - <<'PY'
+          import json, zipfile
+          from pathlib import Path
+
+          delivery = Path("delivery/EXAMPLE-GAME")
+          archive = Path("delivery/EXAMPLE-GAME.zip")
+          assert archive.exists(), "no ZIP was produced"
+
+          for name in ("README.md", "INSTALL.md", "manifest.json", "script.csv", "qc.md"):
+              assert (delivery / name).exists(), f"{name} missing from the delivery"
+
+          qc = json.loads((delivery / "qc.json").read_text())
+          assert qc["pass_rate"] == 1.0, f"demo order did not fully pass QC: {qc['pass_rate']}"
+          assert qc["delivered"] == 4, qc
+
+          manifest = json.loads((delivery / "manifest.json").read_text())
+          assert len(manifest["files"]) == 4, manifest["files"]
+          for entry in manifest["files"]:
+              assert entry["original_sha256"], "an original was delivered without a checksum"
+
+          names = zipfile.ZipFile(archive).namelist()
+          assert any(n.startswith("audio/vo/hero/") for n in names), names
+          assert not any("npc" in n for n in names), "a character outside the order was replaced"
+          print(f"delivery OK: {len(names)} files, QC {qc['pass_rate'] * 100:.0f}%")
+          PY
+
+      - name: Consent gate cannot be bypassed
+        run: |
+          rm orders/EXAMPLE-GAME/consent/C-1-phrase.wav
+          rm -rf work delivery
+          if python -m voxswap run EXAMPLE-GAME; then
+            echo "FAIL: a job ran without a consent verification phrase"
+            exit 1
+          fi
+          test ! -d delivery/EXAMPLE-GAME || { echo "FAIL: a delivery was produced anyway"; exit 1; }
+          echo "consent gate held"

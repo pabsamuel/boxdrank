@@ -1,0 +1,26 @@
+# Customer data and generated output. Never committed.
+orders/*
+!orders/.gitkeep
+work/
+delivery/
+archive/
+.voices/
+
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+
+# The repository root ignores `_*.py` (one-off dev scripts). That pattern also
+# matches `__init__.py` and `__main__.py`, which would silently leave this
+# package unimportable for anyone who clones it. Re-include them.
+!__init__.py
+!__main__.py
