@@ -47,9 +47,7 @@ test('the camera opens, the pose model loads, and the render loop runs', async (
 
   await page.goto('/');
   await completeOnboarding(page);
-  await seedRoutine(page);
-
-  await page.goto('/?debug=1');
+  await seedRoutine(page, '/?debug=1');
   await page.getByRole('button', { name: 'Practice' }).click();
   await expect(page.locator('canvas.stage')).toBeVisible();
 
@@ -85,7 +83,7 @@ test('the camera opens, the pose model loads, and the render loop runs', async (
  * video file. Deliberately uses raw IDB rather than app code, so the test does
  * not depend on the app's own storage layer being correct.
  */
-async function seedRoutine(page: Page) {
+async function seedRoutine(page: Page, reloadTo = '/') {
   await page.evaluate(async () => {
     const points = Array.from({ length: 33 }, () => ({ x: 0, y: 0, z: 0, visibility: 1 }));
     // A plausible standing figure in subject space (hips at the origin).
@@ -142,49 +140,47 @@ async function seedRoutine(page: Page) {
       cues: [],
     };
 
-    // The app may not have created its stores yet, and opening without a version
-    // would otherwise leave an empty database behind. Create the store if needed.
+    // Wait for the app itself to create its object stores (it does so the first
+    // time the library reads routines), then write into them. Creating the store
+    // ourselves races the app's own upgrade and leaves a half-built database.
     await new Promise<void>((resolve, reject) => {
-      const probe = indexedDB.open('trendghost');
-      probe.onerror = () => reject(probe.error);
-      probe.onsuccess = () => {
-        const db = probe.result;
-        const hasStore = db.objectStoreNames.contains('routines');
-        const version = db.version;
-        db.close();
+      const deadline = Date.now() + 10_000;
 
-        const open = hasStore
-          ? indexedDB.open('trendghost', version)
-          : indexedDB.open('trendghost', version + 1);
-
-        open.onupgradeneeded = () => {
-          const upgraded = open.result;
-          if (!upgraded.objectStoreNames.contains('routines')) {
-            upgraded.createObjectStore('routines', { keyPath: 'id' });
+      const attempt = () => {
+        const request = indexedDB.open('trendghost');
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains('routines')) {
+            db.close();
+            if (Date.now() > deadline) {
+              reject(new Error('app never created its IndexedDB stores'));
+              return;
+            }
+            setTimeout(attempt, 200);
+            return;
           }
-          if (!upgraded.objectStoreNames.contains('takes')) {
-            upgraded
-              .createObjectStore('takes', { keyPath: 'id' })
-              .createIndex('routineId', 'routineId');
-          }
-          if (!upgraded.objectStoreNames.contains('settings')) {
-            upgraded.createObjectStore('settings');
-          }
-        };
-        open.onerror = () => reject(open.error);
-        open.onsuccess = () => {
-          const ready = open.result;
-          const tx = ready.transaction('routines', 'readwrite');
+          const tx = db.transaction('routines', 'readwrite');
           tx.objectStore('routines').put(routine);
           tx.oncomplete = () => {
-            ready.close();
+            db.close();
             resolve();
           };
-          tx.onerror = () => reject(tx.error);
+          tx.onerror = () => {
+            db.close();
+            reject(tx.error);
+          };
         };
       };
+
+      attempt();
     });
   });
+
+  // The library only re-reads on mount, so reload and wait for the routine to
+  // actually be on screen before the test carries on.
+  await page.goto(reloadTo);
+  await expect(page.getByText('E2E routine')).toBeVisible();
 }
 
 async function completeOnboarding(page: Page) {

@@ -36,8 +36,11 @@ without a phone is guessing.
 
 ## Test status
 
-`npm run verify` → prettier + tsc + eslint + **22/22 unit tests**, green.
+`npm run verify` → prettier + tsc + eslint + **25/25 unit tests**, green.
 `npm run test:e2e` → 3 Playwright smoke tests in a real Chromium with a fake camera.
+The third (camera + model + render loop) needed its IndexedDB seeding rewritten —
+it was racing the app's own schema creation. Re-run it before trusting a green
+board; if you touch storage, that test is the one that notices.
 
 Unit coverage is deliberately concentrated where correctness is hard and testable:
 the 7 scoring fixtures from `docs/architecture/POSE_MATCHING.md` §9 and the cue
