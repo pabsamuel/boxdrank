@@ -3,6 +3,15 @@
 const CACHE = 'trendghost-v1';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
 
+/**
+ * Where a shared photo/video is parked between the OS handing it to us and the
+ * page opening. It MUST be durable storage, not a variable: sharing from TikTok
+ * usually happens with the app closed, and the browser is free to kill this
+ * worker between the POST and the page load.
+ */
+const SHARE_CACHE = 'trendghost-share';
+const SHARE_KEY = '/__shared-media';
+
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
   self.skipWaiting();
@@ -12,25 +21,40 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))),
+      .then((keys) =>
+        Promise.all(
+          keys.filter((k) => k !== CACHE && k !== SHARE_CACHE).map((k) => caches.delete(k)),
+        ),
+      ),
   );
   self.clients.claim();
 });
 
-let pendingSharedFile = null;
-
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Lane 1 (CONTENT_SOURCING.md): the OS posts the shared video here.
+  // Lane 1 (CONTENT_SOURCING.md): the OS posts the shared photo or video here.
   if (event.request.method === 'POST' && url.pathname === '/share-target') {
     event.respondWith(
       (async () => {
-        const data = await event.request.formData();
-        pendingSharedFile = data.get('media');
-        const clientsList = await self.clients.matchAll({ type: 'window' });
-        for (const client of clientsList) {
-          client.postMessage({ type: 'shared-file', file: pendingSharedFile });
+        try {
+          const data = await event.request.formData();
+          const file = data.get('media');
+          if (file && typeof file !== 'string') {
+            const cache = await caches.open(SHARE_CACHE);
+            await cache.put(
+              SHARE_KEY,
+              new Response(file, {
+                headers: {
+                  'content-type': file.type || 'application/octet-stream',
+                  'x-share-name': encodeURIComponent(file.name || 'shared'),
+                },
+              }),
+            );
+            return Response.redirect('/?shared=1', 303);
+          }
+        } catch {
+          // Fall through: open the app normally rather than showing a browser error.
         }
         return Response.redirect('/', 303);
       })(),
@@ -45,11 +69,4 @@ self.addEventListener('fetch', (event) => {
       .match(event.request)
       .then((cached) => cached ?? fetch(event.request).catch(() => caches.match('/index.html'))),
   );
-});
-
-self.addEventListener('message', (event) => {
-  if (event.data?.type === 'claim-shared-file' && pendingSharedFile) {
-    event.source?.postMessage({ type: 'shared-file', file: pendingSharedFile });
-    pendingSharedFile = null;
-  }
 });

@@ -51,7 +51,10 @@ export function Library({ onOpen, onAdd, onSettings, onReviewTake, refreshKey }:
         <div className="empty">
           <h2>Copy any trend</h2>
           <ol>
-            <li>Add a video of the dance or pose you want to learn.</li>
+            <li>
+              Share a trend into TrendGhost from TikTok or Reels — or add a video or photo from your
+              phone.
+            </li>
             <li>Prop your phone up and step back until you fit in the frame.</li>
             <li>Follow the ghost — you go green when you match it.</li>
           </ol>

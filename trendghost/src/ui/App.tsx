@@ -7,6 +7,7 @@ import { Onboarding } from './Onboarding';
 import { Photo } from './Photo';
 import { Practice, type PracticeMode } from './Practice';
 import { Settings } from './Settings';
+import { takeSharedMedia } from '../storage/sharedMedia';
 import { TakeReview } from './TakeReview';
 import { useSettings } from './useSettings';
 
@@ -28,19 +29,21 @@ export function App() {
     void settings.load();
   }, [settings]);
 
-  // Web Share Target: the OS hands us a file, we go straight to ingest
-  // (CONTENT_SOURCING.md lane 1).
+  // Web Share Target: the OS parked a photo or video for us, so go straight to
+  // ingest with it (CONTENT_SOURCING.md lane 1). Reading it from Cache Storage
+  // rather than a message means it survives the app having been closed.
   useEffect(() => {
-    if (!('serviceWorker' in navigator)) return;
-    const onMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'shared-file' && event.data.file instanceof File) {
-        setSharedFile(event.data.file);
-        setView({ name: 'ingest', sharedFile: event.data.file });
-      }
+    let cancelled = false;
+    void takeSharedMedia().then((file) => {
+      if (cancelled || !file) return;
+      setSharedFile(file);
+      setView({ name: 'ingest', sharedFile: file });
+      // Drop ?shared=1 so a refresh doesn't look like a second share.
+      window.history.replaceState({}, '', '/');
+    });
+    return () => {
+      cancelled = true;
     };
-    navigator.serviceWorker.addEventListener('message', onMessage);
-    navigator.serviceWorker.controller?.postMessage({ type: 'claim-shared-file' });
-    return () => navigator.serviceWorker.removeEventListener('message', onMessage);
   }, []);
 
   if (!settings.loaded) return <div className="screen centre muted">Loading…</div>;

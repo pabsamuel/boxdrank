@@ -3,7 +3,7 @@
  * (CONTENT_SOURCING.md). There is no URL field, by design.
  */
 
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ingestPhoto } from '../ingest/ingestPhoto';
 import { ingestVideo, type IngestProgress } from '../ingest/ingestVideo';
 import type { Routine } from '../storage/db';
@@ -20,7 +20,7 @@ export function Ingest({ onDone, onCancel, sharedFile }: Props) {
   const [error, setError] = useState<string | null>(null);
   const abort = useRef<AbortController | null>(null);
 
-  const handle = async (file: File) => {
+  const handle = useCallback(async (file: File) => {
     setError(null);
     abort.current = new AbortController();
 
@@ -44,9 +44,16 @@ export function Ingest({ onDone, onCancel, sharedFile }: Props) {
         setError('Something went wrong reading that file.');
       }
     }
-  };
+  }, []);
 
-  if (sharedFile && !progress && !error) void handle(sharedFile);
+  // A file arriving from the share sheet starts processing by itself — that is
+  // the whole point of the share flow: tap share, and it's already working.
+  const started = useRef(false);
+  useEffect(() => {
+    if (!sharedFile || started.current) return;
+    started.current = true;
+    void handle(sharedFile);
+  }, [sharedFile, handle]);
 
   return (
     <div className="screen">
@@ -72,16 +79,21 @@ export function Ingest({ onDone, onCancel, sharedFile }: Props) {
           </label>
 
           <div className="note">
-            <h3>Quicker way</h3>
+            <h3>Quicker way: just share it</h3>
             <p>
-              In TikTok, Reels or Shorts, tap <strong>Share → TrendGhost</strong> and the video
-              comes straight here.{' '}
-              {isIOS()
-                ? 'On iPhone, save the video to your camera roll first, then pick it above.'
-                : 'Install TrendGhost to your home screen to get it in the share sheet.'}
+              Watching a trend in TikTok, Reels or Shorts? Tap <strong>Share → TrendGhost</strong>{' '}
+              and the video or photo comes straight here and starts loading by itself — no saving,
+              no file picker.
             </p>
             <p className="muted small">
-              TrendGhost can't download videos from a link — that's the creator's and the platform's
+              {isIOS()
+                ? "On iPhone that isn't available in the browser yet: save the video to your camera roll first, then pick it above."
+                : installed()
+                  ? 'TrendGhost is installed, so it should already be in your share sheet.'
+                  : 'Add TrendGhost to your home screen first — that is what puts it in the share sheet.'}
+            </p>
+            <p className="muted small">
+              TrendGhost can't fetch a video from a link — that's the creator's and the platform's
               call, not ours. Everything you add stays on this device.
             </p>
           </div>
@@ -117,4 +129,9 @@ export function Ingest({ onDone, onCancel, sharedFile }: Props) {
 
 function isIOS(): boolean {
   return /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+
+/** Running as an installed app, which is when the share target is registered. */
+function installed(): boolean {
+  return window.matchMedia?.('(display-mode: standalone)').matches ?? false;
 }

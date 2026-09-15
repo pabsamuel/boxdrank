@@ -25,7 +25,7 @@ without a phone is guessing.
 | --- | --- | --- | --- |
 | 0 | Specs, architecture docs, build prompts, decisions/risks | ✅ | docs only |
 | 1 | Camera + on-device pose + live skeleton + fps HUD | ✅ | e2e: camera opens, model loads, inference produces results |
-| 2 | Reference ingest: share sheet / picker → timeline + cue track → local storage | ✅ code | unit: resampler + normalisation; **not yet run on a real video** |
+| 2 | Reference ingest: share sheet / picker → timeline + cue track → local storage | ✅ | e2e: a real shared photo reaches ingest with the app closed and is consumed once; **still not run on a real video** |
 | 3 | Ghost overlay, subject-space fitting, one playback clock, speed control | ✅ code | builds; **needs a phone** |
 | 4 | Scoring engine: normalise, limb angles, per-limb score, smoothing, alignment | ✅ | 9/9 fixture tests incl. one-wrong-arm |
 | 5 | Framing coach: body-in-frame, distance, angle, lighting, one instruction at a time | ✅ | e2e: says "step into the frame" with no person, never fake-red |
@@ -37,7 +37,8 @@ without a phone is guessing.
 ## Test status
 
 `npm run verify` → prettier + tsc + eslint + **25/25 unit tests**, green.
-`npm run test:e2e` → 3 Playwright smoke tests in a real Chromium with a fake camera.
+`npm run test:e2e` → 5 Playwright smoke tests in a real Chromium with a fake camera,
+including the share-sheet handoff (a real multipart POST to `/share-target`).
 The third (camera + model + render loop) needed its IndexedDB seeding rewritten —
 it was racing the app's own schema creation. Re-run it before trusting a green
 board; if you touch storage, that test is the one that notices.
@@ -67,6 +68,7 @@ Be honest about this — it is the difference between "built" and "works":
 ## Session notes
 
 - _(newest first: date — what changed — what was verified)_
+- 2026-09-15 — Share flow hardened: the shared photo/video was being held in a service-worker variable, which loses the file in the normal case (app closed when the user taps Share, worker killed before the page loads). It is now parked in Cache Storage, consumed exactly once, and the ingest screen starts processing it by itself. Two e2e tests cover it. UI copy now tells the user the share route exists, and says something different on iOS (no Web Share Target) and when already installed.
 - 2026-09-15 — Built phases 1–7 and most of 8–9: pose-core (normalise/features/score/smooth/align/timeline), cue engine (segment/cues/phrases/voice), framing coach, MediaPipe wrapper, camera, playback clock, canvas renderer, IndexedDB+OPFS storage, video and photo ingest, all screens, PWA + share target, model fetch script. Two real bugs found and fixed by testing: the overall score was far too forgiving of one wrong limb (added the worst-segment blend, `POSE_MATCHING.md` §5), and the lighting check was doing a full-canvas GPU readback every frame (moved to a 32×32 offscreen sampler). `npm run verify` green, 22/22 unit tests, 3/3 e2e.
 - 2026-09-15 — Added `CONTENT_SOURCING.md` (three import lanes, never a downloader) and `CUE_ENGINE.md` (lookahead cues). Decisions D9/D10.
 - 2026-09-15 — Phase 0: project scaffolded. Docs only.

@@ -47,6 +47,9 @@ test('the camera opens, the pose model loads, and the render loop runs', async (
 
   await page.goto('/');
   await completeOnboarding(page);
+  // The library mounting is what makes the app create its database; wait for it
+  // before seeding, or the seed races app startup.
+  await expect(page.getByRole('heading', { name: 'TrendGhost' })).toBeVisible();
   await seedRoutine(page, '/?debug=1');
   await page.getByRole('button', { name: 'Practice' }).click();
   await expect(page.locator('canvas.stage')).toBeVisible();
@@ -143,9 +146,19 @@ async function seedRoutine(page: Page, reloadTo = '/') {
     // Wait for the app itself to create its object stores (it does so the first
     // time the library reads routines), then write into them. Creating the store
     // ourselves races the app's own upgrade and leaves a half-built database.
-    await new Promise<void>((resolve, reject) => {
-      const deadline = Date.now() + 10_000;
+    // Crucially, do NOT call indexedDB.open() until the app's database exists:
+    // opening a database that isn't there CREATES it, empty and at version 1,
+    // which permanently blocks the app's own upgrade from ever running. Poll the
+    // database list instead, which is read-only.
+    const deadline = Date.now() + 15_000;
+    for (;;) {
+      const databases = await indexedDB.databases();
+      if (databases.some((entry) => entry.name === 'trendghost')) break;
+      if (Date.now() > deadline) throw new Error('app never created its IndexedDB');
+      await new Promise((r) => setTimeout(r, 100));
+    }
 
+    await new Promise<void>((resolve, reject) => {
       const attempt = () => {
         const request = indexedDB.open('trendghost');
         request.onerror = () => reject(request.error);
@@ -157,7 +170,7 @@ async function seedRoutine(page: Page, reloadTo = '/') {
               reject(new Error('app never created its IndexedDB stores'));
               return;
             }
-            setTimeout(attempt, 200);
+            setTimeout(attempt, 100);
             return;
           }
           const tx = db.transaction('routines', 'readwrite');
@@ -189,3 +202,87 @@ async function completeOnboarding(page: Page) {
     if (await button.isVisible().catch(() => false)) await button.click();
   }
 }
+
+/**
+ * The share flow (CONTENT_SOURCING.md lane 1), exercised the way the OS does it:
+ * a multipart POST to /share-target handled by the service worker, with the app
+ * closed. The file must survive that handoff and start processing by itself.
+ */
+test('a photo shared from another app lands in TrendGhost and starts processing', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await completeOnboarding(page);
+
+  // Wait for the service worker to control the page — it is what receives the share.
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+    if (!navigator.serviceWorker.controller) {
+      await new Promise<void>((resolve) =>
+        navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), {
+          once: true,
+        }),
+      );
+    }
+  });
+
+  // A real 1x1 PNG, posted exactly as the OS share sheet posts one.
+  const redirected = await page.evaluate(async () => {
+    const pngBase64 =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const bytes = Uint8Array.from(atob(pngBase64), (c) => c.charCodeAt(0));
+    const form = new FormData();
+    form.append(
+      'media',
+      new File([bytes], 'trend-pose.png', { type: 'image/png' }),
+      'trend-pose.png',
+    );
+    const response = await fetch('/share-target', { method: 'POST', body: form });
+    return response.url;
+  });
+
+  expect(redirected, 'share target should redirect back into the app').toContain('shared=1');
+
+  // Now open the app the way the redirect would, with no file picked by hand.
+  await page.goto('/?shared=1');
+
+  // It should be on the ingest screen working on the shared file — and because a
+  // 1x1 PNG has no person in it, it should say so plainly rather than inventing
+  // a routine (PRODUCT_SPEC.md "honest rejection").
+  await expect(page.getByText("I couldn't find a person in that photo.")).toBeVisible({
+    timeout: 60_000,
+  });
+});
+
+test('a shared file is consumed once, not replayed on every reload', async ({ page }) => {
+  await page.goto('/');
+  await completeOnboarding(page);
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+  });
+
+  await page.evaluate(async () => {
+    const bytes = Uint8Array.from(
+      atob(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      ),
+      (c) => c.charCodeAt(0),
+    );
+    const form = new FormData();
+    form.append(
+      'media',
+      new File([bytes], 'trend-pose.png', { type: 'image/png' }),
+      'trend-pose.png',
+    );
+    await fetch('/share-target', { method: 'POST', body: form });
+  });
+
+  await page.goto('/?shared=1');
+  await expect(page.getByText("I couldn't find a person in that photo.")).toBeVisible({
+    timeout: 60_000,
+  });
+
+  // Reload: the share must be gone, and we should be back in the library.
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'TrendGhost' })).toBeVisible();
+});
