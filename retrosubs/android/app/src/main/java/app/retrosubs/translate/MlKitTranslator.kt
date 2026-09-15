@@ -39,7 +39,7 @@ class MlKitTranslator : Translator {
         }
 
         fun run() = client.translate(text)
-            .addOnSuccessListener(onResult)
+            .addOnSuccessListener { translated -> onResult(translated) }
             .addOnFailureListener { Log.w(TAG, "translate failed", it) }
 
         if (key in ready) {
