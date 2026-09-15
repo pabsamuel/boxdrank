@@ -13,3 +13,4 @@ fixtures/*.mov
 fixtures/*.webm
 test-results
 playwright-report
+*.tsbuildinfo
