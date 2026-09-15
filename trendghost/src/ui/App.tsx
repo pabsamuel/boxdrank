@@ -49,7 +49,7 @@ export function App() {
   if (!settings.loaded) return <div className="screen centre muted">Loading…</div>;
 
   if (!settings.onboarded) {
-    return <Onboarding onDone={() => settings.update('onboarded', true)} />;
+    return <Onboarding onDone={() => settings.updateAsync('onboarded', true)} />;
   }
 
   switch (view.name) {

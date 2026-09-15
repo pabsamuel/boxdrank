@@ -192,7 +192,7 @@ async function seedRoutine(page: Page, reloadTo = '/') {
 
   // The library only re-reads on mount, so reload and wait for the routine to
   // actually be on screen before the test carries on.
-  await page.goto(reloadTo);
+  await gotoApp(page, reloadTo);
   await expect(page.getByText('E2E routine')).toBeVisible();
 }
 
@@ -202,6 +202,19 @@ async function seedRoutine(page: Page, reloadTo = '/') {
  * activated, which is earlier — a POST made in that window goes to the network
  * instead and the share is silently missed.
  */
+/**
+ * Navigate, then step through onboarding if it appears.
+ *
+ * Settings are persisted asynchronously, so a reload soon after finishing
+ * onboarding can legitimately land before that write completes and show the
+ * onboarding again. That is a real (minor) app behaviour, not a test bug, so the
+ * tests tolerate it rather than pretending it cannot happen.
+ */
+async function gotoApp(page: Page, url: string) {
+  await page.goto(url);
+  await completeOnboarding(page);
+}
+
 async function waitForServiceWorkerControl(page: Page) {
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
@@ -254,7 +267,7 @@ test('a photo shared from another app lands in TrendGhost and starts processing'
   expect(redirected, 'share target should redirect back into the app').toContain('shared=1');
 
   // Now open the app the way the redirect would, with no file picked by hand.
-  await page.goto('/?shared=1');
+  await gotoApp(page, '/?shared=1');
 
   // It should be on the ingest screen working on the shared file — and because a
   // 1x1 PNG has no person in it, it should say so plainly rather than inventing
@@ -285,12 +298,12 @@ test('a shared file is consumed once, not replayed on every reload', async ({ pa
     await fetch('/share-target', { method: 'POST', body: form });
   });
 
-  await page.goto('/?shared=1');
+  await gotoApp(page, '/?shared=1');
   await expect(page.getByText("I couldn't find a person in that photo.")).toBeVisible({
     timeout: 60_000,
   });
 
   // Reload: the share must be gone, and we should be back in the library.
-  await page.goto('/');
+  await gotoApp(page, '/');
   await expect(page.getByRole('heading', { name: 'TrendGhost' })).toBeVisible();
 });

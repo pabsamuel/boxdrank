@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 
-export function Onboarding({ onDone }: { onDone: () => void }) {
+export function Onboarding({ onDone }: { onDone: () => void | Promise<void> }) {
   const [step, setStep] = useState(0);
 
   const steps = [
@@ -40,7 +40,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       <p>{current.body}</p>
       <button
         className="primary"
-        onClick={() => (step === steps.length - 1 ? onDone() : setStep(step + 1))}
+        onClick={() => (step === steps.length - 1 ? void onDone() : setStep(step + 1))}
       >
         {current.action}
       </button>
