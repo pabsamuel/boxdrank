@@ -229,11 +229,23 @@ async function waitForServiceWorkerControl(page: Page) {
   await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
 }
 
+/**
+ * Click through onboarding, however many steps it has.
+ *
+ * Checking each button by name without waiting silently SKIPS a step when React
+ * has not rendered it yet, leaving onboarding half-finished and every later
+ * assertion mysteriously timing out. Drive it off the onboarding screen itself
+ * instead, and assert it is actually gone at the end.
+ */
 async function completeOnboarding(page: Page) {
-  for (const label of ['Next', 'Got it', 'Start']) {
-    const button = page.getByRole('button', { name: label });
-    if (await button.isVisible().catch(() => false)) await button.click();
+  const onboarding = page.locator('.onboarding');
+
+  for (let step = 0; step < 6; step += 1) {
+    if (!(await onboarding.isVisible().catch(() => false))) return;
+    await onboarding.getByRole('button').first().click();
   }
+
+  await expect(onboarding, 'onboarding should be finished').toBeHidden();
 }
 
 /**
