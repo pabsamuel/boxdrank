@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Light Gun Arcade — Display</title>
+<link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+<canvas id="stage"></canvas>
+
+<!-- ------------------------------------------------------------- lobby -->
+<section id="lobby" class="panel-full">
+  <div class="lobby-left">
+    <h1>LIGHT<span>GUN</span></h1>
+    <p class="tagline">Turn your phone into a light gun.</p>
+
+    <div class="settings">
+      <label>Screen size
+        <select id="screenSize">
+          <option value="24">24" monitor</option>
+          <option value="32">32" monitor</option>
+          <option value="43">43" TV</option>
+          <option value="55" selected>55" TV</option>
+          <option value="65">65" TV</option>
+          <option value="75">75" TV</option>
+          <option value="100">100" projector</option>
+          <option value="custom">custom…</option>
+        </select>
+      </label>
+      <label id="customSizeWrap" class="hidden">Diagonal (inches)
+        <input id="customSize" type="number" min="10" max="200" value="55">
+      </label>
+      <label>Calibration points
+        <select id="calibPoints">
+          <option value="4" selected>4 (more accurate)</option>
+          <option value="3">3 (faster)</option>
+        </select>
+      </label>
+      <p class="note">Measure the screen corner to corner. A wrong size still aims fine
+        if you stand still, but drifts when you walk around.</p>
+    </div>
+
+    <div class="players" id="playerList"></div>
+
+    <div class="keys">
+      <b>F</b> fullscreen &nbsp; <b>C</b> calibrate &nbsp; <b>T</b> test mode &nbsp;
+      <b>G</b> game &nbsp; <b>D</b> debug &nbsp; <b>H</b> crosshair &nbsp;
+      <b>S</b> smoothing &nbsp; <b>R</b> rotation-only A/B
+    </div>
+  </div>
+
+  <div class="lobby-right">
+    <div class="qr-card">
+      <img id="qr" alt="Pairing QR code">
+      <div class="room">ROOM <b id="roomCode">----</b></div>
+      <div class="url" id="joinUrl">…</div>
+      <div class="warn" id="tlsWarn">
+        Your phone will warn about the self-signed certificate.
+        Tap <b>Advanced → Proceed</b> — that is expected on a local network.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- -------------------------------------------------------- overlays -->
+<div id="banner" class="banner hidden"></div>
+<div id="subBanner" class="sub-banner hidden"></div>
+
+<div id="hud" class="hud hidden">
+  <div class="hud-item"><span>SCORE</span><b id="hudScore">0</b></div>
+  <div class="hud-item"><span>TIME</span><b id="hudTime">60</b></div>
+  <div class="hud-item"><span>COMBO</span><b id="hudCombo">x1</b></div>
+  <div class="hud-item"><span>BEST</span><b id="hudBest">0</b></div>
+</div>
+
+<section id="results" class="results hidden">
+  <h2>TIME UP</h2>
+  <div class="final" id="finalScore">0</div>
+  <div class="breakdown" id="breakdown"></div>
+  <div class="actions">
+    <div><b>SHOOT</b> the buttons, or press <b>G</b></div>
+    <div id="againBtn" class="btn">PLAY AGAIN</div>
+    <div id="recalBtn" class="btn">RECALIBRATE</div>
+  </div>
+</section>
+
+<pre id="diag" class="diag hidden"></pre>
+
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>

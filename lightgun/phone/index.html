@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b0d12">
+<title>Light Gun Controller</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div id="overlay">
+
+  <!-- ---------------------------------------------------------- start -->
+  <section id="startScreen" class="screen">
+    <h1>LIGHT<span>GUN</span></h1>
+    <p class="room">Room <b id="roomCode">----</b></p>
+    <div id="caps" class="caps"></div>
+    <button id="startBtn" class="big primary">START GUN</button>
+    <button id="startFallbackBtn" class="big ghost">Use limited mode (no AR)</button>
+    <p class="hint" id="startHint">Hold the phone like a gun — screen towards you, camera towards the TV.</p>
+  </section>
+
+  <!-- ------------------------------------------------------ controller -->
+  <section id="gunScreen" class="screen hidden">
+    <header id="topBar">
+      <span id="stateLabel">CONNECTING</span>
+      <span id="trackPill" class="pill">–</span>
+    </header>
+
+    <div id="instruction" class="instruction hidden"></div>
+
+    <button id="trigger" class="trigger">
+      <span id="triggerLabel">TRIGGER</span>
+    </button>
+
+    <footer id="bottomBar">
+      <button id="recalBtn" class="chip">RECALIBRATE</button>
+      <button id="reloadBtn" class="chip">RELOAD</button>
+      <button id="diagBtn" class="chip">DEBUG</button>
+      <button id="quitBtn" class="chip">EXIT AR</button>
+    </footer>
+
+    <pre id="diag" class="diag hidden"></pre>
+  </section>
+
+</div>
+<script type="module" src="./js/controller.js"></script>
+</body>
+</html>

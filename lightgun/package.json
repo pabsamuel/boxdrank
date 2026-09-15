@@ -1,0 +1,16 @@
+{
+  "name": "lightgun",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Turn your phone into a light gun. Turn any TV into an arcade.",
+  "scripts": {
+    "start": "node server/server.js",
+    "test": "node tests/run.js",
+    "test:e2e": "node tests/e2e.js"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "ws": "^8.18.0"
+  }
+}
