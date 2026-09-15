@@ -1,0 +1,15 @@
+node_modules
+dist
+coverage
+.DS_Store
+*.local
+
+# Pose models are fetched with `npm run fetch-models`, not committed (see DECISIONS.md D11)
+public/models/
+
+# Never commit reference video or takes
+fixtures/*.mp4
+fixtures/*.mov
+fixtures/*.webm
+test-results
+playwright-report

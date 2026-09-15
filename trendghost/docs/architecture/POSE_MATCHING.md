@@ -86,9 +86,19 @@ Colours are applied to the *segment* drawn on the user's skeleton, so the user s
 ## 5. Overall frame score
 
 ```
-overall = Σ(w_s · score_s) / Σ(w_s)   over scored segments      // 0.75 of the total
-        + 0.25 · mean(offsetFeatureScores)
+mean       = Σ(w_s · score_s) / Σ(w_s)        over scored segments
+worst      = min(score_s)                     over scored segments
+angleScore = 0.7 · mean + 0.3 · worst
+overall    = 0.75 · angleScore + 0.25 · mean(offsetFeatureScores)
 ```
+
+**Why the `worst` term** (added in Phase 4, after the fixtures caught it): a plain
+weighted mean is far too forgiving. One completely wrong forearm out of twelve
+segments still scored **0.89** — the app would cheerfully report "89%" while an arm
+pointed the wrong way, which is exactly the "scoring feels unfair" failure in
+`RISKS.md` R5, in the generous direction. Blending in the worst visible segment
+brings that case to ~0.7, which matches what a person watching would say. The
+weight lives in `scoring.config.ts` as `WORST_SEGMENT_CONTRIBUTION`.
 
 Frames with fewer than 60% of the weight available are `unscored` (the app says "I can't see you" rather than inventing a number).
 

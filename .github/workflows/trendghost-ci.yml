@@ -1,0 +1,57 @@
+# CI for TrendGhost (trendghost/). Runs the same gate contributors run locally:
+# format + typecheck + lint + unit tests, then a production build. Pose models are
+# fetched at build time rather than committed (DECISIONS.md D11), and no secrets or
+# network services are needed — everything in this app runs on-device.
+name: TrendGhost CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "trendghost/**"
+      - ".github/workflows/trendghost-ci.yml"
+  pull_request:
+    paths:
+      - "trendghost/**"
+      - ".github/workflows/trendghost-ci.yml"
+
+concurrency:
+  group: trendghost-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: trendghost
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: trendghost/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify (format, typecheck, lint, unit tests)
+        run: npm run verify
+
+      - name: Fetch pose models
+        run: npm run fetch-models
+
+      - name: Build
+        run: npm run build
+
+      - name: Guard — no third-party video fetching
+        # CLAUDE.md rule 5 / RISKS.md R1: the project must never grow a downloader.
+        run: |
+          if grep -rniE "yt-dlp|youtube-dl|tiktok\.com/api|instagram\.com/api|/downloadVideo" src/ scripts/; then
+            echo "::error::Found what looks like third-party video fetching. See docs/product/CONTENT_SOURCING.md."
+            exit 1
+          fi
+          echo "clean"

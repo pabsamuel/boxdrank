@@ -81,3 +81,16 @@ Decisions that shape the build. Each one: what, why, what it costs, and what wou
 **Why.** Red/green alone is a mirror: by the time you're red, the moment is gone. Telling the user what's coming is what turns the app from a scoreboard into a teacher, and it's the thing that makes a fast trend learnable at all.
 
 **Cost.** Lead time is a real tuning problem (wrong in either direction feels broken), and the cue *phrasing* has to be generated from pose deltas, which is fiddly. Both are isolated: timings in `cues.config.ts`, wording in `coach/phrases.ts`.
+
+## D11 — Models are fetched, not committed
+
+**Decision.** `npm run fetch-models` downloads the MediaPipe `.task` files into
+`public/models/` (gitignored) and copies the WASM runtime out of the npm package.
+At runtime the app serves them itself — no CDN call on the practice path.
+
+**Why.** The two models are ~15 MB; committing them bloats every clone of this repo
+forever. Serving them locally keeps the "no network during practice" property that
+`RISKS.md` R2 and the e2e test both depend on.
+
+**Cost.** One extra setup step, and a deploy must run `fetch-models` before `build`
+(documented in `DEPLOY.md`).

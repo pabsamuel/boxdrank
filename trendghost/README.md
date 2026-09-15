@@ -40,15 +40,42 @@ You get a routine in by sharing it straight from TikTok/Reels into the app, pick
 
 ## Project status
 
-**Planning / scaffold.** No application code yet — this directory currently contains the specs and the AI prompts used to build it. Start at [`STATUS.md`](STATUS.md).
+**It runs.** Camera, on-device pose tracking, ghost overlay, per-limb red/amber/green
+scoring, lookahead cues, framing coach, learn mode, photo mode with auto-shutter,
+recording with a take-review graph, library, settings, PWA with share target.
+
+What has **not** happened yet: nobody has used it on a real phone with a real trend
+video. Every performance and feel number is still a target. That's the next step, and
+it's the one thing AI can't do for you — see [`STATUS.md`](STATUS.md).
+
+```bash
+npm install
+npm run fetch-models
+npm run dev -- --host     # then open it on your phone over HTTPS — see DEPLOY.md
+```
 
 ## Where to start
 
-1. [`STATUS.md`](STATUS.md) — current state and the next exact action.
-2. [`prompts/HOW_TO_USE_CLAUDE.md`](prompts/HOW_TO_USE_CLAUDE.md) — how to drive this project with Claude Code if you're new to it.
-3. [`prompts/`](prompts/) — numbered, copy-paste prompts, one per build phase.
-4. [`docs/product/PRODUCT_SPEC.md`](docs/product/PRODUCT_SPEC.md) — what we're building, in detail.
-5. [`docs/architecture/`](docs/architecture/) — how the hard parts work (pose matching, ghost overlay, tech stack).
+1. [`DEPLOY.md`](DEPLOY.md) — how to run it and get it onto your phone (the camera needs HTTPS).
+2. [`STATUS.md`](STATUS.md) — what's built, what's verified, what isn't, and the next exact action.
+3. [`docs/product/PRODUCT_SPEC.md`](docs/product/PRODUCT_SPEC.md) — what this is meant to be.
+4. [`docs/architecture/`](docs/architecture/) — how the hard parts work: [pose matching](docs/architecture/POSE_MATCHING.md), [the cue engine](docs/architecture/CUE_ENGINE.md), [the ghost overlay](docs/architecture/GHOST_OVERLAY.md).
+5. [`prompts/`](prompts/) — the phase prompts and [how to drive this with Claude Code](prompts/HOW_TO_USE_CLAUDE.md), for the work that's left.
+
+## What's in the box
+
+```
+src/pose-core/   normalise · limb-angle features · scoring · smoothing · time alignment
+src/coach/       move segmentation · cue track · phrases · framing checks · voice
+src/inference/   MediaPipe pose landmarker wrapper
+src/render/      canvas layers, ghost fitting
+src/ingest/      video/photo -> pose timeline + cue track
+src/storage/     IndexedDB + OPFS, local only
+src/ui/          library · ingest · practice · photo · take review · settings · onboarding
+```
+
+`src/pose-core/` and `src/coach/` are pure TypeScript with no DOM — they're unit
+tested against synthetic fixtures, and they're what ports to a native app later.
 
 ## Legal note, up front
 
