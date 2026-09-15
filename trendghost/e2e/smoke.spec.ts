@@ -1,5 +1,24 @@
 import { expect, test, type Page } from '@playwright/test';
 
+// Browser console and page errors are the fastest way to see why a run diverged;
+// without them a timing failure just looks like a timeout.
+test.beforeEach(async ({ page }) => {
+  page.on('console', (message) => {
+    if (message.type() !== 'error' && message.type() !== 'warning') return;
+    console.log(`[browser:${message.type()}] ${message.text().slice(0, 200)}`);
+  });
+  page.on('pageerror', (error) => console.log(`[pageerror] ${error.message.slice(0, 200)}`));
+});
+
+test.afterEach(async ({ page }, testInfo) => {
+  if (testInfo.status === testInfo.expectedStatus) return;
+  const visible = await page
+    .locator('body')
+    .innerText()
+    .catch(() => '(could not read page)');
+  console.log(`\n[failed: what was actually on screen]\n${visible.slice(0, 600)}\n`);
+});
+
 /**
  * These run against the built app with Chromium's synthetic camera. They prove
  * the wiring: onboarding -> camera -> model load -> render loop, plus the

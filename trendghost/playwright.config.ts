@@ -13,8 +13,11 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: [['list']],
+  // Keep a trace when something fails: chasing these races by guesswork wasted
+  // several rounds. `npx playwright show-trace <path>` replays the run.
   use: {
     baseURL: 'http://localhost:4173',
+    trace: 'retain-on-failure',
     launchOptions: {
       // This environment ships its own Chromium; PLAYWRIGHT_CHROMIUM_PATH lets CI
       // or a contributor point at theirs instead of re-downloading one.
