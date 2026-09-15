@@ -1,0 +1,73 @@
+name: RetroSubs Android
+
+# Builds an installable debug APK for the retro subtitle prototype and runs the JVM unit
+# tests. Download the APK from the run's Artifacts, or from the rolling release on main.
+on:
+  push:
+    branches: [claude/retro-subtitle-app-mvp-vhbdu4, main]
+    paths:
+      - 'retrosubs/**'
+      - '.github/workflows/retrosubs-android.yml'
+  pull_request:
+    paths:
+      - 'retrosubs/**'
+      - '.github/workflows/retrosubs-android.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: retrosubs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: retrosubs/android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK packages
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11'
+
+      - name: Unit tests
+        run: gradle :app:testDebugUnitTest --stacktrace --no-daemon
+
+      - name: Build debug APK
+        run: gradle :app:assembleDebug --stacktrace --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: retrosubs-apk
+          path: retrosubs/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      # Rolling release so the APK can be installed straight from a phone browser.
+      - name: Publish APK to GitHub Release
+        if: github.ref == 'refs/heads/main'
+        working-directory: ${{ github.workspace }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp retrosubs/android/app/build/outputs/apk/debug/app-debug.apk retrosubs.apk
+          gh release delete retrosubs-latest --yes --cleanup-tag || true
+          gh release create retrosubs-latest retrosubs.apk \
+            --title "RetroSubs (latest debug build)" \
+            --notes "Debug APK built from ${{ github.sha }}. Install on Android 8+, grant microphone and 'Display over other apps'."

@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="RETROSUBS"
+            android:textColor="@color/rs_accent"
+            android:textSize="26sp"
+            android:letterSpacing="0.22"
+            android:fontFamily="monospace"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="live conversation → retro dialogue box"
+            android:textColor="@color/rs_secondary"
+            android:fontFamily="monospace"
+            android:textSize="13sp" />
+
+        <app.retrosubs.ui.DialogueBoxView
+            android:id="@+id/preview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp" />
+
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:fontFamily="monospace"
+            android:textSize="12sp"
+            android:textColor="@color/rs_secondary"
+            android:text="idle" />
+
+        <Button
+            android:id="@+id/demoButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="▶  PLAY DEMO SCRIPT" />
+
+        <Button
+            android:id="@+id/startButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="●  START SUBTITLE MODE" />
+
+        <Button
+            android:id="@+id/stopButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="■  STOP" />
+
+        <TextView
+            android:id="@+id/permissionHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:fontFamily="monospace"
+            android:textSize="12sp"
+            android:textColor="@color/rs_ink" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="26dp"
+            android:text="LOOK"
+            android:textColor="@color/rs_accent"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.2"
+            android:textStyle="bold" />
+
+        <TextView android:id="@+id/fontLabel" style="@style/RsLabel" android:text="font size" />
+        <SeekBar android:id="@+id/fontSeek" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:max="24" />
+
+        <TextView android:id="@+id/opacityLabel" style="@style/RsLabel" android:text="opacity" />
+        <SeekBar android:id="@+id/opacitySeek" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:max="100" />
+
+        <TextView android:id="@+id/speedLabel" style="@style/RsLabel" android:text="type speed" />
+        <SeekBar android:id="@+id/speedSeek" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:max="120" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/soundSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fontFamily="monospace"
+            android:text="text blip sound" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/anchorSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:text="overlay at bottom of screen" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/speakerSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:text="alternate YOU / OTHER labels" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="26dp"
+            android:text="LANGUAGE"
+            android:textColor="@color/rs_accent"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.2"
+            android:textStyle="bold" />
+
+        <TextView style="@style/RsLabel" android:text="mode" />
+        <Spinner android:id="@+id/modeSpinner" android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView style="@style/RsLabel" android:text="they speak" />
+        <Spinner android:id="@+id/sourceSpinner" android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView style="@style/RsLabel" android:text="show me" />
+        <Spinner android:id="@+id/targetSpinner" android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="26dp"
+            android:paddingBottom="30dp"
+            android:fontFamily="monospace"
+            android:textSize="12sp"
+            android:lineSpacingExtra="4dp"
+            android:textColor="@color/rs_secondary"
+            android:text="Works with any app: start subtitle mode, switch to WhatsApp, Discord, Meet — the box floats on top.\n\nAndroid blocks third-party apps from tapping VoIP call audio, so for calls put the call on a second device (laptop, tablet, another phone) and let this phone listen. In-person conversations just work." />
+    </LinearLayout>
+</ScrollView>
