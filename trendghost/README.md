@@ -1,0 +1,55 @@
+# 👻 TrendGhost
+
+**Learn any viral dance or photo pose by copying a ghost of the original — live, through your camera.**
+
+You open the camera. The original video plays as a semi-transparent "ghost" layered on top of your own camera feed. You move your body into the ghost. The app tracks your body in real time and paints you **red when you're off, amber when you're close, green when you nail it** — joint by joint, so you can see *which* arm is wrong, not just "you failed".
+
+Same idea for photos: pick a trending pose, the ghost shows where your head, shoulders, hips and hands should be, and the shutter fires by itself the moment you match.
+
+---
+
+## Why this exists
+
+Copying a TikTok dance from a flat video is hard because:
+
+- the original is mirrored relative to you,
+- you can't see yourself and the reference at the same time,
+- nobody tells you *which* part of your body is wrong,
+- you find out you were off-frame only after recording.
+
+TrendGhost fixes all four: overlay instead of side-by-side, per-joint colour feedback instead of a single score, and a framing check *before* you start.
+
+---
+
+## How it works (one paragraph)
+
+Every reference video is pre-processed once into a **pose timeline**: for each frame, the 33 body landmarks, normalised so body size and camera distance don't matter. At practice time the camera feed is run through the same pose model at ~30fps, normalised the same way, and compared against the reference frame for the current playback time. The comparison is done on **limb angles**, not pixel positions, so tall/short, near/far, left/right of frame all still score correctly. Each limb gets a score 0–1 → colour. See `docs/architecture/POSE_MATCHING.md`.
+
+---
+
+## Modes
+
+| Mode | What it does |
+| --- | --- |
+| **Learn** | Ghost plays at 0.25×–1× speed, step by step. Move-by-move instructions ("left arm up, then step right"). Waits for you to hit each key pose before advancing. |
+| **Practice** | Full-speed ghost, live per-joint colour feedback, live accuracy %. No recording. |
+| **Record** | Full-speed, ghost fades to near-invisible, records your take with the music. Post-take timeline shows where you lost sync. |
+| **Photo** | Single target pose. Ghost outline + auto-shutter when you hold the match for ~0.6s. |
+
+---
+
+## Project status
+
+**Planning / scaffold.** No application code yet — this directory currently contains the specs and the AI prompts used to build it. Start at [`STATUS.md`](STATUS.md).
+
+## Where to start
+
+1. [`STATUS.md`](STATUS.md) — current state and the next exact action.
+2. [`prompts/HOW_TO_USE_CLAUDE.md`](prompts/HOW_TO_USE_CLAUDE.md) — how to drive this project with Claude Code if you're new to it.
+3. [`prompts/`](prompts/) — numbered, copy-paste prompts, one per build phase.
+4. [`docs/product/PRODUCT_SPEC.md`](docs/product/PRODUCT_SPEC.md) — what we're building, in detail.
+5. [`docs/architecture/`](docs/architecture/) — how the hard parts work (pose matching, ghost overlay, tech stack).
+
+## Legal note, up front
+
+TrendGhost does **not** download, host, or redistribute anyone's TikTok/Reels/Shorts videos. Users supply a video from their own camera roll, and the app keeps only the derived **pose timeline** (a list of numbers) plus a local-only copy of the video on the user's own device. See `RISKS.md`.
