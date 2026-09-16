@@ -1,8 +1,12 @@
 # monday.com billable-hours reporting — Atesen Software
 
-**STATUS: STOPPED AT GATE 0 — 16 Sep 2026.**
+**STATUS: STOPPED AT GATE 0 — 16 Sep 2026. Closed out.**
 Read `KILL-CHECKS.md` for the evidence. Read `DECISIONS.md` for the decision.
 Do not start building. Do not start outreach.
+
+The stop stands on the evidence gathered. `VERIFY.md` is the owner's own
+first-hand confirmation — worth 45 minutes, but the verdict does not wait on it,
+because the load-bearing finding (point 4 below) needs no external source.
 
 Owner: Samet, Sakarya, Türkiye. Solo. ~24–36 build hours/month across 3 usable
 days a week. $100 budget before first revenue.
@@ -33,6 +37,10 @@ result.** That rule is the whole point of having them.
 4. **The pitch contradicts itself.** Standard-tier accounts have no Time Tracking
    column, so there is no time data for a reporting-only app to read. Reporting
    needs Pro; Pro users already have competitors. There is no third door.
+5. **The category is smaller than the thesis assumed.** Tracket — the leader,
+   five years in, Editor's Choice — runs at ~152 installs/month and 8,827 total.
+   Low penetration of a mature category means low willingness to pay for the
+   add-on, not an unserved crowd. A new entrant lands at a fraction of that.
 
 Point 4 needs no external source. It follows from two facts in the original
 brief.
@@ -44,12 +52,17 @@ brief.
 Count hours, not days. Log every session. Tell Samet when he reaches 25 of the
 30-hour Gate 3 budget.
 
-| Date | Session | Hours | Cumulative | Notes |
-|---|---|---|---|---|
-| 16 Sep 2026 | Gate 0 kill-checks + project docs | _pending — Samet to fill_ | — | Research + docs. No code written. |
+| Date | Session | Type | Hours | Cumulative build | Notes |
+|---|---|---|---|---|---|
+| 16 Sep 2026 | Gate 0 kill-checks, 2 research passes, project docs | Research | Samet reported "all the day hours"; exact figure not recorded | **0** | No code written. Second pass added install-rate data. |
 
-**Build hours spent: 0 of 30.** The single best outcome available today was
-spending zero of them. That happened.
+**Build hours spent: 0 of 30.** The best available outcome today was spending
+zero of them. That happened.
+
+**Ledger note:** hours were reported as a full day rather than a number, so the
+research column is imprecise. It does not matter here — the 30-hour budget is
+build hours, and none were spent. It will matter on a project that proceeds.
+Log a number next time.
 
 ---
 

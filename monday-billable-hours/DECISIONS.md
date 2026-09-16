@@ -69,3 +69,56 @@ first session.
 
 **No renegotiation.** Gate 1 is not moved. It is moot because Gate 0 failed, not
 because the date was inconvenient.
+
+---
+
+## 2026-09-16 (second pass) — Install data found. Verdict unchanged, and worse.
+
+**New FACTs:**
+
+- Tracket: **8,827 total installs** since 4 Nov 2021, **~152 installs/month**
+  (apps-for-monday.com, via search).
+- 7pace Timetracker: monday.com **Best-Selling App for 2024**; in 2023 the most
+  installed app in its first 90 days (Appfire newsroom / PRNewswire).
+
+Ratings and review counts are still UNKNOWN. Installs are not revenue.
+
+**What this changes:** the original thesis read "869 apps vs 250,000+ customers"
+as under-supply. The install data reads the other way. The category leader, with
+five years of compounding and Editor's Choice placement, has reached ~3.5%
+penetration and grows at 152/month. That is not a market being left on the table;
+that is a market where most customers have decided the add-on is not worth paying
+for — they upgrade to Pro, or they live without it.
+
+A new entrant with no reviews, no placement and fewer features than Tracket would
+realistically see single-digit installs per month in year one, assuming it were
+approved at all. At $39/month that clears Gate 4 on a technicality and is still
+not a business.
+
+**Decision unchanged: stop.** The new data removes the last optimistic reading
+rather than supporting one.
+
+---
+
+## 2026-09-16 — Project CLOSED
+
+**Status:** closed at Gate 0. Docs committed, PR #17 open as the record.
+
+**Total build hours: 0 of the 30-hour budget.** Research only.
+
+**What was actually delivered today:** a dated, sourced reason not to spend 30
+hours. That is the entire output and it is the correct one.
+
+**Reopening conditions — all of these, not any of these:**
+1. `VERIFY.md` Check 3 shows Standard-plan accounts have usable time data
+   (resolving the contradiction), AND
+2. `VERIFY.md` Check 2 shows Tracket genuinely lacks per-client rates or invoice
+   export, with reviews complaining about exactly that, AND
+3. A route past the AI-generated-code policy exists and is written down.
+
+Any one of these alone is not enough. Two out of three is not enough. That bar is
+deliberately high because the cost of reopening on hope is 30 hours and the
+cost of leaving it closed is zero.
+
+**Not reopening conditions:** a new feature idea, a lower price, a different
+segment, a fresh burst of motivation, or having a free day.

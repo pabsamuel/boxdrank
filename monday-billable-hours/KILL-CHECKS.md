@@ -42,8 +42,8 @@ marketplace. Do not quote these numbers to anyone until you've checked.
 
 | App | Vendor | Runs inside monday? | Price (unverified) | Rating | Reviews |
 |---|---|---|---|---|---|
-| Tracket | Avisi Apps | Yes, native marketplace app | ~$60/mo up to 10 users (monthly), ~$49/mo annual; tiered by account size | UNKNOWN | UNKNOWN |
-| 7pace Timetracker | Appfire | Yes, native marketplace app | UNKNOWN | UNKNOWN | UNKNOWN |
+| Tracket | Avisi Apps | Yes, native marketplace app | ~$60/mo up to 10 users (monthly), ~$49/mo annual; tiered by account size | UNKNOWN | UNKNOWN — but **8,827 installs** since 4 Nov 2021, ~152/mo |
+| 7pace Timetracker | Appfire | Yes, native marketplace app | UNKNOWN | UNKNOWN | UNKNOWN — monday **Best-Selling App 2024**; "New and promising" 2023 |
 | TimeBits | UNKNOWN | Yes, native marketplace app | from $15/mo (≤5 users) up to $2,000 unlimited; 14-day trial | UNKNOWN | UNKNOWN |
 | Subitems Timetracking | UNKNOWN | Yes, native marketplace app | UNKNOWN | UNKNOWN | UNKNOWN |
 | Time Tracking and Timesheets | UNKNOWN | Yes (listing 10001007) | UNKNOWN | no reviews yet | 0 |
@@ -92,6 +92,42 @@ checkbox in monday, not a product.
 
 Your headline feature — "roll subitems into parent totals" — already ships in the
 platform.
+
+### The install numbers — added 16 Sep 2026, second research pass
+
+**FACT (apps-for-monday.com, via search):** Tracket has **8,827 total installs**
+since 4 Nov 2021, running at **~152 installs/month**.
+
+**FACT (Appfire newsroom / PRNewswire):** 7pace Timetracker was named a
+monday.com **Best-Selling App for 2024**, and in 2023 was recognised as
+"New and promising" — the most installed app in its first 90 days.
+
+Ratings and review counts remain **UNKNOWN**. Installs are not reviews and are
+not revenue.
+
+**INFERENCE — this is the most decision-relevant number found all day:**
+
+Tracket is the category leader. Five-year head start, Editor's Choice placement,
+a funded vendor, the most complete feature set in the category. Its growth rate
+is **152 installs a month**, against monday's 250,000+ customers. That is roughly
+3.5% cumulative penetration after five years.
+
+Two readings, and they point the same way:
+
+- If the category were easy money, the leader would be growing faster than 152/mo
+  after five years of compounding.
+- A new entrant with no reviews, no placement and fewer features realistically
+  lands at some small fraction of the leader's rate. Call it single-digit
+  installs a month in year one — and that is the *optimistic* read, because it
+  assumes approval, which kill-check #3 says is unlikely.
+
+At $39/month, single-digit installs is not a business. It might clear Gate 4
+(≥1 paying customer) and still be a bad use of the next two years.
+
+**This does not rescue the "underserved market" thesis — it weakens it.** Low
+penetration of a mature category usually means low willingness to pay for the
+add-on, not an unserved crowd waiting. The people who want this either bought
+Tracket, upgraded to Pro, or decided the problem was not worth $39/month.
 
 ### Kill-check #2 result: **FATAL.** The wedge is taken.
 
