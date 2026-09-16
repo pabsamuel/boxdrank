@@ -54,6 +54,30 @@ expect the developer to explain their own architecture. "I can't debug unfamilia
 platforms fast" and "AI wrote most of it" are a bad combination in that
 conversation. This constrains *how* to build here, permanently.
 
+## Marketplace submission bar — *16 Sep 2026, via search*
+
+Applies to **every** app, regardless of idea. This is the real gate.
+
+- **FACT:** All domains must pass a **provided Burp scan**; findings disclosed
+  during review and must be fixed before approval.
+- **FACT:** **Tokens must be encrypted**; supporting evidence required on how
+  secrets are stored and whether any live in the code repository.
+- **FACT:** Must elaborate on security controls protecting the monday user
+  access token.
+- **FACT:** **TLS 1.2+**; **HSTS with min-age ≥ 1 year**.
+- **FACT:** Must align with the **Vibe design system**.
+- **FACT:** **Four-phase review**; initial response within 72 business hours;
+  review team collaborates with the developer on a monday board.
+- **FACT:** Assessed on product, engineering, security, privacy, content, assets,
+  support, documentation and legal.
+- **FACT:** Apps whose primary purpose is integrating a third-party product that
+  already has an active integration are rejected.
+
+**INFERENCE (high confidence):** For a solo developer with 24–36 hours/month who
+builds AI-assisted and states he does not debug unfamiliar platforms quickly, the
+security remediation loop — not the feature work — is the binding constraint on
+ever shipping here. See `NEXT-GATE0.md`.
+
 ## Commercial terms — *from the original brief, 3 Sep 2026, UNVERIFIED*
 
 - **ASSUMPTION:** 0% platform cut until $200k lifetime revenue.
