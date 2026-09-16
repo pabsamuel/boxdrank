@@ -53,12 +53,29 @@ hardware test succeed — and at making it diagnosable when it doesn't)
 - **Bias vector**: the mean *signed* error across test markers. Scattered error is noise; a consistent
   bias is a bug with a fix. This distinction is the difference between one debugging round and five.
 
+**Turning one living-room session into data** (the bottleneck on this project is that real ARCore
+behaviour only exists in a room we cannot see)
+- **Pose trace recorder**: the phone keeps a rolling ~150 s buffer of raw poses in a flat typed array
+  (allocation-free, it runs inside the 60 Hz loop), annotated with shots and calibration presses, and
+  ships it to the display in chunks on request (**V**).
+- **`tools/analyze-trace.js`**: offline analysis of a real trace — pose-stream health and stalls,
+  **real sensor noise** measured in windows where the hand was still, **real drift in °/min** measured
+  by clustering repeat visits to the same spot, an offline re-solve of the calibration, and a **sweep
+  of smoothing settings** that reports the lowest-lag filter meeting a noise-derived jitter budget.
+- **`tools/synth-trace.js`**: generates traces with known noise and drift — used by the tests to prove
+  the analyser recovers the truth, and usable as a CLI to see the tool's output before a real session.
+
 **Tests**
 - `npm test` — 20 synthetic-truth checks across distances, screen sizes, off-axis and tilted screens,
   wrong stated sizes, 3-vs-4 point, smoothing lag and jitter, degenerate rays. All passing.
-- `npm run test:e2e` — 19 checks: headless Chromium runs the real display client while Node processes
+- `node tests/trace.js` (part of `npm test`) — 16 checks that the trace analyser recovers noise, drift,
+  stalls and calibration that we injected ourselves, at three noise levels. An analyser that reports
+  confident nonsense is worse than none, since we will be trusting it with data from a room we cannot
+  see. All passing.
+- `npm run test:e2e` — 21 checks: headless Chromium runs the real display client while Node processes
   play virtual 6DoF phones through the real protocol, now including tracking loss, re-zero, the
-  session report, and **two simultaneous players**. All passing.
+  session report, a **pose-trace round trip through the real recorder and chunked transfer**, and
+  **two simultaneous players**. All passing.
 
 ---
 
@@ -71,10 +88,11 @@ Nothing in flight. **Everything testable without hardware is tested and green.**
 ## NEXT
 
 1. **Fire it at a real TV with a real Android phone.** This is the only thing that matters now.
-   Protocol in [TESTING.md](TESTING.md) — it is now four key presses and a paste. Everything below is
-   downstream of that result.
-2. Tune `OneEuro` on real ARCore noise — the simulated jitter is a guess at hand tremor, not a
-   measurement of ARCore's actual pose noise.
+   Protocol in [TESTING.md](TESTING.md) — it is now a few key presses, a paste and one attached file.
+   Everything below is downstream of that result.
+2. Tune `OneEuro` on real ARCore noise. No longer guesswork: `tools/analyze-trace.js` reads a real
+   trace and prints the lowest-lag setting that meets a jitter budget derived from that phone's own
+   measured noise. The answer is one command away *once a trace exists*.
 3. Decide whether 3-point calibration is good enough on real hardware (saves ~3 s).
 4. Second phone on real hardware — the protocol and rendering are done and tested headless, so this
    should be a confirmation rather than a build.
@@ -155,6 +173,24 @@ Real display client in Chromium, virtual 6DoF phone at 2.6 m from a virtual 55" 
 | Bias vector for an unbiased simulated gun | 0.30% — correctly reported as scatter, not systematic |
 | Two simultaneous players | independent crosshairs, colours and scores |
 
+### Trace analyser accuracy (`node tests/trace.js`)
+
+Does the instrument measure what it claims? Injected values versus recovered:
+
+| Injected | Recovered | Ratio |
+|---|---|---|
+| 0.02°/axis sensor noise | 0.028° radial rms (expected 0.028°) | 0.98 |
+| 0.05°/axis | 0.070° (expected 0.071°) | 1.00 |
+| 0.15°/axis | 0.209° (expected 0.212°) | 0.99 |
+| 8 mm/axis positional noise | 12.4 mm | ~1.1 |
+| no drift | 0.03°/min | correctly reads as none |
+| 0.5°/min yaw drift | 0.473°/min | 0.95 |
+| calibration at 2.60 m | re-solved offline at 2.66 m | 1.02 |
+
+Before the `acos` fix these numbers were a 3.3x overestimate at low noise — the instrument was
+measuring itself. Worth stating plainly: **an analyser is only useful if its own error is checked
+against known truth**, which is what this suite is for.
+
 ### Pass/fail criteria
 
 | Criterion | Status |
@@ -187,3 +223,12 @@ Nothing has failed yet. Criteria 2, 3 and 5 are only provisionally passed until 
 3. **One-Euro tuned by intuition** had 126 ms of steady-state lag. Caught by measuring lag rather than
    watching it.
 4. Static assets 404'd because `/` rewrote instead of redirecting, breaking every relative path.
+5. **The trace analyser had a 0.09° noise floor** — `acos(dot(a,b))` on directions that are rounded to
+   five decimals on the wire, where `acos(1 − ε) ≈ √(2ε)` turns a 5e-6 loss of unit length into ~0.09°.
+   That sits exactly in the range of real ARCore jitter, so the tool would have made a quiet phone look
+   noisy and sent us tuning the filter against an artifact. Fixed with the `atan2` form, which is exact
+   down to zero; noise recovery went from a 3.3x overestimate to within 2% of truth.
+6. The analyser's still-window detector counted slow ramps as stillness (fixed by rejecting windows
+   with a trend through them), its drift metric compared positions when it should have clustered screen
+   coordinates, and its smoothing sweep silently reported "zero jitter" on noisy phones where it had
+   found no still windows at all — the one case where the measurement mattered most.

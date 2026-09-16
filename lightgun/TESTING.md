@@ -41,9 +41,29 @@ largest term in the whole budget.
 3. Calibrate. **Time it with a stopwatch from QR scan to GO.**
 4. You land in test mode. Stand 2.5 m back and shoot each of the nine markers in turn.
 
-**Then press `X`.** That writes a session report — downloaded as a text file *and* copied to your
-clipboard — with everything below already in it. Paste it straight into prompt #1 of
-[docs/NEXT-PROMPTS.md](docs/NEXT-PROMPTS.md); you do not need to transcribe anything by hand.
+**Then press `X`, then `V`.**
+
+- **X** writes a session report — downloaded *and* copied to your clipboard. Paste it into prompt #1
+  of [docs/NEXT-PROMPTS.md](docs/NEXT-PROMPTS.md).
+- **V** pulls the phone's **raw pose trace** — every ARCore pose from the last couple of minutes — and
+  saves it as a JSON file. Attach that file too.
+
+The trace is the valuable one. It means a single session in your living room can be re-solved,
+re-tuned and re-measured here as many times as needed, with no phone in the room:
+
+```bash
+node tools/analyze-trace.js lightgun-trace-….json
+```
+
+That prints the real sensor noise, real drift in degrees per minute, an offline re-solve of your
+calibration, and a sweep of smoothing settings measured on *your* phone's data — with the
+lowest-lag setting that still kills the jitter. Try it on a synthetic trace first to see the shape
+of it:
+
+```bash
+node tools/synth-trace.js sample.json --noise 0.08 --drift 0.15
+node tools/analyze-trace.js sample.json
+```
 
 The report captures:
 

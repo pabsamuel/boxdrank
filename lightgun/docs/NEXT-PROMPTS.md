@@ -14,8 +14,12 @@ your notes underneath where it asks, send. They are in the order you should use 
 > [paste the session report here]
 > ```
 >
-> What it can't tell you: [the room and lighting, the TV size, how far back you stood, and what felt
-> wrong in your hands].
+> I also pressed **V** and have the raw pose trace file — run
+> `node lightgun/tools/analyze-trace.js <the trace file>` on it for the real sensor noise, drift and
+> smoothing recommendation.
+>
+> What neither file can tell you: [the room and lighting, the TV size, how far back you stood, and
+> what felt wrong in your hands].
 >
 > Diagnose what these numbers mean before changing anything. Then fix the highest-impact problem,
 > update PROGRESS.md with the real measurements, and tell me what to test next. Do not add features.

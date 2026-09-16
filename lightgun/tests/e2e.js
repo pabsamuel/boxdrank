@@ -334,7 +334,55 @@ check('session report contains what a diagnosis needs',
 check('an unbiased simulated gun reports no systematic bias', bias.magnitude < 1.0,
   `magnitude ${bias.magnitude.toFixed(2)}%`);
 
-/* ---------------------------------------------------------- 7. two players */
+/* ------------------------------------------------- 7. pose trace round trip */
+
+{
+  // The real recorder, driven with the real virtual poses, shipped over the
+  // real socket, assembled by the real display code.
+  const { Trace } = await import('../phone/js/trace.js');
+  const rec = new Trace({ seconds: 20 });
+  let t = 0;
+  for (let i = 0; i < 900; i++) {
+    const r = aimRay(0.5 + 0.2 * Math.sin(i / 40), 0.5, 0.05);
+    rec.add(r.o, r.d, 'tracking', (t += 16.7));
+  }
+  rec.setMeta({
+    ua: 'virtual-phone', mode: '6dof',
+    screen: { diagInches: DIAG, widthM, heightM },
+    calibRect: CALIB_RECT, calibRays: rays,
+  });
+
+  phone.on('traceRequest', () => {
+    const text = JSON.stringify(rec.toJSON());
+    const size = 48 * 1024;
+    const chunks = Math.ceil(text.length / size);
+    phone.send({ t: 'traceStart', bytes: text.length, chunks });
+    for (let i = 0; i < chunks; i++) {
+      phone.send({ t: 'traceChunk', i, total: chunks, data: text.slice(i * size, (i + 1) * size) });
+    }
+  });
+
+  await page.keyboard.press('v');
+  await page.waitForFunction(() => window.__lightgun.state.lastTrace, null, { timeout: 15000 });
+  const got = await page.evaluate(() => ({
+    samples: window.__lightgun.state.lastTrace.samples.length,
+    hasMeta: Boolean(window.__lightgun.state.lastTrace.meta.calibRays),
+  }));
+  log(`      trace round trip: ${got.samples} poses reassembled from chunks`);
+  check('a pose trace survives the trip from phone to display',
+    got.samples === 900 && got.hasMeta, JSON.stringify(got));
+
+  // And the analyser must accept what actually came over the wire.
+  const { parseTrace, analyze } = await import('../tools/analyze-trace.js');
+  const raw = await page.evaluate(() => JSON.stringify(window.__lightgun.state.lastTrace));
+  const a = analyze(parseTrace(raw));
+  log(`      analyser on the received trace: ${a.health.hz.toFixed(1)} Hz, noise ${a.noise ? a.noise.medianRmsDeg.toFixed(3) + '°' : 'n/a'}`);
+  check('the analyser reads a trace that came over the wire',
+    a.health.samples === 900 && a.calibration !== null,
+    `${a.health.samples} samples`);
+}
+
+/* ---------------------------------------------------------- 8. two players */
 
 const phone2 = new VirtualPhone();
 await phone2.ready;

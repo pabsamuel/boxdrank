@@ -29,8 +29,9 @@ Then:
 7. **READY → 3 → 2 → 1 → GO.**
 
 Press **T** for the light-gun test rig, **G** for the game, **C** to recalibrate, **D** for diagnostics,
-**Z** to re-zero after drift, and **X** to save a session report — it downloads *and* copies itself to
-your clipboard, so testing is "press X, paste" rather than transcribing numbers off a TV.
+**Z** to re-zero after drift, **X** to save a session report — it downloads *and* copies itself to
+your clipboard, so testing is "press X, paste" rather than transcribing numbers off a TV — and **V**
+to pull the phone's raw ARCore pose trace for offline analysis.
 
 **Requirements:** an Android phone with Google Play Services for AR (ARCore), Chrome, on the same
 network as the laptop. Phones without ARCore fall back to a rotation-only mode that works but drifts.
@@ -76,6 +77,7 @@ sideways without recalibrating and its error goes to **~50% of screen width**, v
 | `phone/` | The controller: WebXR pose, calibration capture, trigger, haptics |
 | `shared/` | The aiming maths and the network wrapper — identical code on both ends and in the tests |
 | `server/` | ~200 lines: static files, a QR endpoint, and a dumb WebSocket room relay |
+| `tools/` | Offline trace analysis: real sensor noise, drift, and a smoothing sweep on real data |
 | `tests/` | Synthetic-truth maths tests and a headless end-to-end run with a simulated gun |
 | `docs/` | Architecture, testing protocol, screenshots |
 

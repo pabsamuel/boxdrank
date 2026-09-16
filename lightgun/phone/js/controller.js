@@ -12,6 +12,7 @@ import {
   OneEuro, clamp01, screenMetricsFromDiagonal, DEFAULT_CALIB_RECT,
 } from '../../shared/math.js';
 import { PoseSource, TRACKING } from './pose.js';
+import { Trace } from './trace.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -32,6 +33,7 @@ $('roomCode').textContent = room || '----';
 
 const pose = new PoseSource();
 const net = new Net({ role: 'phone', room, name: 'gun' });
+const trace = new Trace();
 
 const app = {
   screen: { widthM: 1.22, heightM: 0.685, aspectW: 16, aspectH: 9, diagInches: 55 },
@@ -123,6 +125,7 @@ pose.on('pose', (p) => {
     return;
   }
   noteTracking(p.tracking);
+  trace.add(p.o, p.d, p.tracking, p.ts);
   if (app.phase !== 'live') return;
   const hit = aimFrom(p);
   if (!hit) return;
@@ -214,6 +217,7 @@ async function captureCalibPoint() {
     return;
   }
   app.calib.rays.push({ o: sample.o, d: sample.d, tracking: sample.tracking });
+  trace.mark('calibPoint', { index: app.calib.index, label: calibLabelFor(app.calib.index, app.calib.points) });
   net.send({
     t: 'calibCaptured', index: app.calib.index,
     samples: sample.samples, tracking: sample.tracking,
@@ -281,6 +285,46 @@ function requestRecalibrate() {
   net.send({ t: 'recalibrateRequest' });
 }
 
+/* ------------------------------------------------------- trace upload */
+//
+// Sent in chunks: a two-minute trace is a few hundred kilobytes of JSON, and a
+// single frame that large stalls the socket that the aiming stream shares.
+
+const CHUNK = 48 * 1024;
+
+net.on('traceRequest', () => {
+  trace.setMeta({
+    ua: navigator.userAgent,
+    mode: pose.mode,
+    rotationOnly: app.useRotationOnly,
+    screen: app.screen,
+    calibRect: app.calibRect,
+    calibRays: app.calib.rays || [],
+    zero: app.zero,
+    calibAttempts: app.calibAttempts,
+    trackingLosses: app.trackingLosses,
+    model: app.model ? {
+      rmsErrorM: app.model.rmsErrorM,
+      rmsErrorScreen: app.model.rmsErrorScreen,
+      scaleErrorW: app.model.scaleErrorW,
+      ranges: app.model.solve.ranges,
+      origin: app.model.origin,
+      uAxis: app.model.uAxis,
+      vAxis: app.model.vAxis,
+      widthM: app.model.widthM,
+      heightM: app.model.heightM,
+    } : null,
+  });
+
+  const text = JSON.stringify(trace.toJSON());
+  const total = Math.ceil(text.length / CHUNK);
+  net.send({ t: 'traceStart', bytes: text.length, chunks: total });
+  for (let i = 0; i < total; i++) {
+    net.send({ t: 'traceChunk', i, total, data: text.slice(i * CHUNK, (i + 1) * CHUNK) });
+  }
+  haptic('ready');
+});
+
 /* ------------------------------------------------------------------ re-zero */
 //
 // Drift shows up as a slowly growing constant offset. A full recalibration
@@ -325,6 +369,7 @@ function fire() {
   const aim = app.lastAim;
   app.shots++;
   if (app.ammo !== Infinity) app.ammo--;
+  trace.mark('fire', aim ? { x: aim.x, y: aim.y } : {});
   // The shot carries its own coordinates rather than relying on the last aim
   // packet having arrived: that removes one source of "I hit it but it missed".
   net.send({

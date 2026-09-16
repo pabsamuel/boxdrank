@@ -289,17 +289,57 @@ function sessionReport() {
   return lines.join('\n');
 }
 
+/* ------------------------------------------------------------ trace upload */
+
+const incoming = { parts: [], expected: 0, bytes: 0, from: null };
+
+net.on('traceStart', (m) => {
+  incoming.parts = new Array(m.chunks);
+  incoming.expected = m.chunks;
+  incoming.bytes = m.bytes;
+  incoming.from = m.from;
+  banner('DOWNLOADING TRACE', `${(m.bytes / 1024).toFixed(0)} KB from the phone`);
+});
+
+net.on('traceChunk', (m) => {
+  if (!incoming.expected) return;
+  incoming.parts[m.i] = m.data;
+  if (incoming.parts.filter(Boolean).length !== incoming.expected) return;
+
+  const text = incoming.parts.join('');
+  incoming.expected = 0;
+  try {
+    const trace = JSON.parse(text);
+    state.lastTrace = trace;
+    logEvent('trace', { samples: trace.samples.length, durationMs: trace.durationMs, kb: Math.round(text.length / 1024) });
+    download(text, `lightgun-trace-${stamp()}.json`, 'application/json');
+    banner('TRACE SAVED', `${trace.samples.length} poses · run tools/analyze-trace.js on it`);
+  } catch (err) {
+    banner('TRACE FAILED TO PARSE', String(err && err.message));
+  }
+  setTimeout(() => banner(null), 2600);
+});
+
+function requestTrace(playerId) {
+  net.send({ t: 'traceRequest', to: playerId });
+  banner('ASKING THE PHONE FOR ITS POSE TRACE', 'this takes a second');
+}
+
+const stamp = () => new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+
+function download(text, filename, type = 'text/plain') {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
 function exportSession() {
   const report = sessionReport();
   console.log(report);
-  const blob = new Blob(
-    [report, '\n\n=== RAW ===\n', JSON.stringify(session.events)],
-    { type: 'text/plain' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `lightgun-session-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.txt`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  download(`${report}\n\n=== RAW ===\n${JSON.stringify(session.events)}`,
+    `lightgun-session-${stamp()}.txt`);
   if (navigator.clipboard) navigator.clipboard.writeText(report).catch(() => {});
   banner('REPORT SAVED', 'copied to the clipboard and downloaded');
   setTimeout(() => banner(null), 2200);
@@ -559,6 +599,7 @@ window.addEventListener('keydown', (e) => {
   else if (k === 'r') { state.rotationOnly = !state.rotationOnly; broadcastConfig(); }
   else if (k === 'z') { const p = sortedPlayers()[0]; if (p) startRezero(p.id); }
   else if (k === 'x') { exportSession(); }
+  else if (k === 'v') { const p = sortedPlayers()[0]; if (p) requestTrace(p.id); }
   else if (k === 'l') { state.mode = MODE.LOBBY; show($('lobby')); hide($('hud')); hide($('results')); banner(null); }
 });
 
