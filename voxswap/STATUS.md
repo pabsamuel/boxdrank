@@ -6,17 +6,26 @@
 ## Current state
 
 **v0.1.0 — the pipeline is complete and runs end to end offline.** Ten stages,
-five provider adapters, five target adapters, 119 tests green on Python
-3.10/3.11/3.12, with and without ffmpeg. No real *provider* has been exercised
+six provider adapters, five target adapters, 157 tests green on Python
+3.10/3.11/3.12, with and without ffmpeg. **It can run fully offline** —
+transcription, translation and voice cloning all have a local path. No real *provider* has been exercised
 against a real account yet — that is the next milestone and it needs an API key,
 which only the owner can supply.
 
 ## Next exact action
 
-1. Put an `ELEVENLABS_API_KEY` (or configure a local model) in `voxswap/.env`.
-2. Run one real order **on your own voice, on a game you own**, start to finish:
-   `new` → `phrase` → `validate` → `run --only plan` → `dry_run_limit: 5` → full run.
-3. Write down what broke. That list is the v0.2 backlog.
+Run one real order **on your own voice, on a game you own**, start to finish:
+`new` → `phrase` → `validate` → `run --only plan` → `dry_run_limit: 5` → full run.
+
+Two routes, pick one:
+
+* **Hosted** — put an `ELEVENLABS_API_KEY` in `voxswap/.env` and go. Fastest to
+  a first result.
+* **Local** — follow `docs/11-RUNNING-LOCAL.md`. Free per order, needs a GPU and
+  an afternoon. Start with ASR (whisper.cpp server, no key, no downside), then
+  translation, then the voice.
+
+Either way: write down what broke. That list is the v0.2 backlog.
 
 ## What works, verified
 
@@ -34,7 +43,10 @@ which only the owner can supply.
 | ElevenLabs adapter | **unverified** | written against the documented API; no live call made |
 | OpenAI ASR adapter | **unverified** | same |
 | Claude translation adapter | **unverified** | same |
-| Local (XTTS/whisper.cpp) adapter | **unverified** | needs a machine with a model installed |
+| `local_llm` translation (llama.cpp/Ollama) | done | 22 tests against a real in-process HTTP server |
+| Local voice, server mode | done | 9 tests in `tests/test_local_voice.py` |
+| `tools/local/tts_server.py` + XTTS engine | **unverified** | the server is exercised by its protocol tests; the XTTS engine itself needs a machine with the model installed |
+| `tools/local/whisper_cpp.py` | **unverified** | needs whisper.cpp built locally |
 
 "Unverified" means the code is written and imports cleanly, but has never been
 run against a live account. Expect small fixes — model IDs and response shapes
@@ -44,7 +56,7 @@ drift. All of them are env-overridable for exactly this reason.
 
 ```
 python3 -m unittest discover -s tests -t .
-→ 119 tests, OK, ~15s, no network, no API keys
+→ 157 tests, OK, ~45s, no network, no API keys
 ```
 
 Both halves are covered. The main suite pins a non-existent ffmpeg binary, so it
@@ -76,6 +88,7 @@ and skips cleanly where ffmpeg is absent. CI runs the whole matrix both ways on
 | 4 | Providers (mock/ElevenLabs/OpenAI/Claude/local), targets | done |
 | 5 | Tests, demo order, docs, prompt library | done |
 | 5b | ffmpeg path coverage; fixed 3 defects it found (see DECISIONS #17) | done |
+| 5c | Local-model path: `local_llm` provider, resident TTS server, keyless local ASR, whisper.cpp wrapper, `docs/11-RUNNING-LOCAL.md` | done |
 | 6 | First real order with a live provider | **next** |
 | 7 | Second title, second engine — prove the target adapters | not started |
 | 8 | Local model path, for cost and privacy | not started |

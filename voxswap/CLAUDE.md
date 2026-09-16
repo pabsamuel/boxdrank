@@ -33,6 +33,10 @@ short.
 * `voxswap/stages/` — ten stages, in `stages/__init__.py` order. Each returns a
   `StageResult` and writes its output to disk before the next one starts.
 * `voxswap/providers/` — swappable ASR / translation / voice. Lazy registry.
+  `dubbing.py` holds the translation prompts and batching shared by every
+  translation provider; adapters supply only transport.
+* `tools/local/` — glue for self-hosted models: a resident TTS server, engines,
+  and a whisper.cpp wrapper.
 * `voxswap/targets/` — where lines live per engine, and what `INSTALL.md` says.
 * `voxswap/audio/` — stdlib WAV toolkit, optional ffmpeg, time-fitting, loudness,
   streaming mixdown.
@@ -52,12 +56,20 @@ short.
 ## Before saying something works
 
 ```bash
-python3 -m unittest discover -s tests -t .      # 119 tests, ~15s, no network
+python3 -m unittest discover -s tests -t .      # 157 tests, ~45s, no network
 python3 tools/make_example.py && python3 -m voxswap run EXAMPLE-GAME
 ```
 
 Both must pass. Record the evidence in `STATUS.md`. Never mark a phase done
 without it.
+
+## When touching local-model support
+
+A local model must never be called once per line through a fresh process — that
+reloads gigabytes of weights per utterance. Server mode
+(`VOXSWAP_LOCAL_TTS_URL`) is the supported path; the command mode stays for
+convenience. Anything talking to `localhost` must bypass HTTP proxies and must
+not require an API key.
 
 ## When adding a provider
 

@@ -22,12 +22,20 @@ from ..errors import ProviderError
 _RETRY_STATUS = {408, 425, 429, 500, 502, 503, 504}
 
 
-def _request(req: urllib.request.Request, *, provider: str, what: str, timeout: int, retries: int) -> bytes:
+_DIRECT = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+def _request(req: urllib.request.Request, *, provider: str, what: str, timeout: int, retries: int,
+             bypass_proxy: bool = False) -> bytes:
+    # A local model server lives on this machine. urllib honours HTTP_PROXY by
+    # default, so without an explicit bypass an operator behind a corporate
+    # proxy gets a baffling failure talking to their own box.
+    send = _DIRECT.open if bypass_proxy else urllib.request.urlopen
     delay = 2.0
     last = ""
     for attempt in range(retries + 1):
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
+            with send(req, timeout=timeout) as resp:
                 return resp.read()
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", "replace")[:600]
@@ -64,30 +72,41 @@ def _hint_for_status(code: int, provider: str) -> str:
         return "The request was rejected as invalid — usually an unsupported language or voice setting."
     if code == 429:
         return "Rate limited. Lower options.max_parallel in order.json."
+    if code == 404:
+        return ("The endpoint was not found. For a local server, check the base URL includes the "
+                "API prefix (e.g. http://127.0.0.1:8080/v1) and that the server is running.")
     return "Provider-side error."
 
 
 def post_json(url: str, payload: dict[str, Any], headers: dict[str, str], *, provider: str, what: str,
-              timeout: int = 120, retries: int = 3) -> dict[str, Any]:
+              timeout: int = 120, retries: int = 3, bypass_proxy: bool = False) -> dict[str, Any]:
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(url, data=data, method="POST",
                                  headers={"Content-Type": "application/json", **headers})
-    raw = _request(req, provider=provider, what=what, timeout=timeout, retries=retries)
-    return json.loads(raw.decode("utf-8", "replace") or "{}")
+    raw = _request(req, provider=provider, what=what, timeout=timeout, retries=retries,
+                   bypass_proxy=bypass_proxy)
+    try:
+        return json.loads(raw.decode("utf-8", "replace") or "{}")
+    except json.JSONDecodeError as exc:
+        raise ProviderError(
+            f"{provider} returned something that is not JSON while trying to {what}",
+            f"First 200 characters: {raw.decode('utf-8', 'replace')[:200]!r}",
+        ) from exc
 
 
 def post_binary(url: str, payload: dict[str, Any], headers: dict[str, str], *, provider: str, what: str,
-                timeout: int = 300, retries: int = 3) -> bytes:
+                timeout: int = 300, retries: int = 3, bypass_proxy: bool = False) -> bytes:
     """POST JSON, get raw bytes back (audio endpoints)."""
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(url, data=data, method="POST",
                                  headers={"Content-Type": "application/json", **headers})
-    return _request(req, provider=provider, what=what, timeout=timeout, retries=retries)
+    return _request(req, provider=provider, what=what, timeout=timeout, retries=retries,
+                    bypass_proxy=bypass_proxy)
 
 
 def post_multipart(url: str, fields: dict[str, str], files: list[tuple[str, Path]], headers: dict[str, str],
                    *, provider: str, what: str, timeout: int = 600, retries: int = 2,
-                   raw_response: bool = False) -> Any:
+                   raw_response: bool = False, bypass_proxy: bool = False) -> Any:
     """multipart/form-data upload — voice cloning and ASR both need it."""
     boundary = f"----voxswap{uuid.uuid4().hex}"
     body = bytearray()
@@ -106,7 +125,8 @@ def post_multipart(url: str, fields: dict[str, str], files: list[tuple[str, Path
 
     req = urllib.request.Request(url, data=bytes(body), method="POST",
                                  headers={"Content-Type": f"multipart/form-data; boundary={boundary}", **headers})
-    raw = _request(req, provider=provider, what=what, timeout=timeout, retries=retries)
+    raw = _request(req, provider=provider, what=what, timeout=timeout, retries=retries,
+                   bypass_proxy=bypass_proxy)
     if raw_response:
         return raw
     return json.loads(raw.decode("utf-8", "replace") or "{}")

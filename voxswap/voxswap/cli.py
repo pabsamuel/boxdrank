@@ -63,11 +63,49 @@ def cmd_doctor(args: argparse.Namespace, cfg: Config, log: Logger) -> int:
                           ("ANTHROPIC_API_KEY", "translation"),
                           ("OPENAI_API_KEY", "transcription")):
         print(f"    {name:<20} {'set' if os.environ.get(name) else 'not set':<8} ({used_by})")
+    print("  local servers")
+    for label, url, env_var in _local_endpoints():
+        if not url:
+            print(f"    {label:<20} not configured  ({env_var})")
+            continue
+        reachable, detail = _probe(url)
+        print(f"    {label:<20} {'up' if reachable else 'DOWN':<8} {url}" + (f"  — {detail}" if detail else ""))
+
     print("  providers")
     for kind, names in catalogue().items():
         print(f"    {kind:<12} {', '.join(names)}")
     print("\nEverything works offline with the 'mock' providers — no keys needed to test.")
+    print("Running your own models instead of paying per character: docs/11-RUNNING-LOCAL.md")
     return 0
+
+
+def _local_endpoints() -> list[tuple[str, str, str]]:
+    """The three things a fully-local setup needs running."""
+    import os
+
+    asr_base = os.environ.get("VOXSWAP_OPENAI_BASE", "")
+    return [
+        ("transcription", asr_base if "127.0.0.1" in asr_base or "localhost" in asr_base else "",
+         "VOXSWAP_OPENAI_BASE -> whisper.cpp"),
+        ("translation", os.environ.get("VOXSWAP_LOCAL_LLM_BASE", ""), "VOXSWAP_LOCAL_LLM_BASE -> llama.cpp/Ollama"),
+        ("voice", os.environ.get("VOXSWAP_LOCAL_TTS_URL", ""), "VOXSWAP_LOCAL_TTS_URL -> tools/local/tts_server.py"),
+    ]
+
+
+def _probe(url: str, timeout: float = 1.5) -> tuple[bool, str]:
+    """Is something listening? A GET is enough — we are not validating the API,
+    just saving the operator from finding out mid-job that the server is down."""
+    import urllib.error
+    import urllib.request
+
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))   # never proxy localhost
+    try:
+        with opener.open(urllib.request.Request(url, method="GET"), timeout=timeout):
+            return True, ""
+    except urllib.error.HTTPError:
+        return True, "responding"        # 404/405 still means something is listening
+    except Exception as exc:             # noqa: BLE001 - any failure means "not usable"
+        return False, str(getattr(exc, "reason", exc))[:60]
 
 
 def cmd_new(args: argparse.Namespace, cfg: Config, log: Logger) -> int:

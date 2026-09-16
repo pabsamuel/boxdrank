@@ -32,13 +32,19 @@ One title working is luck. Two is a product.
 
 ## Phase 8 — the local model path
 
-Do this when synthesis cost gets uncomfortable, or when a customer asks where
-their voice is being sent.
+The code side is done: a `local_llm` translation provider for any
+OpenAI-compatible server, a resident TTS server so models load once, a
+whisper.cpp wrapper, and keyless local ASR through the `openai` adapter. Guide:
+[`docs/11-RUNNING-LOCAL.md`](docs/11-RUNNING-LOCAL.md).
 
-- [ ] Get a zero-shot TTS model running locally (XTTS-class)
-- [ ] Write the wrapper script that matches the `VOXSWAP_LOCAL_TTS_CMD` contract
-- [ ] Local ASR too (whisper.cpp), via `VOXSWAP_LOCAL_ASR_CMD`
-- [ ] Compare quality side by side with the hosted provider, on the same order
+What is left is yours, and needs hardware:
+
+- [ ] Point `asr` at a local whisper.cpp server — free, as good as hosted, do this first
+- [ ] Run a GGUF instruct model (14B+) and switch `translation` to `local_llm`
+- [ ] Get XTTS-v2 running behind `tools/local/tts_server.py`
+- [ ] Run the **same order** hosted and local, and listen to five lines of each
+      back to back before switching a customer
+- [ ] Have a native speaker compare ten translated lines from each
 - [ ] Add "your voice never leaves our machine" to your sales page — and mean it
 
 ## Phase 9 — less operator time per order

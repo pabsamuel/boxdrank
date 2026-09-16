@@ -1,31 +1,42 @@
-"""Self-hosted providers driven by a command line.
+"""Self-hosted providers: your machine, your models, no API bill.
 
-Why not import XTTS / F5-TTS / whisper.cpp directly? Because pinning torch and
-CUDA inside this project would make a stdlib-only tool impossible to install,
-and every local model has a different, fast-moving Python API. Instead we define
-a tiny contract and let the operator point at whatever they have running.
+Two reasons this matters more than it looks:
 
-Local models matter for two real reasons:
-  * cost — a full game is tens of thousands of lines; per-character API pricing
-    stops being viable quickly;
-  * privacy — some customers will not accept their voice, or their partner's
-    voice, being uploaded to a third party. With a local model the audio never
-    leaves the machine.
+  * **cost** — a full game is tens of thousands of lines, and per-character
+    pricing stops being viable long before you get there;
+  * **privacy** — plenty of customers will not accept their partner's voice
+    being uploaded to a third party. Locally, the audio never leaves the room,
+    and that is a genuine selling point for this product specifically.
 
-Contract (placeholders are substituted, no shell is involved):
+VoxSwap deliberately does not import torch or bundle a model: pinning a CUDA
+stack would break the stdlib-only promise, and every local model has a
+different, fast-moving API. Instead there are two seams.
+
+**1. A resident server (recommended for TTS).** Set `VOXSWAP_LOCAL_TTS_URL` and
+each line is a POST instead of a process. This matters enormously: a per-line
+subprocess reloads gigabytes of weights for every utterance. `tools/local/tts_server.py`
+is the other end, and loads the model once.
+
+    VOXSWAP_LOCAL_TTS_URL=http://127.0.0.1:8123/tts
+    -> POST {"text", "speaker_wav", "language", "emotion"} -> WAV bytes
+
+**2. A command per call**, for anything you would rather drive from the shell.
+Placeholders are substituted and no shell is involved, so quoting cannot bite:
 
   VOXSWAP_LOCAL_ASR_CMD
-      must read {input} and write JSON to {output}:
+      reads {input}, writes JSON to {output}:
       {"text": "...", "language": "en", "segments": [{"start": 0.0, "end": 1.2, "text": "..."}]}
       placeholders: {input} {output} {language}
+      ready-made: tools/local/whisper_cpp.py
 
   VOXSWAP_LOCAL_TTS_CMD
-      must read the UTF-8 text in {text_file} and write a WAV to {output},
-      cloning the voice in {speaker_wav}
+      reads the UTF-8 text in {text_file}, clones {speaker_wav}, writes a WAV to {output}
       placeholders: {text_file} {output} {speaker_wav} {language} {emotion}
 
-Example (Coqui XTTS v2 through a small wrapper script of your own):
-  VOXSWAP_LOCAL_TTS_CMD="python tools/xtts_say.py --text {text_file} --speaker {speaker_wav} --lang {language} --out {output}"
+For local *transcription* there is a third option that needs no code at all:
+whisper.cpp's server speaks the OpenAI transcription API, so
+`"asr": "openai"` with `VOXSWAP_OPENAI_BASE` pointed at it works directly, with
+no key. See docs/11-RUNNING-LOCAL.md.
 """
 
 from __future__ import annotations
@@ -36,9 +47,12 @@ import shlex
 import subprocess
 from pathlib import Path
 
+from urllib.parse import urlparse
+
 from ..audio import Audio, concat, read_wav, write_wav
 from ..errors import ProviderError
 from .base import BaseProvider, Segment, SynthesisRequest, Transcript
+from .http import post_binary
 
 _TIMEOUT = int(os.environ.get("VOXSWAP_LOCAL_TIMEOUT", "900"))
 _REFERENCE_SECONDS = 60          # XTTS-class models need only a short reference
@@ -98,6 +112,40 @@ class LocalVoice(BaseProvider):
 
     def __init__(self, voice_dir: Path | None = None) -> None:
         self.voice_dir = voice_dir or Path(os.environ.get("VOXSWAP_LOCAL_VOICE_DIR", ".voices")).resolve()
+        # Prefer a resident server when one is configured: a per-line
+        # subprocess reloads several gigabytes of weights for every utterance,
+        # which turns a 3,000-line game into days of model loading.
+        # tools/local/tts_server.py is the other end of this.
+        self.server_url = os.environ.get("VOXSWAP_LOCAL_TTS_URL", "").strip()
+        self.timeout = int(os.environ.get("VOXSWAP_LOCAL_TIMEOUT", "900"))
+
+    def _synthesize_over_http(self, request: SynthesisRequest, out_path: Path) -> Path:
+        host = (urlparse(self.server_url).hostname or "").lower()
+        raw = post_binary(
+            self.server_url,
+            {
+                "text": request.text,
+                "speaker_wav": request.provider_voice_id,
+                "language": (request.language or "en").split("-")[0],
+                "emotion": request.emotion or "neutral",
+                "sample_rate": request.sample_rate,
+            },
+            {"Accept": "audio/wav"},
+            provider=f"local TTS server ({self.server_url})",
+            what=f"synthesise {len(request.text)} characters",
+            timeout=self.timeout,
+            retries=1,              # a local server that is down stays down
+            bypass_proxy=host in ("localhost", "127.0.0.1", "::1") or host.endswith(".local"),
+        )
+        if not raw.startswith(b"RIFF"):
+            raise ProviderError(
+                "the local TTS server did not return a WAV",
+                f"It replied with {raw[:120]!r}. Check the server log; "
+                "it should answer POSTs with audio/wav bytes.",
+            )
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(raw)
+        return out_path
 
     def ensure_voice(self, voice_id: str, label: str, samples: list[Path], *, consent_ref: str) -> str:
         if not samples:
@@ -127,6 +175,8 @@ class LocalVoice(BaseProvider):
         return str(reference)
 
     def synthesize(self, request: SynthesisRequest, out_path: Path) -> Path:
+        if self.server_url:
+            return self._synthesize_over_http(request, out_path)
         template = _command("VOXSWAP_LOCAL_TTS_CMD", "synthesise speech")
         out_path.parent.mkdir(parents=True, exist_ok=True)
         text_file = out_path.with_suffix(".txt")

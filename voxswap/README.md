@@ -5,7 +5,7 @@
 
   ![Python](https://img.shields.io/badge/Python-3.10+-3776ab?style=flat-square&logo=python&logoColor=white)
   ![Dependencies](https://img.shields.io/badge/dependencies-none-00e054?style=flat-square)
-  ![Tests](https://img.shields.io/badge/tests-119-blue?style=flat-square)
+  ![Tests](https://img.shields.io/badge/tests-157-blue?style=flat-square)
 </div>
 
 ---
@@ -56,6 +56,7 @@ checks have passed, and nothing is ever regenerated twice.
 | **Films** | Rebuilds a full-length dub track with your voice over the original mix, plus matching subtitles, plus an optional ready-to-play `.mkv`. |
 | **Languages** | Play an English game in Turkish, in your own voice. Translation is length-matched so lines still fit their slots. |
 | **Consent** | Every voice needs a signed form **and** an order-specific spoken verification phrase. There is no flag to skip it. |
+| **Runs offline** | Transcription, translation and voice cloning can all run on your own machine — whisper.cpp, any GGUF model via llama.cpp/Ollama, and XTTS. No API bill, and "your voice never leaves my machine" is a real thing you can say. |
 | **Withdrawal** | One command destroys the clone at the provider, every generated take and the delivery. |
 
 ## The commands you will actually use
@@ -91,6 +92,7 @@ python3 -m voxswap purge ORD-123           # someone withdrew consent
 | [`docs/03-ORDER-FORMAT.md`](docs/03-ORDER-FORMAT.md) | You are editing `order.json` |
 | [`docs/04-CONSENT-AND-RIGHTS.md`](docs/04-CONSENT-AND-RIGHTS.md) | Before your first real customer |
 | [`docs/05-PROVIDERS.md`](docs/05-PROVIDERS.md) | You are ready to spend money on real voices |
+| [`docs/11-RUNNING-LOCAL.md`](docs/11-RUNNING-LOCAL.md) | You would rather not spend that money — running it all locally |
 | [`docs/06-TARGETS.md`](docs/06-TARGETS.md) | The customer named a specific game or film |
 | [`docs/07-QUALITY-BAR.md`](docs/07-QUALITY-BAR.md) | It works but sounds wrong |
 | [`docs/08-TROUBLESHOOTING.md`](docs/08-TROUBLESHOOTING.md) | Something broke |
@@ -104,11 +106,13 @@ python3 -m voxswap purge ORD-123           # someone withdrew consent
 python3 -m unittest discover -s tests -t .
 ```
 
-119 tests, no dependencies, no network, no API keys, ~15 seconds.
+157 tests, no dependencies, no network, no API keys, ~45 seconds.
 
 12 of them cover the ffmpeg code paths and skip automatically when ffmpeg is
 not installed, so the suite stays runnable on a bare machine. CI runs half its
-matrix with ffmpeg so they do not quietly never run.
+matrix with ffmpeg so they do not quietly never run. The local-model providers
+are tested against a real HTTP server running in-process — no network, no
+models, no keys.
 
 ## Licence
 

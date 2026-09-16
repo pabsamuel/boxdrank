@@ -70,29 +70,42 @@ this repo. `delete_voice` is implemented, which is what makes withdrawal real.
 
 ### `local`
 
-Any local model, driven by a command you provide. VoxSwap deliberately does not
-pin torch or bundle a model — that would make a stdlib-only tool impossible to
-install, and every local TTS has a different, fast-moving API.
+Your own model, on your own machine. Full guide:
+[`11-RUNNING-LOCAL.md`](11-RUNNING-LOCAL.md).
+
+**Preferred — a resident server.** `tools/local/tts_server.py` loads the model
+once and answers one POST per line:
+
+```bash
+pip install TTS
+python3 tools/local/tts_server.py --engine xtts --option device=cuda
+```
+```
+VOXSWAP_LOCAL_TTS_URL=http://127.0.0.1:8123/tts
+```
+
+This is not a micro-optimisation. The alternative reloads gigabytes of weights
+for *every utterance* — days of model loading on a full game.
+
+**Or a command per line**, if you would rather drive it from the shell:
 
 ```
-VOXSWAP_LOCAL_TTS_CMD="python tools/xtts_say.py --text {text_file} --speaker {speaker_wav} --lang {language} --out {output}"
-VOXSWAP_LOCAL_VOICE_DIR=.voices
-VOXSWAP_LOCAL_TIMEOUT=900
+VOXSWAP_LOCAL_TTS_CMD=python3 my_tts.py --text {text_file} --speaker {speaker_wav} --lang {language} --out {output}
 ```
 
-The contract: read the UTF-8 text at `{text_file}`, clone the voice in
-`{speaker_wav}`, write a WAV to `{output}`. Placeholders available:
-`{text_file} {output} {speaker_wav} {language} {emotion}`. No shell is
-involved, so no quoting surprises.
+Read the UTF-8 text at `{text_file}`, clone `{speaker_wav}`, write a WAV to
+`{output}`. Placeholders: `{text_file} {output} {speaker_wav} {language}
+{emotion}`. No shell is involved, so no quoting surprises.
 
-"Cloning" here just builds a clean reference clip: up to 60 seconds of the
-person's samples concatenated into `<voice_dir>/<voice_id>.wav`. That is what
-zero-shot models like XTTS want.
+"Cloning" here builds a clean reference clip: up to 60 seconds of the person's
+samples concatenated into `<voice_dir>/<voice_id>.wav`, which is what zero-shot
+models like XTTS want. `delete_voice` removes it, so withdrawal works locally
+too.
 
 * **Good:** no per-character cost, audio never leaves your machine, viable for
-  whole games.
-* **Costs:** a GPU, setup time, and quality that depends entirely on the model
-  you chose.
+  whole games, and "your voice never leaves my machine" is a real selling point.
+* **Costs:** a GPU, setup time, and cloning quality below the good hosted
+  providers. That last one is the honest trade — see the guide.
 
 ---
 
@@ -105,7 +118,12 @@ Only used for lines the customer's script did not cover.
 | `mock` | Reads a `.txt` sidecar next to the clip if present, else invents text from the filename. The sidecar rule makes fixtures and hand-corrected transcripts free. |
 | `openai` | Whisper-family. Cheap, accurate on game dialogue, returns segment timings (which is what keeps long clips in sync). `VOXSWAP_OPENAI_ASR_MODEL` to change the model. |
 | `elevenlabs` | One less vendor if you already use them for voice. Returns word-level timings. |
-| `local` | Your own whisper.cpp or similar, via `VOXSWAP_LOCAL_ASR_CMD`. Must write `{"text","language","segments":[{"start","end","text"}]}` to `{output}`. |
+| `local` | Your own whisper.cpp or similar, via `VOXSWAP_LOCAL_ASR_CMD`. Must write `{"text","language","segments":[{"start","end","text"}]}` to `{output}` — `tools/local/whisper_cpp.py` already does. |
+
+**For local transcription, the `openai` adapter is usually the better route:**
+whisper.cpp's server speaks the same endpoint, so pointing `VOXSWAP_OPENAI_BASE`
+at `http://127.0.0.1:8080/v1` works with no key, no proxy, and no model reload
+per clip.
 
 **The cheapest ASR is the customer's own script file.** Ask for it every time:
 it costs nothing, fixes every proper noun, and gives you speaker labels.
@@ -116,6 +134,18 @@ it costs nothing, fixes every proper noun, and gives you speaker labels.
 | --- | --- |
 | `mock` | Marks text as translated and simulates realistic length drift, so time-fitting gets a proper workout offline. |
 | `claude` | Real dubbing translation: length-matched, register-preserving, names untouched, written to be read aloud. Also labels each line's emotion for the voice provider. |
+| `local_llm` | The same, through any OpenAI-compatible local server — llama.cpp, Ollama, LM Studio, vLLM. Free, offline, needs a 14B-class GGUF model to be good. See [`11-RUNNING-LOCAL.md`](11-RUNNING-LOCAL.md). |
+
+Both real providers share one set of dubbing instructions (`providers/dubbing.py`),
+so improving the prompt improves both and they cannot drift apart. `local_llm`
+uses smaller batches and falls back to one line at a time when a small model
+loses count — a weak model costs speed, not correctness.
+
+```
+VOXSWAP_LOCAL_LLM_BASE=http://127.0.0.1:8080/v1   # llama.cpp
+VOXSWAP_LOCAL_LLM_MODEL=local-model               # Ollama/LM Studio need a real name
+VOXSWAP_LOCAL_LLM_BATCH=12
+```
 
 Dubbing translation is an instruction-following job, not a lookup: it has to
 choose the shorter of two correct phrasings because the line has 2.1 seconds.

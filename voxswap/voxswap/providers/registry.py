@@ -43,6 +43,11 @@ def _register() -> None:
 
         return ClaudeTranslation()
 
+    def local_llm_translation() -> Any:
+        from .local_llm import LocalLLMTranslation
+
+        return LocalLLMTranslation()
+
     def local_asr() -> Any:
         from .local import LocalASR
 
@@ -59,6 +64,7 @@ def _register() -> None:
     ASR_PROVIDERS["openai"] = openai_asr
     ASR_PROVIDERS["local"] = local_asr
     TRANSLATION_PROVIDERS["claude"] = claude_translation
+    TRANSLATION_PROVIDERS["local_llm"] = local_llm_translation
 
 
 _register()

@@ -1,9 +1,15 @@
-"""Whisper-family ASR over the OpenAI API.
+"""Whisper-family ASR over any OpenAI-compatible transcription endpoint.
 
-Only ASR. Translation goes through Claude (providers/claude.py) and voice
-cloning through ElevenLabs or a local model — this adapter exists because
-Whisper is cheap, accurate on game dialogue, and returns segment timings, which
-is exactly what the `plan` stage needs.
+Only ASR. Translation goes through `claude` or `local_llm`, and voice cloning
+through ElevenLabs or a local model — this adapter exists because Whisper is
+cheap, accurate on game dialogue, and returns segment timings, which is exactly
+what the `plan` stage needs.
+
+**It also covers local transcription**, because whisper.cpp's server and most
+local runners expose the same `/v1/audio/transcriptions` endpoint. Point the
+base URL at your own machine and no key is needed:
+
+    VOXSWAP_OPENAI_BASE=http://127.0.0.1:8080/v1     # whisper.cpp --port 8080
 
 Env: OPENAI_API_KEY, VOXSWAP_OPENAI_BASE, VOXSWAP_OPENAI_ASR_MODEL
 """
@@ -12,6 +18,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 
 from ..config import secret
 from .base import BaseProvider, Segment, Transcript
@@ -24,6 +31,10 @@ class OpenAIASR(BaseProvider):
     def __init__(self) -> None:
         self.base = os.environ.get("VOXSWAP_OPENAI_BASE", "https://api.openai.com/v1").rstrip("/")
         self.model = os.environ.get("VOXSWAP_OPENAI_ASR_MODEL", "whisper-1")
+        host = (urlparse(self.base).hostname or "").lower()
+        # A whisper.cpp server on your own machine has no API key and must not
+        # be sent through a corporate proxy.
+        self.is_local = host in ("localhost", "127.0.0.1", "::1") or host.endswith(".local")
 
     def transcribe(self, path: Path, *, language: str = "") -> Transcript:
         fields = {
@@ -36,13 +47,15 @@ class OpenAIASR(BaseProvider):
         if language:
             fields["language"] = language.split("-")[0]
 
+        key = secret("OPENAI_API_KEY", required=not self.is_local, provider="openai")
         data = post_multipart(
             f"{self.base}/audio/transcriptions",
             fields=fields,
             files=[("file", path)],
-            headers={"Authorization": f"Bearer {secret('OPENAI_API_KEY', required=True, provider='openai')}"},
-            provider="openai",
+            headers={"Authorization": f"Bearer {key or 'local'}"},
+            provider=f"openai ({self.base})" if self.is_local else "openai",
             what=f"transcribe {path.name}",
+            bypass_proxy=self.is_local,
         )
 
         segments = [

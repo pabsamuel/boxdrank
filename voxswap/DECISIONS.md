@@ -137,3 +137,36 @@ instead. That is the one place an absolute target is correct, so it is the one
 place that calls ffmpeg's real EBU R128 `loudnorm`, falling back to our estimate
 when ffmpeg is absent. Before this, `loudness.py` claimed ffmpeg was "preferred"
 while nothing ever called it — a docstring that lied.
+
+### 19. Local models get a resident server, not a process per line
+
+`VOXSWAP_LOCAL_TTS_URL` and `tools/local/tts_server.py` exist because the
+original command-per-line contract was quietly unusable at scale: a local model
+means loading several gigabytes of weights for *every utterance*. On a 3,000-line
+game that is days of loading for minutes of speech. The command mode stays,
+because it is convenient for a handful of lines and for wiring up something
+exotic, but the server is the supported path and `LocalVoice` prefers it.
+
+The same reasoning is why local transcription is pointed at whisper.cpp's
+*server* through the existing `openai` adapter rather than the CLI wrapper.
+
+### 20. One translation prompt, shared by every provider
+
+The dubbing rules — fit the slot, keep the register, leave names alone, write
+for the mouth — are the valuable part of the translation stage, not the model
+call. They live in `providers/dubbing.py` with the batching, parsing, retry and
+per-line fallback; Claude and `local_llm` supply only transport. Improving the
+prompt improves both, and the two cannot silently drift apart.
+
+The fallback chain matters more for local models than hosted ones: a 7B model
+that loses count on a 12-line batch costs a retry, not a lost line, and a line
+it never manages keeps its source text so the operator sees it untranslated in
+`script.csv` rather than missing.
+
+### 21. Anything talking to localhost bypasses the proxy and needs no key
+
+`urllib` honours `HTTP_PROXY` by default, so an operator behind a corporate
+proxy would have watched requests to a server on their own machine fail for no
+visible reason. Local endpoints also skip the API-key requirement — a whisper.cpp
+server does not have one, and demanding a dummy value would be a lie about what
+is needed.
