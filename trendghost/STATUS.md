@@ -36,7 +36,7 @@ without a phone is guessing.
 
 ## Test status
 
-`npm run verify` → prettier + tsc (src, scripts **and e2e**) + eslint + **37/37 unit
+`npm run verify` → prettier + tsc (src, scripts **and e2e**) + eslint + **47/47 unit
 tests**, green.
 `npm run test:e2e` → **5/5 Playwright tests**, green on **8 consecutive runs**
 (~27s each), in a real Chromium with a fake camera: onboarding and the camera
@@ -68,6 +68,8 @@ Be honest about this — it is the difference between "built" and "works":
   spec, but it has never decoded an actual TikTok clip.
 - **Ghost alignment and cue lead time are untuned.** 450ms is a literature number, not
   something we measured on a person.
+- **Frame timestamps come from when we hand a frame to the model**, not true sensor
+  capture. `requestVideoFrameCallback` is the fix if timing feels off on a phone.
 - **iOS `MediaRecorder` is unverified**, which is the known weak spot of the web-first
   choice (`DECISIONS.md` D1).
 
@@ -78,6 +80,7 @@ Be honest about this — it is the difference between "built" and "works":
 ## Session notes
 
 - _(newest first: date — what changed — what was verified)_
+- 2026-09-16 — Latency is now measured rather than assumed (rolling median of real capture→result gaps), which fixed a real bug: the old code added inference time to a measurement that already included it, double-counting it and shifting every score about a frame early. Reduced mode now also engages automatically when a device cannot hold 12Hz for 5s, and says so on screen. 10 new tests.
 - 2026-09-16 — Take review completed: takes now store per-limb scores, not just the overall number, so tapping a dip scrubs your take and the original side by side and names the limbs that actually drifted (averaged over a short window, so a one-frame tracking blip is not reported as a mistake). 4 new tests.
 - 2026-09-16 — Added beat detection (`src/coach/beats.ts`): onset envelope → autocorrelation tempo with sub-frame parabolic refinement → phase search, with a confidence floor below which we return no grid rather than a wrong one. Wired into ingest (optional, never blocks) so `go`/`hit` cues snap to the beat, and the count-in now ticks at the song's tempo. 8 new unit tests over synthetic click tracks, including the drift test that caught integer-period error accumulating to 100ms+ by the tenth beat.
 - 2026-09-15 — Stabilised the e2e suite (8 consecutive green runs). The flakiness was a check-then-act race in the test helper, not the app, but chasing it surfaced two things worth keeping: onboarding was not persisted before navigation (a real app bug — finish onboarding, reopen, see it again), and `e2e/` was not typechecked, so a file that could not parse still passed `npm run verify`. Both fixed. Failure diagnostics (console, page dump, trace) added.

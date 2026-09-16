@@ -9,6 +9,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CuePlayer, type Cue } from '../coach/cues';
 import { Voice, buzz } from '../coach/voice';
 import { LuminanceSampler, checkFraming, firstProblem, type FramingCheck } from '../coach/framing';
+import { PerformanceWatch } from '../coach/performance';
+import { LatencyTracker } from '../pose-core/latency';
 import { PoseEngine } from '../inference/poseLandmarker';
 import { closeCamera, openCamera, type CameraError, type CameraStream } from '../camera/camera';
 import { extractFeatures } from '../pose-core/features';
@@ -18,7 +20,7 @@ import { scoreAgainstTimeline } from '../pose-core/align';
 import { correctionPhrase } from '../coach/phrases';
 import { worstSegment } from '../pose-core/score';
 import type { FrameScore, Landmark, NormalizedPose, PoseTimeline } from '../pose-core/types';
-import type { Sensitivity } from '../config/scoring.config';
+import { ALIGNMENT, type Sensitivity } from '../config/scoring.config';
 
 export interface EngineFrame {
   landmarks: Landmark[] | null;
@@ -48,6 +50,8 @@ interface EngineOptions {
   onCue?: (cue: Cue) => void;
   /** Throttle inference; recording drops this (PERFORMANCE_BUDGET.md). */
   inferenceHzCap?: number;
+  /** Called once if the device cannot keep up and reduced mode should kick in. */
+  onTooSlow?: () => void;
 }
 
 export function useEngine(options: EngineOptions) {
@@ -79,6 +83,8 @@ export function useEngine(options: EngineOptions) {
   const cuePlayer = useRef(new CuePlayer());
   const voiceRef = useRef(new Voice());
   const luminance = useRef(new LuminanceSampler());
+  const latency = useRef(new LatencyTracker(ALIGNMENT.defaultLatencyMs));
+  const performanceWatch = useRef(new PerformanceWatch());
 
   useEffect(() => {
     let cancelled = false;
@@ -139,6 +145,12 @@ export function useEngine(options: EngineOptions) {
         inferenceCount.current += 1;
         lastInferenceMs.current = result.inferenceMs;
 
+        // Measured latency: how long after capture this result became usable.
+        // `detect` is synchronous, so this already INCLUDES inference time —
+        // adding inferenceMs on top (as an earlier version did) double-counted it
+        // and shifted every score about a frame early.
+        latency.current.record(performance.now() - captureMs);
+
         const raw = result.landmarks;
         if (raw) {
           const smoothedLandmarks = landmarkSmoother.current.apply(raw);
@@ -156,7 +168,7 @@ export function useEngine(options: EngineOptions) {
               opts.timeline,
               clock,
               opts.sensitivity,
-              performance.now() - captureMs + lastInferenceMs.current,
+              latency.current.milliseconds,
             );
             if (aligned) {
               score = scoreSmoother.current.apply(aligned.score);
@@ -225,8 +237,12 @@ export function useEngine(options: EngineOptions) {
         renderFps: Math.round((frameCount.current * 1000) / elapsed),
         inferenceHz: Math.round((inferenceCount.current * 1000) / elapsed),
         inferenceMs: lastInferenceMs.current,
-        latencyMs: Math.round(lastInferenceMs.current),
+        latencyMs: Math.round(latency.current.milliseconds),
       });
+
+      // Has this device kept up? (PERFORMANCE_BUDGET.md "Reduced mode".)
+      const hz = Math.round((inferenceCount.current * 1000) / elapsed);
+      if (performanceWatch.current.record(hz, captureMs)) opts.onTooSlow?.();
       frameCount.current = 0;
       inferenceCount.current = 0;
       lastStatsAt.current = captureMs;

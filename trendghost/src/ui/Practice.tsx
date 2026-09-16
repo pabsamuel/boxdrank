@@ -59,6 +59,7 @@ export function Practice({ routine, mode, onExit, onTakeSaved }: Props) {
   const [debug] = useState(() => new URLSearchParams(location.search).has('debug'));
   const [moveIndex, setMoveIndex] = useState(0);
   const [waiting, setWaiting] = useState(false);
+  const [slowNotice, setSlowNotice] = useState(false);
 
   const scoresRef = useRef<TakeFrame[]>([]);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -81,6 +82,14 @@ export function Practice({ routine, mode, onExit, onTakeSaved }: Props) {
     haptics: settings.haptics,
     onCue: setCue,
     inferenceHzCap: mode === 'record' ? 15 : 30,
+    onTooSlow: () => {
+      // Degrade, but never silently: the user is told what changed and why
+      // (PERFORMANCE_BUDGET.md "Reduced mode").
+      if (settings.reducedMode) return;
+      settings.update('reducedMode', true);
+      setSlowNotice(true);
+      setTimeout(() => setSlowNotice(false), 6000);
+    },
   });
 
   /* ---- load the ghost video out of local storage ---- */
@@ -364,6 +373,13 @@ export function Practice({ routine, mode, onExit, onTakeSaved }: Props) {
 
       {cantSeeYou && <div className="banner">{ACCENTS.cantSeeYou}</div>}
 
+      {slowNotice && (
+        <div className="banner">
+          This phone was struggling, so I turned off the ghost video and kept the outline. You can
+          switch it back in Settings.
+        </div>
+      )}
+
       {cue && phase === 'running' && (
         <div className={`cue cue-${cue.type}`} key={cue.id}>
           {cue.text}
@@ -413,6 +429,7 @@ export function Practice({ routine, mode, onExit, onTakeSaved }: Props) {
           <div>render {engine.stats.renderFps} fps</div>
           <div>inference {engine.stats.inferenceHz} Hz</div>
           <div>infer {engine.stats.inferenceMs.toFixed(1)} ms</div>
+          <div>latency {engine.stats.latencyMs} ms</div>
           <div>t {clockRef.current.now().toFixed(2)}s</div>
         </div>
       )}

@@ -108,7 +108,13 @@ The playback clock (D6) gives `t`. The reference timeline is resampled at ingest
 
 Two refinements:
 
-- **Latency compensation.** Camera frames arrive late (capture + inference ≈ 40–90ms). Each user frame carries its own capture timestamp; score it against the reference frame at *its* capture time, not at "now". Measure the constant once per device; never hardcode a guess.
+- **Latency compensation.** Camera frames arrive late (capture + inference ≈ 40–90ms). Each user frame carries its own capture timestamp; score it against the reference frame at *its* capture time, not at "now".
+
+  **Measured, not guessed** (`src/pose-core/latency.ts`): every frame records how long after capture its result became usable, and scoring uses a rolling **median** of the last 30 — median rather than mean so one GC pause or thermal hiccup doesn't drag it for seconds. The configured default is used only until five real samples exist, and the current value is on the debug HUD.
+
+  A caught mistake worth recording: `detect()` is synchronous, so the measured gap *already includes* inference time. An earlier version added `inferenceMs` on top, double-counting it and shifting every score about a frame early — feedback that leads the ghost feels as wrong as feedback that lags it.
+
+  Known limitation: we timestamp at the moment we hand the frame to the model, not at true sensor capture. `requestVideoFrameCallback` would give the real capture time and is the obvious improvement if timing still feels off on a phone.
 - **Tolerance window.** Humans are early or late by a beat. Score the user frame against reference frames in `t ± 120ms` and take the best match, keeping the offset as a `timing` readout ("you're ~90ms behind"). This separates *wrong pose* from *right pose, wrong time*, which are different coaching problems.
 
 ## 7. Smoothing

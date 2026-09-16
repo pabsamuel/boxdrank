@@ -27,6 +27,15 @@ An always-available dev HUD (`?debug=1`): render fps, inference Hz, per-stage ms
 6. No per-frame allocations in `pose-core` — reuse typed arrays. It runs 30× a second.
 7. Recording is the heaviest mode: when `MediaRecorder` is active, drop inference to ~15Hz and keep render at 60.
 
-## Reduced mode
+## Reduced mode — built
 
-Triggered manually or when inference Hz stays under 12 for 5 seconds: drop the ghost *video* layer (keep the skeleton), inference at 12Hz, smoothing raised to compensate. The app tells the user it switched, and why.
+Triggered manually from Settings, or automatically when inference stays under
+12Hz for 5 continuous seconds (`src/coach/performance.ts`): the ghost *video*
+layer is dropped and the outline kept, and the app says so on screen — "this
+phone was struggling, so I turned off the ghost video… you can switch it back in
+Settings". A silent degradation is its own kind of lie, and a user who doesn't
+know the app changed will think it broke.
+
+Two deliberate details, both tested: a **brief** dip while the model warms up
+must not trigger it (the clock resets on any recovery), and it fires **once** —
+being told twice is nagging.
