@@ -6,13 +6,17 @@ done and is blocking on your answer. Copy-paste prompts for each phase are in
 
 | # | Phase | Deliverable | Status |
 |---|---|---|---|
-| 0 | API findings | `docs/00-api-findings.md` | **done — awaiting your path decision** |
-| 1 | Skeleton | monday OAuth, manifest, board view renders, version pinned | blocked on 0 |
-| 2 | Snapshot | read a board's full stable config into a versioned snapshot | blocked on 1 |
-| 3 | Diff engine | snapshot vs snapshot → severity-grouped findings + unit tests | blocked on 2 |
-| 4 | Repair | one-click fixes where the API allows, deep-linked manual checklist where it doesn't | blocked on 3 |
-| 5 | Drift monitoring | scheduled re-check, notifications (paid tier) | blocked on 4 |
-| 6 | Docs | README: local dev, manifest, scopes, submission notes | blocked on 4 |
+| 0 | API findings | `docs/00-api-findings.md` | done |
+| — | Path decision | **B + flagged A**, confirmed 2026-09-16 | done |
+| 1 | Skeleton | monday OAuth, manifest, board view renders, version pinned | done |
+| 2 | Snapshot | read a board's full stable config into a versioned snapshot | done |
+| 3 | Diff engine | snapshot vs snapshot → severity-grouped findings + unit tests | done, 76 tests |
+| 4 | Repair | one-click fixes where the API allows, deep-linked manual checklist where it doesn't | done |
+| 5 | Drift monitoring | scheduled re-check, notifications (paid tier) | engine done; scheduler not wired |
+| 6 | Docs | README: local dev, manifest, scopes, submission notes | done |
+| 7 | **Live verification** | check every `✱` claim against a real monday account | **blocked — needs an API token** |
+| 8 | Real storage | swap `InMemoryStorage` for Postgres behind the `Storage` interface | not started |
+| 9 | Billing UI | monday marketplace billing integration | deferred, out of v1 scope |
 
 ## Phase 1 — Skeleton
 monday app manifest, OAuth flow, `API-Version: 2026-07` pinned in exactly one
