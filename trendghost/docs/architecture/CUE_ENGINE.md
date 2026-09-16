@@ -53,11 +53,23 @@ torso + rotate                → "turn to your left"
 
 Rules for phrasing: **three words or fewer**, imperative, a fix not a complaint, and the side is always *the user's* side in whichever mirror mode they're in (`DECISIONS.md` D8). "Left arm up", never "your left arm is in the wrong position".
 
-## Beat alignment (optional, big payoff)
+## Beat alignment — built (`src/coach/beats.ts`)
 
-If we can detect the beat of the reference audio (onset detection over the decoded audio, or a simple energy-flux tempo estimate), snap `go` and `hit` cues to the nearest beat within ±120ms. Trends are choreographed to beats; cues that land on the beat feel professional, and cues that land between beats feel broken. If beat detection is low-confidence, fall back to raw motion timing rather than snapping to a wrong grid.
+Trends are choreographed to beats; cues that land on the beat feel professional, and cues that land between beats feel broken. `go` and `hit` cues snap to the nearest detected beat within ±120ms.
 
-Store the detected beat grid with the routine. Never block ingest on it.
+How it works, at ingest, once per routine:
+
+1. The video's audio is decoded and mixed to mono (`src/ingest/audio.ts` — a thin Web Audio wrapper; all the DSP is platform-free and unit tested).
+2. Onset strength = half-wave-rectified rise in log short-term energy, at ~23ms frames. Percussive hits show up as sharp positive jumps.
+3. Tempo = strongest autocorrelation lag in the 70–180 BPM range, **refined sub-frame with a parabolic fit**. This matters more than it sounds: at 23ms frames an integer period is up to half a frame wrong *per beat*, and the error accumulates — by the tenth beat the grid can be 100ms+ out, putting every later cue off. The fit recovers the fractional period.
+4. Phase = the offset whose beat positions collect the most onset energy, searched at quarter-frame resolution.
+5. Confidence = how far the winning tempo stands above the average lag. **Below 0.35 we return no grid at all**: snapping cues to a wrong grid is worse than not snapping.
+
+The grid is stored on the routine and also used to pace the count-in, so "5, 6, 7, 8" ticks at the song's own tempo.
+
+Never blocks ingest: a silent clip, an unsupported codec, a browser that will not decode video audio, or a low-confidence result all just mean cues keep their raw motion timing.
+
+Covered by unit tests over synthetic click tracks: clean 120 and 90 BPM, a noisy 128 BPM recording, beat positions staying on-grid across a whole clip (the drift test), and noise/silence correctly yielding no grid.
 
 ## Output channels
 

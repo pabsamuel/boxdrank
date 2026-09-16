@@ -108,6 +108,9 @@ export function Practice({ routine, mode, onExit, onTakeSaved }: Props) {
   useEffect(() => {
     if (phase !== 'countdown') return;
     const words = countIn(Boolean(routine.beats?.length));
+    // Count in at the routine's own tempo when we found one, so "5, 6, 7, 8"
+    // lands in time with the music instead of against it.
+    const interval = beatInterval(routine.beats) ?? 700;
     let i = 0;
     setCount(words[0]!);
     const timer = setInterval(() => {
@@ -120,7 +123,7 @@ export function Practice({ routine, mode, onExit, onTakeSaved }: Props) {
         setCount(null);
         void start();
       }
-    }, 700);
+    }, interval);
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
@@ -415,6 +418,17 @@ function drawCover(
   const dw = vw * scale;
   const dh = vh * scale;
   ctx.drawImage(video, (width - dw) / 2, (height - dh) / 2, dw, dh);
+}
+
+/** Median gap between detected beats, in ms. Null when there is no usable grid. */
+function beatInterval(beats: number[] | undefined): number | null {
+  if (!beats || beats.length < 3) return null;
+  const gaps = beats.slice(1).map((beat, i) => beat - beats[i]!);
+  gaps.sort((a, b) => a - b);
+  const median = gaps[Math.floor(gaps.length / 2)];
+  if (!median || median <= 0) return null;
+  // A count-in slower than ~1.2s a beat drags; faster than ~250ms is unreadable.
+  return Math.max(250, Math.min(1200, median * 1000));
 }
 
 function preferredMimeType(): string {

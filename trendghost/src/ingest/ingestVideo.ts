@@ -5,8 +5,10 @@
  * There is deliberately no URL input anywhere in this file or any other.
  */
 
+import { detectBeats, MIN_CONFIDENCE } from '../coach/beats';
 import { buildCueTrack } from '../coach/cues';
 import { segmentTimeline } from '../coach/segment';
+import { decodeAudio } from './audio';
 import { PoseEngine } from '../inference/poseLandmarker';
 import { buildTimeline, type SampledFrame } from '../pose-core/timeline';
 import type { Routine } from '../storage/db';
@@ -125,7 +127,16 @@ export async function ingestVideo(
     }
 
     const moves = segmentTimeline(timeline);
-    const cues = buildCueTrack(moves);
+
+    // Find the beat so cues can land ON it rather than near it (CUE_ENGINE.md).
+    // Entirely optional: no audio, an odd codec or a low-confidence result just
+    // means cues keep their raw motion timing.
+    onProgress({ progress: 0.94, stage: 'building', message: 'Listening for the beat…' });
+    const audio = await decodeAudio(file);
+    const grid = audio ? detectBeats(audio.samples, audio.sampleRate) : null;
+    const beats = grid && grid.confidence >= MIN_CONFIDENCE ? grid.beats : undefined;
+
+    const cues = buildCueTrack(moves, beats ? { beats } : {});
 
     onProgress({ progress: 0.96, stage: 'saving', message: 'Saving to this device…' });
 
@@ -141,6 +152,7 @@ export async function ingestVideo(
       timeline,
       moves,
       cues,
+      beats,
       videoFile,
       thumbnail: await grabThumbnail(video, canvas, ctx),
     };

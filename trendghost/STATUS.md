@@ -36,7 +36,7 @@ without a phone is guessing.
 
 ## Test status
 
-`npm run verify` → prettier + tsc (src, scripts **and e2e**) + eslint + **25/25 unit
+`npm run verify` → prettier + tsc (src, scripts **and e2e**) + eslint + **33/33 unit
 tests**, green.
 `npm run test:e2e` → **5/5 Playwright tests**, green on **8 consecutive runs**
 (~27s each), in a real Chromium with a fake camera: onboarding and the camera
@@ -78,6 +78,7 @@ Be honest about this — it is the difference between "built" and "works":
 ## Session notes
 
 - _(newest first: date — what changed — what was verified)_
+- 2026-09-16 — Added beat detection (`src/coach/beats.ts`): onset envelope → autocorrelation tempo with sub-frame parabolic refinement → phase search, with a confidence floor below which we return no grid rather than a wrong one. Wired into ingest (optional, never blocks) so `go`/`hit` cues snap to the beat, and the count-in now ticks at the song's tempo. 8 new unit tests over synthetic click tracks, including the drift test that caught integer-period error accumulating to 100ms+ by the tenth beat.
 - 2026-09-15 — Stabilised the e2e suite (8 consecutive green runs). The flakiness was a check-then-act race in the test helper, not the app, but chasing it surfaced two things worth keeping: onboarding was not persisted before navigation (a real app bug — finish onboarding, reopen, see it again), and `e2e/` was not typechecked, so a file that could not parse still passed `npm run verify`. Both fixed. Failure diagnostics (console, page dump, trace) added.
 - 2026-09-15 — Share flow hardened: the shared photo/video was being held in a service-worker variable, which loses the file in the normal case (app closed when the user taps Share, worker killed before the page loads). It is now parked in Cache Storage, consumed exactly once, and the ingest screen starts processing it by itself. Two e2e tests cover it. UI copy now tells the user the share route exists, and says something different on iOS (no Web Share Target) and when already installed.
 - 2026-09-15 — Built phases 1–7 and most of 8–9: pose-core (normalise/features/score/smooth/align/timeline), cue engine (segment/cues/phrases/voice), framing coach, MediaPipe wrapper, camera, playback clock, canvas renderer, IndexedDB+OPFS storage, video and photo ingest, all screens, PWA + share target, model fetch script. Two real bugs found and fixed by testing: the overall score was far too forgiving of one wrong limb (added the worst-segment blend, `POSE_MATCHING.md` §5), and the lighting check was doing a full-canvas GPU readback every frame (moved to a 32×32 offscreen sampler). `npm run verify` green, 22/22 unit tests, 3/3 e2e.
