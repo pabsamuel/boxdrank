@@ -35,7 +35,12 @@ class SubtitleEngine(
 
     fun start() {
         if (isRunning) return
-        translator = if (prefs.displayMode == DisplayMode.TRANSCRIPTION) NoopTranslator else MlKitTranslator()
+        // Translating nonsense would be nonsense: vibe mode is always transcription-only.
+        translator = if (prefs.displayMode == DisplayMode.TRANSCRIPTION || prefs.engineMode.isVibe) {
+            NoopTranslator
+        } else {
+            MlKitTranslator()
+        }
         session.reset()
         speakerDetector.reset()
         val p = providerFactory(speakerDetector).also { provider = it }
@@ -85,7 +90,7 @@ class SubtitleEngine(
      * phrase, or when a partial has grown by a meaningful chunk, so the box never stutters.
      */
     private fun maybeTranslate(final: Boolean) {
-        if (prefs.displayMode == DisplayMode.TRANSCRIPTION) return
+        if (prefs.displayMode == DisplayMode.TRANSCRIPTION || prefs.engineMode.isVibe) return
         val line = SubtitleBus.line.value ?: return
         val grown = line.id != lastTranslatedId || line.text.length - lastTranslatedLength >= 12
         if (!final && !grown) return

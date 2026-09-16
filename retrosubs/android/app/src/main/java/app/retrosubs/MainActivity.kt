@@ -21,13 +21,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.Lifecycle
 import app.retrosubs.core.DisplayMode
+import app.retrosubs.core.EngineMode
 import app.retrosubs.core.EngineStatus
 import app.retrosubs.core.SubtitleBus
 import app.retrosubs.core.SubtitleEngine
 import app.retrosubs.overlay.OverlayService
 import app.retrosubs.settings.Prefs
 import app.retrosubs.speaker.SpeakerDetector
-import app.retrosubs.speech.AndroidSpeechProvider
 import app.retrosubs.speech.FakeScriptProvider
 import app.retrosubs.speech.SpeechRecognitionProvider
 import app.retrosubs.ui.DialogueBoxView
@@ -204,6 +204,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun wireLanguage() {
+        val engines = EngineMode.entries.toList()
+        findViewById<Spinner>(R.id.engineSpinner).bind(
+            engines.map { it.label() },
+            engines.indexOf(prefs.engineMode),
+        ) { index ->
+            prefs.engineMode = engines[index]
+            findViewById<TextView>(R.id.engineHint).text = engines[index].hint()
+        }
+        findViewById<TextView>(R.id.engineHint).text = prefs.engineMode.hint()
+
         val modes = DisplayMode.entries.toList()
         findViewById<Spinner>(R.id.modeSpinner).bind(
             modes.map { it.label() },
@@ -280,6 +290,18 @@ class MainActivity : AppCompatActivity() {
 
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
+    }
+
+    private fun EngineMode.label() = when (this) {
+        EngineMode.REAL -> "real speech recognition"
+        EngineMode.VIBE_KANA -> "vibe mode — Japanese kana"
+        EngineMode.VIBE_LATIN -> "vibe mode — latin"
+    }
+
+    private fun EngineMode.hint() = when (this) {
+        EngineMode.REAL -> "Transcribes what is actually said, on-device."
+        else -> "Types nonsense in time with whoever is talking. No words are recognised — " +
+            "pure nostalgia, and it works anywhere, in any language, offline."
     }
 
     private fun DisplayMode.label() = when (this) {

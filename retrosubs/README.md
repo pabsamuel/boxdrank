@@ -36,6 +36,13 @@ recognition and on-device translation.
 | Switch to WhatsApp / Discord / Meet / anything | The box stays on top. Drag it with `⠿`, flip top/bottom with `⇅`, collapse with `▁`, pause with `❚❚`, close with `✕`. |
 | Speak | Text appears progressively, ~300–800 ms behind the voice. |
 
+### Two engines
+
+| Engine | What it does |
+|---|---|
+| **real speech recognition** | On-device transcription of what is actually said. Optional translation on top. |
+| **vibe mode** (kana or latin) | Detects *that* someone is speaking from the microphone's signal energy and types plausible nonsense in time with them. No words are recognised and none are claimed to be. It needs no recognizer, no network and no supported language — so it works anywhere, in any language, in any noise, and it is often the better demo. Translation is disabled in this mode, because translating nonsense would be nonsense. |
+
 ### Getting both sides of a *call*
 
 Android does not let any third-party app capture VoIP audio — that is a platform rule, not a
@@ -68,7 +75,8 @@ retrosubs/
     └── app/src/main/java/app/retrosubs/
         ├── core/        DialogueLine, SubtitleBus, TranscriptSession, SubtitleEngine
         ├── audio/       ExternalAudioSource, PlaybackCaptureSource (MediaProjection)
-        ├── speech/      SpeechRecognitionProvider, FakeScriptProvider, AndroidSpeechProvider
+        ├── speech/      SpeechRecognitionProvider, FakeScriptProvider, AndroidSpeechProvider,
+        │                VibeProvider + Gibberish (vibe mode)
         ├── translate/   Translator, MlKitTranslator
         ├── speaker/     SpeakerDetector strategies
         ├── ui/          DialogueBoxView, RetroTheme, PixelFont, TextBlip

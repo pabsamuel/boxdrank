@@ -124,6 +124,29 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="26dp"
+            android:text="ENGINE"
+            android:textColor="@color/rs_accent"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.2"
+            android:textStyle="bold" />
+
+        <Spinner android:id="@+id/engineSpinner" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="8dp" />
+
+        <TextView
+            android:id="@+id/engineHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:fontFamily="monospace"
+            android:textSize="12sp"
+            android:lineSpacingExtra="3dp"
+            android:textColor="@color/rs_secondary" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="26dp"
             android:text="LANGUAGE"
             android:textColor="@color/rs_accent"
             android:fontFamily="monospace"

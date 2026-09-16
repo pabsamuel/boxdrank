@@ -30,7 +30,7 @@ import app.retrosubs.core.SubtitleBus
 import app.retrosubs.core.SubtitleEngine
 import app.retrosubs.settings.Prefs
 import app.retrosubs.speaker.SpeakerDetector
-import app.retrosubs.speech.AndroidSpeechProvider
+import app.retrosubs.speech.buildProvider
 import app.retrosubs.speech.FakeScriptProvider
 import app.retrosubs.speech.SpeechRecognitionProvider
 import app.retrosubs.ui.DialogueBoxView
@@ -96,7 +96,7 @@ class OverlayService : Service() {
     private fun startEngine() {
         if (engine?.isRunning == true) return
         val factory: (SpeakerDetector) -> SpeechRecognitionProvider = { detector ->
-            if (demoMode) FakeScriptProvider() else AndroidSpeechProvider(this, detector)
+            if (demoMode) FakeScriptProvider() else buildProvider(this, prefs, detector)
         }
         engine = SubtitleEngine(prefs, factory).also { it.start() }
         scope.launch {

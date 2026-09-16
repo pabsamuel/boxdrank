@@ -41,3 +41,20 @@ enum class DisplayMode {
     /** Original on top, translation underneath. */
     LEARNING,
 }
+
+/**
+ * Which engine drives the box. VIBE modes do not recognise words at all — they detect *that*
+ * someone is speaking and type nonsense in time with them (see [app.retrosubs.speech.VibeProvider]).
+ */
+enum class EngineMode {
+    /** Real on-device speech recognition. */
+    REAL,
+
+    /** Nonsense in Japanese kana, timed to the speaker. */
+    VIBE_KANA,
+
+    /** Nonsense in latin syllables, timed to the speaker. */
+    VIBE_LATIN;
+
+    val isVibe: Boolean get() = this != REAL
+}

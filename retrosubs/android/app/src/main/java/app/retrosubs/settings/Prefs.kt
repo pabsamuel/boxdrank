@@ -3,6 +3,7 @@ package app.retrosubs.settings
 import android.content.Context
 import androidx.core.content.edit
 import app.retrosubs.core.DisplayMode
+import app.retrosubs.core.EngineMode
 
 /** Every user-tunable knob, in one place. No accounts, no cloud, no sync — just prefs. */
 class Prefs(context: Context) {
@@ -35,6 +36,11 @@ class Prefs(context: Context) {
         get() = sp.getInt(KEY_OFFSET_Y, 0)
         set(v) = sp.edit { putInt(KEY_OFFSET_Y, v) }
 
+    var engineMode: EngineMode
+        get() = runCatching { EngineMode.valueOf(sp.getString(KEY_ENGINE, null) ?: "") }
+            .getOrDefault(EngineMode.REAL)
+        set(v) = sp.edit { putString(KEY_ENGINE, v.name) }
+
     var displayMode: DisplayMode
         get() = runCatching { DisplayMode.valueOf(sp.getString(KEY_MODE, null) ?: "") }
             .getOrDefault(DisplayMode.TRANSCRIPTION)
@@ -61,6 +67,7 @@ class Prefs(context: Context) {
         const val KEY_ANCHOR = "anchor_bottom"
         const val KEY_OFFSET_Y = "offset_y"
         const val KEY_MODE = "display_mode"
+        const val KEY_ENGINE = "engine_mode"
         const val KEY_SRC = "src_lang"
         const val KEY_DST = "dst_lang"
         const val KEY_ALT_SPEAKERS = "alt_speakers"

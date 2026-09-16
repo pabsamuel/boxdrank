@@ -16,13 +16,18 @@ _Last updated: Phase 0–5 landing commit._
 - **Phase 5 (partial)** — `PlaybackCaptureSource` (MediaProjection) implemented and pluggable;
   not yet wired to a UI toggle (see prompt **P4**).
 
+- **Vibe mode** — a second engine that does no recognition at all: it detects speech energy and
+  types nonsense (Japanese kana or latin) in time with the speaker. Works with no recognizer, no
+  network and no supported language.
+
 ## Not built, on purpose
 - iOS app (`docs/04-IOS-AND-COMPANION.md` says exactly what iOS permits).
 - Companion/second-device mode, desktop client, extra themes.
 - Accounts, backend, analytics, payments — none of it is needed for the demo.
 
 ## Verification
-JVM unit tests cover the line-identity rules (`TranscriptSessionTest`). The
+JVM unit tests cover the line-identity rules (`TranscriptSessionTest`) and the vibe-mode word
+factory (`GibberishTest`). The
 **RetroSubs Android** workflow runs the tests, builds the debug APK on every push/PR, and
 publishes a rolling `retrosubs-latest` release from `main`.
 _This container cannot reach `dl.google.com`, so the Android SDK and Google Maven are unavailable
