@@ -7,6 +7,7 @@ import { openDB, type IDBPDatabase } from 'idb';
 import type { PoseTimeline } from '../pose-core/types';
 import type { Cue } from '../coach/cues';
 import type { Move } from '../coach/segment';
+import type { SegmentId } from '../pose-core/types';
 
 export interface Routine {
   id: string;
@@ -26,13 +27,24 @@ export interface Routine {
   videoFile?: string;
 }
 
+/** One scored frame of a take, time-aligned to the routine. */
+export interface TakeFrame {
+  t: number;
+  /** Overall score, or null when the body could not be seen. */
+  score: number | null;
+  /**
+   * Per-limb scores at this instant. Without these a dip tells you *when* you
+   * drifted but not *what* drifted, which is half the point of reviewing.
+   */
+  segments?: Partial<Record<SegmentId, number>>;
+}
+
 export interface Take {
   id: string;
   routineId: string;
   createdAt: number;
   duration: number;
-  /** Per-frame overall score, time-aligned to the routine. */
-  scores: { t: number; score: number | null }[];
+  scores: TakeFrame[];
   accuracy: number;
   videoFile: string;
 }

@@ -16,8 +16,18 @@ import {
   fitGhost,
 } from '../render/skeleton';
 import { frameAt } from '../pose-core/align';
+import { SEGMENT_IDS } from '../pose-core/features';
+import type { FrameScore, SegmentId } from '../pose-core/types';
 import { describeCameraError } from '../camera/camera';
-import { readFile, saveFile, saveRoutine, saveTake, type Routine, type Take } from '../storage/db';
+import {
+  readFile,
+  saveFile,
+  saveRoutine,
+  saveTake,
+  type Routine,
+  type Take,
+  type TakeFrame,
+} from '../storage/db';
 import { useEngine } from './useEngine';
 import { useSettings } from './useSettings';
 
@@ -50,7 +60,7 @@ export function Practice({ routine, mode, onExit, onTakeSaved }: Props) {
   const [moveIndex, setMoveIndex] = useState(0);
   const [waiting, setWaiting] = useState(false);
 
-  const scoresRef = useRef<{ t: number; score: number | null }[]>([]);
+  const scoresRef = useRef<TakeFrame[]>([]);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const phaseRef = useRef<Phase>(phase);
@@ -243,7 +253,11 @@ export function Practice({ routine, mode, onExit, onTakeSaved }: Props) {
       }
 
       if (phaseRef.current === 'running') {
-        scoresRef.current.push({ t: time, score: frame.score?.overall ?? null });
+        scoresRef.current.push({
+          t: time,
+          score: frame.score?.overall ?? null,
+          segments: frame.score ? compactSegments(frame.score) : undefined,
+        });
         setAccuracy(frame.score?.overall ?? null);
 
         if (mode === 'learn') {
@@ -418,6 +432,19 @@ function drawCover(
   const dw = vw * scale;
   const dh = vh * scale;
   ctx.drawImage(video, (width - dw) / 2, (height - dh) / 2, dw, dh);
+}
+
+/**
+ * Per-limb scores, rounded and with unseen limbs dropped. Recorded every frame,
+ * so keep it small: two decimals is far finer than any colour band.
+ */
+function compactSegments(score: FrameScore): Partial<Record<SegmentId, number>> {
+  const out: Partial<Record<SegmentId, number>> = {};
+  for (const id of SEGMENT_IDS) {
+    const value = score.segments[id]?.score;
+    if (value !== null && value !== undefined) out[id] = Math.round(value * 100) / 100;
+  }
+  return out;
 }
 
 /** Median gap between detected beats, in ms. Null when there is no usable grid. */

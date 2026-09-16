@@ -1,16 +1,40 @@
 /**
- * Phase 8 — after a take: accuracy over time, with the worst moments marked.
- * Tap a dip to jump both your take and the ghost to that moment.
+ * Phase 8 — after a take: accuracy over time, the moments you drifted, and for
+ * each of those a side-by-side of your take and the ghost with the limbs that
+ * actually went wrong.
+ *
+ * A dip that only tells you WHEN you drifted is half an answer; the point of
+ * reviewing is to find out WHAT drifted.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { deleteTake, readFile, type Routine, type Take } from '../storage/db';
+import { BAND_COLORS, BAND_COLORS_CB } from '../render/skeleton';
+import { bandFor } from '../pose-core/score';
+import type { SegmentId } from '../pose-core/types';
+import { deleteTake, readFile, type Routine, type Take, type TakeFrame } from '../storage/db';
+import { useSettings } from './useSettings';
 
 interface Props {
   take: Take;
   routine: Routine;
   onBack: () => void;
 }
+
+/** Human names for the limbs, for the "what went wrong" list. */
+const SEGMENT_LABELS: Record<SegmentId, string> = {
+  upperArmL: 'left upper arm',
+  upperArmR: 'right upper arm',
+  forearmL: 'left forearm',
+  forearmR: 'right forearm',
+  thighL: 'left thigh',
+  thighR: 'right thigh',
+  shinL: 'left shin',
+  shinR: 'right shin',
+  torso: 'torso',
+  head: 'head',
+  footL: 'left foot',
+  footR: 'right foot',
+};
 
 /** The 3 worst sustained dips, so we point at moments rather than single frames. */
 export function findDips(
@@ -41,23 +65,77 @@ export function findDips(
   return picked.sort((a, b) => a.t - b.t);
 }
 
+/**
+ * Which limbs were worst at a moment — averaged over a short window, because a
+ * single frame can be a tracking blip rather than a real mistake.
+ */
+export function worstLimbsAt(
+  frames: TakeFrame[],
+  time: number,
+  windowSec = 0.4,
+  count = 3,
+): { segment: SegmentId; score: number }[] {
+  const nearby = frames.filter((f) => Math.abs(f.t - time) <= windowSec && f.segments);
+  if (nearby.length === 0) return [];
+
+  const totals = new Map<SegmentId, { sum: number; n: number }>();
+  for (const frame of nearby) {
+    for (const [key, value] of Object.entries(frame.segments ?? {})) {
+      const id = key as SegmentId;
+      const entry = totals.get(id) ?? { sum: 0, n: 0 };
+      entry.sum += value as number;
+      entry.n += 1;
+      totals.set(id, entry);
+    }
+  }
+
+  return [...totals.entries()]
+    .map(([segment, { sum, n }]) => ({ segment, score: sum / n }))
+    .sort((a, b) => a.score - b.score)
+    .slice(0, count);
+}
+
 export function TakeReview({ take, routine, onBack }: Props) {
-  const [url, setUrl] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const settings = useSettings();
+  const [takeUrl, setTakeUrl] = useState<string | null>(null);
+  const [ghostUrl, setGhostUrl] = useState<string | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
+
+  const takeVideo = useRef<HTMLVideoElement>(null);
+  const ghostVideo = useRef<HTMLVideoElement>(null);
+
   const dips = useMemo(() => findDips(take.scores), [take.scores]);
+  const palette = settings.colorBlind ? BAND_COLORS_CB : BAND_COLORS;
 
   useEffect(() => {
-    let objectUrl: string | null = null;
-    void readFile(take.videoFile).then((blob) => {
-      if (!blob) return;
-      objectUrl = URL.createObjectURL(blob);
-      setUrl(objectUrl);
-    });
-    return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [take.videoFile]);
+    const urls: string[] = [];
+    void (async () => {
+      const mine = await readFile(take.videoFile);
+      if (mine) {
+        const url = URL.createObjectURL(mine);
+        urls.push(url);
+        setTakeUrl(url);
+      }
+      if (routine.videoFile) {
+        const ghost = await readFile(routine.videoFile);
+        if (ghost) {
+          const url = URL.createObjectURL(ghost);
+          urls.push(url);
+          setGhostUrl(url);
+        }
+      }
+    })();
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+  }, [take.videoFile, routine.videoFile]);
 
+  /** Scrub both videos to the same moment so they can be compared directly. */
+  const goTo = (time: number) => {
+    setSelected(time);
+    if (takeVideo.current) takeVideo.current.currentTime = time;
+    if (ghostVideo.current) ghostVideo.current.currentTime = time;
+  };
+
+  const limbs = selected === null ? [] : worstLimbsAt(take.scores, selected);
   const points = take.scores.filter((s) => s.score !== null);
   const path = points
     .map((point, i) => {
@@ -76,11 +154,22 @@ export function TakeReview({ take, routine, onBack }: Props) {
         </button>
       </header>
 
-      {url ? (
-        <video ref={videoRef} className="take-video" src={url} controls playsInline />
-      ) : (
-        <p className="muted">Loading your take…</p>
-      )}
+      <div className="compare">
+        <figure>
+          <figcaption>You</figcaption>
+          {takeUrl ? (
+            <video ref={takeVideo} src={takeUrl} controls playsInline />
+          ) : (
+            <p className="muted small">Loading your take…</p>
+          )}
+        </figure>
+        {ghostUrl && (
+          <figure>
+            <figcaption>The original</figcaption>
+            <video ref={ghostVideo} src={ghostUrl} controls playsInline muted />
+          </figure>
+        )}
+      </div>
 
       <div className="graph-card">
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="graph">
@@ -96,7 +185,11 @@ export function TakeReview({ take, routine, onBack }: Props) {
             />
           ))}
         </svg>
-        <p className="muted small">Accuracy through the take. The dots are where you drifted.</p>
+        <p className="muted small">
+          {dips.length > 0
+            ? 'Accuracy through the take. Tap a moment below to see it side by side.'
+            : 'Accuracy through the take.'}
+        </p>
       </div>
 
       {dips.length > 0 && (
@@ -104,10 +197,8 @@ export function TakeReview({ take, routine, onBack }: Props) {
           {dips.map((dip) => (
             <button
               key={dip.t}
-              className="chip"
-              onClick={() => {
-                if (videoRef.current) videoRef.current.currentTime = dip.t;
-              }}
+              className={selected === dip.t ? 'chip active' : 'chip'}
+              onClick={() => goTo(dip.t)}
             >
               {dip.t.toFixed(1)}s · {Math.round(dip.score * 100)}%
             </button>
@@ -115,9 +206,27 @@ export function TakeReview({ take, routine, onBack }: Props) {
         </div>
       )}
 
+      {selected !== null && limbs.length > 0 && (
+        <div className="graph-card">
+          <h2>At {selected.toFixed(1)}s</h2>
+          <ul className="limb-list">
+            {limbs.map(({ segment, score }) => (
+              <li key={segment}>
+                <span className="swatch" style={{ background: palette[bandFor(score)] }} />
+                {SEGMENT_LABELS[segment]}
+                <strong>{Math.round(score * 100)}%</strong>
+              </li>
+            ))}
+          </ul>
+          <p className="muted small">
+            Worst limbs around this moment. Both videos above are scrubbed here.
+          </p>
+        </div>
+      )}
+
       <div className="row">
-        {url && (
-          <a className="as-button" href={url} download={`${routine.name}-take.webm`}>
+        {takeUrl && (
+          <a className="as-button" href={takeUrl} download={`${routine.name}-take.webm`}>
             Save to my phone
           </a>
         )}

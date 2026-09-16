@@ -31,12 +31,12 @@ without a phone is guessing.
 | 5 | Framing coach: body-in-frame, distance, angle, lighting, one instruction at a time | ✅ | e2e: says "step into the frame" with no person, never fake-red |
 | 6 | Cue engine (prepare/go/hit/hold/correct) + learn-mode gating | ✅ | 13/13 cue tests incl. lead time, priority, cooldown |
 | 7 | Photo mode: target pose, ghost outline, auto-shutter on sustained match | ✅ code | builds; **needs a phone** |
-| 8 | Record mode + stored score track | 🟡 | recording + take storage done; **take-review timeline UI not built** |
+| 8 | Record mode + take review | ✅ | 7/7 review tests (dip detection, limb attribution, windowing); side-by-side scrub + per-limb breakdown built |
 | 9 | Library, onboarding, settings, PWA, share target, privacy copy | 🟡 | done except the in-app privacy page and icons beyond the SVG |
 
 ## Test status
 
-`npm run verify` → prettier + tsc (src, scripts **and e2e**) + eslint + **33/33 unit
+`npm run verify` → prettier + tsc (src, scripts **and e2e**) + eslint + **37/37 unit
 tests**, green.
 `npm run test:e2e` → **5/5 Playwright tests**, green on **8 consecutive runs**
 (~27s each), in a real Chromium with a fake camera: onboarding and the camera
@@ -78,6 +78,7 @@ Be honest about this — it is the difference between "built" and "works":
 ## Session notes
 
 - _(newest first: date — what changed — what was verified)_
+- 2026-09-16 — Take review completed: takes now store per-limb scores, not just the overall number, so tapping a dip scrubs your take and the original side by side and names the limbs that actually drifted (averaged over a short window, so a one-frame tracking blip is not reported as a mistake). 4 new tests.
 - 2026-09-16 — Added beat detection (`src/coach/beats.ts`): onset envelope → autocorrelation tempo with sub-frame parabolic refinement → phase search, with a confidence floor below which we return no grid rather than a wrong one. Wired into ingest (optional, never blocks) so `go`/`hit` cues snap to the beat, and the count-in now ticks at the song's tempo. 8 new unit tests over synthetic click tracks, including the drift test that caught integer-period error accumulating to 100ms+ by the tenth beat.
 - 2026-09-15 — Stabilised the e2e suite (8 consecutive green runs). The flakiness was a check-then-act race in the test helper, not the app, but chasing it surfaced two things worth keeping: onboarding was not persisted before navigation (a real app bug — finish onboarding, reopen, see it again), and `e2e/` was not typechecked, so a file that could not parse still passed `npm run verify`. Both fixed. Failure diagnostics (console, page dump, trace) added.
 - 2026-09-15 — Share flow hardened: the shared photo/video was being held in a service-worker variable, which loses the file in the normal case (app closed when the user taps Share, worker killed before the page loads). It is now parked in Cache Storage, consumed exactly once, and the ingest screen starts processing it by itself. Two e2e tests cover it. UI copy now tells the user the share route exists, and says something different on iOS (no Web Share Target) and when already installed.

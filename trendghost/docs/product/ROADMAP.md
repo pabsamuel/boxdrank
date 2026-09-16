@@ -30,9 +30,9 @@ Segment the timeline into moves (key poses at motion minima + beat if available)
 
 Single target pose from a still or a chosen video frame. Outline ghost, per-joint colour, auto-shutter after a sustained match, 3-frame burst, pick-the-best screen.
 
-## Phase 8 — Record mode + take review
+## Phase 8 — Record mode + take review ✅
 
-Record camera (with audio) during a run, store the per-frame scores alongside, accuracy-over-time graph, tap a dip to compare with the ghost. Export to camera roll.
+Record camera (with audio) during a run, store per-frame overall **and per-limb** scores alongside, accuracy-over-time graph, tap a dip to scrub your take and the original side by side with the limbs that drifted named. Export to the device.
 
 ## Phase 9 — Library, onboarding, polish, ship prep
 
