@@ -294,6 +294,81 @@ log(`      after stepping 0.9 m: mean aim error ${movedMean.toFixed(2)}% of scre
 check('aim survives the player moving, with no recentring', movedMean < 6,
   `${movedMean.toFixed(2)}%`);
 
+/* ---------------------------------------------- 5. tracking loss and re-zero */
+
+eye = [0, 1.2, 0];
+phone.send({ t: 'tracking', state: 'lost', previous: 'tracking', losses: 1 });
+await sleep(300);
+const lostState = await page.evaluate(() => {
+  const p = [...window.__lightgun.state.players.values()][0];
+  return { tracking: p.tracking, losses: p.trackingLosses, banner: document.getElementById('banner').textContent };
+});
+check('a tracking loss is surfaced, not silently ignored',
+  lostState.tracking === 'lost' && lostState.losses === 1, JSON.stringify(lostState));
+
+phone.send({ t: 'tracking', state: 'tracking', previous: 'lost', losses: 1 });
+await sleep(300);
+
+// Re-zero: simulate the drift it exists to correct by nudging the model, then
+// pointing at the centre once.
+await page.keyboard.press('z');
+await page.waitForFunction(() => window.__lightgun.state.mode === 'rezero', null, { timeout: 5000 });
+{
+  const r = aimRay(0.5, 0.5, 0.1);
+  const raw = aimToScreen(phone.model, r.o, r.d);
+  const applied = { x: 0.5 - raw.x, y: 0.5 - raw.y };
+  phone.send({ t: 'rezeroDone', applied, total: applied });
+}
+await page.waitForFunction(() => window.__lightgun.state.mode !== 'rezero', null, { timeout: 5000 });
+check('re-zero returns the display to what it was doing', true);
+
+/* ------------------------------------------------- 6. the session report */
+
+const report = await page.evaluate(() => window.__lightgun.sessionReport());
+const bias = await page.evaluate(() => window.__lightgun.biasVector());
+log(`      bias vector: dx ${bias.dx.toFixed(2)}% dy ${bias.dy.toFixed(2)}% (magnitude ${bias.magnitude.toFixed(2)}%)`);
+check('session report contains what a diagnosis needs',
+  report.includes('PLAYER 1') && report.includes('TEST MODE ACCURACY') &&
+  report.includes('bias vector') && report.includes('latency') && report.includes('EVENTS'),
+  `${report.length} chars`);
+check('an unbiased simulated gun reports no systematic bias', bias.magnitude < 1.0,
+  `magnitude ${bias.magnitude.toFixed(2)}%`);
+
+/* ---------------------------------------------------------- 7. two players */
+
+const phone2 = new VirtualPhone();
+await phone2.ready;
+phone2.model = phone.model;
+phone2.send({ t: 'gunReady', mode: '6dof' });
+phone2.send({
+  t: 'calibDone', rmsErrorM: 0.004, rmsErrorScreen: 0.004,
+  scaleErrorW: 0, scaleErrorH: 0, distanceM: 2.6, mode: '6dof', attempts: 1, accepted: true,
+});
+await sleep(600);
+
+for (let i = 0; i < 30; i++) {
+  const a = phone.aimAt(0.25, 0.4);
+  const b = phone2.aimAt(0.75, 0.6);
+  if (a) phone.sendAim(a);
+  if (b) phone2.sendAim(b);
+  await sleep(16);
+}
+await sleep(200);
+
+const two = await page.evaluate(() => {
+  const players = [...window.__lightgun.state.players.values()].sort((a, b) => a.slot - b.slot);
+  return players.map((p) => ({ slot: p.slot, x: p.aim.x, y: p.aim.y, colour: p.colour, calibrated: p.calibrated }));
+});
+log(`      two guns: ${two.map((p) => `P${p.slot + 1} at ${p.x.toFixed(2)},${p.y.toFixed(2)}`).join('  ')}`);
+check('two phones track as independent players', two.length === 2, `${two.length} players`);
+check('each gun has its own crosshair position',
+  two.length === 2 && Math.abs(two[0].x - two[1].x) > 0.3,
+  two.map((p) => p.x.toFixed(2)).join(' vs '));
+check('players get distinct colours', two.length === 2 && two[0].colour !== two[1].colour);
+
+await page.screenshot({ path: 'docs/shot-two-player.png' });
+phone2.ws.close();
+
 /* --------------------------------------------------------------- wrap up */
 
 check('no uncaught errors in the display client', pageErrors.length === 0,

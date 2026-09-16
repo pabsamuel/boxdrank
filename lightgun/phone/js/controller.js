@@ -49,6 +49,10 @@ const app = {
   calib: { index: 0, rays: [], labels: [], busy: false },
   ammo: Infinity,
   shots: 0,
+  zero: { x: 0, y: 0 },        // re-zero correction, in normalised screen units
+  tracking: TRACKING.NONE,
+  trackingLosses: 0,
+  calibAttempts: 0,
   sentAim: 0,
   lastSentAt: 0,
 };
@@ -111,8 +115,15 @@ net.on('requestRecalibrate', () => requestRecalibrate());
 /* ------------------------------------------------------------------- pose */
 
 pose.on('pose', (p) => {
-  if (!p) return;
-  if (app.phase !== 'live' || !p) return;
+  if (!p) {
+    // A null pose means ARCore has lost the world. Holding the last crosshair
+    // is better than letting it snap to a garbage position, but the display
+    // must be told so it can say so rather than looking broken.
+    noteTracking(TRACKING.LOST);
+    return;
+  }
+  noteTracking(p.tracking);
+  if (app.phase !== 'live') return;
   const hit = aimFrom(p);
   if (!hit) return;
   app.lastAim = hit;
@@ -125,6 +136,17 @@ pose.on('pose', (p) => {
   app.sentAim++;
 });
 
+/** Track tracking-state transitions and tell the display about each one. */
+function noteTracking(state) {
+  if (state === app.tracking) return;
+  const prev = app.tracking;
+  app.tracking = state;
+  if (state !== TRACKING.TRACKING) app.trackingLosses++;
+  app.lastTrackingChangeAt = performance.now();
+  net.send({ t: 'tracking', state, previous: prev, losses: app.trackingLosses });
+  if (state === TRACKING.LOST) haptic('empty');
+}
+
 function aimFrom(p) {
   let raw = null;
   if (app.useRotationOnly && app.rotModel) raw = rotationAimToScreen(app.rotModel, p.d);
@@ -133,6 +155,11 @@ function aimFrom(p) {
   if (!raw) return null;
 
   let { x, y } = raw;
+  // Re-zero offset: a first-order correction for accumulated drift. It is kept
+  // separate from the model so the diagnostics can report how much correction
+  // the session actually needed — that number is the drift measurement.
+  x += app.zero.x;
+  y += app.zero.y;
   if (app.smoothing) {
     const t = p.ts / 1000;
     x = app.filterX.filter(x, t);
@@ -146,11 +173,17 @@ function aimFrom(p) {
 
 /* ------------------------------------------------------------- calibration */
 
-function beginCalibration(points) {
+// Above this the calibration is bad enough that aiming will feel broken, and
+// the player is better served by redoing it than by discovering that in-game.
+const CALIB_ERROR_LIMIT = 0.025;   // 2.5% of screen width
+
+function beginCalibration(points, { retry = false } = {}) {
   app.phase = 'calibrating';
   app.calib = { index: 0, rays: [], busy: false, points };
+  if (!retry) app.calibAttempts = 0;
   app.model = null;
   app.rotModel = null;
+  app.zero = { x: 0, y: 0 };
   app.filterX.reset();
   app.filterY.reset();
   nextCalibStep();
@@ -180,8 +213,11 @@ async function captureCalibPoint() {
     setTimeout(nextCalibStep, 1200);
     return;
   }
-  app.calib.rays.push({ o: sample.o, d: sample.d });
-  net.send({ t: 'calibCaptured', index: app.calib.index, samples: sample.samples });
+  app.calib.rays.push({ o: sample.o, d: sample.d, tracking: sample.tracking });
+  net.send({
+    t: 'calibCaptured', index: app.calib.index,
+    samples: sample.samples, tracking: sample.tracking,
+  });
   app.calib.index++;
   haptic('hit');
   nextCalibStep();
@@ -199,12 +235,34 @@ function finishCalibration() {
     return;
   }
   const m = app.model;
+  app.calibAttempts++;
+
+  // Quality gate. One silent retry is cheap (about ten seconds) and far better
+  // than a player concluding the whole idea does not work.
+  const degraded = app.calib.rays.some((r) => r.tracking && r.tracking !== TRACKING.TRACKING);
+  if ((m.rmsErrorScreen > CALIB_ERROR_LIMIT || degraded) && app.calibAttempts < 2) {
+    net.send({
+      t: 'calibRejected',
+      rmsErrorScreen: m.rmsErrorScreen,
+      reason: degraded ? 'tracking' : 'error',
+      attempt: app.calibAttempts,
+    });
+    showInstruction(degraded
+      ? 'TRACKING WAS SHAKY<br><small>let\'s try that again</small>'
+      : `THAT WAS A BIT OFF (${(m.rmsErrorScreen * 100).toFixed(1)}%)<br><small>let's try that again</small>`);
+    haptic('penalty');
+    setTimeout(() => beginCalibration(app.calib.points, { retry: true }), 1800);
+    return;
+  }
+
   app.phase = 'live';
   showInstruction(null);
   app.filterX.reset();
   app.filterY.reset();
   net.send({
     t: 'calibDone',
+    attempts: app.calibAttempts,
+    accepted: m.rmsErrorScreen <= CALIB_ERROR_LIMIT,
     rmsErrorM: m.rmsErrorM,
     rmsErrorScreen: m.rmsErrorScreen,
     scaleErrorW: m.scaleErrorW,
@@ -223,10 +281,45 @@ function requestRecalibrate() {
   net.send({ t: 'recalibrateRequest' });
 }
 
+/* ------------------------------------------------------------------ re-zero */
+//
+// Drift shows up as a slowly growing constant offset. A full recalibration
+// fixes it but costs ten seconds; pointing at the centre once fixes it to
+// first order and costs two. The correction applied is reported, because
+// "how much did it need after N minutes" IS the drift measurement.
+
+net.on('rezeroStart', async () => {
+  if (!app.model && !app.rotModel) return;
+  app.phase = 'rezero';
+  showInstruction('POINT AT THE CENTRE<br><small>then pull the trigger</small>');
+});
+
+async function captureRezero() {
+  showInstruction('HOLD STILL…');
+  const sample = await pose.sampleAveraged(220);
+  app.phase = 'live';
+  showInstruction(null);
+  if (!sample || sample.tracking === TRACKING.LOST) {
+    net.send({ t: 'rezeroFail', reason: 'tracking' });
+    return;
+  }
+  const raw = app.useRotationOnly && app.rotModel
+    ? rotationAimToScreen(app.rotModel, sample.d)
+    : aimToScreen(app.model, sample.o, sample.d);
+  if (!raw) { net.send({ t: 'rezeroFail', reason: 'no-intersection' }); return; }
+  const applied = { x: 0.5 - raw.x, y: 0.5 - raw.y };
+  app.zero = { x: app.zero.x + applied.x, y: app.zero.y + applied.y };
+  app.filterX.reset();
+  app.filterY.reset();
+  net.send({ t: 'rezeroDone', applied, total: app.zero });
+  haptic('ready');
+}
+
 /* ---------------------------------------------------------------- trigger */
 
 function fire() {
   if (app.phase === 'calibrating') { captureCalibPoint(); return; }
+  if (app.phase === 'rezero') { captureRezero(); return; }
   if (app.phase !== 'live') return;
   if (app.ammo <= 0) { haptic('empty'); net.send({ t: 'dryFire' }); return; }
   const aim = app.lastAim;
@@ -350,6 +443,9 @@ setInterval(() => {
     rms: app.model ? app.model.rmsErrorScreen : null,
     shots: app.shots,
     smoothing: app.smoothing,
+    losses: app.trackingLosses,
+    zero: app.zero,
+    attempts: app.calibAttempts,
   });
   app.sentAim = 0;
 

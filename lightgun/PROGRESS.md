@@ -1,6 +1,6 @@
 # PROGRESS
 
-Last updated: 2026-09-15 · Branch: `claude/light-gun-arcade-prototype-ta4fqo`
+Last updated: 2026-09-16 · Branch: `claude/light-gun-arcade-prototype-ta4fqo`
 
 ---
 
@@ -36,29 +36,48 @@ Last updated: 2026-09-15 · Branch: `claude/light-gun-arcade-prototype-ta4fqo`
 - Haptic patterns per event; volume keys and space also fire.
 - Recalibrate, reload, debug overlay, exit AR.
 
+**Survivability in a real living room** (added after the first checkpoint, all aimed at making the
+hardware test succeed — and at making it diagnosable when it doesn't)
+- **Tracking-loss handling**: the phone reports every tracking-state transition. A lost pose holds the
+  last crosshair and dims it to grey rather than letting it snap somewhere false; the display says
+  what happened and what to do about it, and counts the losses.
+- **Calibration quality gate**: a calibration worse than 2.5% of screen width, or one taken while
+  tracking was degraded, is rejected and redone once automatically. Ten seconds beats a player
+  concluding the idea doesn't work.
+- **Re-zero (Z)**: point at the centre once to correct accumulated drift to first order — two seconds
+  instead of a full recalibration. The correction applied is recorded, because "how much did it need
+  after ten minutes" *is* the drift measurement.
+- **Session report (X)**: writes everything a diagnosis needs — calibration quality, per-marker error,
+  **bias vector**, latency breakdown, tracking-loss timeline, re-zero history — to a file *and* the
+  clipboard. Testing becomes "press X, paste" instead of transcribing numbers off a TV.
+- **Bias vector**: the mean *signed* error across test markers. Scattered error is noise; a consistent
+  bias is a bug with a fix. This distinction is the difference between one debugging round and five.
+
 **Tests**
-- `npm test` — 24 synthetic-truth checks across distances, screen sizes, off-axis and tilted screens,
+- `npm test` — 20 synthetic-truth checks across distances, screen sizes, off-axis and tilted screens,
   wrong stated sizes, 3-vs-4 point, smoothing lag and jitter, degenerate rays. All passing.
-- `npm run test:e2e` — headless Chromium runs the real display client while a Node process plays a
-  virtual 6DoF phone through the real protocol. All passing.
+- `npm run test:e2e` — 19 checks: headless Chromium runs the real display client while Node processes
+  play virtual 6DoF phones through the real protocol, now including tracking loss, re-zero, the
+  session report, and **two simultaneous players**. All passing.
 
 ---
 
 ## CURRENT
 
-Nothing in flight. The prototype is at a natural checkpoint: **everything testable without hardware is
-tested and green.**
+Nothing in flight. **Everything testable without hardware is tested and green.**
 
 ---
 
 ## NEXT
 
 1. **Fire it at a real TV with a real Android phone.** This is the only thing that matters now.
-   Protocol in [TESTING.md](TESTING.md). Everything below is downstream of that result.
+   Protocol in [TESTING.md](TESTING.md) — it is now four key presses and a paste. Everything below is
+   downstream of that result.
 2. Tune `OneEuro` on real ARCore noise — the simulated jitter is a guess at hand tremor, not a
    measurement of ARCore's actual pose noise.
 3. Decide whether 3-point calibration is good enough on real hardware (saves ~3 s).
-4. Second phone, live, once single-player passes.
+4. Second phone on real hardware — the protocol and rendering are done and tested headless, so this
+   should be a confirmation rather than a build.
 5. Only then: hosted build with a real certificate, to delete the self-signed-warning step.
 
 ---
@@ -133,6 +152,8 @@ Real display client in Chromium, virtual 6DoF phone at 2.6 m from a virtual 55" 
 | Packet → pixels | +7.4 ms |
 | Game hit rate against live targets | 42/42 |
 | Aim error after a 0.9 m step, no recentring | **0.59%** |
+| Bias vector for an unbiased simulated gun | 0.30% — correctly reported as scatter, not systematic |
+| Two simultaneous players | independent crosshairs, colours and scores |
 
 ### Pass/fail criteria
 
@@ -145,6 +166,10 @@ Real display client in Chromium, virtual 6DoF phone at 2.6 m from a virtual 55" 
 | 5. No repeated recentring | **Pass in simulation** — 0.59% error after moving, unaided |
 | 6. Move the gun around naturally | **Pass in simulation** across distance, angle and screen size |
 | 7. Immediate trigger | **Pass** — `pointerdown`, shot carries its own coordinates, haptic is local |
+
+Criterion 5 now has a safety net as well as a design: if drift does appear on real hardware, **Z**
+re-zeroes in two seconds and records how much it needed. Needing it often would be a *failure* of
+criterion 5, and the report is what will tell us.
 
 Nothing has failed yet. Criteria 2, 3 and 5 are only provisionally passed until a phone fires at a TV.
 

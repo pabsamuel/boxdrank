@@ -11,7 +11,10 @@ const $ = (id) => document.getElementById(id);
 const canvas = $('stage');
 const ctx = canvas.getContext('2d');
 
-const MODE = { LOBBY: 'lobby', CALIBRATE: 'calibrate', TEST: 'test', COUNTDOWN: 'countdown', GAME: 'game', OVER: 'over' };
+const MODE = {
+  LOBBY: 'lobby', CALIBRATE: 'calibrate', TEST: 'test', REZERO: 'rezero',
+  COUNTDOWN: 'countdown', GAME: 'game', OVER: 'over',
+};
 
 const state = {
   mode: MODE.LOBBY,
@@ -156,6 +159,55 @@ net.on('calibDone', (m) => {
   setTimeout(() => startCountdown(MODE.TEST), 1400);
 });
 
+net.on('calibRejected', (m) => {
+  logEvent('calibRejected', { player: m.from, rms: m.rmsErrorScreen, reason: m.reason });
+  banner(m.reason === 'tracking' ? 'TRACKING WAS SHAKY' : 'THAT WAS A BIT OFF',
+    'let\'s do that again — take your time on each corner');
+});
+
+net.on('tracking', (m) => {
+  const p = player(m.from, m.slot);
+  p.tracking = m.state;
+  p.trackingLosses = m.losses;
+  logEvent('tracking', { player: m.from, state: m.state, from: m.previous });
+  // Only shout about it during play; during calibration the phone says it.
+  if (state.mode === MODE.TEST || state.mode === MODE.GAME) {
+    if (m.state === 'lost') banner('TRACKING LOST', 'point the phone camera at the room');
+    else if (m.state === 'limited') banner('TRACKING WEAK', 'more light, or point at something with detail');
+    else banner(null);
+  }
+});
+
+/* ------------------------------------------------------------------ re-zero */
+
+net.on('rezeroDone', (m) => {
+  const p = player(m.from, m.slot);
+  p.zero = m.total;
+  const magnitude = Math.hypot(m.applied.x, m.applied.y) * 100;
+  logEvent('rezero', {
+    player: m.from,
+    appliedPct: magnitude,
+    sinceCalibMs: performance.now() - (p.calibratedAt || performance.now()),
+  });
+  state.mode = state.preRezeroMode || MODE.TEST;
+  banner('RE-ZEROED', `corrected ${magnitude.toFixed(2)}% of screen width`);
+  setTimeout(() => banner(null), 1500);
+});
+
+net.on('rezeroFail', () => {
+  state.mode = state.preRezeroMode || MODE.TEST;
+  banner('RE-ZERO FAILED', 'tracking was lost — try again');
+  setTimeout(() => banner(null), 1800);
+});
+
+function startRezero(playerId) {
+  if (state.mode === MODE.REZERO) return;
+  state.preRezeroMode = state.mode;
+  state.mode = MODE.REZERO;
+  net.send({ t: 'rezeroStart', to: playerId });
+  banner('POINT AT THE CENTRE', 'then pull the trigger');
+}
+
 net.on('recalibrateRequest', (m) => startCalibration(m.from));
 net.on('dryFire', () => {});
 net.on('peerGone', () => renderPlayerList());
@@ -163,6 +215,114 @@ net.on('peerGone', () => renderPlayerList());
 function push(arr, v, max) {
   arr.push(v);
   if (arr.length > max) arr.shift();
+}
+
+/* ------------------------------------------------------------ session log */
+//
+// The point of this prototype is a measurement, and the measurement happens in
+// someone's living room with no console open. So the display records what
+// happened and press X writes a report you can paste straight back.
+
+const session = { startedAt: Date.now(), events: [] };
+
+function logEvent(kind, data) {
+  session.events.push({ t: Math.round(performance.now()), kind, ...data });
+  if (session.events.length > 5000) session.events.shift();
+}
+
+function sessionReport() {
+  const lines = [];
+  const round = (v, n = 2) => (v === null || v === undefined || Number.isNaN(v) ? '–' : v.toFixed(n));
+
+  lines.push('=== LIGHTGUN SESSION REPORT ===');
+  lines.push(`when            ${new Date(session.startedAt).toISOString()}`);
+  lines.push(`duration        ${Math.round(performance.now() / 1000)} s`);
+  lines.push(`display         ${window.innerWidth}x${window.innerHeight} @ ${state.diagInches}" · ${round(state.fps, 0)} fps`);
+  lines.push(`settings        ${state.calibPoints}-point · smoothing ${state.smoothing ? 'on' : 'off'} · crosshair ${state.showCrosshair ? 'on' : 'off'}${state.rotationOnly ? ' · ROTATION-ONLY' : ''}`);
+
+  for (const p of sortedPlayers()) {
+    const netS = stats(p.latency.net);
+    const poseS = stats(p.latency.pose);
+    const rndS = stats(p.latency.render);
+    lines.push('');
+    lines.push(`--- PLAYER ${p.slot + 1} (${p.status.mode || 'unknown mode'}) ---`);
+    lines.push(`tracking        ${p.tracking} · ${p.trackingLosses || 0} loss events · pose ${p.poseHz || 0} Hz · aim ${p.aimHz || 0} Hz`);
+    lines.push(`calibration     ${p.calibrated ? `err ${round((p.calibError.rmsErrorScreen || 0) * 100)}% of width · scale ${round((p.calibError.scaleErrorW || 0) * 100, 1)}% · solved range ${round(p.calibError.distanceM || 0)} m · ${p.calibError.attempts || 1} attempt(s)` : 'NOT CALIBRATED'}`);
+    lines.push(`latency         transport ${round(netS.mean)} ms (p95 ${round(netS.p95)}) · pose→display ${round(poseS.mean)} ms (p95 ${round(poseS.p95)}) · →pixels +${round(rndS.mean)} ms`);
+    if (p.zero) lines.push(`re-zero applied ${round(Math.hypot(p.zero.x, p.zero.y) * 100)}% of width total`);
+  }
+
+  // Test-mode accuracy, including the bias vector — the single most diagnostic
+  // number here. Scattered error is noise; a consistent bias is a bug.
+  const hits = [...state.testHits.entries()];
+  if (hits.length) {
+    const errs = hits.map(([, h]) => h.errPct);
+    const b = biasVector();
+    lines.push('');
+    lines.push('--- TEST MODE ACCURACY ---');
+    lines.push(`markers hit     ${hits.length}/${MARKERS.length}`);
+    lines.push(`error           mean ${round(errs.reduce((a, c) => a + c, 0) / errs.length)}% · worst ${round(Math.max(...errs))}% of screen width`);
+    if (b) {
+      lines.push(`bias vector     dx ${round(b.dx)}% dy ${round(b.dy)}% (magnitude ${round(b.magnitude)}%)`);
+      lines.push(`                ${b.magnitude > 1.0 ? 'CONSISTENT BIAS — systematic, not noise' : 'no consistent bias — error is scatter'}`);
+    }
+    lines.push(`per marker      ${hits.map(([id, h]) => `${id} ${round(h.errPct, 1)}%`).join('  ')}`);
+    const d = driftOf();
+    if (d) lines.push(`drift           ${d.mean >= 0 ? '+' : ''}${round(d.mean)}% over ${round(d.spanMs / 1000, 0)} s (${d.n} markers re-shot)`);
+  }
+
+  if (game.shots) {
+    lines.push('');
+    lines.push('--- GAME ---');
+    lines.push(`score ${game.score} · ${game.hits}/${game.shots} hits (${Math.round((game.hits / game.shots) * 100)}%) · ${game.mistakes} civilians`);
+  }
+
+  const notable = session.events.filter((e) => e.kind !== 'shot');
+  if (notable.length) {
+    lines.push('');
+    lines.push('--- EVENTS ---');
+    for (const e of notable.slice(-40)) {
+      lines.push(`${String(Math.round(e.t / 1000)).padStart(5)}s  ${e.kind}  ${JSON.stringify(
+        Object.fromEntries(Object.entries(e).filter(([k]) => k !== 't' && k !== 'kind')))}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+function exportSession() {
+  const report = sessionReport();
+  console.log(report);
+  const blob = new Blob(
+    [report, '\n\n=== RAW ===\n', JSON.stringify(session.events)],
+    { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `lightgun-session-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.txt`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  if (navigator.clipboard) navigator.clipboard.writeText(report).catch(() => {});
+  banner('REPORT SAVED', 'copied to the clipboard and downloaded');
+  setTimeout(() => banner(null), 2200);
+}
+
+/** Mean signed error across the test markers: scatter vs systematic offset. */
+function biasVector() {
+  const entries = [...state.testHits.entries()];
+  if (entries.length < 3) return null;
+  const aspect = window.innerWidth / window.innerHeight;
+  let dx = 0;
+  let dy = 0;
+  let n = 0;
+  for (const [id, h] of entries) {
+    if (!h.signed) continue;
+    dx += h.signed.dx;
+    dy += h.signed.dy;
+    n++;
+  }
+  if (!n) return null;
+  dx = (dx / n) * 100;
+  dy = ((dy / n) * 100) / aspect;
+  return { dx, dy, magnitude: Math.hypot(dx, dy) };
 }
 
 function sendConfig(to) {
@@ -224,7 +384,10 @@ function handleShot(p, m) {
   const fireLatency = now - net.peerToLocal(m.ts, m.from);
   push(p.latency.net, fireLatency, 120);
 
-  if (state.mode === MODE.CALIBRATE) return;   // the phone owns calibration presses
+  // The phone owns the presses that drive calibration and re-zeroing.
+  if (state.mode === MODE.CALIBRATE || state.mode === MODE.REZERO) return;
+
+  logEvent('shot', { player: p.id, x: Number(m.x.toFixed(4)), y: Number(m.y.toFixed(4)), mode: state.mode });
 
   if (state.mode === MODE.TEST) {
     scoreTestShot(p, m, now);
@@ -258,7 +421,12 @@ function scoreTestShot(p, m, now) {
   }
   if (!best || bestD > 0.25) return;
   const errPct = bestD * 100 / aspect;   // as a percentage of screen width
-  state.testHits.set(best.id, { errPct, at: now });
+  state.testHits.set(best.id, {
+    errPct, at: now,
+    // Signed error too: the sign is what separates scatter from a systematic
+    // offset, and only the systematic kind is a bug we can fix.
+    signed: { dx: m.x - best.x, dy: m.y - best.y },
+  });
   state.testLog.push({
     marker: best.id,
     errPct,
@@ -389,6 +557,8 @@ window.addEventListener('keydown', (e) => {
   else if (k === 'h') { state.showCrosshair = !state.showCrosshair; }
   else if (k === 's') { state.smoothing = !state.smoothing; broadcastConfig(); }
   else if (k === 'r') { state.rotationOnly = !state.rotationOnly; broadcastConfig(); }
+  else if (k === 'z') { const p = sortedPlayers()[0]; if (p) startRezero(p.id); }
+  else if (k === 'x') { exportSession(); }
   else if (k === 'l') { state.mode = MODE.LOBBY; show($('lobby')); hide($('hud')); hide($('results')); banner(null); }
 });
 
@@ -430,6 +600,11 @@ function frame(now) {
       drawTestField(ctx, w, h, MARKERS, state.testHits);
       break;
 
+    case MODE.REZERO:
+      drawTestField(ctx, w, h, MARKERS, state.testHits);
+      drawCalibTarget(ctx, w / 2, h / 2, now, Math.min(w, h) / 900 + 0.35);
+      break;
+
     case MODE.COUNTDOWN: {
       ctx.fillStyle = '#0b0f18';
       ctx.fillRect(0, 0, w, h);
@@ -466,6 +641,14 @@ function frame(now) {
     for (const p of sortedPlayers()) {
       const stale = now - p.lastAimAt > 400;
       if (!p.calibrated || stale) continue;
+      // A crosshair drawn from a lost pose is a lie; dim it rather than hide it
+      // so the player can see the gun is still there but not trusted.
+      if (p.tracking === 'lost' || p.tracking === 'limited') {
+        drawCrosshair(ctx, p.aim.x * w, p.aim.y * h, '#8794aa', {
+          offscreen: true, label: p.tracking.toUpperCase(),
+        });
+        continue;
+      }
       drawCrosshair(ctx, p.aim.x * w, p.aim.y * h, p.colour, {
         offscreen: p.aim.off,
         label: state.players.size > 1 ? `P${p.slot + 1}` : '',
@@ -527,7 +710,7 @@ function updateDiag(now) {
     const poseS = stats(p.latency.pose);
     const rndS = stats(p.latency.render);
     const jit = jitterOf(p);
-    lines.push(`P${p.slot + 1}  ${p.status.mode || '–'}  ${p.tracking}  pose ${p.poseHz}Hz  aim ${p.aimHz}Hz  rtt ${(net.rttFor(p.id) || 0).toFixed(1)}ms`);
+    lines.push(`P${p.slot + 1}  ${p.status.mode || '–'}  ${p.tracking}  pose ${p.poseHz}Hz  aim ${p.aimHz}Hz  rtt ${(net.rttFor(p.id) || 0).toFixed(1)}ms  losses ${p.trackingLosses || 0}`);
     lines.push(`    latency  net ${netS.mean.toFixed(1)}ms (p95 ${netS.p95.toFixed(1)})   pose->display ${poseS.mean.toFixed(1)}ms (p95 ${poseS.p95.toFixed(1)})   ->pixels +${rndS.mean.toFixed(1)}ms`);
     lines.push(`    crosshair ${p.aim.x.toFixed(3)}, ${p.aim.y.toFixed(3)}${p.aim.off ? '  OFF-SCREEN' : ''}   jitter ${jit === null ? '–' : jit.toFixed(2) + '% rms'}`);
     lines.push(`    calib ${p.calibrated ? `ok  err ${(p.calibError.rmsErrorScreen * 100).toFixed(2)}% of width  scale ${(p.calibError.scaleErrorW * 100).toFixed(1)}%  range ${(p.calibError.distanceM || 0).toFixed(2)}m  age ${((now - (p.calibratedAt || now)) / 1000).toFixed(0)}s` : 'none'}`);
@@ -538,9 +721,15 @@ function updateDiag(now) {
     lines.push('');
     lines.push(`test  markers hit ${state.testHits.size}/${MARKERS.length}   mean err ${errs.length ? (errs.reduce((a, b) => a + b, 0) / errs.length).toFixed(2) : '–'}%   worst ${errs.length ? Math.max(...errs).toFixed(2) : '–'}%`);
     lines.push(`drift ${d ? `${d.mean >= 0 ? '+' : ''}${d.mean.toFixed(2)}% over ${(d.spanMs / 1000).toFixed(0)}s (${d.n} markers re-shot)` : '– (shoot each marker twice)'}`);
+    const b = biasVector();
+    lines.push(`bias  ${b ? `dx ${b.dx >= 0 ? '+' : ''}${b.dx.toFixed(2)}%  dy ${b.dy >= 0 ? '+' : ''}${b.dy.toFixed(2)}%  ${b.magnitude > 1 ? '<- SYSTEMATIC' : '(scatter only)'}` : '– (shoot 3+ markers)'}`);
+    lines.push('press X to save a session report you can paste back');
   }
   $('diag').textContent = lines.join('\n');
 }
 
 /* Test hooks: the headless end-to-end test drives the display through these. */
-window.__lightgun = { state, game, net, MODE, startCalibration, startCountdown, MARKERS, CALIB_RECT, CALIB_POSITIONS };
+window.__lightgun = {
+  state, game, net, MODE, MARKERS, CALIB_RECT, CALIB_POSITIONS, session,
+  startCalibration, startCountdown, startRezero, sessionReport, biasVector,
+};

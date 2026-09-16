@@ -41,16 +41,19 @@ largest term in the whole budget.
 3. Calibrate. **Time it with a stopwatch from QR scan to GO.**
 4. You land in test mode. Stand 2.5 m back and shoot each of the nine markers in turn.
 
-Record, from the on-screen diagnostics:
+**Then press `X`.** That writes a session report — downloaded as a text file *and* copied to your
+clipboard — with everything below already in it. Paste it straight into prompt #1 of
+[docs/NEXT-PROMPTS.md](docs/NEXT-PROMPTS.md); you do not need to transcribe anything by hand.
 
-| What | Where to read it |
+The report captures:
+
+| What | Why it matters |
 |---|---|
-| Calibration residual | `calib ok err X%` |
-| Solved range vs your tape measure | `range X m` |
-| Per-marker error | printed above each marker after you shoot it |
-| Jitter at rest | `jitter X% rms` — hold the gun still on the centre marker |
-| Pose rate and tracking state | `pose 60Hz tracking` |
-| Transport / pose→display / →pixels latency | the `latency` line |
+| Calibration residual, attempts, solved range | a bad calibration explains most "it doesn't work" reports |
+| Per-marker error **and the bias vector** | scattered error is noise; a consistent bias is a bug we can fix |
+| Jitter at rest, pose rate, tracking-loss count | separates ARCore problems from geometry problems |
+| Transport / pose→display / →pixels latency | separates network from rendering from panel |
+| A timeline of tracking drops, rejected calibrations and re-zeroes | tells us *when* it went wrong |
 
 **Pass:** every marker registers a hit, worst-case error is small enough that a 5%-of-width target is
 comfortable, tracking stays `tracking` (not `limited`), pose rate stays near 60 Hz.
@@ -61,6 +64,8 @@ comfortable, tracking stays `tracking` (not `limited`), pose rate stays near 60 
    TV and back, put the phone down and pick it up. Shoot all nine again.
 6. Read the `drift` line: it compares your first and latest shot at each marker. **Any systematic
    growth is the result that matters.** Gyro-only systems fail here; this one should not.
+   If it has drifted, press **Z** and point at the centre once — the report records how much
+   correction that needed, which is the drift measurement in a single number. Press **X** again.
 7. Press **R** to switch to rotation-only and repeat the walk. The contrast is the whole point of the
    architecture — measure it rather than trusting the simulation's 49%.
 
@@ -91,15 +96,13 @@ calibrating with more of the room in frame, not a different architecture.
 
 ## Recording failures
 
-For anything that fails, write down in [PROGRESS.md](PROGRESS.md) under BLOCKERS:
+Press **X** and keep the report. Then add two things the report cannot know:
 
-1. What you did, precisely.
-2. What the diagnostics said at the moment it broke — tracking state, pose Hz, calibration age and
-   error, latency line.
-3. Whether recalibrating fixed it, and whether it came back.
+1. What you were physically doing when it broke.
+2. Whether recalibrating fixed it, and whether it came back.
 
-That third question separates a calibration problem from a tracking problem, and they have completely
-different fixes.
+That second question separates a calibration problem from a tracking problem, and they have completely
+different fixes. Everything else is already in the file.
 
 ---
 

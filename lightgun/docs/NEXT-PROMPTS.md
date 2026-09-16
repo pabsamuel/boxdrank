@@ -7,13 +7,15 @@ your notes underneath where it asks, send. They are in the order you should use 
 
 ## 1. After you test with a real phone (use this one first)
 
-> Read `lightgun/PROGRESS.md` and `lightgun/TESTING.md`. I ran the hardware test. Here is what
-> happened:
+> Read `lightgun/PROGRESS.md` and `lightgun/TESTING.md`. I ran the hardware test. Here is the session
+> report (press **X** on the display — it copies itself to your clipboard):
 >
 > ```
-> [paste: calibration time, the diagnostics lines you could read, per-marker errors,
->  what felt wrong, anything that broke, what the room/TV/distance were]
+> [paste the session report here]
 > ```
+>
+> What it can't tell you: [the room and lighting, the TV size, how far back you stood, and what felt
+> wrong in your hands].
 >
 > Diagnose what these numbers mean before changing anything. Then fix the highest-impact problem,
 > update PROGRESS.md with the real measurements, and tell me what to test next. Do not add features.

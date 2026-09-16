@@ -28,7 +28,9 @@ Then:
 6. Point at each marker the TV shows and pull the trigger. Four points, about ten seconds.
 7. **READY → 3 → 2 → 1 → GO.**
 
-Press **T** for the light-gun test rig, **G** for the game, **C** to recalibrate, **D** for diagnostics.
+Press **T** for the light-gun test rig, **G** for the game, **C** to recalibrate, **D** for diagnostics,
+**Z** to re-zero after drift, and **X** to save a session report — it downloads *and* copies itself to
+your clipboard, so testing is "press X, paste" rather than transcribing numbers off a TV.
 
 **Requirements:** an Android phone with Google Play Services for AR (ARCore), Chrome, on the same
 network as the laptop. Phones without ARCore fall back to a rotation-only mode that works but drifts.
