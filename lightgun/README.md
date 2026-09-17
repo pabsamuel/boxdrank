@@ -33,8 +33,18 @@ Press **T** for the light-gun test rig, **G** for the game, **C** to recalibrate
 your clipboard, so testing is "press X, paste" rather than transcribing numbers off a TV — and **V**
 to pull the phone's raw ARCore pose trace for offline analysis.
 
-**Requirements:** an Android phone with Google Play Services for AR (ARCore), Chrome, on the same
+**Requirements:** an **Android** phone with Google Play Services for AR (ARCore), Chrome, on the same
 network as the laptop. Phones without ARCore fall back to a rotation-only mode that works but drifts.
+
+> **iPhone will not work for the real thing.** Safari has no WebXR, and every iOS browser is Safari
+> underneath, so no web page on iOS can get camera tracking. An iPhone can run the rotation-only
+> fallback — useful as the comparison case, but it drifts and is not the product. The question this
+> prototype exists to answer needs an Android phone.
+
+**If the phone says it cannot connect:** the laptop is not reachable at the address in the QR code.
+On Windows that is almost always the firewall (allow Node.js on private networks) or a virtual
+adapter's address being chosen instead of your Wi-Fi's — the display has a dropdown to switch the QR
+to another address, and the server prints every candidate on startup.
 
 ---
 

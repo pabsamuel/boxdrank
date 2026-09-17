@@ -54,14 +54,38 @@ net.connect().startPinging(1000);
 $('roomCode').textContent = state.room;
 
 (async function setupPairing() {
-  let info = { lanIp: location.hostname, httpsPort: 8443, https: true };
+  let info = { lanIp: location.hostname, httpsPort: 8443, https: true, candidates: [] };
   try { info = await (await fetch('/api/info')).json(); } catch {}
+
   const secure = location.protocol === 'https:';
-  const host = info.https ? `${info.lanIp}:${info.httpsPort}` : location.host;
   const proto = info.https ? 'https' : 'http';
-  const joinUrl = `${proto}://${host}/phone?room=${state.room}`;
-  $('joinUrl').textContent = joinUrl;
-  $('qr').src = `/api/qr?url=${encodeURIComponent(joinUrl)}`;
+  const port = info.https ? info.httpsPort : info.httpPort;
+
+  // The phone has to reach whichever address is on its own network. On a
+  // machine with virtual adapters the best guess can be wrong, and the only
+  // symptom is "could not connect", so every option is offered here.
+  const addresses = (info.candidates || []).map((c) => c.address);
+  if (info.lanIp && !addresses.includes(info.lanIp)) addresses.unshift(info.lanIp);
+  if (!addresses.length) addresses.push(location.hostname);
+
+  const picker = $('addrPicker');
+  picker.innerHTML = addresses.map((a) => {
+    const c = (info.candidates || []).find((x) => x.address === a);
+    const label = c ? `${a}  (${c.name}${c.virtual ? ', virtual' : ''})` : a;
+    return `<option value="${a}">${label}</option>`;
+  }).join('');
+  picker.parentElement.classList.toggle('hidden', addresses.length < 2);
+
+  function useAddress(host) {
+    const joinUrl = info.https ? `${proto}://${host}:${port}/phone?room=${state.room}`
+                               : `${proto}://${host}:${port}/phone?room=${state.room}`;
+    $('joinUrl').textContent = joinUrl;
+    $('qr').src = `/api/qr?url=${encodeURIComponent(joinUrl)}`;
+  }
+
+  picker.addEventListener('change', () => useAddress(picker.value));
+  useAddress(addresses[0]);
+
   if (secure || !info.https) $('tlsWarn').classList.add('hidden');
 })();
 

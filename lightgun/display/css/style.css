@@ -163,3 +163,17 @@ h1 span { color: var(--accent); }
   top: 24%;
   transform: translateX(-50%);
 }
+
+/* Address picker: shown only when the machine has more than one candidate. */
+.qr-card .addr { margin-top: 10px; font-size: 11px; color: #555; text-align: left; }
+.qr-card .addr label { display: block; letter-spacing: 0.04em; }
+.qr-card .addr select {
+  width: 100%;
+  margin-top: 4px;
+  font: 12px ui-monospace, Menlo, monospace;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fafafa;
+  color: #111;
+}

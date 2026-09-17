@@ -75,11 +75,30 @@ function row(label, ok) {
   return `<div>${label}: <span class="${ok ? 'ok' : 'no'}">${ok ? 'yes' : 'no'}</span></div>`;
 }
 
+// iOS has no WebXR at all: Safari does not implement immersive-ar, and no
+// iOS browser can, because they all use WebKit. Saying "install Google Play
+// Services for AR" to an iPhone owner is worse than saying nothing.
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
 if (!caps.immersiveAr) {
   ui.startBtn.classList.add('hidden');
-  ui.hint.textContent = caps.secure
-    ? 'This phone cannot do AR tracking (needs Google Play Services for AR). Limited mode uses the compass and gyro only — it will drift.'
-    : 'Open this page over https:// — WebXR refuses to run otherwise.';
+  ui.fallbackBtn.classList.remove('hidden');
+  if (!caps.secure) {
+    ui.hint.innerHTML = 'Open this page over <b>https://</b> — motion tracking refuses to run otherwise.';
+  } else if (isIOS) {
+    ui.hint.innerHTML =
+      '<b>iPhone cannot do the real light-gun mode.</b> Safari has no WebXR, and every ' +
+      'iOS browser is Safari underneath, so there is no camera tracking available to a web page.<br><br>' +
+      'Limited mode below uses only the gyroscope and compass: it will work, but it drifts, ' +
+      'and you will have to recalibrate. It is the comparison case, not the product.<br><br>' +
+      'The real test needs an <b>Android phone with Google Play Services for AR</b>.';
+  } else {
+    ui.hint.innerHTML =
+      'This phone cannot do AR tracking. On Android that usually means ' +
+      '<b>Google Play Services for AR</b> is missing, or the browser is not Chrome.<br><br>' +
+      'Limited mode uses the compass and gyro only — it drifts.';
+  }
 } else {
   ui.fallbackBtn.classList.add('hidden');
 }

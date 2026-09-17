@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import QRCode from 'qrcode';
-import { ensureCert, lanAddress } from './certs.js';
+import { ensureCert, lanAddress, localInterfaces } from './certs.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Reassigned if the preferred port is already taken; the QR code and
@@ -66,6 +66,9 @@ async function handle(req, res, secure) {
     res.writeHead(200, { 'content-type': TYPES['.json'], 'cache-control': 'no-store' });
     res.end(JSON.stringify({
       lanIp: lanAddress(),
+      // Every candidate, so the display can offer alternatives when the best
+      // guess is not the adapter the phone can actually reach.
+      candidates: localInterfaces(),
       httpPort: HTTP_PORT,
       httpsPort: HTTPS_PORT,
       https: HAS_TLS,
@@ -231,7 +234,20 @@ if (httpsServer) attachWs(httpsServer);
 
 console.log(`\n  display   http://localhost:${HTTP_PORT}/`);
 if (httpsServer) {
+  const all = localInterfaces();
   console.log(`  phone     https://${lanAddress()}:${HTTPS_PORT}/phone   (self-signed: tap "Advanced -> Proceed" once)`);
+  if (all.length > 1) {
+    console.log('\n  other addresses this machine has, if that one does not connect:');
+    for (const i of all.slice(1)) {
+      console.log(`            https://${i.address}:${HTTPS_PORT}/phone   (${i.name}${i.virtual ? ', virtual adapter' : ''})`);
+    }
+    console.log('  the display has a dropdown to switch the QR code between them.');
+  }
+  if (process.platform === 'win32') {
+    console.log('\n  if the phone says it cannot connect, Windows Firewall is the usual cause:');
+    console.log('  allow Node.js on private networks, or run this once as administrator:');
+    console.log(`    netsh advfirewall firewall add rule name="LightGun" dir=in action=allow protocol=TCP localport=${HTTPS_PORT}`);
+  }
   console.log('\n  WebXR needs HTTPS, so the QR code always points at the https URL.');
 } else {
   console.log('  !! openssl not available: HTTPS disabled, WebXR aiming will not work from a phone.');
