@@ -11,6 +11,21 @@ Phase 1 can start immediately.
 - [ ] **Product name.** "TrendGhost" is a placeholder. Check it's not taken on the stores before any branding work.
 - [ ] **Two or three reference videos to test against.** Ideally: one easy (arms-only, standing), one hard (full-body, fast, turning), one photo pose. Put them in `fixtures/` locally — do **not** commit third-party video to the repo.
 
+## Blocking right now
+
+- [ ] **Turn on GitHub Pages** (one click, needed once). Repo **Settings → Pages
+      → Build and deployment → Source: "GitHub Actions"**, then re-run the
+      _TrendGhost Pages_ workflow from the Actions tab.
+
+      The workflow asks for Pages to be created automatically, but the token
+      Actions hands it is not allowed to create the site — it fails with
+      `Create Pages site failed: Resource not accessible by integration`. Only
+      a repo admin can do it, and only the first time; afterwards every push
+      deploys on its own.
+
+      Until this is done there is no HTTPS URL, and without one the camera and
+      the share-sheet import cannot run on a phone at all.
+
 ## Decide before the template pack ships (Phase 6+)
 
 - [ ] **How do we fill the template pack?** Film a dancer ourselves, or license from creators? Either costs money; see `docs/product/CONTENT_SOURCING.md` lane 3. Until it's decided, the app works fine with lanes 1 and 2 — this is not blocking.

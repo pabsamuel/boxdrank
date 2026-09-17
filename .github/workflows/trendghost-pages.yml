@@ -43,7 +43,11 @@ jobs:
         id: pages
         uses: actions/configure-pages@v5
         with:
-          # Turn Pages on the first time this runs, so no manual setup is needed.
+          # Asks GitHub to create the Pages site if it doesn't exist. On many
+          # repos the Actions token isn't allowed to, and this step then fails
+          # with "Resource not accessible by integration" — in that case an
+          # admin sets Settings -> Pages -> Source to "GitHub Actions" once by
+          # hand (OWNER_ACTIONS.md) and every run after that works.
           enablement: true
 
       - name: Install dependencies
