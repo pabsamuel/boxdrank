@@ -1,0 +1,23 @@
+{
+  "name": "TrendGhost",
+  "short_name": "TrendGhost",
+  "description": "Copy any dance or photo trend by matching a ghost of the original.",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#08090d",
+  "theme_color": "#08090d",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "share_target": {
+    "action": "./share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "files": [{ "name": "media", "accept": ["video/*", "image/*"] }]
+    }
+  }
+}

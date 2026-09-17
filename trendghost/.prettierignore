@@ -1,0 +1,11 @@
+dist
+node_modules
+public/models
+package-lock.json
+
+# Docs are hand-formatted prose; Prettier reflows tables and lists in ways that
+# make the diffs unreadable. Code is what we format.
+*.md
+test-results
+playwright-report
+*.tsbuildinfo
