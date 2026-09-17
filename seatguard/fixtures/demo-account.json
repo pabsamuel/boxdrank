@@ -1,0 +1,45 @@
+{
+  "fetchedAt": "2026-09-17T09:00:00Z",
+  "account": {
+    "id": "12345678",
+    "name": "Northline Studio (demo)",
+    "plan": "pro",
+    "seatPriceUsd": 16
+  },
+  "users": [
+    { "id": "u1", "name": "Aylin Kaya", "email": "aylin@northline.example", "enabled": true, "isGuest": false, "isAdmin": true, "isViewOnly": false, "isPending": false, "createdAt": "2023-04-02T10:00:00Z", "lastActivity": "2026-09-16T17:20:00Z" },
+    { "id": "u2", "name": "Marco Ruiz", "email": "marco@northline.example", "enabled": true, "isGuest": false, "isAdmin": true, "isViewOnly": false, "isPending": false, "createdAt": "2023-04-02T10:00:00Z", "lastActivity": "2026-09-15T08:45:00Z" },
+    { "id": "u3", "name": "Priya Nair", "email": "priya@northline.example", "enabled": true, "isGuest": false, "isAdmin": true, "isViewOnly": false, "isPending": false, "createdAt": "2023-09-11T10:00:00Z", "lastActivity": "2026-09-10T12:00:00Z" },
+    { "id": "u4", "name": "Tom Becker", "email": "tom@northline.example", "enabled": true, "isGuest": false, "isAdmin": true, "isViewOnly": false, "isPending": false, "createdAt": "2024-01-15T10:00:00Z", "lastActivity": "2026-06-02T09:10:00Z" },
+    { "id": "u5", "name": "Sara Lindqvist", "email": "sara@northline.example", "enabled": true, "isGuest": false, "isAdmin": false, "isViewOnly": false, "isPending": false, "createdAt": "2024-02-20T10:00:00Z", "lastActivity": "2026-09-16T16:05:00Z" },
+    { "id": "u6", "name": "Jonas Weber", "email": "jonas@northline.example", "enabled": true, "isGuest": false, "isAdmin": false, "isViewOnly": false, "isPending": false, "createdAt": "2024-03-01T10:00:00Z", "lastActivity": "2026-05-20T11:30:00Z" },
+    { "id": "u7", "name": "Elif Demir", "email": "elif@northline.example", "enabled": true, "isGuest": false, "isAdmin": false, "isViewOnly": false, "isPending": false, "createdAt": "2024-06-10T10:00:00Z", "lastActivity": "2026-07-01T14:00:00Z" },
+    { "id": "u8", "name": "Noah Fischer", "email": "noah@northline.example", "enabled": false, "isGuest": false, "isAdmin": false, "isViewOnly": false, "isPending": false, "createdAt": "2023-11-05T10:00:00Z", "lastActivity": "2026-04-18T10:00:00Z" },
+    { "id": "u9", "name": "Chloe Martin", "email": "chloe@northline.example", "enabled": true, "isGuest": false, "isAdmin": false, "isViewOnly": false, "isPending": false, "createdAt": "2025-01-08T10:00:00Z", "lastActivity": "2026-09-12T09:00:00Z" },
+    { "id": "u10", "name": "Ravi Patel", "email": "ravi@northline.example", "enabled": true, "isGuest": false, "isAdmin": false, "isViewOnly": false, "isPending": false, "createdAt": "2026-02-01T10:00:00Z", "lastActivity": null },
+    { "id": "u11", "name": "Ana Silva", "email": "ana@northline.example", "enabled": true, "isGuest": false, "isAdmin": false, "isViewOnly": false, "isPending": false, "createdAt": "2025-05-19T10:00:00Z", "lastActivity": "2026-09-14T15:40:00Z" },
+    { "id": "u12", "name": "Greg Hall (Acme)", "email": "greg@acme.example", "enabled": true, "isGuest": true, "isAdmin": false, "isViewOnly": false, "isPending": false, "createdAt": "2024-08-01T10:00:00Z", "lastActivity": "2026-09-11T10:00:00Z" },
+    { "id": "u13", "name": "Mei Tanaka (Delta)", "email": "mei@delta.example", "enabled": true, "isGuest": true, "isAdmin": false, "isViewOnly": true, "isPending": false, "createdAt": "2026-03-12T10:00:00Z", "lastActivity": "2026-09-05T10:00:00Z" },
+    { "id": "u14", "name": "Lukas Hoffmann", "email": "lukas@northline.example", "enabled": true, "isGuest": false, "isAdmin": false, "isViewOnly": false, "isPending": true, "createdAt": "2026-06-15T10:00:00Z", "lastActivity": null }
+  ],
+  "workspaces": [
+    { "id": "w1", "name": "Client Delivery", "kind": "closed", "memberIds": ["u1", "u2", "u5", "u6", "u7", "u9", "u11"] },
+    { "id": "w2", "name": "Internal Ops", "kind": "open", "memberIds": [] },
+    { "id": "w3", "name": "New Business", "kind": "closed", "memberIds": ["u1", "u3"] }
+  ],
+  "boards": [
+    { "id": "b1", "name": "Acme Corp — Campaign", "workspaceId": "w1", "state": "active", "boardKind": "share", "itemCount": 240, "updatedAt": "2026-09-16T18:00:00Z", "owners": ["u1", "u2", "u5", "u9", "u11"], "subscribers": ["u12"] },
+    { "id": "b2", "name": "Acme Corp — Assets", "workspaceId": "w1", "state": "active", "boardKind": "share", "itemCount": 88, "updatedAt": "2026-09-14T11:00:00Z", "owners": ["u1"], "subscribers": ["u12", "u5"] },
+    { "id": "b3", "name": "Beta Inc — Retainer", "workspaceId": "w1", "state": "active", "boardKind": "share", "itemCount": 130, "updatedAt": "2026-09-01T10:00:00Z", "owners": ["u8"], "subscribers": ["u12", "u5"] },
+    { "id": "b4", "name": "Gamma — Launch", "workspaceId": "w1", "state": "active", "boardKind": "share", "itemCount": 190, "updatedAt": "2026-09-15T09:30:00Z", "owners": ["u2", "u5"], "subscribers": ["u12"] },
+    { "id": "b5", "name": "Delta — Website", "workspaceId": "w1", "state": "active", "boardKind": "share", "itemCount": 60, "updatedAt": "2026-08-20T13:00:00Z", "owners": ["u9"], "subscribers": ["u12", "u13"] },
+    { "id": "b6", "name": "Epsilon — Archive 2024", "workspaceId": "w1", "state": "active", "boardKind": "public", "itemCount": 410, "updatedAt": "2025-02-10T10:00:00Z", "owners": ["u1"], "subscribers": [] },
+    { "id": "b7", "name": "Team Standup", "workspaceId": "w2", "state": "active", "boardKind": "public", "itemCount": 45, "updatedAt": "2026-09-16T08:00:00Z", "owners": ["u5"], "subscribers": [] },
+    { "id": "b8", "name": "Hiring Pipeline", "workspaceId": "w2", "state": "active", "boardKind": "private", "itemCount": 30, "updatedAt": "2026-09-11T10:00:00Z", "owners": ["u3"], "subscribers": ["u1"] },
+    { "id": "b9", "name": "Budget FY26", "workspaceId": "w2", "state": "active", "boardKind": "private", "itemCount": 20, "updatedAt": "2026-09-08T10:00:00Z", "owners": ["u1", "u2", "u3", "u4"], "subscribers": [] },
+    { "id": "b10", "name": "Old Vendor List", "workspaceId": "w2", "state": "active", "boardKind": "public", "itemCount": 12, "updatedAt": "2025-06-01T10:00:00Z", "owners": [], "subscribers": [] },
+    { "id": "b11", "name": "Pipeline 2026", "workspaceId": "w3", "state": "active", "boardKind": "public", "itemCount": 75, "updatedAt": "2026-09-13T10:00:00Z", "owners": ["u1", "u3"], "subscribers": [] },
+    { "id": "b12", "name": "Archived Retro", "workspaceId": "w2", "state": "archived", "boardKind": "public", "itemCount": 15, "updatedAt": "2026-03-01T10:00:00Z", "owners": ["u5"], "subscribers": [] },
+    { "id": "b13", "name": "Zeta — Social", "workspaceId": "w1", "state": "active", "boardKind": "share", "itemCount": 55, "updatedAt": "2026-09-09T10:00:00Z", "owners": ["u11"], "subscribers": ["u12"] }
+  ]
+}
