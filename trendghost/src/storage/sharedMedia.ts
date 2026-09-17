@@ -9,7 +9,7 @@
  */
 
 const SHARE_CACHE = 'trendghost-share';
-const SHARE_KEY = '/__shared-media';
+const SHARE_KEY = `${import.meta.env.BASE_URL}__shared-media`;
 
 export async function takeSharedMedia(): Promise<File | null> {
   if (typeof caches === 'undefined') return null;

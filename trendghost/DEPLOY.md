@@ -26,7 +26,35 @@ TrendGhost appears in TikTok's share sheet (`docs/product/CONTENT_SOURCING.md` l
 iOS Safari has no Web Share Target — iPhone users save the video to their camera roll
 and pick it from the app, until there's a native build.
 
-## Deploying
+## Deploying to GitHub Pages (what this repo does)
+
+`.github/workflows/trendghost-pages.yml` builds and publishes on every push to
+`main`, and can be run by hand from the Actions tab (`workflow_dispatch`). It
+turns Pages on the first time it runs, so there is no manual repo setup. The
+site lands at:
+
+```
+https://pabsamuel.github.io/boxdrank/
+```
+
+Pages serves from `/<repo>/`, not the domain root, so the workflow builds with
+`BASE_PATH`. Nothing in the source hard-codes that path:
+
+- the app reads `import.meta.env.BASE_URL` (models, wasm, `sw.js`, share key),
+- `public/sw.js` derives its base from its own `self.location`,
+- `public/manifest.webmanifest` uses relative URLs (`./share-target`).
+
+So the same tree serves correctly at `/` (dev, preview, e2e) and at `/boxdrank/`.
+Because that sub-path changes the service worker's scope and the share-target
+URL — the two things hardest to get right — the smoke suite can run against it:
+
+```bash
+npm run test:e2e:pages   # builds with BASE_PATH, previews at /boxdrank/, runs the suite
+```
+
+Run that before changing anything path-related.
+
+## Deploying anywhere else
 
 It's a static site. `npm run build` produces `dist/`, which any static host serves:
 

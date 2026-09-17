@@ -28,7 +28,7 @@ test.afterEach(async ({ page }, testInfo) => {
 test('onboarding explains the camera before asking for it, then reaches the library', async ({
   page,
 }) => {
-  await page.goto('/');
+  await page.goto('./');
 
   await expect(page.getByRole('heading', { name: 'Copy any trend' })).toBeVisible();
   await page.getByRole('button', { name: 'Next' }).click();
@@ -48,7 +48,7 @@ test('onboarding explains the camera before asking for it, then reaches the libr
 test('the add-routine screen offers the share sheet and the picker, and no URL field', async ({
   page,
 }) => {
-  await page.goto('/');
+  await page.goto('./');
   await completeOnboarding(page);
 
   await page.getByRole('button', { name: 'Add your first routine' }).click();
@@ -60,16 +60,20 @@ test('the add-routine screen offers the share sheet and the picker, and no URL f
   await expect(page.locator('input[type="text"]')).toHaveCount(0);
 });
 
-test('the camera opens, the pose model loads, and the render loop runs', async ({ page }) => {
+test('the camera opens, the pose model loads, and the render loop runs', async ({
+  page,
+  baseURL,
+}) => {
+  const ownOrigin = new URL(baseURL ?? 'http://localhost:4173/').origin;
   const requests: string[] = [];
   page.on('request', (request) => requests.push(request.url()));
 
-  await page.goto('/');
+  await page.goto('./');
   await completeOnboarding(page);
   // The library mounting is what makes the app create its database; wait for it
   // before seeding, or the seed races app startup.
   await expect(page.getByRole('heading', { name: 'TrendGhost' })).toBeVisible();
-  await seedRoutine(page, '/?debug=1');
+  await seedRoutine(page, './?debug=1');
   await page.getByRole('button', { name: 'Practice' }).click();
   await expect(page.locator('canvas.stage')).toBeVisible();
 
@@ -95,7 +99,7 @@ test('the camera opens, the pose model loads, and the render loop runs', async (
 
   // RISKS.md R2 / CLAUDE.md rule 4: nothing leaves the device on this path.
   const offDevice = requests.filter(
-    (url) => !url.startsWith('http://localhost:4173') && !url.startsWith('data:'),
+    (url) => !url.startsWith(ownOrigin) && !url.startsWith('data:'),
   );
   expect(offDevice, `unexpected off-device requests: ${offDevice.join(', ')}`).toHaveLength(0);
 });
@@ -105,7 +109,7 @@ test('the camera opens, the pose model loads, and the render loop runs', async (
  * video file. Deliberately uses raw IDB rather than app code, so the test does
  * not depend on the app's own storage layer being correct.
  */
-async function seedRoutine(page: Page, reloadTo = '/') {
+async function seedRoutine(page: Page, reloadTo = './') {
   await page.evaluate(async () => {
     const points = Array.from({ length: 33 }, () => ({ x: 0, y: 0, z: 0, visibility: 1 }));
     // A plausible standing figure in subject space (hips at the origin).
@@ -285,7 +289,7 @@ async function completeOnboarding(page: Page) {
 test('a photo shared from another app lands in TrendGhost and starts processing', async ({
   page,
 }) => {
-  await page.goto('/');
+  await page.goto('./');
   await completeOnboarding(page);
 
   await waitForServiceWorkerControl(page);
@@ -301,14 +305,14 @@ test('a photo shared from another app lands in TrendGhost and starts processing'
       new File([bytes], 'trend-pose.png', { type: 'image/png' }),
       'trend-pose.png',
     );
-    const response = await fetch('/share-target', { method: 'POST', body: form });
+    const response = await fetch('share-target', { method: 'POST', body: form });
     return response.url;
   });
 
   expect(redirected, 'share target should redirect back into the app').toContain('shared=1');
 
   // Now open the app the way the redirect would, with no file picked by hand.
-  await gotoApp(page, '/?shared=1');
+  await gotoApp(page, './?shared=1');
 
   // It should be on the ingest screen working on the shared file — and because a
   // 1x1 PNG has no person in it, it should say so plainly rather than inventing
@@ -319,7 +323,7 @@ test('a photo shared from another app lands in TrendGhost and starts processing'
 });
 
 test('a shared file is consumed once, not replayed on every reload', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await completeOnboarding(page);
   await waitForServiceWorkerControl(page);
 
@@ -336,15 +340,15 @@ test('a shared file is consumed once, not replayed on every reload', async ({ pa
       new File([bytes], 'trend-pose.png', { type: 'image/png' }),
       'trend-pose.png',
     );
-    await fetch('/share-target', { method: 'POST', body: form });
+    await fetch('share-target', { method: 'POST', body: form });
   });
 
-  await gotoApp(page, '/?shared=1');
+  await gotoApp(page, './?shared=1');
   await expect(page.getByText("I couldn't find a person in that photo.")).toBeVisible({
     timeout: 60_000,
   });
 
   // Reload: the share must be gone, and we should be back in the library.
-  await gotoApp(page, '/');
+  await gotoApp(page, './');
   await expect(page.getByRole('heading', { name: 'TrendGhost' })).toBeVisible();
 });

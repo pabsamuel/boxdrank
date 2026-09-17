@@ -39,7 +39,7 @@ export function App() {
       setSharedFile(file);
       setView({ name: 'ingest', sharedFile: file });
       // Drop ?shared=1 so a refresh doesn't look like a second share.
-      window.history.replaceState({}, '', '/');
+      window.history.replaceState({}, '', import.meta.env.BASE_URL);
     });
     return () => {
       cancelled = true;

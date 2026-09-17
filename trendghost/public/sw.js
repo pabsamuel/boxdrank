@@ -1,7 +1,15 @@
 /* TrendGhost service worker: offline shell + Web Share Target handoff. */
 
 const CACHE = 'trendghost-v1';
-const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
+
+/**
+ * Where the app is mounted. GitHub Pages serves it from /<repo>/, a custom
+ * domain from /. The worker is always served next to index.html, so its own
+ * URL is the one source of truth for that — no build-time templating needed.
+ */
+const BASE = new URL('./', self.location).pathname;
+
+const SHELL = [BASE, `${BASE}index.html`, `${BASE}manifest.webmanifest`, `${BASE}icon.svg`];
 
 /**
  * Where a shared photo/video is parked between the OS handing it to us and the
@@ -10,7 +18,7 @@ const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
  * worker between the POST and the page load.
  */
 const SHARE_CACHE = 'trendghost-share';
-const SHARE_KEY = '/__shared-media';
+const SHARE_KEY = `${BASE}__shared-media`;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
@@ -34,7 +42,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   // Lane 1 (CONTENT_SOURCING.md): the OS posts the shared photo or video here.
-  if (event.request.method === 'POST' && url.pathname === '/share-target') {
+  if (event.request.method === 'POST' && url.pathname === `${BASE}share-target`) {
     event.respondWith(
       (async () => {
         try {
@@ -51,12 +59,12 @@ self.addEventListener('fetch', (event) => {
                 },
               }),
             );
-            return Response.redirect('/?shared=1', 303);
+            return Response.redirect(`${BASE}?shared=1`, 303);
           }
         } catch {
           // Fall through: open the app normally rather than showing a browser error.
         }
-        return Response.redirect('/', 303);
+        return Response.redirect(BASE, 303);
       })(),
     );
     return;
@@ -67,6 +75,8 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches
       .match(event.request)
-      .then((cached) => cached ?? fetch(event.request).catch(() => caches.match('/index.html'))),
+      .then(
+        (cached) => cached ?? fetch(event.request).catch(() => caches.match(`${BASE}index.html`)),
+      ),
   );
 });

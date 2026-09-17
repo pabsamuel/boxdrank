@@ -10,7 +10,7 @@ import {
 } from '@mediapipe/tasks-vision';
 import type { Landmark } from '../pose-core/types';
 
-const MODEL_BASE = import.meta.env.VITE_MODEL_BASE_URL ?? '/models';
+const MODEL_BASE = import.meta.env.VITE_MODEL_BASE_URL ?? `${import.meta.env.BASE_URL}models`;
 
 export type ModelVariant = 'lite' | 'full';
 

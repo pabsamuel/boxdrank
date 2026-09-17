@@ -15,7 +15,8 @@
     "lint": "eslint .",
     "fetch-models": "node scripts/fetch-models.mjs",
     "verify": "npm run format:check && npm run typecheck && npm run lint && npm run test",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:pages": "node scripts/e2e-pages.mjs"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.14",

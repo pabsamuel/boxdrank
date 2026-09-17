@@ -16,7 +16,9 @@ export default defineConfig({
   // Keep a trace when something fails: chasing these races by guesswork wasted
   // several rounds. `npx playwright show-trace <path>` replays the run.
   use: {
-    baseURL: 'http://localhost:4173',
+    // Every goto() in the suite is relative ('./', './?debug=1'), so pointing
+    // this at a sub-path exercises the GitHub Pages build as it actually ships.
+    baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:4173/',
     trace: 'retain-on-failure',
     launchOptions: {
       // This environment ships its own Chromium; PLAYWRIGHT_CHROMIUM_PATH lets CI
@@ -30,10 +32,14 @@ export default defineConfig({
     },
     permissions: ['camera'],
   },
-  webServer: {
-    command: 'npm run preview -- --port 4173',
-    port: 4173,
-    reuseExistingServer: true,
-    timeout: 60_000,
-  },
+  // When E2E_BASE_URL is set the caller has already started a server (see
+  // `npm run test:e2e:pages`), so don't start a second one on top of it.
+  webServer: process.env.E2E_BASE_URL
+    ? undefined
+    : {
+        command: 'npm run preview -- --port 4173',
+        port: 4173,
+        reuseExistingServer: true,
+        timeout: 60_000,
+      },
 });

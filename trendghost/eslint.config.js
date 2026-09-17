@@ -66,7 +66,13 @@ export default tseslint.config(
     // Node build scripts.
     files: ['scripts/**/*.mjs'],
     languageOptions: {
-      globals: { console: 'readonly', process: 'readonly', Buffer: 'readonly', fetch: 'readonly' },
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        fetch: 'readonly',
+        setTimeout: 'readonly',
+      },
     },
   },
 );
