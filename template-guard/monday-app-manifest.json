@@ -1,0 +1,107 @@
+{
+  "$comment": [
+    "Reference copy of the app configuration as it should be entered in the monday",
+    "developer console at https://monday.com/developers/apps. monday does not (yet)",
+    "accept a manifest upload for app configuration, so this file is the source of",
+    "truth that the console is kept in sync with, and what a reviewer can diff",
+    "against. See README.md 'monday app manifest'.",
+    "Scopes are duplicated in src/server/oauth.ts REQUIRED_SCOPES — change both."
+  ],
+  "app": {
+    "name": "Template Guard",
+    "tagline": "Find what board duplication silently dropped.",
+    "description": "monday drops configuration when you duplicate a board and does not warn you. Template Guard snapshots a template board, compares any copy against it, and shows exactly what is missing, changed, or — most dangerously — still wired to the template's board instead of the copy's.",
+    "category": "Operations",
+    "supportEmail": "support@example.com",
+    "privacyPolicyUrl": "https://example.com/template-guard/privacy",
+    "termsUrl": "https://example.com/template-guard/terms"
+  },
+  "oauth": {
+    "redirectUris": [
+      "http://localhost:8302/auth/callback",
+      "https://YOUR-DOMAIN/auth/callback"
+    ],
+    "scopes": ["boards:read", "boards:write", "account:read", "me:read"],
+    "$scopeRationale": {
+      "boards:read": "Read board structure — columns, groups, views, connections. The comparison is built entirely from this.",
+      "boards:write": "Create a missing column or group, and rename a column back, when the user explicitly confirms a repair.",
+      "account:read": "Account ID and slug, used for deep links into the right monday account and for per-account billing.",
+      "me:read": "Identify the installing user at OAuth time.",
+      "$notRequested": "No item, update, or file scopes are requested. Template Guard never reads board items, so it does not hold the permission to."
+    }
+  },
+  "features": [
+    {
+      "type": "AppFeatureBoardView",
+      "name": "Template Guard",
+      "url": "https://YOUR-DOMAIN/",
+      "description": "Compare this board against the template it was duplicated from."
+    },
+    {
+      "type": "AppFeatureDashboardWidget",
+      "name": "Template Guard status",
+      "url": "https://YOUR-DOMAIN/?surface=widget",
+      "description": "Which boards are being watched, and whether any have drifted.",
+      "$itemless": true
+    }
+  ],
+  "billing": {
+    "model": "per-account",
+    "$rationale": "The buyer is one ops person administering boards for everyone else. Per-seat pricing on an admin tool makes them justify a bill that scales with colleagues who will never open the app.",
+    "plans": [
+      {
+        "id": "free",
+        "name": "Free",
+        "price": 0,
+        "includes": [
+          "1 template board",
+          "Unlimited manual comparisons",
+          "Every finding at every severity, including mis-wired connect columns",
+          "Full manual repair checklist with deep links"
+        ]
+      },
+      {
+        "id": "pro",
+        "name": "Pro",
+        "priceRangeUsdPerMonth": [30, 60],
+        "includes": [
+          "Unlimited template boards",
+          "Scheduled drift monitoring",
+          "Notifications when a board diverges from its template",
+          "One-click repair"
+        ],
+        "$constraint": "Every Pro capability must be implementable against monday's stable API schema. See ADR-002 and src/billing/tiers.ts."
+      }
+    ]
+  },
+  "dataHandling": {
+    "stores": [
+      "Board IDs",
+      "Column IDs, titles, types and configuration",
+      "Group and view names and types",
+      "Board owner and subscriber IDs",
+      "Encrypted monday access token"
+    ],
+    "neverStores": [
+      "Board items",
+      "Column values",
+      "Files or assets",
+      "Update or comment text",
+      "User email addresses"
+    ],
+    "$note": "Enforced at the storage boundary by assertNoItemData() in src/server/storage.ts, not only by policy."
+  },
+  "apiVersion": {
+    "pinned": "2026-07",
+    "releaseCandidateTestedInCi": "2026-10",
+    "$note": "Pinned in exactly one place: src/api/version.ts."
+  },
+  "featureFlags": {
+    "FEATURE_AUTOMATIONS_PREVIEW": {
+      "default": false,
+      "schema": "monday dev (preview)",
+      "readOnly": true,
+      "$note": "Reads board automations via board_automations, which is on monday's preview schema and cannot be version-pinned. Isolated in src/api/preview/automations.ts. No paid feature depends on it. See ADR-002."
+    }
+  }
+}
