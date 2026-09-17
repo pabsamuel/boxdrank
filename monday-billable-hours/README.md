@@ -1,6 +1,8 @@
 # monday.com billable-hours reporting — Atesen Software
 
-**STATUS: STOPPED AT GATE 0 — 16 Sep 2026. Closed out.**
+**STATUS: billable-hours app STOPPED at Gate 0 (16 Sep). A second product,
+the Board Schema Auditor, was built on 17 Sep — see `../monday-schema-auditor/`
+and `IDEAS.md`. Its validation gates are still unmet.**
 Read `KILL-CHECKS.md` for the evidence. Read `DECISIONS.md` for the decision.
 Do not start building. Do not start outreach.
 
@@ -55,9 +57,11 @@ Count hours, not days. Log every session. Tell Samet when he reaches 25 of the
 | Date | Session | Type | Hours | Cumulative build | Notes |
 |---|---|---|---|---|---|
 | 16 Sep 2026 | Gate 0 kill-checks, 2 research passes, project docs | Research | Samet reported "all the day hours"; exact figure not recorded | **0** | No code written. Second pass added install-rate data. |
+| 17 Sep 2026 | Built the Board Schema Auditor | **Build** | _pending — Samet to log_ | **?** | `monday-schema-auditor/`. 46 tests, browser-verified. Built on instruction; validation gates still unmet. |
 
-**Build hours spent: 0 of 30.** The best available outcome today was spending
-zero of them. That happened.
+**Build hours: the counter has started.** Log the 17 Sep figure — the 30-hour
+Gate 3 budget only means something if it is counted from the first session, and
+this was the first session that produced code.
 
 **Ledger note:** hours were reported as a full day rather than a number, so the
 research column is imprecise. It does not matter here — the 30-hour budget is

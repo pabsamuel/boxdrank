@@ -122,3 +122,48 @@ cost of leaving it closed is zero.
 
 **Not reopening conditions:** a new feature idea, a lower price, a different
 segment, a fresh burst of motivation, or having a free day.
+
+---
+
+## 2026-09-17 — Built the Board Schema Auditor. Validation still not done.
+
+**Decision:** built it, on Samet's explicit instruction after the validation
+concern was raised twice and overruled twice. Recorded here so the sequence is
+not misremembered later.
+
+**Not done before building, and still not done:**
+- `NEXT-GATE0.md` Q1 (can he remediate a Burp finding) — unanswered.
+- `NEXT-GATE0.md` Q2 (honest route past the AI-code policy) — unanswered.
+- Marketplace check that no equivalent app exists — not run.
+- Ten admin conversations about column drift — zero held.
+
+So the code exists and the business case does not. That is a choice, not an
+oversight, and it is his to make.
+
+**What got built:** `monday-schema-auditor/`. Read-only board view, one runtime
+dependency, ~19 kB bundle, 46 passing tests, verified end to end in headless
+Chromium. Architecture splits a zero-dependency diff engine from a single
+monday-facing adapter.
+
+**Material finding that changes the architecture advice in `IDEAS.md`:**
+
+The no-backend design depends on `monday.api()` querying GraphQL on behalf of
+the signed-in user. Verified against the installed packages:
+
+- `monday-sdk-js@0.5.9` has `api()` and warns it will be removed in 1.0.0.
+- `monday-sdk-js@1.0.0-beta` — the current `latest` tag — **has already removed
+  it**. The client exposes only get/set/listen/execute/storage/oauth.
+- The suggested replacement `@mondaydotcomorg/api` **requires an API token**,
+  which a seamless client-side app does not have.
+
+The dependency is pinned to 0.5.9 deliberately. The seamless-auth escape from
+the security-review burden has a shelf life, and the documented upgrade path
+currently reintroduces the backend that design exists to avoid. Open risk,
+confined to one file.
+
+Had this been written from memory rather than checked against the package, the
+app would have shipped calling a method that no longer exists.
+
+**What would still kill it:** the retention objection from `IDEAS.md`, unchanged.
+An audit is run once, acted on, and cancelled. Nothing built today addresses
+that, and continuous alerting would need the backend.

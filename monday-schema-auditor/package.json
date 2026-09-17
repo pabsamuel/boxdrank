@@ -1,0 +1,20 @@
+{
+  "name": "monday-schema-auditor",
+  "version": "0.1.0",
+  "description": "Read-only monday.com board view that reports where board column structure has drifted from a reference board.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "build": "esbuild src/app/main.js --bundle --format=esm --outfile=dist/main.js --minify",
+    "dev": "esbuild src/app/main.js --bundle --format=esm --outfile=dist/main.js --servedir=src/app",
+    "demo": "node scripts/serve.js"
+  },
+  "dependencies": {
+    "monday-sdk-js": "0.5.9"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}
