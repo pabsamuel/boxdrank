@@ -209,6 +209,47 @@ def verify_order(order: Order) -> list[ConsentCheck]:
 
 
 # --------------------------------------------------------------------------
+# the audit trail
+# --------------------------------------------------------------------------
+
+AUDIT_FILE = "consent-audit.log"
+
+
+def record_audit(order_dir: Path, event: str, *fields: object) -> None:
+    """Append one tab-separated event to the order's consent trail.
+
+    The trail is append-only and never rotated, because it is the evidence that
+    a synthetic voice was made with permission — `OWNER_ACTIONS.md` tells the
+    operator to keep these files forever.
+
+    It records creation as well as destruction. A trail that only holds REVOKED
+    and PURGED proves you deleted something, but not that you were allowed to
+    make it in the first place, which is the half a complaint actually turns on.
+
+    Events:
+
+      CLEARED  consent was verified for a voice at the start of a build
+      CLONED   a synthetic voice was created at a provider
+      REVOKED  a consent was withdrawn
+      PURGED   a clone, its samples and its output were destroyed
+
+    Errors are deliberately not swallowed: if we cannot write the record, we
+    must not carry on and create a clone that has none.
+    """
+    parts = [str(f).replace("\t", " ").replace("\n", " ") for f in fields]
+    line = "\t".join([utc_now_iso(), event, *parts])
+    try:
+        with (order_dir / AUDIT_FILE).open("a", encoding="utf-8") as fh:
+            fh.write(line + "\n")
+    except OSError as exc:
+        raise ConsentError(
+            f"could not write the consent audit trail: {exc}",
+            f"VoxSwap will not create or destroy a voice it cannot record. "
+            f"Make {order_dir / AUDIT_FILE} writable, then retry.",
+        ) from exc
+
+
+# --------------------------------------------------------------------------
 # withdrawal
 # --------------------------------------------------------------------------
 
@@ -267,9 +308,8 @@ def purge_order(
 
     _clear_provider_ids(order.root, [v.voice_id for v in voices])
 
-    with (order.root / "consent-audit.log").open("a", encoding="utf-8") as fh:
-        fh.write(f"{utc_now_iso()}\tPURGED\t{','.join(v.voice_id for v in voices)}\t"
-                 f"samples={'yes' if samples else 'no'}\n")
+    record_audit(order.root, "PURGED", ",".join(v.voice_id for v in voices),
+                 f"samples={'yes' if samples else 'no'}")
 
     return {
         "voices": [v.voice_id for v in voices],
@@ -304,6 +344,4 @@ def record_revocation(order_dir: Path, consent_ref: str, reason: str) -> None:
         raise ConsentError(f"no consent {consent_ref!r} in {order_file}", "Check the reference and try again.")
     order_file.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    trail = order_dir / "consent-audit.log"
-    with trail.open("a", encoding="utf-8") as fh:
-        fh.write(f"{utc_now_iso()}\tREVOKED\t{consent_ref}\t{reason}\n")
+    record_audit(order_dir, "REVOKED", consent_ref, reason or "no reason given")

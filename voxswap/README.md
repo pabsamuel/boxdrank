@@ -106,7 +106,7 @@ python3 -m voxswap purge ORD-123           # someone withdrew consent
 python3 -m unittest discover -s tests -t .
 ```
 
-157 tests, no dependencies, no network, no API keys, ~45 seconds.
+163 tests, no dependencies, no network, no API keys, ~45 seconds.
 
 12 of them cover the ffmpeg code paths and skip automatically when ffmpeg is
 not installed, so the suite stays runnable on a bare machine. CI runs half its

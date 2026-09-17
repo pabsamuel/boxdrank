@@ -80,6 +80,34 @@ What you cannot do is recall a file already delivered. Say that plainly in the
 consent form — it is in the template — rather than promising something you
 cannot deliver.
 
+### The audit trail
+
+Every order folder grows a `consent-audit.log`: one tab-separated line per
+event, appended, never rewritten.
+
+```
+2026-09-17T14:23:09Z	CLEARED	main	C-1	Demo Customer	samples=6.0s
+2026-09-17T14:23:09Z	CLONED	main	C-1	Demo Customer	provider=elevenlabs	id=voxswap-main-C-1
+2026-10-02T09:14:51Z	REVOKED	C-1	asked by email 2026-10-02
+2026-10-02T09:15:12Z	PURGED	main	samples=yes
+```
+
+| Event | Written when |
+| --- | --- |
+| `CLEARED` | consent was verified at the start of a build |
+| `CLONED` | a synthetic voice was actually created at a provider |
+| `REVOKED` | `voxswap revoke` withdrew a consent |
+| `PURGED` | `voxswap purge` destroyed the clone and its output |
+
+It records **creation as well as destruction**, deliberately. A trail holding
+only `REVOKED` and `PURGED` proves you deleted something; it does not prove you
+were allowed to make it, and that is the half a complaint actually turns on.
+`CLEARED` also re-proves the paperwork on the day of each rebuild, not just on
+the day the order was taken.
+
+If the file cannot be written, the build stops rather than creating a clone
+with no record. That is not a bug to work around.
+
 ### Retention
 
 Pick a period now and write it in your form. A reasonable default:

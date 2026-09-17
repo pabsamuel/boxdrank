@@ -7,7 +7,7 @@ the order are real. Failing here is cheap; failing in synthesis is not.
 
 from __future__ import annotations
 
-from ..consent import verify_order
+from ..consent import record_audit, verify_order
 from ..errors import AssetError, OrderError
 from ..providers import catalogue
 from .base import JobContext, Stage, StageResult
@@ -28,6 +28,10 @@ class IntakeStage(Stage):
             ctx.log.stage(self.name, f"consent OK: {check.person_name} ({check.voice_id}), {check.sample_seconds}s of samples")
             for warning in check.warnings:
                 ctx.log.warn(f"  {warning}")
+            # Evidence that the paperwork held on the day of this build, not
+            # just on the day the order was taken.
+            record_audit(order.root, "CLEARED", check.voice_id, check.consent_ref,
+                         check.person_name, f"samples={check.sample_seconds}s")
 
         # 2. assets
         root = ctx.asset_root

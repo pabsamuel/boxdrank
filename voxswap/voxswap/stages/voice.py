@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 
-from ..consent import check_voice, list_samples
+from ..consent import check_voice, list_samples, record_audit
 from ..errors import ProviderError
 from .base import JobContext, Stage, StageResult
 
@@ -50,6 +50,11 @@ class VoiceStage(Stage):
             )
             voice.provider_voice_id = provider_id
             built[voice_id] = provider_id
+            # The creation event. Written immediately, before the run can fail
+            # somewhere later: a clone that exists at a provider must never be
+            # absent from the trail.
+            record_audit(ctx.order.root, "CLONED", voice_id, voice.consent_ref, voice.person_label,
+                         f"provider={ctx.order.providers.voice}", f"id={provider_id}")
 
         _persist_provider_ids(ctx, built)
         return StageResult(
@@ -61,9 +66,10 @@ class VoiceStage(Stage):
 def _persist_provider_ids(ctx: JobContext, built: dict[str, str]) -> None:
     """Write provider voice IDs back into order.json.
 
-    This is the only thing VoxSwap ever writes into an order folder, and it is
-    deliberate: without it, a withdrawal request could not find the clone to
-    destroy, and every re-run would create a duplicate clone.
+    This and `consent-audit.log` are the only things VoxSwap ever writes into an
+    order folder, and both are deliberate: without this ID a withdrawal request
+    could not find the clone to destroy, and every re-run would create a
+    duplicate clone.
     """
     path = ctx.order.root / "order.json"
     try:

@@ -300,3 +300,42 @@ class PurgeTests(PipelineTestCase):
         self.run_order("TEST-GAME")
         self._purge("TEST-GAME")
         self.assertIn("PURGED", (order_dir / "consent-audit.log").read_text())
+
+    def test_a_build_records_consent_and_the_clone_it_created(self) -> None:
+        """The trail must prove the clone was allowed, not just that it was deleted."""
+        order_dir = make_game_order(self.cfg)
+        self.run_order("TEST-GAME")
+
+        events = [ln.split("\t") for ln in
+                  (order_dir / "consent-audit.log").read_text(encoding="utf-8").splitlines() if ln]
+        kinds = [e[1] for e in events]
+        self.assertIn("CLEARED", kinds)
+        self.assertIn("CLONED", kinds)
+
+        cloned = next(e for e in events if e[1] == "CLONED")
+        self.assertEqual(cloned[2], "main")                 # voice_id
+        self.assertEqual(cloned[3], "C-1")                  # consent_ref
+        self.assertTrue(cloned[0].endswith("Z"), cloned[0])  # timestamped
+        # the provider-side ID must be recoverable from the trail alone
+        self.assertTrue(any(f.startswith("id=") and len(f) > 3 for f in cloned), cloned)
+
+    def test_the_audit_trail_is_append_only_across_runs(self) -> None:
+        order_dir = make_game_order(self.cfg)
+        self.run_order("TEST-GAME")
+        first = (order_dir / "consent-audit.log").read_text(encoding="utf-8")
+
+        self.run_order("TEST-GAME", force=True)
+        second = (order_dir / "consent-audit.log").read_text(encoding="utf-8")
+
+        self.assertTrue(second.startswith(first), "a re-run must not truncate the trail")
+        self.assertGreater(second.count("CLONED"), first.count("CLONED"))
+
+    def test_a_failed_consent_check_records_nothing(self) -> None:
+        """No CLEARED line for a voice that never cleared."""
+        order_dir = make_game_order(self.cfg)
+        (order_dir / "consent" / "C-1-phrase.wav").unlink()
+
+        result = self.run_order("TEST-GAME")
+        self.assertEqual(result.status, FAILED)
+        trail = order_dir / "consent-audit.log"
+        self.assertFalse(trail.exists() and "CLEARED" in trail.read_text(encoding="utf-8"))

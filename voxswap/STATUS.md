@@ -6,7 +6,7 @@
 ## Current state
 
 **v0.1.0 — the pipeline is complete and runs end to end offline.** Ten stages,
-six provider adapters, five target adapters, 157 tests green on Python
+six provider adapters, five target adapters, 163 tests green on Python
 3.10/3.11/3.12, with and without ffmpeg. **It can run fully offline** —
 transcription, translation and voice cloning all have a local path. No real *provider* has been exercised
 against a real account yet — that is the next milestone and it needs an API key,
@@ -56,7 +56,12 @@ drift. All of them are env-overridable for exactly this reason.
 
 ```
 python3 -m unittest discover -s tests -t .
-→ 157 tests, OK, ~45s, no network, no API keys
+→ 163 tests, OK, ~45s, no network, no API keys
+
+python3 tools/make_example.py && python3 -m voxswap run EXAMPLE-GAME
+→ 10 stages, 0.4s, 4/4 lines at 100% QC, median slot error 0 ms
+→ delivery/EXAMPLE-GAME.zip, manifest checksums verified against the files on disk
+→ order assets unmodified; the 2 unmatched NPC clips stayed out of the package
 ```
 
 Both halves are covered. The main suite pins a non-existent ffmpeg binary, so it
@@ -89,6 +94,7 @@ and skips cleanly where ffmpeg is absent. CI runs the whole matrix both ways on
 | 5 | Tests, demo order, docs, prompt library | done |
 | 5b | ffmpeg path coverage; fixed 3 defects it found (see DECISIONS #17) | done |
 | 5c | Local-model path: `local_llm` provider, resident TTS server, keyless local ASR, whisper.cpp wrapper, `docs/11-RUNNING-LOCAL.md` | done |
+| 5d | Audit trail records creation (`CLEARED`/`CLONED`), not only deletion; `purge` declines cleanly with no terminal | done |
 | 6 | First real order with a live provider | **next** |
 | 7 | Second title, second engine — prove the target adapters | not started |
 | 8 | Local model path, for cost and privacy | not started |

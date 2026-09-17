@@ -279,7 +279,14 @@ def cmd_purge(args: argparse.Namespace, cfg: Config, log: Logger) -> int:
         for voice in voices:
             print(f"  - ORIGINAL SAMPLES in {order.resolve(voice.samples_dir)}")
     if not args.yes:
-        answer = input("\nType the order ID to confirm: ").strip()
+        try:
+            answer = input("\nType the order ID to confirm: ").strip()
+        except EOFError:
+            # Run from cron, a script or a pipe. Refusing is the safe default:
+            # an unattended purge that guesses "yes" destroys a customer's clone.
+            log.error("purge needs confirmation but there is no terminal to ask on")
+            print("Re-run it interactively, or pass --yes if you really mean it unattended.")
+            return 1
         if answer != order.order_id:
             print("Aborted — nothing was deleted.")
             return 1
