@@ -73,3 +73,35 @@ Discovered by a test failing for the right reason.
 contains `items`, `items_page`, `column_values`, `updates` or `assets`. This is
 a listing claim and a security-review claim, so it gets an enforcement mechanism
 rather than a code-review convention. Cheap next to a network round trip.
+
+## ADR-010 — Template Guard and Board Schema Auditor are the same product
+**Date:** 2026-09-17 · **Status:** OPEN — needs the product owner's decision
+Two sessions built the same idea the same day without knowing. The other thread
+(`monday-billable-hours/`, PR #17) screened it as *Candidate 1 — Board Schema
+Auditor*, recommended it, and specified it **read-only and client-side with no
+backend**, because that minimises the marketplace security review for a solo
+builder. This thread built it **read-write with an Express server**, because
+scheduled drift monitoring cannot run in a browser tab.
+
+That is a real conflict, not an oversight on either side: the other thread had
+explicitly logged the retention-vs-shape tension as *unresolved and the most
+likely way this idea fails*, and this thread resolved it by default without
+knowing a debate existed.
+
+Neither shape is obviously wrong. The diff engine is pure and ships in either.
+Full analysis and a recommendation: `docs/03-merge-with-board-schema-auditor.md`.
+
+**What would settle it:** the product owner picking a shape, after running the
+one gate item that can kill both — a ~20-minute marketplace check that no
+equivalent app already exists. No Claude session on this setup can run that
+check; `monday.com` is blocked by the network egress policy for both threads.
+
+## ADR-011 — The read-only claim is currently forfeited, and that was not deliberate
+**Date:** 2026-09-17 · **Status:** accepted as a finding; the fix is ADR-010's decision
+`boards:write` plus three mutations (`create_column`, `create_group`,
+`change_column_title`) buy three conveniences. The highest-severity finding this
+app produces — a mis-wired connect column — is already manual by ADR-006's
+separate reasoning, so the writes do not buy the thing that matters most. They
+cost the "never writes to your boards" claim in full, and enlarge every security
+question at review. Worth stating plainly so the trade is visible when the shape
+is chosen, rather than discovered at submission.

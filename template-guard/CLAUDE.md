@@ -11,7 +11,20 @@ configuration, diffs a duplicate against it, and tells the user exactly what
 broke.
 
 Lives in `template-guard/` inside the `boxdrank` repo. Nothing outside that
-directory is part of this project — do not touch the rest of the repo.
+directory is part of this project — do not touch the rest of the repo, with one
+exception you must read first.
+
+## Read this before anything else
+
+**This app is the same product as *Board Schema Auditor* in
+`monday-billable-hours/`** (branch `claude/monday-billable-hours-app-nv00q4`,
+PR #17). That thread did the market research and set a gate; this one built the
+code without seeing it. The two disagree on product shape — that thread
+specified read-only and client-side, this one is read-write with a server.
+
+`docs/03-merge-with-board-schema-auditor.md` has the full conflict and a
+recommendation. **The shape is an open decision (ADR-010). Do not add features
+to `repair/`, `server/` or `drift/` until it is settled** — that work may be cut.
 
 ## Hard rules
 
