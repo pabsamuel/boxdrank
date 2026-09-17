@@ -12,8 +12,10 @@ import QRCode from 'qrcode';
 import { ensureCert, lanAddress } from './certs.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const HTTP_PORT = Number(process.env.LG_HTTP_PORT || 8080);
-const HTTPS_PORT = Number(process.env.LG_HTTPS_PORT || 8443);
+// Reassigned if the preferred port is already taken; the QR code and
+// /api/info both read these, so the phone always gets the real one.
+let HTTP_PORT = Number(process.env.LG_HTTP_PORT || 8080);
+let HTTPS_PORT = Number(process.env.LG_HTTPS_PORT || 8443);
 
 /* ------------------------------------------------------------ static files */
 
@@ -118,6 +120,9 @@ function announce(room) {
 
 function attachWs(server) {
   const wss = new WebSocketServer({ server, path: '/ws' });
+  // Without this, any server error is re-emitted here with no listener and
+  // takes the process down as an unhandled 'error' event.
+  wss.on('error', (err) => console.error(`  websocket error: ${err.message}`));
   wss.on('connection', (sock) => {
     sock.lgId = nextId++;
     sock.isAlive = true;
@@ -175,22 +180,62 @@ function attachWs(server) {
 
 /* ---------------------------------------------------------------- startup */
 
-const tls = ensureCert();
+const tls = await ensureCert();
 const HAS_TLS = Boolean(tls);
 
-const httpServer = http.createServer((req, res) => handle(req, res, false));
-attachWs(httpServer);
-httpServer.listen(HTTP_PORT, () => {
-  console.log(`  display   http://localhost:${HTTP_PORT}/`);
-});
-
-if (tls) {
-  const httpsServer = https.createServer(tls, (req, res) => handle(req, res, true));
-  attachWs(httpsServer);
-  httpsServer.listen(HTTPS_PORT, () => {
-    console.log(`  phone     https://${lanAddress()}:${HTTPS_PORT}/phone   (self-signed: tap "Advanced -> Proceed" once)`);
-    console.log(`\n  WebXR needs HTTPS, so the QR code always points at the https URL.`);
+/**
+ * Listen, stepping to the next port if something else already has this one.
+ *
+ * Port 8080 is the most contested number in local development — a stray dev
+ * server on it used to make this exit with an EADDRINUSE stack trace, which
+ * reads as "the light gun is broken" rather than "pick another port".
+ */
+function listenWithFallback(server, preferred, label, tries = 12) {
+  return new Promise((resolve, reject) => {
+    let port = preferred;
+    let attempts = 0;
+    const attempt = () => {
+      server.once('error', (err) => {
+        if (err.code !== 'EADDRINUSE' || ++attempts >= tries) {
+          reject(err);
+          return;
+        }
+        if (attempts === 1) {
+          console.log(`  note: port ${preferred} is already in use by something else — finding a free one`);
+        }
+        port += 1;
+        attempt();
+      });
+      server.listen(port, () => resolve(port));
+    };
+    attempt();
   });
+}
+
+const httpServer = http.createServer((req, res) => handle(req, res, false));
+const httpsServer = tls ? https.createServer(tls, (req, res) => handle(req, res, true)) : null;
+
+// Bind first, attach WebSockets second: a WebSocketServer bound to a socket
+// that then fails to listen turns a recoverable port clash into a crash.
+try {
+  HTTP_PORT = await listenWithFallback(httpServer, HTTP_PORT, 'http');
+  if (httpsServer) HTTPS_PORT = await listenWithFallback(httpsServer, HTTPS_PORT, 'https');
+} catch (err) {
+  console.error(`\n  could not start: ${err.message}`);
+  console.error('  set LG_HTTP_PORT / LG_HTTPS_PORT to choose ports explicitly.\n');
+  process.exit(1);
+}
+
+attachWs(httpServer);
+if (httpsServer) attachWs(httpsServer);
+
+console.log(`\n  display   http://localhost:${HTTP_PORT}/`);
+if (httpsServer) {
+  console.log(`  phone     https://${lanAddress()}:${HTTPS_PORT}/phone   (self-signed: tap "Advanced -> Proceed" once)`);
+  console.log('\n  WebXR needs HTTPS, so the QR code always points at the https URL.');
 } else {
   console.log('  !! openssl not available: HTTPS disabled, WebXR aiming will not work from a phone.');
+}
+if (HTTP_PORT !== Number(process.env.LG_HTTP_PORT || 8080)) {
+  console.log(`\n  (open the display on ${HTTP_PORT}, not 8080 — 8080 was taken)`);
 }
