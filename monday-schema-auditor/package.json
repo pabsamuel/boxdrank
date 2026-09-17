@@ -7,8 +7,7 @@
   "license": "MIT",
   "scripts": {
     "test": "node --test \"test/*.test.js\"",
-    "build": "esbuild src/app/main.js --bundle --format=esm --outfile=dist/main.js --minify",
-    "dev": "esbuild src/app/main.js --bundle --format=esm --outfile=dist/main.js --servedir=src/app",
+    "build": "node scripts/build.js",
     "demo": "node scripts/serve.js"
   },
   "dependencies": {
