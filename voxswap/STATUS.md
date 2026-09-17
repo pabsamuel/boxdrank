@@ -6,7 +6,7 @@
 ## Current state
 
 **v0.1.0 — the pipeline is complete and runs end to end offline.** Ten stages,
-six provider adapters, five target adapters, 163 tests green on Python
+six provider adapters, five target adapters, 167 tests green on Python
 3.10/3.11/3.12, with and without ffmpeg. **It can run fully offline** —
 transcription, translation and voice cloning all have a local path. No real *provider* has been exercised
 against a real account yet — that is the next milestone and it needs an API key,
@@ -45,7 +45,9 @@ Either way: write down what broke. That list is the v0.2 backlog.
 | Claude translation adapter | **unverified** | same |
 | `local_llm` translation (llama.cpp/Ollama) | done | 22 tests against a real in-process HTTP server |
 | Local voice, server mode | done | 9 tests in `tests/test_local_voice.py` |
-| `tools/local/tts_server.py` + XTTS engine | **unverified** | the server is exercised by its protocol tests; the XTTS engine itself needs a machine with the model installed |
+| `tools/local/tts_server.py` (resident server) | done | ran a real order end to end against a live model — see below |
+| `engines/piper.py` | done | 4 tests, plus the `DEMO-LOCAL` run below |
+| `engines/xtts.py` | **unverified** | the server around it is now proven; the XTTS engine itself needs a machine that can fetch the model |
 | `tools/local/whisper_cpp.py` | **unverified** | needs whisper.cpp built locally |
 
 "Unverified" means the code is written and imports cleanly, but has never been
@@ -56,13 +58,34 @@ drift. All of them are env-overridable for exactly this reason.
 
 ```
 python3 -m unittest discover -s tests -t .
-→ 163 tests, OK, ~45s, no network, no API keys
+→ 167 tests, OK, ~45s, no network, no API keys
 
 python3 tools/make_example.py && python3 -m voxswap run EXAMPLE-GAME
 → 10 stages, 0.4s, 4/4 lines at 100% QC, median slot error 0 ms
 → delivery/EXAMPLE-GAME.zip, manifest checksums verified against the files on disk
 → order assets unmodified; the 2 unmatched NPC clips stayed out of the package
 ```
+
+### First run against a real model
+
+An order (`DEMO-LOCAL`) whose audio is real speech rather than test tones: the
+game's dialogue in one Piper voice, the customer in another, the consent phrase
+actually spoken. Synthesised through the resident server, no network, no key.
+
+```
+6 lines synthesised in ~1s   (model loaded once, not per line)
+consent gate passed on a real 16s spoken phrase
+QC, first pass:  median slot error 353 ms, 5 of 6 outside tolerance
+```
+
+The overflow was real, not a bug: the replacement voice speaks more slowly than
+the one it replaces, so every line ran long. Nothing was cut — QC named each
+line and the amount. Raising `options.max_stretch` to 1.35 and re-running from
+`master` brought it to **104 ms median, 1 of 6 outstanding**, reusing every take
+rather than re-synthesising.
+
+Piper cannot clone, so this proves the local *path* end to end, not the cloning
+model. That still needs XTTS on a machine that can fetch it.
 
 Both halves are covered. The main suite pins a non-existent ffmpeg binary, so it
 always exercises the stdlib fallbacks; `tests/test_ffmpeg_paths.py` (12 tests)

@@ -163,6 +163,37 @@ If you want to try it anyway, that is a 15-line file:
 and `--engine yourmodule` runs it. Copy `engines/xtts.py` and swap the two
 calls. Check the model's current API — this area changes fast.
 
+### Piper — when you do not need a clone
+
+`engines/piper.py` is the opposite trade to XTTS: a line synthesises in well
+under a second on a plain CPU, the voices are 60–140 MB instead of two
+gigabytes, and there is no torch and no GPU anywhere.
+
+```bash
+pip install piper-tts
+# voices: the releases at github.com/rhasspy/piper, or the piper-voices repo
+python3 tools/local/tts_server.py --engine piper --port 8123 \
+    --option model=/path/en-us-ryan-high.onnx --option preset=yes
+```
+
+What it cannot do is clone. A Piper voice is a fixed speaker baked into the
+model file, so the customer's reference recording has nowhere to go. That makes
+it wrong for the headline feature and right for three real jobs:
+
+* **previewing an order** — hear the timing, the slot fits and the install
+  layout of a whole game before paying a cloning provider per line;
+* **roles nobody asked to be cloned** — narrators, announcers, incidental NPCs;
+* **a machine with no GPU**, where XTTS would take days.
+
+Because silently ignoring the reference clip would ship a paying customer a game
+in a stranger's voice, the engine refuses to do it by accident: without
+`--option preset=yes` it raises instead of synthesising. Multi-speaker models
+(LibriTTS carries 904) take `--option speaker=<id>`.
+
+Expect to reach for `options.max_stretch`. A preset voice has its own pace, and
+if it is slower than the actor it replaces every line overflows its slot — QC
+will tell you exactly which ones and by how much.
+
 ### Getting a good local clone
 
 The model matters less than the input. In order of impact:

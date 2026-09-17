@@ -6,6 +6,13 @@ delivery/
 archive/
 .voices/
 
+# Rendered audio, e.g. a before/after comparison cut for a demo. Send these to
+# whoever asked for them; they do not belong in the history.
+*.wav
+*.mp3
+*.flac
+!tests/fixtures/**
+
 # Secrets
 .env
 
