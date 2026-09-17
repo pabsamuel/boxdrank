@@ -1,0 +1,153 @@
+:root {
+  --bg: #0b0d12;
+  --panel: rgba(12, 16, 24, 0.78);
+  --fg: #e9eef7;
+  --dim: #8b96ab;
+  --accent: #ff4d3d;
+  --good: #35d07f;
+  --warn: #ffb020;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  user-select: none;
+  touch-action: manipulation;
+  overscroll-behavior: none;
+}
+
+/* In an AR session the body must be transparent so the camera feed shows. */
+body.in-ar, body.in-ar #overlay { background: transparent; }
+
+#overlay { height: 100%; }
+.screen { height: 100%; display: flex; flex-direction: column; }
+.hidden { display: none !important; }
+
+/* ------------------------------------------------------------- start screen */
+
+#startScreen {
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+}
+h1 {
+  margin: 0;
+  font-size: 38px;
+  letter-spacing: 6px;
+  font-weight: 800;
+}
+h1 span { color: var(--accent); }
+.room { margin: 0; color: var(--dim); letter-spacing: 2px; }
+.room b { color: var(--fg); font-size: 22px; letter-spacing: 6px; }
+.caps {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--dim);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 12px 16px;
+  min-width: 260px;
+  text-align: left;
+}
+.caps .ok { color: var(--good); }
+.caps .no { color: var(--accent); }
+.hint { color: var(--dim); font-size: 13px; max-width: 320px; margin: 4px 0 0; line-height: 1.5; }
+
+button { font-family: inherit; font-weight: 700; border: 0; cursor: pointer; }
+.big {
+  width: 100%;
+  max-width: 340px;
+  padding: 18px;
+  border-radius: 14px;
+  font-size: 18px;
+  letter-spacing: 2px;
+}
+.primary { background: var(--accent); color: #fff; }
+.ghost { background: rgba(255, 255, 255, 0.08); color: var(--fg); }
+
+/* -------------------------------------------------------------- controller */
+
+#topBar, #bottomBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--panel);
+  backdrop-filter: blur(6px);
+}
+#topBar { justify-content: space-between; font-size: 13px; letter-spacing: 2px; }
+#bottomBar { justify-content: center; flex-wrap: wrap; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+
+.pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+.pill.ok { background: rgba(53, 208, 127, 0.22); color: var(--good); }
+.pill.warn { background: rgba(255, 176, 32, 0.22); color: var(--warn); }
+.pill.bad { background: rgba(255, 77, 61, 0.22); color: var(--accent); }
+
+.chip {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--fg);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+
+.instruction {
+  position: absolute;
+  top: 46px;
+  left: 12px;
+  right: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--panel);
+  text-align: center;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  line-height: 1.4;
+}
+
+/* The trigger is everything between the bars: impossible to miss in the dark. */
+.trigger {
+  flex: 1;
+  margin: 0;
+  width: 100%;
+  background: radial-gradient(circle at 50% 45%, rgba(255, 77, 61, 0.30), rgba(255, 77, 61, 0.10) 60%, rgba(255, 77, 61, 0.04));
+  color: var(--fg);
+  font-size: 26px;
+  letter-spacing: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.trigger:active, .trigger.down {
+  background: radial-gradient(circle at 50% 45%, rgba(255, 77, 61, 0.65), rgba(255, 77, 61, 0.2) 70%);
+}
+.trigger.empty { color: var(--warn); }
+
+.diag {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 68px;
+  margin: 0;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #9ef7c6;
+  font: 11px/1.45 ui-monospace, "SF Mono", Menlo, monospace;
+  white-space: pre-wrap;
+}
