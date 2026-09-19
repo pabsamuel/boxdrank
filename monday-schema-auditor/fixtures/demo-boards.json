@@ -1,104 +1,371 @@
 {
-  "_comment": "Demo data for opening src/app/index.html without a monday account. Modelled on an agency that built 8 client boards from one template and let them drift. Every finding kind the engine can produce appears at least once.",
+  "_comment": "Demo data for opening src/app/index.html without a monday account. Modelled on an agency that built client boards from one template and let them drift. Every finding kind the engine can produce appears at least once. The last two boards are NOT from the template — they are there so the similarity filter has something real to exclude, which is what a genuine account looks like.",
   "referenceBoardId": "100",
   "boards": [
     {
       "id": "100",
       "name": "▸ Client Template",
       "columns": [
-        { "id": "c1", "title": "Owner", "type": "people" },
-        { "id": "c2", "title": "Status", "type": "status" },
-        { "id": "c3", "title": "Due date", "type": "date" },
-        { "id": "c4", "title": "Budget", "type": "numbers" },
-        { "id": "c5", "title": "Billable", "type": "checkbox" }
+        {
+          "id": "c1",
+          "title": "Owner",
+          "type": "people"
+        },
+        {
+          "id": "c2",
+          "title": "Status",
+          "type": "status"
+        },
+        {
+          "id": "c3",
+          "title": "Due date",
+          "type": "date"
+        },
+        {
+          "id": "c4",
+          "title": "Budget",
+          "type": "numbers"
+        },
+        {
+          "id": "c5",
+          "title": "Billable",
+          "type": "checkbox"
+        }
       ]
     },
     {
       "id": "101",
       "name": "Acme Corp",
       "columns": [
-        { "id": "d1", "title": "Owner", "type": "people" },
-        { "id": "d2", "title": "Status", "type": "status" },
-        { "id": "d3", "title": "Due date", "type": "date" },
-        { "id": "d4", "title": "Budget", "type": "numbers" },
-        { "id": "d5", "title": "Billable", "type": "checkbox" }
+        {
+          "id": "d1",
+          "title": "Owner",
+          "type": "people"
+        },
+        {
+          "id": "d2",
+          "title": "Status",
+          "type": "status"
+        },
+        {
+          "id": "d3",
+          "title": "Due date",
+          "type": "date"
+        },
+        {
+          "id": "d4",
+          "title": "Budget",
+          "type": "numbers"
+        },
+        {
+          "id": "d5",
+          "title": "Billable",
+          "type": "checkbox"
+        }
       ]
     },
     {
       "id": "102",
       "name": "Northwind Trading",
       "columns": [
-        { "id": "e1", "title": "Owner", "type": "people" },
-        { "id": "e2", "title": "Status", "type": "status" },
-        { "id": "e3", "title": "Due date", "type": "date" },
-        { "id": "e4", "title": "Budget", "type": "text" },
-        { "id": "e5", "title": "Billable", "type": "checkbox" }
+        {
+          "id": "e1",
+          "title": "Owner",
+          "type": "people"
+        },
+        {
+          "id": "e2",
+          "title": "Status",
+          "type": "status"
+        },
+        {
+          "id": "e3",
+          "title": "Due date",
+          "type": "date"
+        },
+        {
+          "id": "e4",
+          "title": "Budget",
+          "type": "text"
+        },
+        {
+          "id": "e5",
+          "title": "Billable",
+          "type": "checkbox"
+        }
       ]
     },
     {
       "id": "103",
       "name": "Globex",
       "columns": [
-        { "id": "f1", "title": "Owner", "type": "people" },
-        { "id": "f2", "title": "Status", "type": "status" },
-        { "id": "f3", "title": "Due Date", "type": "date" },
-        { "id": "f4", "title": "Budget", "type": "numbers" },
-        { "id": "f5", "title": "Billable", "type": "checkbox" }
+        {
+          "id": "f1",
+          "title": "Owner",
+          "type": "people"
+        },
+        {
+          "id": "f2",
+          "title": "Status",
+          "type": "status"
+        },
+        {
+          "id": "f3",
+          "title": "Due Date",
+          "type": "date"
+        },
+        {
+          "id": "f4",
+          "title": "Budget",
+          "type": "numbers"
+        },
+        {
+          "id": "f5",
+          "title": "Billable",
+          "type": "checkbox"
+        }
       ]
     },
     {
       "id": "104",
       "name": "Initech",
       "columns": [
-        { "id": "g1", "title": "Owner", "type": "people" },
-        { "id": "g2", "title": "Stage", "type": "status" },
-        { "id": "g3", "title": "Due date", "type": "date" },
-        { "id": "g4", "title": "Budget", "type": "numbers" }
+        {
+          "id": "g1",
+          "title": "Owner",
+          "type": "people"
+        },
+        {
+          "id": "g2",
+          "title": "Stage",
+          "type": "status"
+        },
+        {
+          "id": "g3",
+          "title": "Due date",
+          "type": "date"
+        },
+        {
+          "id": "g4",
+          "title": "Budget",
+          "type": "numbers"
+        }
       ]
     },
     {
       "id": "105",
       "name": "Umbrella Health",
       "columns": [
-        { "id": "h1", "title": "Owner", "type": "people" },
-        { "id": "h2", "title": "Status", "type": "status" },
-        { "id": "h3", "title": "Due date", "type": "date" },
-        { "id": "h4", "title": "Budget", "type": "numbers" },
-        { "id": "h5", "title": "Billable", "type": "checkbox" },
-        { "id": "h6", "title": "Internal notes", "type": "long-text" },
-        { "id": "h7", "title": "Risk", "type": "status" }
+        {
+          "id": "h1",
+          "title": "Owner",
+          "type": "people"
+        },
+        {
+          "id": "h2",
+          "title": "Status",
+          "type": "status"
+        },
+        {
+          "id": "h3",
+          "title": "Due date",
+          "type": "date"
+        },
+        {
+          "id": "h4",
+          "title": "Budget",
+          "type": "numbers"
+        },
+        {
+          "id": "h5",
+          "title": "Billable",
+          "type": "checkbox"
+        },
+        {
+          "id": "h6",
+          "title": "Internal notes",
+          "type": "long-text"
+        },
+        {
+          "id": "h7",
+          "title": "Risk",
+          "type": "status"
+        }
       ]
     },
     {
       "id": "106",
       "name": "Soylent Foods",
       "columns": [
-        { "id": "i1", "title": "Budget", "type": "numbers" },
-        { "id": "i2", "title": "Owner", "type": "people" },
-        { "id": "i3", "title": "Status", "type": "status" },
-        { "id": "i4", "title": "Due date", "type": "date" },
-        { "id": "i5", "title": "Billable", "type": "checkbox" }
+        {
+          "id": "i1",
+          "title": "Budget",
+          "type": "numbers"
+        },
+        {
+          "id": "i2",
+          "title": "Owner",
+          "type": "people"
+        },
+        {
+          "id": "i3",
+          "title": "Status",
+          "type": "status"
+        },
+        {
+          "id": "i4",
+          "title": "Due date",
+          "type": "date"
+        },
+        {
+          "id": "i5",
+          "title": "Billable",
+          "type": "checkbox"
+        }
       ]
     },
     {
       "id": "107",
       "name": "Hooli",
       "columns": [
-        { "id": "j1", "title": "Owner ", "type": "people" },
-        { "id": "j2", "title": "Status", "type": "text" },
-        { "id": "j3", "title": "Deadline", "type": "date" },
-        { "id": "j4", "title": "Budget", "type": "numbers" }
+        {
+          "id": "j1",
+          "title": "Owner ",
+          "type": "people"
+        },
+        {
+          "id": "j2",
+          "title": "Status",
+          "type": "text"
+        },
+        {
+          "id": "j3",
+          "title": "Deadline",
+          "type": "date"
+        },
+        {
+          "id": "j4",
+          "title": "Budget",
+          "type": "numbers"
+        }
       ]
     },
     {
       "id": "108",
       "name": "Yaşar İnşaat",
       "columns": [
-        { "id": "k1", "title": "Sorumlu", "type": "people" },
-        { "id": "k2", "title": "Durum", "type": "status" },
-        { "id": "k3", "title": "Son tarih", "type": "date" },
-        { "id": "k4", "title": "Bütçe", "type": "numbers" },
-        { "id": "k5", "title": "Faturalanabilir", "type": "checkbox" }
+        {
+          "id": "k1",
+          "title": "Sorumlu",
+          "type": "people"
+        },
+        {
+          "id": "k2",
+          "title": "Durum",
+          "type": "status"
+        },
+        {
+          "id": "k3",
+          "title": "Son tarih",
+          "type": "date"
+        },
+        {
+          "id": "k4",
+          "title": "Bütçe",
+          "type": "numbers"
+        },
+        {
+          "id": "k5",
+          "title": "Faturalanabilir",
+          "type": "checkbox"
+        }
+      ]
+    },
+    {
+      "id": "200",
+      "name": "HR — Onboarding",
+      "columns": [
+        {
+          "id": "m1",
+          "title": "New hire",
+          "type": "people"
+        },
+        {
+          "id": "m2",
+          "title": "Start date",
+          "type": "date"
+        },
+        {
+          "id": "m3",
+          "title": "Equipment",
+          "type": "status"
+        },
+        {
+          "id": "m4",
+          "title": "Contract signed",
+          "type": "checkbox"
+        },
+        {
+          "id": "m5",
+          "title": "Buddy",
+          "type": "people"
+        },
+        {
+          "id": "m6",
+          "title": "IT tickets",
+          "type": "numbers"
+        },
+        {
+          "id": "m7",
+          "title": "Notes",
+          "type": "long-text"
+        }
+      ]
+    },
+    {
+      "id": "201",
+      "name": "Marketing content calendar",
+      "columns": [
+        {
+          "id": "n1",
+          "title": "Owner",
+          "type": "people"
+        },
+        {
+          "id": "n2",
+          "title": "Status",
+          "type": "status"
+        },
+        {
+          "id": "n3",
+          "title": "Channel",
+          "type": "status"
+        },
+        {
+          "id": "n4",
+          "title": "Publish date",
+          "type": "date"
+        },
+        {
+          "id": "n5",
+          "title": "Copy",
+          "type": "long-text"
+        },
+        {
+          "id": "n6",
+          "title": "Asset link",
+          "type": "link"
+        },
+        {
+          "id": "n7",
+          "title": "Impressions",
+          "type": "numbers"
+        },
+        {
+          "id": "n8",
+          "title": "Campaign",
+          "type": "text"
+        }
       ]
     }
   ]

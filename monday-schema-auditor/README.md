@@ -22,7 +22,11 @@ nothing.
 
 ## What it reports
 
-Pick a reference board; every other board is compared against it.
+Pick a reference board. The app scores every other board on how much of the
+reference it reproduces and pre-selects the ones that look like they came from
+it — an account has HR boards and sales boards too, and comparing those against
+a client template produces findings that are all true and all meaningless. Every
+board stays listed with its match percentage, so you can tick or untick freely.
 
 | Finding | Severity | Why |
 |---|---|---|
@@ -65,11 +69,14 @@ kind.
 
 ### Verified working
 
-Driven in headless Chromium on 17 Sep 2026: demo data loads, the audit runs
-(8 boards compared, 1 clean, 4 report-breaking, 9 worth a look, 3 informational),
-worst-first ranking puts Hooli top and the clean board last, CSV downloads with
-17 rows and correct quoting, no console errors, no horizontal overflow at 375 px,
-dark mode renders.
+Driven in headless Chromium on 19 Sep 2026: demo data loads, 7 of 10 boards are
+pre-selected and the HR, marketing and translated boards are left out but stay
+visible, the search box keeps focus while typing, ticking the translated board
+by hand brings it into the run, the audit reports 8 compared / 1 clean / 4
+report-breaking / 9 worth a look / 3 informational, worst-first ranking puts
+Hooli top and the clean board last, CSV downloads with correct quoting and no
+live formula cells, no console errors, no horizontal overflow at 375 px, dark
+mode renders.
 
 ## Run the tests
 
@@ -77,7 +84,7 @@ dark mode renders.
 npm test
 ```
 
-46 tests, no network, no account, no monday dependency. The diff engine is pure
+62 tests, no network, no account, no monday dependency. The diff engine is pure
 functions over plain objects, which is why it can be tested at all.
 
 ## Architecture
@@ -86,6 +93,7 @@ functions over plain objects, which is why it can be tested at all.
 src/core/     zero-dependency, platform-agnostic, 100% of the product logic
   normalize.js  title folding (case, punctuation, accents, Turkish dotted I)
   diff.js       three-pass column matching and finding generation
+  similarity.js which boards plausibly share the reference's template
   report.js     summary counts, board ranking, CSV
 src/app/
   monday-source.js  the ONLY file that talks to monday
@@ -175,7 +183,12 @@ version 2025-10, and the auditor does not need it.
 - **Column settings are not compared.** Two Status columns with different labels
   both read as `status`. This is the most likely next feature and it is
   deliberately not in v1.
-- **One reference board at a time.** No auto-grouping of boards by template.
+- **One reference board at a time.** You audit one template family per run.
+- **A fully translated board scores 0% and is not pre-selected.** Same template,
+  every column renamed into another language, shares no titles with the
+  reference — on names alone that is indistinguishable from an unrelated board,
+  and nothing else in the fetched data breaks the tie. It stays in the list so
+  you can tick it, and once selected the rename detection reports it correctly.
 - **No continuous monitoring.** This is a point-in-time audit you run, not a
   watcher that alerts you. That is a real commercial weakness, not an oversight —
   see below.

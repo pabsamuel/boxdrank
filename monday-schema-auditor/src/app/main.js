@@ -10,6 +10,7 @@
 
 import { diffBoards } from '../core/diff.js';
 import { summarize, rankBoards, toCsv } from '../core/report.js';
+import { scoreBoards } from '../core/similarity.js';
 import { fetchBoards, looksLikeMondayContext } from './monday-source.js';
 
 const SEVERITY_LABEL = { high: 'Breaks reports', medium: 'Worth a look', low: 'Informational' };
@@ -23,15 +24,34 @@ const KIND_LABEL = {
   order: 'Different order',
 };
 
-/** All mutable UI state. Kept in one object so render() is a pure function of it. */
+/**
+ * All mutable UI state. Kept in one object so render() is a pure function of it.
+ *
+ * The search box is deliberately NOT in here. Filtering the board list is a
+ * view concern with no bearing on the audit, and routing each keystroke through
+ * a re-render would blur the input on every character.
+ */
 const state = {
   source: 'loading',
   boards: [],
   referenceId: null,
+  scored: [],
+  selectedIds: new Set(),
   results: null,
   error: null,
   status: '',
 };
+
+/**
+ * Rescores every board against the current reference and pre-selects the ones
+ * that look like they came from it. Called whenever the reference changes.
+ */
+function recomputeScores() {
+  const reference = referenceBoard();
+  state.scored = reference ? scoreBoards(reference, state.boards) : [];
+  state.selectedIds = new Set(state.scored.filter((entry) => entry.suggested).map((entry) => entry.board.id));
+  state.results = null;
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -41,6 +61,63 @@ function el(tag, className, text) {
   if (className) node.className = className;
   if (text !== undefined) node.textContent = text;
   return node;
+}
+
+/**
+ * The board picker: which boards get audited.
+ *
+ * Boards below the similarity threshold are listed but unticked rather than
+ * hidden. An audit tool that quietly drops boards from its own scope would
+ * undermine the one thing it is for — and a translated template, which scores
+ * zero on names alone, can only be recovered by the user seeing it here.
+ */
+function renderSelection() {
+  const panel = el('section', 'selection');
+
+  const head = el('header', 'selection-head');
+  head.append(el('h2', null, `Auditing ${state.selectedIds.size} of ${state.scored.length} boards`));
+
+  const search = document.createElement('input');
+  search.type = 'search';
+  search.placeholder = 'Filter boards…';
+  search.setAttribute('aria-label', 'Filter boards');
+  head.append(search);
+  panel.append(head);
+
+  const list = el('div', 'board-list');
+  for (const { board, score, suggested } of state.scored) {
+    const row = el('label', 'board-row');
+    row.dataset.name = board.name.toLowerCase();
+
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.checked = state.selectedIds.has(board.id);
+    box.addEventListener('change', () => {
+      if (box.checked) state.selectedIds.add(board.id);
+      else state.selectedIds.delete(board.id);
+      // Selection changes invalidate any report already on screen.
+      state.results = null;
+      render();
+    });
+
+    row.append(box, el('span', 'board-row-name', board.name));
+    row.append(
+      el('span', `match ${suggested ? 'yes' : 'no'}`, `${Math.round(score * 100)}% match`),
+    );
+    list.append(row);
+  }
+  panel.append(list);
+
+  // Filtering touches the DOM directly instead of going through render(), so
+  // the input keeps focus and the caret while the user types.
+  search.addEventListener('input', () => {
+    const term = search.value.trim().toLowerCase();
+    for (const row of list.children) {
+      row.hidden = term !== '' && !row.dataset.name.includes(term);
+    }
+  });
+
+  return panel;
 }
 
 function renderSummary(summary) {
@@ -127,11 +204,12 @@ function render() {
   }
   select.addEventListener('change', (event) => {
     state.referenceId = event.target.value;
-    state.results = null;
+    recomputeScores();
     render();
   });
 
   const run = el('button', 'primary', 'Run audit');
+  run.disabled = state.selectedIds.size === 0;
   run.addEventListener('click', runAudit);
 
   controls.append(label, select, run);
@@ -142,10 +220,18 @@ function render() {
     controls.append(csv);
   }
   app.append(controls);
+  app.append(renderSelection());
 
   if (!state.results) {
+    const skipped = state.scored.length - state.selectedIds.size;
     app.append(
-      el('p', 'status', `${state.boards.length} boards loaded. Pick a reference board and run the audit.`),
+      el(
+        'p',
+        'status',
+        skipped > 0
+          ? `${skipped} board${skipped === 1 ? '' : 's'} left out because they do not look like this template. Tick any you want included, then run the audit.`
+          : 'Run the audit when you are ready.',
+      ),
     );
     return;
   }
@@ -163,7 +249,8 @@ function referenceBoard() {
 function runAudit() {
   const reference = referenceBoard();
   if (!reference) return;
-  state.results = diffBoards(reference, state.boards);
+  const selected = state.boards.filter((board) => state.selectedIds.has(board.id));
+  state.results = diffBoards(reference, selected);
   render();
 }
 
@@ -189,6 +276,7 @@ async function loadDemo() {
   state.source = 'demo';
   state.boards = data.boards;
   state.referenceId = data.referenceBoardId;
+  recomputeScores();
 }
 
 async function loadFromMonday() {
@@ -206,6 +294,7 @@ async function loadFromMonday() {
   state.source = 'monday';
   state.boards = boards;
   state.referenceId = boards[0]?.id ?? null;
+  recomputeScores();
 }
 
 async function start() {
