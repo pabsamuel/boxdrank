@@ -457,6 +457,25 @@
 
   document.getElementById("box").addEventListener("click", turnPage);
 
+  /** Whoever the microphone is listening to — the user names them, and we remember it. */
+  function micName() {
+    const typed = (el.name.value || "").trim();
+    return (typed || "SEN").toUpperCase();
+  }
+
+  function micId() {
+    const n = micName();
+    let h = 0;
+    for (let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) | 0;
+    return Math.abs(h) % 64;                         // same name, same sigil, every time
+  }
+
+  try { el.name.value = localStorage.getItem("retrosubs.name") || ""; } catch (e) {}
+  el.name.oninput = () => {
+    try { localStorage.setItem("retrosubs.name", el.name.value); } catch (e) {}
+    if (running) speaker(micName(), micId());
+  };
+
   el.size.onchange = () => { el.line.style.fontSize = el.size.value + "px"; };
   el.speed.onchange = () => {
     if (!timer) return;
@@ -514,10 +533,48 @@
     el.go.textContent = "BASLAT"; el.go.dataset.on = "0";
   }
 
+  /** True inside an app's built-in browser (Instagram, Twitter, the Claude app...), where iOS
+   *  refuses camera and microphone outright. The fix is not code, it is opening in Safari. */
+  function inAppBrowser() {
+    const ua = navigator.userAgent || "";
+    if (/(FBAN|FBAV|Instagram|Line|Twitter|Snapchat|LinkedIn|Pinterest|WhatsApp|Claude)/i.test(ua)) return true;
+    const ios = /iPhone|iPad|iPod/.test(ua);
+    // Real Safari reports "Version/x Safari"; in-app WebViews usually do not.
+    return ios && /Safari/.test(ua) === false;
+  }
+
+  function accessMessage(err) {
+    const name = (err && err.name) || String(err);
+    if (inAppBrowser()) return "Uygulama ici tarayici izin vermiyor. Paylas > Safari'de Ac.";
+    switch (name) {
+      case "NotAllowedError":
+      case "SecurityError":
+        return "Izin verilmedi. Adres cubugundaki aA > Web Sitesi Ayarlari'ndan Mikrofon ve Kamera'ya Izin Ver.";
+      case "NotFoundError":
+      case "OverconstrainedError":
+        return "Cihaz bulunamadi (kamera/mikrofon yok).";
+      case "NotReadableError":
+        return "Mikrofon baska bir uygulamada acik. Onu kapat ve tekrar bas.";
+      default:
+        return "Erisilemedi: " + name;
+    }
+  }
+
   async function getStream(wantCam) {
-    const constraints = { audio: true };
-    if (wantCam) constraints.video = { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } };
-    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error("no-getusermedia");
+    }
+    const withVideo = { audio: true, video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } };
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(wantCam ? withVideo : { audio: true });
+    } catch (err) {
+      // The camera is the optional half: if only it is blocked, carry on with the microphone.
+      if (!wantCam) throw err;
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      wantCam = false;
+      document.body.dataset.cam = "off";
+      el.status.textContent = "kamera acilamadi, ses devam ediyor";
+    }
     if (wantCam) { el.cam.srcObject = stream; el.cam.play().catch(() => {}); document.body.dataset.cam = "on"; }
     return stream;
   }
@@ -571,7 +628,19 @@
       text = text.trim();
       if (text) say(fin ? punctuate(text) : text, fin);
     };
-    recog.onerror = e => { el.status.textContent = "hata: " + e.error; };
+    recog.onerror = e => {
+      const fatal = ["not-allowed", "service-not-allowed", "language-not-supported", "audio-capture"];
+      if (fatal.includes(e.error)) {
+        // Safari does not always provide recognition; vibe mode always works.
+        el.status.textContent = "tanima yok, vibe moduna gecildi";
+        try { recog.onend = null; recog.stop(); } catch (err) {}
+        recog = null;
+        el.engine.value = "vibe-kana";
+        getStream(document.body.dataset.cam === "on").then(() => vibe("kana")).catch(() => {});
+      } else {
+        el.status.textContent = "hata: " + e.error;
+      }
+    };
     recog.onend = () => { if (running) { try { recog.start(); } catch (err) {} } };
     recog.start();
     el.status.textContent = "dinliyor";
@@ -598,8 +667,9 @@
     idle("Dinliyor...");
     audio();
     if (mode === "real") {
-      // The recogniser opens its own microphone; we only take the camera for the picture.
-      if (withCam) await getStream(true);
+      // Ask for the microphone ourselves: the permission prompt then belongs to this tap, and a
+      // refusal is reported here rather than swallowed by the recogniser.
+      await getStream(withCam);
       real();
     } else {
       await getStream(withCam);
@@ -614,15 +684,24 @@
       await start(wantCam, el.engine.value);
     } catch (err) {
       stopAll();
-      const msg = err && err.message === "unsupported"
-        ? "Bu tarayici konusma tanimayi desteklemiyor, vibe modunu dene."
-        : "Mikrofona erisilemedi (" + (err && err.name ? err.name : err) + ")";
+      let msg;
+      if (err && err.message === "unsupported") {
+        msg = "Bu tarayici konusma tanimayi desteklemiyor. AYAR > MOTOR > vibe kana sec.";
+      } else if (err && err.message === "no-getusermedia") {
+        msg = "Bu tarayici mikrofon vermiyor. Sayfayi Safari'de ac.";
+      } else {
+        msg = accessMessage(err);
+      }
       el.status.textContent = "hata"; idle(msg);
     }
   };
 
   sigil(1);
   el.line.style.fontSize = el.size.value + "px";
+  if (inAppBrowser()) {
+    idle("Uygulama ici tarayicidasin: iOS burada mikrofon ve kamera vermez. Paylas > Safari'de Ac.");
+    el.status.textContent = "safari'de ac";
+  }
 })();
 </script>
 </body>
