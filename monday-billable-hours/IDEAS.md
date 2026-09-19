@@ -208,3 +208,119 @@ screened idea is not a validated idea.
 
 Retention risk #3 is the one to probe hardest. Ask whether they would want this
 *monthly*, and why.
+
+---
+
+# Second screening round — 19 Sep 2026
+
+Run at Samet's instruction: find a new monday idea and **be sure it has not been
+built**. Everything below was researched through web search; monday.com is
+unreachable from this environment, so no marketplace page was opened directly.
+Existence checks lean on the marketplace screenshots in `COMPETITORS.md` and on
+third-party write-ups.
+
+Screening order: does it **do work**? Is it **unserved**? Is it **buildable by
+one person on a $100 budget**?
+
+## Candidate A — Forms that update existing items — **DEAD**
+
+**FACT:** the most-requested feature in monday's history. Community thread
+"Use Forms to edit/update existing items and columns" ran from January 2020 to
+February 2026 — **6+ years, 162–165+ replies** — and is still open.
+
+**FACT:** native WorkForms can only *create* items. The Enterprise-only "Edit
+Form Responses" feature (Jan 2025) lets a person edit their own submission; it
+does not update pre-existing items.
+
+Perfect on demand. Perfect on "does work". **Already built:**
+
+| App | Evidence |
+|---|---|
+| **SuperForm** (Spot-nik) | Marketplace card reads "Advanced Forms: **Update Items**, Subitems & Generate PDFs". **⭐5.0 (88 reviews), 11.2K installs, Best seller.** |
+| Fillout | External builder with native monday integration |
+| BoardBridge | Advanced conditional logic, CC/BCC groups |
+| JotForm | 41 payment integrations, embeds anywhere |
+
+Six years of unmet demand, met by a five-star best-seller. Dead.
+
+## Candidate B — Writing to a Connect Boards column from a form — **DEAD**
+
+**FACT:** native WorkForms cannot use Connect Boards, Mirror, Formula,
+Auto-Number, Dependencies, Time Tracking, Board Relation or Button columns as
+questions at all.
+
+**FACT — a real gap in the category leader:** SuperForm "supports Connect Boards,
+Mirror, and cross-board data in forms" but **cannot write to Connect Boards
+columns via form submission** — it reads and filters with them only.
+
+So "an intake form where the submitter picks an existing client and the new item
+is linked to that client" is genuinely unserved.
+
+**Dead anyway.** It is one field type. Against an 11.2K-install incumbent that
+already does everything else, it is "a minor feature addition to an existing
+app's concept" — the exact wording of monday's rejection criterion. It is a
+feature SuperForm ships in a sprint the moment it matters.
+
+## Candidate C — Multi-page forms and conditional logic — **DEAD**
+
+**FACT:** multi-page forms with step-by-step navigation are not supported on any
+monday plan in 2026. **FACT:** conditional logic is Enterprise-only, section
+level, with no compound AND/OR rules.
+
+Both real. Both already covered by SuperForm, BoardBridge and Fillout. Same
+category, same incumbent, same verdict.
+
+## Candidate D — Turkish e-Fatura / e-Arşiv bridge — **the only survivor, with a fatal unknown**
+
+**Does it do work?** Yes. It produces legally valid invoices from board data.
+
+**Is it served?** **No evidence of any monday.com e-Fatura app exists.** This is
+the one gap found all day that an international competitor will not casually
+close, because it needs Turkish regulatory knowledge and a GİB-accredited
+integrator relationship. A moat, not a feature.
+
+**Is it buildable solo?** Plausibly. GİB accreditation is not obtained directly —
+you integrate an existing entegratör's API (EDM, Mysoft Btrans, NES, Süper
+Entegratör are all established). That is ordinary API work.
+
+**The fatal unknown: is anyone in Türkiye using monday.com?**
+
+- **FACT:** Turkish is one of ~15 supported interface languages, and monday runs
+  Turkish-language marketing pages.
+- **UNKNOWN:** the number of Turkish monday accounts. Searching found no user
+  figures, no Turkish monday partners or resellers, and no Turkish case studies.
+
+The addressable market is "Turkish companies that use monday.com **and** invoice
+through it". That could be a few hundred companies or close to zero, and nothing
+found today distinguishes those two.
+
+**This is not a recommendation to build.** It is the only candidate that got past
+the first two filters, and it dies on a market-size question that costs Samet
+about twenty minutes and cannot be answered from here.
+
+## Candidate E — AI agents / MCP surface — **not for this developer**
+
+**FACT:** monday relaunched in 2026 as an AI work platform: native agents, an
+Agent Builder for developers, an MCP Block for workflows, human-in-the-loop
+approval blocks. **FACT:** Agentalent.ai launched ~Mar 2026 with 17 agents.
+
+Least crowded surface in the ecosystem by an order of magnitude. Also needs a
+backend, LLM inference costs, and an enterprise sales motion. It breaks the $100
+budget on day one and the security-surface argument along with it.
+
+## What the two rounds together say
+
+**FACT:** 850+ live apps, 1.6M installs, ~250,000 customers.
+
+Every candidate that does real work is already held by an app with thousands of
+installs and a five-star rating. Every category that is empty is empty because it
+does not pay. That pattern has now held across two independent screening rounds
+and four product ideas.
+
+**INFERENCE (high confidence):** the remaining gaps in this marketplace are
+either too small to matter or defended by incumbents who can close them in a
+sprint. The exception is a regulatory or regional moat, which is the only barrier
+a well-funded competitor will not step over — and the only such candidate found
+has an unmeasured market.
+
+This is a statement about the marketplace, not about the ideas or the code.
