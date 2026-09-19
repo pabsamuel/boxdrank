@@ -196,9 +196,10 @@
   <div>
     <label for="speed">HIZ</label>
     <select id="speed">
-      <option value="55">yavas</option>
-      <option value="32" selected>normal</option>
-      <option value="18">hizli</option>
+      <option value="140">cok yavas</option>
+      <option value="100">yavas</option>
+      <option value="70" selected>normal</option>
+      <option value="45">hizli</option>
       <option value="0">aninda</option>
     </select>
   </div>
@@ -238,21 +239,21 @@
   function blip() {
     if (el.sound.value !== "1") return;
     const now = performance.now();
-    if (now - lastBlip < 28) return;
+    if (now - lastBlip < 90) return;
     lastBlip = now;
     try {
       const ctx = audio();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "square";
-      osc.frequency.value = 880 + Math.random() * 180;
+      osc.frequency.value = 700 + Math.random() * 90;
       const t = ctx.currentTime;
       gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.06, t + 0.004);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+      gain.gain.exponentialRampToValueAtTime(0.045, t + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
       osc.connect(gain).connect(ctx.destination);
       osc.start(t);
-      osc.stop(t + 0.04);
+      osc.stop(t + 0.055);
     } catch (e) {}
   }
 
@@ -318,9 +319,11 @@
 
   function tick() {
     if (shown < target.length) {
-      const before = shown;
-      shown = Math.max(shown + 1, target.length - 90);   // never lag far behind live speech
-      if (target[before] !== " ") blip();
+      const backlog = target.length - shown;
+      const add = backlog > 180 ? 2 : 1;                 // catch up, but never in bursts
+      const first = target[shown];
+      shown += add;
+      if (first !== " " && (shown & 1) === 0) blip();    // a tick every other character
       paint();
     } else {
       paint();
@@ -336,6 +339,13 @@
   }
 
   el.size.onchange = () => { el.line.style.fontSize = el.size.value + "px"; };
+  el.speed.onchange = () => {
+    if (!timer) return;
+    clearInterval(timer); timer = null;
+    const step = parseInt(el.speed.value, 10);
+    if (step === 0) { shown = target.length; paint(); return; }
+    timer = setInterval(tick, step);
+  };
   el.frame.onchange = () => { document.body.dataset.frame = el.frame.value; };
   el.gear.onclick = () => el.sheet.classList.toggle("open");
 
