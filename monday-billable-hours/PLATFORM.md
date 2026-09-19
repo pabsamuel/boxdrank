@@ -73,7 +73,7 @@ Applies to **every** app, regardless of idea. This is the real gate.
 - **FACT:** Apps whose primary purpose is integrating a third-party product that
   already has an active integration are rejected.
 
-**INFERENCE (high confidence):** For a solo developer with 24–36 hours/month who
+**INFERENCE (high confidence):** For a solo developer who
 builds AI-assisted and states he does not debug unfamiliar platforms quickly, the
 security remediation loop — not the feature work — is the binding constraint on
 ever shipping here. See `NEXT-GATE0.md`.

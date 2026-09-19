@@ -50,7 +50,7 @@ Recording these so they are not re-proposed in three weeks.
 | New board view types (gantt, kanban, calendar, map, workload, chart) | **FACT:** all native. |
 | Critical path | **FACT:** native, auto-identified on the Gantt chart. |
 | Notification digest / overload | Real, documented pain — but needs a backend and a scheduler. Wrong shape: maximum security surface, ongoing cost. |
-| **AI agents (Agentalent.ai)** | **FACT:** launched ~Mar–Apr 2026 with **17 agents** — by far the best supply density in the ecosystem, 17 vs 869 apps. **And it is still wrong for Samet:** it is an enterprise hiring marketplace with contract management and qualification, meaning a sales motion he cannot run; autonomous agents need a backend and LLM inference, which breaks both the security-surface advantage and the budget; and it is far beyond 20 build hours. Noting it plainly because the density is genuinely tempting and chasing it would be a mistake. |
+| **AI agents (Agentalent.ai)** | **FACT:** launched ~Mar–Apr 2026 with **17 agents** — by far the best supply density in the ecosystem, 17 vs 869 apps. **And it is still wrong for Samet:** it is an enterprise hiring marketplace with contract management and qualification, meaning a sales motion he cannot run; autonomous agents need a backend and LLM inference, which breaks both the security-surface advantage and the budget. Noting it plainly because the density is genuinely tempting and chasing it would be a mistake. |
 
 ---
 
