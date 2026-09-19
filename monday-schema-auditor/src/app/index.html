@@ -116,6 +116,22 @@
       .tile.low .tile-value { color: var(--low); }
       .tile.clean .tile-value { color: var(--clean); }
 
+      .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+      .tab {
+        background: transparent; border: 1px solid var(--border);
+        color: var(--muted); font-weight: 600;
+      }
+      .tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+      .fix { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; padding: 12px 14px; }
+      .fix.high { border-left: 4px solid var(--high); }
+      .fix.medium { border-left: 4px solid var(--medium); }
+      .fix.low { border-left: 4px solid var(--low); }
+      .fix-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+      .fix-head h3 { font-size: 15px; margin: 0; flex: 1 1 auto; word-break: break-word; }
+      .fix-variants, .fix-boards { margin: 6px 0 0; font-size: 13px; color: var(--muted); word-break: break-word; }
+      .fix-variants { font-style: italic; }
+
       .board { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
       .board-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 14px; background: var(--surface); }
       .board-head h3 { font-size: 15px; margin: 0; flex: 1 1 auto; word-break: break-word; }

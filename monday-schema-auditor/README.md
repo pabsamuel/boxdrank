@@ -37,8 +37,12 @@ board stays listed with its match percentage, so you can tick or untick freely.
 | Extra column | Informational | Usually deliberate local customisation. |
 | Different order | Informational | Cosmetic. One finding per board, never one per column. |
 
-Findings sort worst-first, boards rank worst-first, and the whole report exports
-to CSV. The CSV is built in the browser and never uploaded anywhere.
+The report has two views. **What to fix** is the default and groups findings by
+the repair they need — twelve boards missing the same column is one job, and a
+per-board list makes it look like twelve. **By board** is the same findings
+arranged the other way, for when you want to know what is wrong with one board.
+Both sort worst-first, and the whole report exports to CSV. The CSV is built in
+the browser and never uploaded anywhere.
 
 ## Try it without a monday account
 
@@ -84,7 +88,7 @@ mode renders.
 npm test
 ```
 
-62 tests, no network, no account, no monday dependency. The diff engine is pure
+75 tests, no network, no account, no monday dependency. The diff engine is pure
 functions over plain objects, which is why it can be tested at all.
 
 ## Architecture
@@ -94,6 +98,7 @@ src/core/     zero-dependency, platform-agnostic, 100% of the product logic
   normalize.js  title folding (case, punctuation, accents, Turkish dotted I)
   diff.js       three-pass column matching and finding generation
   similarity.js which boards plausibly share the reference's template
+  actions.js    regroups findings into a fix list
   report.js     summary counts, board ranking, CSV
 src/app/
   monday-source.js  the ONLY file that talks to monday
@@ -195,15 +200,24 @@ version 2025-10, and the auditor does not need it.
 
 ## What this is not
 
-**This is not a validated product.** The code works; the business case does not
-exist yet.
+**This is not a validated product, and the evidence got worse on 19 Sep 2026.**
+The code works. The business case is in trouble.
 
-Nobody has said they would pay for it. The demand evidence is monday's own
-documentation and consultant blog posts — not vote counts, not a customer
-conversation. The strongest objection is in `../monday-billable-hours/IDEAS.md`
-and stands unanswered: **an audit tool is something you run once, fix, and stop
-paying for.** Continuous drift alerting would fix the retention problem and
-would require the backend that this architecture exists to avoid.
+A marketplace search recorded in `../monday-billable-hours/COMPETITORS.md` found
+that workspace-hygiene tools install in the tens — ten such apps from ten
+different developers, 5 to 170 installs, median 23 — while workflow and
+reporting tools in the same search run from 721 to 17,800. That is the retention
+objection with numbers attached: an audit is run once, acted on, and cancelled.
+
+It also found **Workspace Doctor** (23 installs), pitched as "Scan, score & fix
+your monday workspace in one click". Whether it overlaps with this app is
+**UNKNOWN** and that listing is the single most important page left to read.
+
+What is *not* established: revenue. Install count is not money, and admin tools
+sell to fewer, larger accounts. No pricing was visible. So the supported claim is
+"this category does not sell on volume", not "this category is dead".
+
+Nobody has still said they would pay for it.
 
 Two things gate a submission, both outside this repository:
 

@@ -11,6 +11,7 @@
 import { diffBoards } from '../core/diff.js';
 import { summarize, rankBoards, toCsv } from '../core/report.js';
 import { scoreBoards } from '../core/similarity.js';
+import { groupByFix } from '../core/actions.js';
 import { fetchBoards, looksLikeMondayContext } from './monday-source.js';
 
 const SEVERITY_LABEL = { high: 'Breaks reports', medium: 'Worth a look', low: 'Informational' };
@@ -38,6 +39,7 @@ const state = {
   scored: [],
   selectedIds: new Set(),
   results: null,
+  view: 'fix',
   error: null,
   status: '',
 };
@@ -134,6 +136,40 @@ function renderSummary(summary) {
     tile.append(el('div', 'tile-value', String(value)), el('div', 'tile-label', label));
     wrap.append(tile);
   }
+  return wrap;
+}
+
+/**
+ * The fix list: one row per job, with the boards it touches.
+ *
+ * This is the default view because it answers the question someone repairing an
+ * account actually has. Twelve boards missing the same column is one job, and
+ * the per-board view makes it look like twelve.
+ */
+function renderFixList(results) {
+  const groups = groupByFix(results);
+  const wrap = el('div', 'fixes');
+
+  if (groups.length === 0) {
+    wrap.append(el('p', 'status', 'Nothing to fix — every selected board matches the reference.'));
+    return wrap;
+  }
+
+  for (const group of groups) {
+    const row = el('section', `fix ${group.severity}`);
+
+    const head = el('header', 'fix-head');
+    head.append(el('h3', null, group.label));
+    head.append(el('span', `pill ${group.severity}`, `${group.boards.length} board${group.boards.length === 1 ? '' : 's'}`));
+    row.append(head);
+
+    if (group.variants.length > 0) {
+      row.append(el('p', 'fix-variants', `Currently: ${group.variants.join(', ')}`));
+    }
+    row.append(el('p', 'fix-boards', group.boards.join(', ')));
+    wrap.append(row);
+  }
+
   return wrap;
 }
 
@@ -253,6 +289,24 @@ function render() {
   }
 
   app.append(renderSummary(summarize(state.results)));
+
+  // Two ways of reading the same findings: what to do, or what is wrong where.
+  const tabs = el('div', 'tabs');
+  for (const [view, label] of [['fix', 'What to fix'], ['board', 'By board']]) {
+    const tab = el('button', `tab${state.view === view ? ' active' : ''}`, label);
+    tab.addEventListener('click', () => {
+      state.view = view;
+      render();
+    });
+    tabs.append(tab);
+  }
+  app.append(tabs);
+
+  if (state.view === 'fix') {
+    app.append(renderFixList(state.results));
+    return;
+  }
+
   const boards = el('div', 'boards');
   for (const result of rankBoards(state.results)) boards.append(renderBoard(result));
   app.append(boards);
