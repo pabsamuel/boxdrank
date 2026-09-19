@@ -120,12 +120,13 @@
   #sheet.open { display: grid; }
   #sheet .full { grid-column: 1 / -1; }
   label { display: block; font-size: 10px; letter-spacing: .1em; color: var(--ui); margin-bottom: 5px; font-family: "Press Start 2P", monospace; }
-  select, .btn {
+  select, input[type="text"], .btn {
     width: 100%; font-family: "Pixelify Sans", monospace; font-size: 16px;
     background: #1b2150; color: #F5EFDC; border: 2px solid var(--frame-inner);
     border-radius: 6px; padding: 12px; appearance: none;
   }
   .btn { text-align: center; }
+  input[type="text"] { text-transform: uppercase; letter-spacing: .08em; }
   #meter { height: 4px; background: rgba(139,211,221,.25); border-radius: 2px; overflow: hidden; }
   #meter > i { display: block; height: 100%; width: 0; background: #F2C14E; }
   .hint { grid-column: 1 / -1; font-size: 13px; line-height: 1.5; color: #9fb6d8; }
@@ -157,6 +158,10 @@
 
 <div id="sheet">
   <div class="full"><div id="meter"><i></i></div></div>
+  <div class="full">
+    <label for="name">KONUSAN</label>
+    <input id="name" type="text" maxlength="14" placeholder="comolli" autocomplete="off" />
+  </div>
   <div>
     <label for="engine">MOTOR</label>
     <select id="engine">
@@ -225,7 +230,7 @@
     line: $("line"), who: $("who"), sigil: $("sigil"), caret: $("caret"), status: $("status"),
     go: $("go"), cam: $("cam"), camBtn: $("camBtn"), gear: $("gear"), sheet: $("sheet"),
     meter: $("meter").firstElementChild, engine: $("engine"), lang: $("lang"), size: $("size"),
-    frame: $("frame"), speed: $("speed"), sound: $("sound"), demo: $("demo"),
+    frame: $("frame"), speed: $("speed"), sound: $("sound"), demo: $("demo"), name: $("name"),
   };
 
   // ---------------- text blip: synthesised, one per character ----------------
@@ -302,6 +307,25 @@
     el.who.textContent = name; sigil(id);
   }
 
+  /** Whoever the microphone is listening to — the user names them, and we remember it. */
+  function micName() {
+    const typed = (el.name.value || "").trim();
+    return (typed || "SEN").toUpperCase();
+  }
+
+  function micId() {
+    const n = micName();
+    let h = 0;
+    for (let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) | 0;
+    return Math.abs(h) % 64;                         // same name, same sigil, every time
+  }
+
+  try { el.name.value = localStorage.getItem("retrosubs.name") || ""; } catch (e) {}
+  el.name.oninput = () => {
+    try { localStorage.setItem("retrosubs.name", el.name.value); } catch (e) {}
+    if (running) speaker(micName(), micId());
+  };
+
   function say(text, final) {
     if (!text) return;
     if (!text.startsWith(target.slice(0, 8))) shown = Math.min(shown, text.length);
@@ -351,18 +375,18 @@
 
   // ---------------- demo ----------------
   const SCRIPT = [
-    ["YUKI", 1, "Yarin geliyor musun?"],
-    ["SEN", 0, "Sanirim. Saat kacta basliyor?"],
-    ["YUKI", 1, "Yedi civari, eski istasyonun orada."],
-    ["SEN", 0, "Tamam, biletleri ben getiririm."],
-    ["YUKI", 1, "Bu sefer gec kalma, son tren geceyarisindan once kalkiyor."],
+    [null, "Yarin geliyor musun?"],
+    ["SEN", "Sanirim. Saat kacta basliyor?"],
+    [null, "Yedi civari, eski istasyonun orada."],
+    ["SEN", "Tamam, biletleri ben getiririm."],
+    [null, "Bu sefer gec kalma, son tren geceyarisindan once kalkiyor."],
   ];
   let demoOn = false, demoTimers = [];
   function stopDemo() { demoOn = false; demoTimers.forEach(clearTimeout); demoTimers = []; el.demo.textContent = "DEMO (izin gerekmez)"; }
   function playDemo(i) {
     if (!demoOn) return;
-    const [name, id, text] = SCRIPT[i % SCRIPT.length];
-    speaker(name, id);
+    const [who, text] = SCRIPT[i % SCRIPT.length];
+    if (who) speaker(who, 0); else speaker(micName(), micId());
     const words = text.split(" ");
     let d = 0;
     words.forEach((_, w) => {
@@ -409,7 +433,7 @@
     const an = ctx.createAnalyser(); an.fftSize = 1024; src.connect(an);
     const buf = new Float32Array(an.fftSize);
     let u = new Utterance(script), speaking = false, floor = 0.004, lastVoice = 0, lastSyll = 0;
-    speaker("SEN", 1);
+    speaker(micName(), micId());
     el.status.textContent = "dinliyor";
     const loop = () => {
       if (!running) return;
@@ -445,7 +469,7 @@
     recog.lang = el.lang.value;
     recog.continuous = true;
     recog.interimResults = true;
-    speaker("SEN", 1);
+    speaker(micName(), micId());
     recog.onresult = e => {
       let text = "", fin = false;
       for (let i = e.resultIndex; i < e.results.length; i++) { text += e.results[i][0].transcript; fin = e.results[i].isFinal; }
