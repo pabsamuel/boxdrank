@@ -393,3 +393,143 @@ larger. It is, however, an actual product one person could finish.
 2. **Search the marketplace for `sync`, `cross account`, `mirror`, `publish`.**
    Confirm nothing cheap already does it. Four searches.
 3. Only then a dated Gate 0, and only for the one-way version.
+
+---
+
+# Third screening round — 19 Sep 2026
+
+Different question this time. The first two rounds asked "what is missing?", which
+surfaces things 850 developers have already seen. This round asked **"what
+disaster are people actually having?"** and **"what did monday itself break or
+create recently?"**
+
+## Candidate G — Automation Watchdog — **strongest shape found so far**
+
+### The problem
+
+**FACT:** monday **automatically deactivates** an automation when something it
+references is deleted — a group, board, status label, user — or when rate or item
+limits are hit. **No notification is sent.** Reported case: "silently deactivated
+and stopped firing for weeks".
+
+**FACT:** an automation can show a **green toggle and no error badge while
+failing every single run**, because its target no longer exists, its owner's
+account was deactivated, or a downstream integration lost authentication.
+
+**FACT:** integrations with Slack, Gmail and Salesforce authenticate with OAuth
+tokens that **expire roughly every 90 days**. When they do, those automations
+fail silently.
+
+**FACT:** "monday.com does not allow enabling email notifications for automation
+failures." The automation log exists, and "most teams never open it."
+
+**FACT — people are asking:** "Allow Automation Failure Notifications to be Sent
+by Email" (t/115526), "Automation Failure Notifications and Reporting" (t/96751),
+"Force-Stop/Restart Automation" (t/77480).
+
+### Why this one is shaped better than everything before it
+
+**It fixes the flaw that killed the Board Schema Auditor.** An audit is run once,
+acted on, and cancelled — which is why hygiene apps sit at 23 installs. **A
+watchdog is only worth anything while it is running.** Cancelling it is the same
+as turning it off. Retention is structural, not a feature to bolt on.
+
+It is also the first candidate where the buyer feels the pain *repeatedly* rather
+than once: every silent failure is a fresh incident.
+
+### Not served
+
+No automation-monitoring or watchdog app surfaced in any search, and the search
+results state plainly there is no native mechanism either.
+
+### The make-or-break unknown
+
+**Can the API read automation status and automation run logs?** **UNKNOWN.** The
+activity-logs API is confirmed (below) but board activity is not the same as
+automation health.
+
+If automation state is not exposed, there is a fallback worth testing: detect
+failure **by its absence**. Activity logs show that event Y happened; if the
+automation's effect X never follows, the automation is broken. That is monitoring
+by outcome rather than by status, and it would work without any automation API —
+but it is unproven.
+
+## Candidate H — Selective bulk undo — **best story, worse economics**
+
+### The problem, and why it is growing
+
+**FACT — real disasters, documented:** "an automation rule was misconfigured and
+updated the Status column on 500 items across three boards to the wrong value";
+"a team member used monday.com's AI Sidekick to bulk-update item fields with an
+ambiguous prompt that applied changes to the wrong workspace boards, overwriting
+statuses and dates across hundreds of items."
+
+**FACT:** native undo is Ctrl+Z, or per-action Undo in the Activity Log. There is
+no bulk undo. Open threads: "Bulk undo?" (t/59985), "Undo Bulk Edits" (t/25240).
+
+**FACT:** the Recycle Bin holds deleted items for 30 days — but that covers
+deletions, not overwritten values.
+
+**The interesting part: monday created this problem itself in 2026.** It
+relaunched as an AI work platform, shipped Sidekick, native agents with no setup
+required, and AI bulk editing. Making destructive bulk edits trivially easy for
+non-technical users manufactures exactly this class of accident, at a rate that
+did not exist before. The pain is growing because of a platform change, not
+despite one.
+
+### Not served
+
+Rewind and ProBackup restore **snapshots of whole boards**. That is a blunt
+instrument: it also discards every good change made since the snapshot. Reverting
+one change set — "undo what that automation did at 14:32, and nothing else" — is
+a different product.
+
+### The make-or-break unknown
+
+**Does the activity log carry the previous value?** **UNKNOWN, and decisive.**
+The `data` field is returned, but whether it contains the value a column held
+*before* the change has not been verified. If it does, a targeted revert is
+possible. If it does not, this product cannot exist without the app keeping its
+own prior snapshots — which changes it into a backup tool competing with Rewind
+and ProBackup, and it should then be dropped.
+
+### Why it is second, not first
+
+A panicking admin will pay anything in the moment — but that moment is episodic.
+It sells as insurance, which is a harder sale than a watchdog that proves its
+worth on every incident.
+
+## The API both depend on — **CONFIRMED**
+
+**FACT:** board-scoped activity logs are queryable:
+
+```graphql
+query {
+  boards(ids: [1234567890]) {
+    activity_logs(from: "2026-03-01T00:00:00Z", to: "2026-04-09T23:59:59Z", limit: 25, page: 1) {
+      id event entity data user_id created_at
+    }
+  }
+}
+```
+
+Up to **10,000 logs** retrievable. Must be nested inside a `boards` query.
+
+**FACT — a trap worth knowing:** user-scoped logs (`users { activity_logs }`) are
+**preview-only and explicitly not stable**. Do not build on them.
+
+## Both need a backend
+
+Scheduled checks plus email. That is not the no-backend shape of the schema
+auditor, and the security-review surface is larger. Workspace Doctor proves it is
+workable: it runs weekly scheduled checks with email summaries, on monday code,
+with four OAuth scopes.
+
+## Verification needed before any Gate 0
+
+1. **G:** does the API expose automation status or automation run logs? Check
+   `developer.monday.com` API reference for anything automation-shaped.
+2. **H:** does `activity_logs { data }` contain the previous value? One query
+   against a real board answers it.
+3. **Both:** marketplace search for `automation`, `monitor`, `alert`, `undo`,
+   `revert`. Confirm nothing already does it.
