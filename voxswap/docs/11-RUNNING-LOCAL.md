@@ -122,9 +122,26 @@ VoxSwap already compensates for small models where it can:
 The same dubbing instructions are used for local and hosted models — they live
 in one place (`providers/dubbing.py`), so the two cannot drift apart.
 
-## 3. Voice cloning — the honest section
+## 3. Voice — the honest section
 
 This is where local costs you something real.
+
+**First: do you need to change the words?** If not — same language, replacing
+dialogue the game already ships — skip cloning entirely and use **voice
+conversion**, `"voice": "local_vc"`. It keeps the original actor's performance
+and changes only the speaker, which sounds dramatically more natural than any
+text-to-speech rebuild and lands the timing within a few milliseconds for free.
+It runs on CPU at roughly 1.5 s per line. Set it up with:
+
+```bash
+python3 tools/local/tts_server.py --engine freevc --port 8124
+# voxswap/.env
+VOXSWAP_LOCAL_VC_URL=http://127.0.0.1:8124/vc
+```
+
+See [`05-PROVIDERS.md`](05-PROVIDERS.md) for what it can and cannot do. The rest
+of this section is about the harder case: you need new words, in a new language,
+so something has to *speak*.
 
 **Use XTTS-v2.** It clones from a short reference clip, speaks ~16 languages
 from that one clone, and runs offline. It is a PyTorch model, not GGUF.

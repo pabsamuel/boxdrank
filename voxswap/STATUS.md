@@ -6,7 +6,7 @@
 ## Current state
 
 **v0.1.0 — the pipeline is complete and runs end to end offline.** Ten stages,
-six provider adapters, five target adapters, 167 tests green on Python
+six provider adapters, five target adapters, 175 tests green on Python
 3.10/3.11/3.12, with and without ffmpeg. **It can run fully offline** —
 transcription, translation and voice cloning all have a local path. No real *provider* has been exercised
 against a real account yet — that is the next milestone and it needs an API key,
@@ -47,6 +47,7 @@ Either way: write down what broke. That list is the v0.2 backlog.
 | Local voice, server mode | done | 9 tests in `tests/test_local_voice.py` |
 | `tools/local/tts_server.py` (resident server) | done | ran a real order end to end against a live model — see below |
 | `engines/piper.py` | done | 4 tests, plus the `DEMO-LOCAL` run below |
+| `local_vc` voice conversion + `engines/freevc.py` | done | 8 tests, and a real `DEMO-LOCAL` run — see below |
 | `engines/xtts.py` | **unverified** | the server around it is now proven; the XTTS engine itself needs a machine that can fetch the model |
 | `tools/local/whisper_cpp.py` | **unverified** | needs whisper.cpp built locally |
 
@@ -58,7 +59,7 @@ drift. All of them are env-overridable for exactly this reason.
 
 ```
 python3 -m unittest discover -s tests -t .
-→ 167 tests, OK, ~45s, no network, no API keys
+→ 175 tests, OK, ~45s, no network, no API keys
 
 python3 tools/make_example.py && python3 -m voxswap run EXAMPLE-GAME
 → 10 stages, 0.4s, 4/4 lines at 100% QC, median slot error 0 ms
@@ -86,6 +87,27 @@ rather than re-synthesising.
 
 Piper cannot clone, so this proves the local *path* end to end, not the cloning
 model. That still needs XTTS on a machine that can fetch it.
+
+### Then a real cloning model, then conversion
+
+`YourTTS` (zero-shot cloning, weights on GitHub rather than Hugging Face) ran
+the same order through the same engine: 6 lines in 9 s on CPU, 24 ms median slot
+error. It clones, but it is audibly robotic — it regenerates the line from text,
+so the original performance is gone.
+
+`FreeVC` conversion (`"voice": "local_vc"`) replaced it and is the current
+recommendation:
+
+```
+6 lines in 9s on CPU, median slot error 0 ms, 0 outside tolerance
+timing drift before mastering: -6 to -24 ms (frame rounding only)
+clipping: 1-3 isolated samples, no runs
+```
+
+Conversion keeps the original actor's delivery and changes only the speaker, so
+nothing about the performance has to be invented. The cost is that it cannot
+change the words: intake refuses a conversion provider on a translated order
+rather than shipping audio that contradicts `script.csv`.
 
 Both halves are covered. The main suite pins a non-existent ffmpeg binary, so it
 always exercises the stdlib fallbacks; `tests/test_ffmpeg_paths.py` (12 tests)

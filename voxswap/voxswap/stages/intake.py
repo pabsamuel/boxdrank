@@ -10,6 +10,7 @@ from __future__ import annotations
 from ..consent import record_audit, verify_order
 from ..errors import AssetError, OrderError
 from ..providers import catalogue
+from ..providers.registry import VOICE_CONVERSION_PROVIDERS
 from .base import JobContext, Stage, StageResult
 
 
@@ -62,7 +63,20 @@ class IntakeStage(Stage):
                     f"Available {kind} providers: {', '.join(available[kind])}.",
                 )
 
-        # 5. sanity: roles must be bound to distinct characters we can find later
+        # 5. a conversion provider cannot change the words it is given
+        if order.providers.voice in VOICE_CONVERSION_PROVIDERS:
+            source, target = order.language.source, order.language.target
+            if source and target and source.split("-")[0] != target.split("-")[0]:
+                raise OrderError(
+                    f"providers.voice = {order.providers.voice!r} converts an existing recording, "
+                    f"so it cannot dub {source} into {target}",
+                    "Voice conversion changes who is speaking, never what they say — every line would "
+                    f"come back in {source} while script.csv claimed {target}. Either set "
+                    'language.target to the source language, or use "voice": "local" (text to speech) '
+                    "for a translated order.",
+                )
+
+        # 6. sanity: roles must be bound to distinct characters we can find later
         role_ids = [r.role_id for r in order.roles]
         if len(set(role_ids)) != len(role_ids):
             raise OrderError("duplicate role_id in roles[]", "Each role_id must be unique within an order.")

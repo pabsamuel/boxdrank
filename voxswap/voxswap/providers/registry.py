@@ -15,6 +15,12 @@ ASR_PROVIDERS: dict[str, Callable[[], Any]] = {}
 TRANSLATION_PROVIDERS: dict[str, Callable[[], Any]] = {}
 VOICE_PROVIDERS: dict[str, Callable[[], Any]] = {}
 
+#: Voice providers that rewrite an existing recording instead of speaking text.
+#: Named here rather than discovered by instantiating every adapter, because
+#: constructing a hosted adapter can demand a key for a provider this order
+#: never uses.
+VOICE_CONVERSION_PROVIDERS: set[str] = set()
+
 
 def _register() -> None:
     from . import mock
@@ -58,8 +64,15 @@ def _register() -> None:
 
         return LocalVoice()
 
+    def local_vc() -> Any:
+        from .local_vc import LocalVoiceConversion
+
+        return LocalVoiceConversion()
+
     VOICE_PROVIDERS["elevenlabs"] = eleven_voice
     VOICE_PROVIDERS["local"] = local_voice
+    VOICE_PROVIDERS["local_vc"] = local_vc
+    VOICE_CONVERSION_PROVIDERS.add("local_vc")
     ASR_PROVIDERS["elevenlabs"] = eleven_asr
     ASR_PROVIDERS["openai"] = openai_asr
     ASR_PROVIDERS["local"] = local_asr

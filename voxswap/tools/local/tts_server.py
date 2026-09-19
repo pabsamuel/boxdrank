@@ -19,15 +19,26 @@ Protocol — POST JSON, get a WAV back:
     {"text": "...", "speaker_wav": "/path/ref.wav", "language": "tr", "emotion": "angry"}
     -> 200, audio/wav bytes            (or 4xx/5xx with a JSON {"error": "..."})
 
+It also speaks voice **conversion**, which is a different job: instead of
+reading a line out, it rewrites an existing recording in someone else's voice,
+keeping the original timing and performance. That is `/vc`, and it is what
+`providers/local_vc.py` talks to:
+
+    {"source_wav": "/orders/X/assets/vo/hero_01.wav", "speaker_wav": "/ref.wav"}
+    -> 200, audio/wav bytes
+
 **Adding another engine is one file.** Drop a module in `tools/local/engines/`
-exposing:
+exposing either or both of:
 
     def load(**options) -> object                       # called once, returns your handle
     def synthesize(handle, text, speaker_wav, language, emotion, out_path) -> None
+    def convert(handle, source_wav, speaker_wav, out_path) -> None
 
-then run with `--engine yourmodule`. See `engines/xtts.py` for the reference
-implementation. This is deliberately not a plugin framework: local TTS changes
-every few months and a thin seam ages better than an abstraction.
+then run with `--engine yourmodule`. An engine that implements only one of them
+answers 400 on the other endpoint rather than pretending. See `engines/xtts.py`
+for speech and `engines/freevc.py` for conversion. This is deliberately not a
+plugin framework: local models change every few months and a thin seam ages
+better than an abstraction.
 """
 
 from __future__ import annotations
@@ -40,6 +51,7 @@ import tempfile
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import urlparse
 
 ENGINE_DIR = Path(__file__).resolve().parent / "engines"
 
@@ -71,6 +83,15 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, json.JSONDecodeError) as exc:
             return self._error(400, f"could not read the request: {exc}")
 
+        route = urlparse(self.path).path.rstrip("/") or "/tts"
+        if route.endswith("/vc"):
+            return self._convert(request)
+        return self._speak(request)
+
+    def _speak(self, request: dict) -> None:
+        if not hasattr(_engine, "synthesize"):
+            return self._error(400, f"engine {_engine.__name__.split('.')[-1]!r} does not speak text; "
+                                    "POST to /vc to convert an existing recording")
         text = (request.get("text") or "").strip()
         if not text:
             return self._error(400, "no text given")
@@ -78,16 +99,36 @@ class Handler(BaseHTTPRequestHandler):
         if speaker and not Path(speaker).exists():
             return self._error(400, f"speaker_wav does not exist: {speaker}")
 
+        self._run(lambda out: _engine.synthesize(        # type: ignore[union-attr]
+            _handle, text, speaker,
+            request.get("language") or "en",
+            request.get("emotion") or "neutral",
+            out,
+        ))
+
+    def _convert(self, request: dict) -> None:
+        if not hasattr(_engine, "convert"):
+            return self._error(400, f"engine {_engine.__name__.split('.')[-1]!r} cannot convert audio; "
+                                    "run the server with --engine freevc, or POST to /tts")
+        source = request.get("source_wav") or ""
+        speaker = request.get("speaker_wav") or ""
+        # Both files are read by the model, so a missing one has to be a 400
+        # here: further in it becomes an unreadable stack trace in a log the
+        # operator never sees.
+        for label, path in (("source_wav", source), ("speaker_wav", speaker)):
+            if not path:
+                return self._error(400, f"no {label} given")
+            if not Path(path).exists():
+                return self._error(400, f"{label} does not exist: {path}")
+
+        self._run(lambda out: _engine.convert(_handle, source, speaker, out))   # type: ignore[union-attr]
+
+    def _run(self, call) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             out_path = Path(tmp) / "out.wav"
             try:
                 with _lock:                               # one generation at a time
-                    _engine.synthesize(                   # type: ignore[union-attr]
-                        _handle, text, speaker,
-                        request.get("language") or "en",
-                        request.get("emotion") or "neutral",
-                        out_path,
-                    )
+                    call(out_path)
             except Exception as exc:                      # noqa: BLE001 - reported to the caller
                 return self._error(500, f"{type(exc).__name__}: {exc}")
             if not out_path.exists():
@@ -137,8 +178,11 @@ def main() -> int:
 
     load_engine(args.engine, options)
     httpd = ThreadingHTTPServer((args.host, args.port), Handler)
-    print(f"listening on http://{args.host}:{args.port}/tts\n"
-          f"set VOXSWAP_LOCAL_TTS_URL=http://{args.host}:{args.port}/tts", flush=True)
+    base = f"http://{args.host}:{args.port}"
+    if hasattr(_engine, "convert"):
+        print(f"listening on {base}/vc\nset VOXSWAP_LOCAL_VC_URL={base}/vc", flush=True)
+    if hasattr(_engine, "synthesize"):
+        print(f"listening on {base}/tts\nset VOXSWAP_LOCAL_TTS_URL={base}/tts", flush=True)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

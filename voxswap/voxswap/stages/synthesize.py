@@ -68,6 +68,9 @@ class SynthesizeStage(Stage):
                 target_duration_ms=line.source_duration_ms,
                 sample_rate=rate,
                 channels=channels,
+                # Free to pass and useless to a TTS provider, but it is the
+                # entire input for a conversion one.
+                source_path=ctx.asset_root / line.source_rel,
             )
             return provider.synthesize(request, ctx.ws.synth_dir / f"{line.line_id}.wav")
 

@@ -45,6 +45,14 @@ class SynthesisRequest:
     target_duration_ms: int = 0     # a hint; timefit does the real work
     sample_rate: int = 48000
     channels: int = 1
+    source_path: Path | None = None
+    """The clip being replaced.
+
+    Text-to-speech providers ignore this. Voice *conversion* providers cannot
+    work without it: they keep the original performance — its timing, stress,
+    pauses and emotion — and change only who is speaking. That is the difference
+    between a line that sounds acted and one that sounds read aloud.
+    """
 
 
 @runtime_checkable
@@ -66,6 +74,12 @@ class TranslationProvider(Protocol):
 class VoiceProvider(Protocol):
     name: str
 
+    #: True when the provider rewrites an existing recording rather than
+    #: speaking text. Such a provider cannot change the words, so it cannot
+    #: dub into another language — the pipeline refuses that combination at
+    #: intake rather than delivering audio that contradicts the script.
+    converts_audio: bool
+
     def ensure_voice(self, voice_id: str, label: str, samples: list[Path], *, consent_ref: str) -> str: ...
 
     def synthesize(self, request: SynthesisRequest, out_path: Path) -> Path: ...
@@ -77,6 +91,7 @@ class BaseProvider:
     """Shared plumbing. Adapters subclass this and set `name`."""
 
     name = "base"
+    converts_audio = False
 
     def describe(self) -> str:
         return self.name

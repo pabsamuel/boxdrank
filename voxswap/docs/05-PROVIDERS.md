@@ -38,6 +38,48 @@ duration, format and loudness. Everything downstream is exercised for real.
 Use it for: new titles, pattern debugging, CI, reproducing a customer's bug.
 It is not a toy — it is how you avoid paying to discover a typo.
 
+### `local_vc` — voice **conversion**, and probably what you want
+
+Every other voice provider on this page reads the script out loud. This one does
+not: it takes the recording the game already ships and changes only *who* is
+speaking.
+
+That difference is the whole quality gap. A game's dialogue was performed — the
+pause before a threat, the crack in a shout, the throwaway delivery of a
+one-liner. Text-to-speech rebuilds a line from a bare string and invents all of
+that, flatly. Conversion keeps it, because it never regenerates it. When a
+customer says a demo sounds "robotic", this is almost always what they are
+hearing, and no amount of shopping for a better TTS model fixes it.
+
+Three things fall out of it:
+
+* **lip-sync is free.** Output length matches input to a few milliseconds, so
+  the fitting stage barely has to touch the audio — and every correction is a
+  chance to add an artefact.
+* **no transcription is needed.** No ASR bill, and no chance of a mis-heard word
+  being put in a character's mouth.
+* **emotion labels stop mattering**, which deletes a whole category of wrong.
+
+```
+# voxswap/.env
+VOXSWAP_LOCAL_VC_URL=http://127.0.0.1:8124/vc
+```
+```bash
+python3 tools/local/tts_server.py --engine freevc --port 8124
+```
+```json
+"providers": { "voice": "local_vc" }
+```
+
+**The one thing it cannot do is change the words.** It has no idea what is being
+said, so it cannot dub into another language. Intake refuses that combination
+outright rather than delivering `en` audio alongside a `tr` script — a failure
+nobody would notice until a bilingual customer did. Translating an order means
+`"voice": "local"` and accepting TTS delivery for it.
+
+It also needs a clip to convert, so it cannot invent a line that has no source
+audio. For that, use TTS.
+
 ### `elevenlabs`
 
 Hosted instant cloning plus multilingual TTS. Fastest route to a shippable
