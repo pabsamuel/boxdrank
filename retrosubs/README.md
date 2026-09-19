@@ -19,6 +19,13 @@ recognition and on-device translation.
 
 ---
 
+## Open it in a browser (works on iPhone too)
+
+**https://pabsamuel.github.io/boxdrank/** — no install. Full-screen dialogue box over the front
+camera, two lines a page with a blinking caret, text blip per character, vibe mode or real
+recognition. iOS has no overlay API at all, so on iPhone this is the whole product; on Android
+the app below floats over other apps.
+
 ## Install it on a phone (no Android Studio)
 
 1. Push to `main` (or open the PR run) → the **RetroSubs Android** GitHub Actions workflow builds

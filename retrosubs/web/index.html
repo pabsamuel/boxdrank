@@ -54,6 +54,14 @@
     content: ""; position: fixed; inset: 0;
     background: linear-gradient(180deg, rgba(10,13,36,.35) 0%, rgba(10,13,36,0) 35%, rgba(10,13,36,.55) 100%);
   }
+  /* handheld LCD: scanline grid + vignette over everything */
+  #lcd {
+    position: fixed; inset: 0; pointer-events: none; z-index: 3;
+    background:
+      repeating-linear-gradient(180deg, rgba(0,0,0,.14) 0 1px, transparent 1px 3px),
+      radial-gradient(120% 80% at 50% 45%, transparent 55%, rgba(0,0,0,.45) 100%);
+    mix-blend-mode: multiply;
+  }
 
   /* ---------- the dialogue box ---------- */
   #box {
@@ -81,11 +89,12 @@
     display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
   }
   #sigil { width: 18px; height: 18px; display: block; }
+  /* exactly two lines, like a handheld dialogue box — the rest waits for the caret */
   #line {
     color: var(--ink);
     font-size: 26px; line-height: 1.35; font-weight: 500;
-    letter-spacing: .02em; white-space: pre-wrap; word-break: break-word;
-    min-height: 2.7em;
+    letter-spacing: .02em; white-space: pre;
+    height: 2.7em; overflow: hidden;
   }
   #line.idle { color: #909090; }
   #caret {
@@ -93,8 +102,12 @@
     width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent;
     border-top: 10px solid var(--caret); opacity: 0;
   }
-  #caret.on { animation: blink 1s steps(1,end) infinite; }
-  @keyframes blink { 0%,49% { opacity: 1 } 50%,100% { opacity: 0 } }
+  #caret.on { animation: bob .9s steps(2,end) infinite; }
+  @keyframes bob {
+    0%   { opacity: 1; transform: translateY(0) }
+    50%  { opacity: 1; transform: translateY(3px) }
+    100% { opacity: 1; transform: translateY(0) }
+  }
 
   /* ---------- top bar ---------- */
   #bar {
@@ -135,6 +148,7 @@
 <body data-frame="classic" data-cam="off">
 
 <video id="cam" playsinline autoplay muted></video>
+<div id="lcd"></div>
 <div id="mark">RETROSUBS</div>
 
 <div id="bar">
@@ -240,25 +254,36 @@
     if (actx.state === "suspended") actx.resume();
     return actx;
   }
-  let lastBlip = 0;
+  /** One short, bright tick per character — in lockstep with the typewriter. */
   function blip() {
     if (el.sound.value !== "1") return;
-    const now = performance.now();
-    if (now - lastBlip < 90) return;
-    lastBlip = now;
     try {
-      const ctx = audio();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+      const ctx = audio(), t = ctx.currentTime;
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
       osc.type = "square";
-      osc.frequency.value = 700 + Math.random() * 90;
-      const t = ctx.currentTime;
+      osc.frequency.setValueAtTime(2050, t);
+      osc.frequency.exponentialRampToValueAtTime(1150, t + 0.016);
       gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.045, t + 0.006);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.05, t + 0.002);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.024);
       osc.connect(gain).connect(ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.055);
+      osc.start(t); osc.stop(t + 0.03);
+    } catch (e) {}
+  }
+
+  /** A softer, lower note when a page is full and the caret starts waiting. */
+  function pageBeep() {
+    if (el.sound.value !== "1") return;
+    try {
+      const ctx = audio(), t = ctx.currentTime;
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(760, t);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.035, t + 0.004);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t); osc.stop(t + 0.1);
     } catch (e) {}
   }
 
@@ -288,8 +313,48 @@
     }
   }
 
-  // ---------------- renderer: one box, typed character by character ----------------
+  // ---------------- renderer: two lines a page, typed character by character ----------------
+  // A handheld dialogue box never scrolls: it fills two lines, blinks the caret, and turns the
+  // page. That rhythm is most of the nostalgia, so the renderer wraps the text itself.
   let target = "", shown = 0, isFinal = false, timer = null;
+  let lines = [], pageTop = 0, waiting = false, waitTimer = null;
+
+  const LINES = 2;
+  const measureCanvas = document.createElement("canvas");
+  const measure = measureCanvas.getContext("2d");
+
+  function wrap(text) {
+    const cs = getComputedStyle(el.line);
+    measure.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const max = el.line.clientWidth || 300;
+    const out = [];
+    let start = 0, current = "";
+    for (const word of text.split(" ")) {
+      const candidate = current ? current + " " + word : word;
+      if (current && measure.measureText(candidate).width > max) {
+        out.push({ text: current, start, end: start + current.length });
+        start += current.length + 1;            // the space is consumed by the break
+        current = word;
+      } else {
+        current = candidate;
+      }
+    }
+    if (current) out.push({ text: current, start, end: start + current.length });
+    return out.length ? out : [{ text: "", start: 0, end: 0 }];
+  }
+
+  function pageEnd() {
+    const last = lines[Math.min(pageTop + LINES - 1, lines.length - 1)];
+    return last ? last.end : 0;
+  }
+
+  function pageFor(index) {
+    for (let p = 0; p < lines.length; p += LINES) {
+      const last = lines[Math.min(p + LINES - 1, lines.length - 1)];
+      if (index <= last.end) return p;
+    }
+    return Math.max(0, lines.length - LINES);
+  }
 
   function sigil(id) {
     let h = ((id * 2654435761) ^ 0x5f3759df) | 0, out = "";
@@ -307,67 +372,97 @@
     el.who.textContent = name; sigil(id);
   }
 
-  /** Whoever the microphone is listening to — the user names them, and we remember it. */
-  function micName() {
-    const typed = (el.name.value || "").trim();
-    return (typed || "SEN").toUpperCase();
+  function paint() {
+    const render = ln => {
+      if (!ln) return "";
+      const n = Math.max(0, Math.min(ln.text.length, shown - ln.start));
+      return ln.text.slice(0, n);
+    };
+    el.line.textContent = render(lines[pageTop]) + "\n" + render(lines[pageTop + 1]);
+    const done = shown >= target.length;
+    el.caret.classList.toggle("on", waiting || (done && isFinal));
   }
 
-  function micId() {
-    const n = micName();
-    let h = 0;
-    for (let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) | 0;
-    return Math.abs(h) % 64;                         // same name, same sigil, every time
+  function turnPage() {
+    clearTimeout(waitTimer); waitTimer = null;
+    if (!waiting) return;
+    waiting = false;
+    pageTop = Math.min(pageTop + LINES, Math.max(0, lines.length - 1));
+    paint();
+    if (!timer) timer = setInterval(tick, parseInt(el.speed.value, 10) || 70);
   }
 
-  try { el.name.value = localStorage.getItem("retrosubs.name") || ""; } catch (e) {}
-  el.name.oninput = () => {
-    try { localStorage.setItem("retrosubs.name", el.name.value); } catch (e) {}
-    if (running) speaker(micName(), micId());
-  };
+  function tick() {
+    if (waiting) return;
+    if (shown >= target.length) {
+      paint();
+      clearInterval(timer); timer = null;
+      return;
+    }
+    if (shown >= pageEnd() && lines.length > pageTop + LINES) {
+      waiting = true;
+      pageBeep();
+      paint();
+      clearInterval(timer); timer = null;
+      waitTimer = setTimeout(turnPage, 1100);    // or tap the box to turn it now
+      return;
+    }
+    const ch = target[shown];
+    shown++;
+    if (ch !== " ") blip();
+    paint();
+  }
 
   function say(text, final) {
     if (!text) return;
     if (!text.startsWith(target.slice(0, 8))) shown = Math.min(shown, text.length);
     target = text; isFinal = !!final;
+    lines = wrap(text);
+    if (!waiting) pageTop = pageFor(shown);
     el.line.classList.remove("idle");
     const step = parseInt(el.speed.value, 10);
-    if (step === 0) { shown = target.length; paint(); return; }
-    if (!timer) timer = setInterval(tick, step);
-  }
-
-  function paint() {
-    el.line.textContent = target.slice(0, shown);
-    el.caret.classList.toggle("on", isFinal && shown >= target.length);
-  }
-
-  function tick() {
-    if (shown < target.length) {
-      const backlog = target.length - shown;
-      const add = backlog > 180 ? 2 : 1;                 // catch up, but never in bursts
-      const first = target[shown];
-      shown += add;
-      if (first !== " " && (shown & 1) === 0) blip();    // a tick every other character
+    if (step === 0) {
+      shown = target.length;
+      pageTop = pageFor(shown);
       paint();
-    } else {
-      paint();
-      clearInterval(timer); timer = null;
+      return;
     }
+    if (!timer && !waiting) timer = setInterval(tick, step);
   }
 
   function idle(msg) {
     clearInterval(timer); timer = null;
+    clearTimeout(waitTimer); waitTimer = null;
+    waiting = false; pageTop = 0;
     target = ""; shown = 0; isFinal = false;
-    el.line.textContent = msg; el.line.classList.add("idle");
+    lines = [];
+    el.line.textContent = msg;
+    el.line.classList.add("idle");
     el.caret.classList.remove("on");
   }
+
+  /**
+   * Speech recognition hands back text with no punctuation, which reads nothing like a game
+   * line. Close a finished sentence: a question mark when it looks like a question, a full
+   * stop otherwise.
+   */
+  const TR_QUESTION_TAIL = /\bm[ıiuü](s[ıiuü]n(ız|iz|uz|üz)?|y[ıiuü][zm]|sınız|siniz|sunuz|sünüz)?\s*$/i;
+  const QUESTION_WORD = /^(ne|neden|niye|nasıl|kim|kime|kimin|kaç|hangi|nerede|nereye|nereden|ne zaman|what|where|when|why|how|who|which|is|are|do|does|did|can|could|would|should)\b/i;
+
+  function punctuate(text) {
+    const t = text.trim();
+    if (!t || /[.!?…。？！]$/.test(t)) return t;
+    return t + (TR_QUESTION_TAIL.test(t) || QUESTION_WORD.test(t) ? "?" : ".");
+  }
+
+  document.getElementById("box").addEventListener("click", turnPage);
 
   el.size.onchange = () => { el.line.style.fontSize = el.size.value + "px"; };
   el.speed.onchange = () => {
     if (!timer) return;
     clearInterval(timer); timer = null;
     const step = parseInt(el.speed.value, 10);
-    if (step === 0) { shown = target.length; paint(); return; }
+    if (step === 0) { shown = target.length; pageTop = pageFor(shown); paint(); return; }
     timer = setInterval(tick, step);
   };
   el.frame.onchange = () => { document.body.dataset.frame = el.frame.value; };
@@ -474,7 +569,7 @@
       let text = "", fin = false;
       for (let i = e.resultIndex; i < e.results.length; i++) { text += e.results[i][0].transcript; fin = e.results[i].isFinal; }
       text = text.trim();
-      if (text) say(text, fin);
+      if (text) say(fin ? punctuate(text) : text, fin);
     };
     recog.onerror = e => { el.status.textContent = "hata: " + e.error; };
     recog.onend = () => { if (running) { try { recog.start(); } catch (err) {} } };
