@@ -112,6 +112,17 @@ monday's security review — see `../monday-billable-hours/NEXT-GATE0.md`.
   required Burp scan to find beyond the static host.
 - Authentication is monday's **seamless auth**: the SDK acts on behalf of the
   signed-in user and the app never sees or stores an API token.
+- Board names and column titles are treated as **untrusted input**, because
+  anyone who can create or share a board chooses them. They reach the DOM only
+  through `textContent`, never `innerHTML`, and the CSV export neutralises
+  spreadsheet formulas so an exported audit cannot carry a payload to whoever
+  opens it next.
+
+A security review of this branch on 19 Sep 2026 found exactly one exploitable
+issue — CSV formula injection in the export, now fixed with regression tests.
+It confirmed no DOM XSS sink exists, that the demo server's path-traversal guard
+holds on both POSIX and Windows semantics, and that no token is stored,
+constructed or logged.
 
 ## MIGRATION — read before touching the SDK dependency
 
