@@ -167,3 +167,15 @@ app would have shipped calling a method that no longer exists.
 **What would still kill it:** the retention objection from `IDEAS.md`, unchanged.
 An audit is run once, acted on, and cancelled. Nothing built today addresses
 that, and continuous alerting would need the backend.
+
+## 2026-09-19 — Time and project restrictions lifted (Samet)
+
+Samet is now on Claude Max and removed the rules that limited his time and
+projects: the hour ledger and 20/30 build-hour budgets, "~45 unstarted ideas
+stay outside / adding a 46th idea is not progress", the rule to refuse
+later-phase work even when he asks twice, and the platform Gate 0 as a block on
+new monday ideas (`NEXT-GATE0.md` is now a checklist). `README.md`,
+`CLAUDE.md`, `BACKLOG.md`, `NEXT-GATE0.md`, `PLATFORM.md` and `IDEAS.md` were
+updated. The evidence behind stopping the billable-hours app, the $100 budget,
+the evidence-labelling rules and "no company before Gate 4" are unchanged.
+Entries above are kept as history.

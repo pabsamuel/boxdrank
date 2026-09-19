@@ -1,35 +1,18 @@
 # CLAUDE.md — operating rules for this project
 
 Read `README.md` at the start of every session before doing anything else.
-The gate table there decides what work is legal today.
 
 ## Current state
 
-**Gate 0 FAILED on 16 Sep 2026. The project is stopped.**
-The only legal work right now is: re-verifying the failure from `VERIFY.md`,
-or closing the project out. Not building. Not outreach. Not architecture.
-
-## Phase gating — enforce this every time, not once
-
-Refuse work that belongs to a later phase. If Samet asks for architecture,
-schemas, API design or a PRD while the current gate is unmet, say no, name the
-gate, and redirect. He wrote this rule specifically so it would be enforced when
-he pushes against it. Enforcing it when he pushes is the entire point.
-
-Asking twice is not a new argument. Saying "just quickly" is not a new argument.
-
-## New ideas
-
-If Samet raises a different idea, platform or product mid-session: write **one
-line** in `BACKLOG.md` and return to the task. Do not evaluate it. Do not say it
-is interesting or promising. Do not estimate it. There are ~45 unstarted ideas
-and zero shipped products — the constraint is finishing, not supply.
+**Gate 0 FAILED on 16 Sep 2026. The billable-hours app is stopped** on the
+evidence in `KILL-CHECKS.md`. Other monday work (the Board Schema Auditor in
+`../monday-schema-auditor/`, Template Guard, new ideas) is not blocked by this.
 
 ## Scope
 
-Scope is a ceiling, never a floor. A sixth feature goes to the backlog even if it
-would take ten minutes. "Easy" is not a reason; it is the mechanism by which the
-project never ships.
+Each product's scope is set in its own docs. If Samet asks for something
+outside it, say so; build it if he wants it now, otherwise add one line to
+`BACKLOG.md`.
 
 ## Evidence discipline
 
@@ -43,13 +26,6 @@ project never ships.
 - Never write monday API or manifest code from memory. Fetch live docs. If the
   environment blocks `developer.monday.com` (it did on 16 Sep 2026), stop and ask
   Samet to paste the relevant page rather than reconstructing it.
-
-## Hours
-
-Count hours, not days. At the end of every session, ask how many hours it took
-and log it in the README ledger. Tell him when cumulative build hours reach 25 of
-the 30-hour Gate 3 budget. Research hours and build hours are tracked separately;
-the 30 is build only.
 
 ## Tone
 
@@ -65,5 +41,4 @@ competence, not an achievement.
 
 - No company formation before Gate 4.
 - $100 budget before first revenue.
-- Gates are never renegotiated after seeing the result. A missed date is a
-  missed date; it does not move.
+- Gates are never renegotiated after seeing the result.
