@@ -38,10 +38,21 @@ to CSV. The CSV is built in the browser and never uploaded anywhere.
 
 ## Try it without a monday account
 
+Starting from nothing, on any machine with [Node.js](https://nodejs.org) and
+[git](https://git-scm.com) installed:
+
 ```bash
+git clone https://github.com/pabsamuel/boxdrank.git
+cd boxdrank
+git checkout claude/monday-billable-hours-app-nv00q4
+cd monday-schema-auditor
 npm install
 npm run demo          # then open http://localhost:8137/
 ```
+
+The first three lines matter: this project lives in a subdirectory of a larger
+repository, on a branch that is not the default. Skipping them lands you in the
+wrong folder with a confusing `ENOENT` from npm.
 
 A local server is required, not optional: browsers block ES module imports and
 `fetch()` on `file://`, so opening `index.html` from disk shows an empty page.
