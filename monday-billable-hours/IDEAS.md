@@ -324,3 +324,72 @@ a well-funded competitor will not step over — and the only such candidate foun
 has an unmeasured market.
 
 This is a statement about the marketplace, not about the ideas or the code.
+
+## Candidate F — Cross-account board sync — **best market fit found, worst builder fit**
+
+Researched 19 Sep 2026, after Türkiye-specific framing was dropped. That angle
+was my own invention, never requested, and is withdrawn.
+
+### The gap is real and documented
+
+**FACT — native monday cannot do this:**
+- Connect Boards, Mirror columns and two-way sync work **within one account only**.
+- The native **Cross Account Copier** *copies a folder once*. Main boards and
+  dashboards only; shareable and private boards are not transferred. It is a
+  one-time copy, not a sync.
+- Clients can only be invited as **guests** to shareable boards, which is not
+  collaboration between two accounts.
+
+**FACT — people keep asking.** Open community feature requests include
+"Cross-Account Collaboration & Sync for Freelancers and Clients" (t/119274),
+"Syncing boards across accounts/organisations" (t/95648), "Two accounts view"
+(t/2824) and "How to link boards from different organizations?" (t/43253).
+
+**FACT — the marketplace apps that sync are single-account.** SIMB / Same Item
+Multiple Boards (Pioneera, 9.5K installs, ⭐4.9 with 98 reviews), VLOOKUP, Mirror
+Item and Fortimus all solve "one record, many boards" **inside one account**.
+
+### The incumbent
+
+**Unito** is on the monday marketplace and does monday-to-monday two-way sync
+with full field mapping. It is a funded, general-purpose, many-platform
+integration company. **UNKNOWN: its price for a monday-to-monday connection.**
+Unito is generally positioned well above the single-digit dollars this
+marketplace charges, but that is an impression, not a figure, and it is the
+number that decides whether a cheaper monday-native tool has room.
+
+No cheap monday-native cross-account sync app surfaced in any search.
+
+### Why this is hard, and who it is hard for
+
+Two-way sync across accounts needs OAuth in two separate accounts, a pairing
+handshake, persistent mapping state, webhooks in both directions, conflict
+resolution, loop prevention, rate-limit handling and error recovery. It is real
+distributed-systems work, not a weekend. It is also the one class of bug that is
+silent and corrupts data.
+
+Samet's own brief says he does not debug unfamiliar platforms quickly. A two-way
+sync engine is close to the worst possible product for that constraint. This
+tension is the finding, not a footnote: **the best market fit found in two
+screening rounds is the worst fit for the person building it.**
+
+### The scope reduction that makes it buildable
+
+**One direction only: publish, do not sync.**
+
+An agency mirrors a filtered view of its own board into a client's account, kept
+current. The client sees live status in their own monday, with no guest seat and
+no access to the agency's account. Nothing flows back.
+
+That removes conflict resolution, loop prevention and most of the state. It still
+needs a backend, two OAuth grants and change detection — so it is not the
+no-backend shape of the schema auditor, and the security-review surface is
+larger. It is, however, an actual product one person could finish.
+
+### Before anything else
+
+1. **Unito's price for a monday-to-monday connection.** If it is affordable,
+   there is no wedge. Not visible from here.
+2. **Search the marketplace for `sync`, `cross account`, `mirror`, `publish`.**
+   Confirm nothing cheap already does it. Four searches.
+3. Only then a dated Gate 0, and only for the one-way version.
