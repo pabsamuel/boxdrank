@@ -130,8 +130,17 @@ This is where local costs you something real.
 from that one clone, and runs offline. It is a PyTorch model, not GGUF.
 
 ```bash
-pip install TTS          # if that fails, the maintained fork is `pip install coqui-tts`
+pip install TTS          # see "When pip install TTS fails" below — it usually does
 python3 tools/local/tts_server.py --engine xtts --option device=cuda
+```
+
+Run that from **inside the `voxswap/` folder of a clone of this repository**.
+`tools/local/tts_server.py` is a path relative to it, so from a home directory
+you get `No such file or directory`:
+
+```bash
+git clone https://github.com/pabsamuel/boxdrank
+cd boxdrank/voxswap
 ```
 ```
 # voxswap/.env
@@ -146,6 +155,60 @@ the model once and answers one POST per line. The command-per-line mode reloads
 several gigabytes of weights for *every utterance* — on a 3,000-line game that
 is days of loading for minutes of speech. VoxSwap prefers the server whenever
 `VOXSWAP_LOCAL_TTS_URL` is set.
+
+### When `pip install TTS` fails
+
+Two failures are near-certain, and neither is your machine's fault.
+
+**1. `No matching distribution found for TTS`.** Coqui's last release caps out
+at Python 3.11 (`Requires-Python >=3.9,<3.12`), so a 3.12 or 3.13 install finds
+nothing at all. Either install Python 3.11 alongside what you have and call it
+explicitly, or use the maintained community fork, which tracks new Python:
+
+```bash
+# Windows, keeping your existing Python:
+py -3.11 -m pip install TTS
+py -3.11 tools/local/tts_server.py --engine xtts
+
+# or, on any Python version:
+pip install coqui-tts
+```
+
+**2. `metadata-generation-failed` on `sudachidict_core`.** That is a Japanese
+dictionary pulled in by `spacy[ja]`, and it downloads its data during install,
+so it dies behind a proxy or a firewall. Nothing in VoxSwap needs it. Skip the
+dependency tree and install what inference actually uses:
+
+```bash
+pip install torch torchaudio numpy scipy librosa soundfile \
+            coqpit anyascii inflect num2words pysbd einops encodec
+pip install --no-deps TTS==0.22.0
+```
+
+**No GPU?** It still runs, just slowly — a line takes seconds rather than a
+fraction of one. Fine for a first order, painful for a 3,000-line game.
+
+### If the model download is blocked
+
+XTTS-v2 lives on Hugging Face. Where that is unreachable, **YourTTS** is the
+fallback: an older Coqui zero-shot cloning model whose weights are on GitHub
+releases instead. It is audibly behind XTTS — flatter, more accent drift — but
+it genuinely clones, and it takes the same engine:
+
+```bash
+mkdir -p ~/.local/share/tts && cd ~/.local/share/tts
+curl -LO https://github.com/coqui-ai/TTS/releases/download/v0.10.1_models/tts_models--multilingual--multi-dataset--your_tts.zip
+unzip tts_models--multilingual--multi-dataset--your_tts.zip && rm *.zip
+```
+
+```bash
+python3 tools/local/tts_server.py --engine xtts \
+    --option model=tts_models/multilingual/multi-dataset/your_tts
+```
+
+Dropping it in the cache directory first is what stops Coqui phoning home: the
+model manager only downloads what it cannot already find. YourTTS speaks `en`,
+`fr-fr` and `pt-br` only.
 
 ### What about GGUF for TTS?
 
