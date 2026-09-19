@@ -181,9 +181,15 @@ dependency tree and install what inference actually uses:
 
 ```bash
 pip install torch torchaudio numpy scipy librosa soundfile \
-            coqpit anyascii inflect num2words pysbd einops encodec
+            coqpit anyascii inflect num2words pysbd einops
 pip install --no-deps TTS==0.22.0
 ```
+
+Leave `encodec` out of that list deliberately. It needs `docopt`, which fails
+to build against current setuptools (`AttributeError: install_layout`), and pip
+then abandons the **whole** transaction — so a two-gigabyte torch download
+finishes and installs nothing. Neither package is used by any cloning model;
+they belong to Bark.
 
 **No GPU?** It still runs, just slowly — a line takes seconds rather than a
 fraction of one. Fine for a first order, painful for a 3,000-line game.
