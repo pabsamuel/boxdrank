@@ -11,19 +11,76 @@ counter on the card.
 
 ---
 
-## The closest competitor
+## Workspace Doctor — the listing, read 19 Sep 2026
 
-| App | Developer | Pitch (verbatim) | Installs | Rating |
+| App | Developer | Installs | Rating | Price |
 |---|---|---|---|---|
-| **Workspace Doctor** | Tiberiu Jinga | "Scan, score & fix your monday workspace in one click" | **23** | none |
+| **Workspace Doctor** | Tiberiu Jinga (leano-app.com) | 23 | none | **$2/mo ≤3 seats, $4/mo ≤5, $8/mo ≤10, billed yearly. Free tier.** |
 
-**This is the nearest thing to the Board Schema Auditor on the marketplace.**
-"Scan, score and fix a workspace" is the same sentence I would write. Whether it
-overlaps is **UNKNOWN** — the card does not say what it scans for, and I cannot
-open the listing. Board structure drift? Permissions? Stale boards? All three?
+Pitch: *"Scan, score & fix your monday workspace in one click."* Built for
+"admins, ops leads, and workspace owners on large or fast-growing accounts."
 
-**This one listing decides whether the auditor is a duplicate.** It is the single
-highest-value page left to read.
+**What it scans — FACT, verbatim from the listing:**
+
+1. **Board Health** — boards not updated past a staleness threshold, boards left
+   empty past a grace period.
+2. **Status Consistency — "the headline feature"** — three-layer detection of
+   **label drift across boards**: fuzzy matching for typos (`Done`/`done!`), a
+   dictionary for synonyms (`Completed`/`Resolved`), and AI embeddings for domain
+   terms (`Wrapped Up`). Same-column exclusion prevents false positives.
+3. **User Hygiene** — items still assigned to deactivated users.
+4. **Adoption** — workspaces with very low recent activity.
+
+Also ships: a 0–100% health score across the four categories, a prioritized
+findings list, one-click fixes (archive a stale board, jump to affected items),
+tunable thresholds, a score-history chart over 30/90/365 days, **weekly scheduled
+checks with email summaries**, and CSV export.
+
+Runs on **monday code**, AES-256 at rest, **four minimal OAuth scopes**, only
+anonymous status labels reach its AI layer, everything deleted on uninstall.
+
+### Is the Board Schema Auditor a duplicate of this?
+
+**Strictly: no.** Workspace Doctor detects *label* drift — the values inside
+status columns. The auditor detects *column structure* drift — names, types,
+presence. Nothing in the listing covers a column being `numbers` on one board and
+`text` on another, or missing entirely.
+
+**Practically: yes, and it would probably be declined.** monday's policy declines
+submissions that "significantly replicate the functionality of an existing
+marketplace app" and says "slight UI tweaks, minor feature additions, or
+superficial changes to an existing app's concept will not be considered new
+value". Set the two side by side:
+
+| | Workspace Doctor | Board Schema Auditor |
+|---|---|---|
+| Pitch | Scan, score & fix your workspace | Scan boards for template drift |
+| Buyer | Admins, ops leads, large accounts | Admins, consultants |
+| Output | Prioritized findings + CSV | Prioritized findings + CSV |
+| Detects | Label drift, stale boards, dead users, dead workspaces | Column structure drift |
+| Retention | Weekly scheduled checks + email | None |
+
+One row differs. To a reviewer that reads as a fifth category for an app that
+already has four — a minor feature addition to an existing concept, which is the
+exact wording of the rejection criterion.
+
+**And the convergence is already happening.** The next feature planned for the
+auditor was comparing status-column labels. That *is* their headline feature,
+done better, with fuzzy matching, a synonym dictionary and embeddings.
+
+### The pricing kills the remaining hope
+
+`COMPETITORS.md` previously recorded an open counter-argument: install count is
+not revenue, and 23 installs at $199/month would be ~$55k/year and a real
+business. **That is now closed.** The actual price of the category leader is
+**$2–8/month with a free tier**.
+
+23 installs, most of them free, at a $8/month ceiling is on the order of
+**$1–2k/year gross** — before monday's cut, before any support time. That is the
+best-performing product in this category.
+
+This holds regardless of what a monday reviewer decides. Even a clean approval
+and a total win over Workspace Doctor lands on a few thousand dollars a year.
 
 ## Adjacent, probably not duplicates
 
@@ -88,22 +145,33 @@ only "the category does not sell on volume" is.
 
 ## What this changes
 
-- The auditor is **not obviously a duplicate**. Nothing in the 44 results clearly
-  does column-structure drift detection. Workspace Doctor is the open question.
-- The volume thesis is **dead**. Nobody is getting to thousands of installs with
-  a workspace-hygiene tool. If this ships, it ships as a low-volume,
-  higher-priced tool sold to admins and consultants, or not at all.
-- That changes the product, not just the price: a $199/month tool has to be worth
-  opening every month, which brings back the continuous-monitoring problem that
-  the no-backend architecture exists to avoid.
+**Stop the Board Schema Auditor.** Three independent reasons, any one of which
+would be enough:
 
-## Next two pages to read
+1. **Volume is dead.** Median 23 installs across ten hygiene apps from ten
+   developers, against 721–17.8K for tools that do work.
+2. **Price is dead.** $2–8/month with a free tier is what the category leader
+   charges. The "low volume, high price" escape route does not exist.
+3. **Duplicate risk is high**, and the auditor's natural next feature is
+   Workspace Doctor's headline feature.
 
-Both on monday.com, both unreachable from here:
+Reasons 1 and 2 do not depend on any reviewer's judgement, so the stop does not
+hinge on guessing what monday would decide.
 
-1. **Workspace Doctor's listing** — what does it actually scan? This decides
-   duplicate risk.
-2. **Pricing on any two hygiene apps** (Workspace Doctor, Super Admin, Better
-   Access Manager). This decides whether 23 installs can be a business.
+## What Workspace Doctor is worth copying
 
-Searches not yet run: `board structure`, `governance`, `template`, `columns`.
+Not the product — the **shape**. It is a working example of what clears monday's
+review, and it answers questions `NEXT-GATE0.md` left open:
+
+- Hosted on **monday code**, so there is no third-party domain for the Burp scan.
+- **Four minimal OAuth scopes**, stated publicly as a selling point.
+- AES-256 at rest, deletion on uninstall, and an explicit statement that only
+  anonymised data reaches its AI layer — all of it written into the listing copy.
+- A free tier with seat-banded paid plans is how apps are priced here.
+- It solved the retention problem the auditor could not: **weekly scheduled
+  checks with email summaries**. That needs a backend. The no-backend
+  architecture was the right call for a security review and the wrong call for a
+  subscription.
+
+Searches not run, and no longer worth running for this product: `board
+structure`, `governance`, `template`, `columns`.

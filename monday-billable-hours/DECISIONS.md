@@ -179,3 +179,58 @@ new monday ideas (`NEXT-GATE0.md` is now a checklist). `README.md`,
 updated. The evidence behind stopping the billable-hours app, the $100 budget,
 the evidence-labelling rules and "no company before Gate 4" are unchanged.
 Entries above are kept as history.
+
+---
+
+## 2026-09-19 — Stop the Board Schema Auditor.
+
+**Decision:** stop. Do not submit it, do not build more features on it.
+
+**Evidence** (`COMPETITORS.md`, from marketplace pages Samet captured, since
+monday is unreachable from this environment):
+
+1. **The category does not sell on volume.** Ten workspace-hygiene apps from ten
+   different developers: 5, 8, 10, 13, 23, 26, 37, 42, 81, 170 installs — median
+   23. Workflow and reporting tools in the same search: 721 to 17,800.
+2. **The category does not sell on price either.** Workspace Doctor, the nearest
+   competitor, charges **$2/month for 3 seats, $4 for 5, $8 for 10, with a free
+   tier**. 23 installs against that ceiling is on the order of $1–2k/year gross.
+   This closes the counter-argument recorded three hours earlier, that low volume
+   might be offset by an admin-tool price. It is not.
+3. **Duplicate risk is high.** Workspace Doctor is "scan, score & fix your monday
+   workspace in one click", sold to admins on large accounts, producing a
+   prioritized findings list with CSV export. The auditor is the same sentence
+   with one category swapped. Its headline feature is status-label drift across
+   boards — and comparing status labels was the auditor's planned next feature.
+
+Points 1 and 2 do not depend on a reviewer's judgement. Even a clean approval and
+a total win over the incumbent lands on a few thousand dollars a year.
+
+**What this does not mean.** The code is not the problem. It works, it is tested,
+it is secure, and it does something Workspace Doctor genuinely does not do. The
+market is the problem, and no amount of building fixes that.
+
+**What was actually learned, and is worth keeping:**
+
+- Workspace Doctor is a working template for what clears monday's review: hosted
+  on monday code, four minimal OAuth scopes, AES-256, deletion on uninstall, and
+  a privacy statement written into the listing copy. Recorded in
+  `COMPETITORS.md`.
+- The no-backend architecture was right for a security review and wrong for a
+  subscription. Workspace Doctor solved retention with weekly scheduled checks
+  and email summaries, which needs the backend the auditor avoided. Any future
+  monday product has to pick a side of that trade deliberately.
+- Free tier plus seat-banded pricing is the norm here, at single-digit dollars.
+  Any future monday revenue model should start from that, not from $39/month.
+- Samet now has a shipped-quality monday app: 75 tests, a security review with a
+  real High finding found and fixed, CI, and a verified end-to-end build. That is
+  the first finished artifact in the repository. It did not become a product, but
+  it is no longer true that nothing has been built.
+
+**Two monday products screened and stopped in four days, both on evidence, with
+no submission and no money spent.** That is the gate system working, not
+a failure.
+
+**What would reopen it:** nothing currently foreseeable. Not a new feature, not a
+lower price, not a different segment. Only a demonstrated buyer — someone saying
+they will pay a real number for column-structure drift specifically, unprompted.
