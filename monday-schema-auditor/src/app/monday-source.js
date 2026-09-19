@@ -22,6 +22,44 @@
  * it without reading MIGRATION in the README first.
  */
 
+/**
+ * Turns an API failure into something the person looking at the screen can act
+ * on, and falls back to the raw message when it does not recognise the failure.
+ *
+ * The access rules are FACTs from developer.monday.com/api-reference/docs/basics
+ * (page updated ~6 Sep 2026): admins and members can use the API; guests cannot
+ * hold an API key but reach it through OAuth or a shortLivedToken; and viewers,
+ * deactivated or disabled users, users with unconfirmed emails, and student
+ * accounts cannot access the API at all.
+ *
+ * That last group is the one worth naming. A viewer opening this board view gets
+ * a hard API failure that has nothing to do with the app, and an unexplained
+ * error would send them to the developer instead of to their admin.
+ *
+ * The substrings below are NOT verified against a published list of monday error
+ * codes — that page was not reachable when this was written. They are matched
+ * defensively and the original message is always preserved, so a wrong guess
+ * degrades to the raw error rather than hiding it.
+ */
+function explainApiError(rawMessage) {
+  const message = String(rawMessage ?? 'Unknown error');
+  const lower = message.toLowerCase();
+
+  if (/unauthor|not authenticated|invalid token|forbidden|permission/.test(lower)) {
+    return (
+      `${message}\n\nmonday blocks API access for viewers, deactivated users, ` +
+      'unconfirmed email addresses and student accounts. If you are a viewer on ' +
+      'this account, an admin or member needs to run the audit instead.'
+    );
+  }
+
+  if (/rate limit|too many requests|complexity|budget exhausted/.test(lower)) {
+    return `${message}\n\nThe account hit a monday API limit. Wait a minute and run it again.`;
+  }
+
+  return message;
+}
+
 /** Fields confirmed against monday's published boards query. Nothing speculative. */
 const BOARDS_QUERY = `
   query ($limit: Int!, $page: Int!) {
@@ -82,12 +120,19 @@ export async function fetchBoards(monday, onProgress) {
   const boards = [];
 
   for (let page = 1; page <= MAX_PAGES; page += 1) {
-    const response = await monday.api(BOARDS_QUERY, { variables: { limit: PAGE_SIZE, page } });
+    let response;
+    try {
+      response = await monday.api(BOARDS_QUERY, { variables: { limit: PAGE_SIZE, page } });
+    } catch (error) {
+      // A rejected call (network, HTTP error) gets the same treatment as a
+      // GraphQL error, so the user sees one consistent explanation either way.
+      throw new Error(explainApiError(error?.message ?? error));
+    }
 
     // The SDK resolves rather than rejects when GraphQL returns errors, so a
     // failed query would otherwise look like an account with no boards.
     if (response?.errors?.length) {
-      throw new Error(response.errors.map((e) => e.message).join('; '));
+      throw new Error(explainApiError(response.errors.map((e) => e.message).join('; ')));
     }
 
     const pageBoards = response?.data?.boards ?? [];

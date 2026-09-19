@@ -190,6 +190,22 @@ function render() {
     return;
   }
 
+  // Two states that are not errors but leave nothing to do. Without these the
+  // user gets an empty dropdown and a dead button with no explanation.
+  if (state.boards.length === 0) {
+    app.append(
+      el('p', 'status', 'No boards found. This app reads the boards your monday user can see — if you expect boards here, check your permissions with an admin.'),
+    );
+    return;
+  }
+
+  if (state.boards.length === 1) {
+    app.append(
+      el('p', 'status', `Only one board is visible ("${state.boards[0].name}"), so there is nothing to compare it against. This audit needs at least two boards.`),
+    );
+    return;
+  }
+
   // Reference picker. Everything is compared against this one board.
   const controls = el('div', 'controls');
   const label = el('label', null, 'Compare every board against');

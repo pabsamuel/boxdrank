@@ -80,3 +80,32 @@ test('paging stops at the cap rather than looping forever', async () => {
   assert.equal(calls.length, 50, 'MAX_PAGES caps the loop');
   assert.equal(boards.length, 5000);
 });
+
+test('a permission failure explains that monday blocks viewers', async () => {
+  // FACT (developer.monday.com/api-reference/docs/basics): viewers, deactivated
+  // users, unconfirmed emails and student accounts cannot access the API. A
+  // viewer opening this board view would otherwise blame the app.
+  const denied = { api: async () => ({ errors: [{ message: 'User unauthorized to perform action' }] }) };
+  await assert.rejects(() => fetchBoards(denied), (error) => {
+    assert.match(error.message, /User unauthorized to perform action/, 'the original message survives');
+    assert.match(error.message, /viewers/i);
+    assert.match(error.message, /admin or member/i);
+    return true;
+  });
+});
+
+test('a rate limit failure says to wait rather than showing raw jargon', async () => {
+  const limited = { api: async () => ({ errors: [{ message: 'Complexity budget exhausted' }] }) };
+  await assert.rejects(() => fetchBoards(limited), /Wait a minute/);
+});
+
+test('an unrecognised failure is passed through unchanged', async () => {
+  // A wrong guess must degrade to the raw error, never hide it.
+  const odd = { api: async () => ({ errors: [{ message: 'Something nobody predicted' }] }) };
+  await assert.rejects(() => fetchBoards(odd), /^Error: Something nobody predicted$/);
+});
+
+test('a rejected call is explained the same way as a GraphQL error', async () => {
+  const offline = { api: async () => { throw new Error('Failed to fetch'); } };
+  await assert.rejects(() => fetchBoards(offline), /Failed to fetch/);
+});
