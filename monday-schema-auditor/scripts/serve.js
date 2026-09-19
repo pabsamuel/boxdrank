@@ -50,7 +50,9 @@ const server = createServer(async (request, response) => {
   }
 });
 
-server.listen(PORT, () => {
+// Bound to loopback on purpose. This serves the whole project directory, and a
+// demo server has no reason to be reachable from the rest of the network.
+server.listen(PORT, '127.0.0.1', () => {
   console.log(`Board Schema Auditor demo: http://localhost:${PORT}/`);
   console.log('Press Ctrl+C to stop.');
 });

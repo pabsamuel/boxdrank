@@ -58,9 +58,29 @@ export function rankBoards(results) {
   );
 }
 
-/** Quotes a value for CSV: doubles any quote, wraps if it could break a cell. */
+/**
+ * Leading characters that make a spreadsheet treat a cell as a formula rather
+ * than as text. Excel, LibreOffice Calc, Google Sheets and Numbers all do this.
+ */
+const FORMULA_LEAD = /^[=+\-@\t\r]/;
+
+/**
+ * Renders a value as one CSV cell: defuses spreadsheet formulas, then applies
+ * structural escaping.
+ *
+ * Board names and column titles are chosen by anyone who can create or share a
+ * board in the account, and the person running the audit is usually an admin.
+ * A board named `=cmd|'/c calc'!A1` would otherwise land in the export as a
+ * live DDE payload, and the README's own workflow is to hand that file to a
+ * client — so the payload travels.
+ *
+ * Quoting is not a defence: a spreadsheet strips CSV quotes at parse time, so
+ * `"=HYPERLINK(...)"` still evaluates. The leading apostrophe is what forces
+ * the cell to be read as text, and it does not show in the rendered value.
+ */
 function csvCell(value) {
-  const text = String(value ?? '');
+  let text = String(value ?? '');
+  if (FORMULA_LEAD.test(text)) text = `'${text}`;
   return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
