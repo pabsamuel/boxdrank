@@ -1,5 +1,45 @@
 # monday.com app ideas — screened
 
+> **Screening rule added 19 Sep 2026. Apply it before anything else.**
+>
+> ## Does it do work, or does it describe work?
+>
+> From the 44 marketplace results in `COMPETITORS.md`, split by that one question:
+>
+> | | Installs | Example price |
+> |---|---|---|
+> | **Tools that do work** | 714 – 17,800 | Tracket ~$49–60/mo for 10 users |
+> | **Tools that describe work** | 5 – 170 (median 23) | Workspace Doctor $8/mo for 10 seats |
+>
+> Doing tools install roughly **400× more** and charge roughly **6×** as much.
+> Ten describing apps from ten different developers land in the same tiny band,
+> so this is a property of the category, not of any one team's marketing.
+>
+> **Describing** = audits, scores, health checks, dashboards about the account,
+> hygiene reports, "insights". **Doing** = exports, documents, signatures,
+> backups, forms, email, sync, time capture, inventory.
+>
+> An idea that describes work does not need further screening. It is capped at a
+> few thousand dollars a year before a single other risk is considered, and two
+> ideas have already died there:
+>
+> - **Billable-hours reporting** (16 Sep) — reporting on time, not capturing it.
+> - **Board Schema Auditor** (19 Sep) — reporting on structure, not fixing it.
+>
+> Both were killed by the market, not by the code. The code was fine both times.
+>
+> **The second filter, applied only after the first passes:** the doing
+> categories are the saturated ones. Board Reports Automations has 17.8K
+> installs, SuperForm 11.2K, DocExport 10.5K, SuperMail 9.4K, Same Item Multiple
+> Boards 9.5K, GetSign 8K, Tracket 8.9K. So passing filter one lands straight
+> into monday's duplicate-rejection policy.
+>
+> **UNKNOWN, and worth saying out loud:** this rests on one search term. 44
+> results out of 869 apps. The pattern is strong and consistent, but it is not
+> the whole marketplace, and a different search could show a category that is
+> neither dead nor saturated. Nobody has looked.
+
+
 Researched 16 Sep 2026. Everything here came through web search; **monday.com,
 the marketplace, the community forum and the idea board are all blocked from my
 network**, so no vote counts, no install counts, no listing checks. Demand
@@ -115,10 +155,15 @@ deleted, those links will no longer be effective, and cells that once displayed
 linked items may appear empty or no longer update," with the recommended fix
 being manual periodic auditing.
 
-**Verdict:** real, silent, and nobody notices until a report is wrong. Same good
-shape as Candidate 1 — read-only, client-side. **But it is a feature, not a
-product.** Too narrow to sell alone. Most likely value is as the second screen
-inside Candidate 1, *after* Candidate 1 proves demand — not as a launch scope.
+**Verdict (16 Sep):** real, silent, and nobody notices until a report is wrong.
+Same good shape as Candidate 1 — read-only, client-side. **But it is a feature,
+not a product.** Too narrow to sell alone.
+
+**Verdict (19 Sep): dead.** It fails the screening rule at the top of this file.
+Finding broken links is describing work, in the same category that pays $2–8 a
+month and reaches 23 installs. It would also have landed next to Workspace
+Doctor, which already scans four categories and would plausibly add this as a
+fifth. There is nothing to salvage and no reason to build it.
 
 ## Candidate 3 — Cross-board portfolio drill-down
 
