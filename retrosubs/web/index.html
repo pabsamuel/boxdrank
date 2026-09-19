@@ -404,7 +404,8 @@
       pageBeep();
       paint();
       clearInterval(timer); timer = null;
-      waitTimer = setTimeout(turnPage, 1100);    // or tap the box to turn it now
+      const queued = lines.length > pageTop + LINES * 2;
+      waitTimer = setTimeout(turnPage, queued ? 380 : 1100);   // or tap the box to turn it now
       return;
     }
     const ch = target[shown];
@@ -418,7 +419,18 @@
     if (!text.startsWith(target.slice(0, 8))) shown = Math.min(shown, text.length);
     target = text; isFinal = !!final;
     lines = wrap(text);
-    if (!waiting) pageTop = pageFor(shown);
+    if (!waiting) {
+      // Live speech outruns a 70 ms typewriter. Rather than falling minutes behind, jump to the
+      // newest page and type that: a line or two behind is a dialogue box, a paragraph behind is
+      // a transcript nobody is reading.
+      const newest = pageFor(target.length);
+      if (newest > pageTop) {
+        pageTop = newest;
+        shown = Math.max(shown, lines[pageTop].start);
+      } else {
+        pageTop = pageFor(shown);
+      }
+    }
     el.line.classList.remove("idle");
     const step = parseInt(el.speed.value, 10);
     if (step === 0) {
@@ -525,6 +537,7 @@
 
   function stopAll() {
     running = false;
+    clearInterval(watchdog); watchdog = null;
     cancelAnimationFrame(raf);
     if (recog) { try { recog.onend = null; recog.stop(); } catch (e) {} recog = null; }
     if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
@@ -560,16 +573,21 @@
     }
   }
 
-  async function getStream(wantCam) {
+  const VIDEO = { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } };
+
+  async function getStream(wantCam, wantMic) {
+    if (!wantCam && !wantMic) return null;
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       throw new Error("no-getusermedia");
     }
-    const withVideo = { audio: true, video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } };
+    const want = {};
+    if (wantMic) want.audio = true;
+    if (wantCam) want.video = VIDEO;
     try {
-      stream = await navigator.mediaDevices.getUserMedia(wantCam ? withVideo : { audio: true });
+      stream = await navigator.mediaDevices.getUserMedia(want);
     } catch (err) {
       // The camera is the optional half: if only it is blocked, carry on with the microphone.
-      if (!wantCam) throw err;
+      if (!wantCam || !wantMic) throw err;
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       wantCam = false;
       document.body.dataset.cam = "off";
@@ -614,9 +632,18 @@
     loop();
   }
 
+  let heard = 0, watchdog = null;
+
   function real() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) throw new Error("unsupported");
+    heard = 0;
+    clearInterval(watchdog);
+    watchdog = setInterval(() => {
+      if (!running || recog === null) return;
+      if (heard) { clearInterval(watchdog); watchdog = null; return; }
+      el.status.textContent = "hala bir sey duymadim - AYAR > MOTOR > vibe kana dene";
+    }, 9000);
     recog = new SR();
     recog.lang = el.lang.value;
     recog.continuous = true;
@@ -626,20 +653,18 @@
       let text = "", fin = false;
       for (let i = e.resultIndex; i < e.results.length; i++) { text += e.results[i][0].transcript; fin = e.results[i].isFinal; }
       text = text.trim();
-      if (text) say(fin ? punctuate(text) : text, fin);
+      if (text) { heard++; el.status.textContent = "dinliyor"; say(fin ? punctuate(text) : text, fin); }
     };
     recog.onerror = e => {
       const fatal = ["not-allowed", "service-not-allowed", "language-not-supported", "audio-capture"];
-      if (fatal.includes(e.error)) {
-        // Safari does not always provide recognition; vibe mode always works.
-        el.status.textContent = "tanima yok, vibe moduna gecildi";
-        try { recog.onend = null; recog.stop(); } catch (err) {}
-        recog = null;
-        el.engine.value = "vibe-kana";
-        getStream(document.body.dataset.cam === "on").then(() => vibe("kana")).catch(() => {});
-      } else {
-        el.status.textContent = "hata: " + e.error;
-      }
+      if (!fatal.includes(e.error)) { el.status.textContent = "hata: " + e.error; return; }
+      // Say so plainly and stop. Silently dropping into another engine — and another
+      // alphabet — is worse than failing: you end up watching kana while speaking Turkish.
+      stopAll();
+      el.status.textContent = "tanima yok";
+      idle(e.error === "not-allowed" || e.error === "service-not-allowed"
+        ? "Safari konusma tanimaya izin vermedi. Ayarlar > Genel > Klavye > Dikte'yi ac, ya da AYAR > MOTOR > vibe sec."
+        : "Konusma tanima bu telefonda calismadi (" + e.error + "). AYAR > MOTOR > vibe sec.");
     };
     recog.onend = () => { if (running) { try { recog.start(); } catch (err) {} } };
     recog.start();
@@ -656,7 +681,7 @@
     }
     try {
       if (running) { const mode = el.engine.value; stopAll(); await start(true, mode); }
-      else { await getStream(true); }
+      else { await getStream(true, false); }
     } catch (e) { el.status.textContent = "kameraya erisilemedi"; }
   };
 
@@ -667,12 +692,12 @@
     idle("Dinliyor...");
     audio();
     if (mode === "real") {
-      // Ask for the microphone ourselves: the permission prompt then belongs to this tap, and a
-      // refusal is reported here rather than swallowed by the recogniser.
-      await getStream(withCam);
+      // Take ONLY the camera here. On iOS the recogniser cannot share a microphone that
+      // getUserMedia already holds: it starts, reports nothing, and the box sits empty.
+      await getStream(withCam, false);
       real();
     } else {
-      await getStream(withCam);
+      await getStream(withCam, true);
       vibe(mode === "vibe-kana" ? "kana" : "latin");
     }
   }
