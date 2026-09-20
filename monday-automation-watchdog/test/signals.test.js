@@ -64,7 +64,7 @@ test('labels name the board and actor rather than raw ids where known', () => {
     actorNames: new Map([['a1', 'Status Bot']]),
     boardNames: new Map([['b1', 'Client Projects']]),
   });
-  assert.equal(signal.label, 'status_change on item — Status Bot, Client Projects');
+  assert.equal(signal.label, 'Status Bot status change on Client Projects');
 });
 
 test('watch ranks the silent above the healthy', () => {
@@ -102,4 +102,16 @@ test('a dormant signal does not trigger an alert', () => {
   const results = watch(run(20, DAY, WED), WED + 45 * DAY);
   assert.equal(results[0].status, 'dormant');
   assert.equal(summarize(results).shouldAlert, false);
+});
+
+test('event names are rendered as prose, with a safe fallback', async () => {
+  const { describeEvent } = await import('../src/core/event-labels.js');
+  assert.equal(describeEvent('create_pulse'), 'creates an item');
+  assert.equal(describeEvent('move_pulse_into_group'), 'moves an item between groups');
+  // The event vocabulary was not fully verifiable, so anything unmapped must
+  // still read as English rather than break or disappear.
+  assert.equal(describeEvent('some_future_event'), 'some future event');
+  assert.equal(describeEvent('someCamelEvent'), 'some camel event');
+  assert.equal(describeEvent(null), 'does something');
+  assert.equal(describeEvent(''), 'does something');
 });

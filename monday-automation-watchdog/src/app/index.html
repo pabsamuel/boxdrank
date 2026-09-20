@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Automation Watchdog</title>
+    <!-- Inline so the page requests nothing but its own script: one less 404
+         in the console and one less host for a security scan. -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230073ea'/%3E%3Cpath d='M3 10l2.5-3L8 9.5 10.5 5 13 10' stroke='white' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+    <style>
+      :root {
+        --bg: #ffffff; --surface: #f6f7fb; --border: #dcdfea;
+        --text: #1c1f3b; --muted: #676879; --accent: #0073ea;
+        --silent: #d83a52; --late: #d9911a; --dormant: #8b8fa3;
+        --healthy: #16a34a; --unknown: #8b8fa3;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --bg: #181b34; --surface: #20223f; --border: #33365a;
+          --text: #edeef5; --muted: #a4a7bd; --accent: #6c9fff;
+          --silent: #ff6b7f; --late: #f0ad4e; --dormant: #9aa0b5;
+          --healthy: #4ade80; --unknown: #9aa0b5;
+        }
+      }
+      :root[data-theme='dark'] {
+        --bg: #181b34; --surface: #20223f; --border: #33365a;
+        --text: #edeef5; --muted: #a4a7bd; --accent: #6c9fff;
+        --silent: #ff6b7f; --late: #f0ad4e; --dormant: #9aa0b5;
+        --healthy: #4ade80; --unknown: #9aa0b5;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; padding: 24px 16px 48px;
+        background: var(--bg); color: var(--text);
+        font: 15px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      }
+      .wrap { max-width: 860px; margin: 0 auto; }
+      h1 { font-size: 22px; margin: 0 0 4px; }
+      .sub { color: var(--muted); margin: 0 0 8px; font-size: 14px; }
+      #source-note { font-size: 12.5px; color: var(--muted); margin: 0 0 18px; }
+
+      .banner {
+        display: flex; flex-direction: column; gap: 3px;
+        padding: 14px 16px; border-radius: 10px; margin-bottom: 18px;
+        border: 1px solid var(--border); background: var(--surface);
+      }
+      .banner strong { font-size: 16px; }
+      .banner span { font-size: 13.5px; color: var(--muted); }
+      .banner.alarm { border-left: 4px solid var(--silent); }
+      .banner.alarm strong { color: var(--silent); }
+      .banner.calm { border-left: 4px solid var(--healthy); }
+
+      .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 18px; }
+      .tile { padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+      .tile-value { font-size: 26px; font-weight: 700; line-height: 1.1; }
+      .tile-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+      .tile.silent .tile-value { color: var(--silent); }
+      .tile.late .tile-value { color: var(--late); }
+      .tile.dormant .tile-value { color: var(--dormant); }
+      .tile.healthy .tile-value { color: var(--healthy); }
+
+      .row { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+      .row.silent { border-left: 4px solid var(--silent); }
+      .row.late { border-left: 4px solid var(--late); }
+      .row.dormant { border-left: 4px solid var(--dormant); }
+      .row.healthy { border-left: 4px solid var(--healthy); }
+      .row-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+      .row-head h3 { font-size: 15px; margin: 0; flex: 1 1 260px; word-break: break-word; }
+      .pill { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; color: #fff; white-space: nowrap; }
+      .pill.silent { background: var(--silent); }
+      .pill.late { background: var(--late); }
+      .pill.dormant { background: var(--dormant); }
+      .pill.healthy { background: var(--healthy); }
+      .pill.unknown { background: var(--unknown); }
+      .reason { margin: 8px 0 0; font-size: 14px; }
+      .meta { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
+
+      .status { color: var(--muted); }
+      .warning {
+        padding: 10px 12px; border: 1px solid var(--late); border-radius: 8px;
+        font-size: 13.5px; margin-bottom: 16px;
+      }
+      .error { padding: 16px; border: 1px solid var(--silent); border-radius: 10px; color: var(--silent); }
+      .error p { margin: 6px 0 0; color: var(--text); font-size: 14px; word-break: break-word; white-space: pre-line; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Automation Watchdog</h1>
+      <p class="sub">
+        monday deactivates automations when something they reference is deleted, and sends no notification.
+        This notices when one that used to run regularly has gone quiet.
+      </p>
+      <p id="source-note"></p>
+      <main id="app"><p class="status">Loading…</p></main>
+    </div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

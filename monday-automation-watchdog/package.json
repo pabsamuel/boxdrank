@@ -7,11 +7,18 @@
     "test": "test"
   },
   "scripts": {
-    "test": "node --test \"test/*.test.js\""
+    "test": "node --test \"test/*.test.js\"",
+    "demo": "node scripts/serve.js",
+    "fixtures": "node scripts/make-fixtures.js",
+    "build": "node scripts/build.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "esbuild": "^0.25.12",
+    "monday-sdk-js": "^0.5.9"
+  }
 }

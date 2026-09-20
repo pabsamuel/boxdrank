@@ -15,6 +15,8 @@
  * which is the thing being detected. Monitoring by outcome rather than by status.
  */
 
+import { describeEvent } from './event-labels.js';
+
 /**
  * Minimum firings before a pattern is worth watching at all.
  *
@@ -37,13 +39,14 @@ function signatureOf(entry) {
 }
 
 /**
- * Human-readable name for a signal. Deliberately plain: an alert that needs
- * decoding gets ignored.
+ * Human-readable name for a signal, in the form "X creates an item on Y".
+ * Deliberately plain prose: an alert that needs decoding gets ignored, and this
+ * one gets read at 8am by someone who has not thought about monday yet.
  */
 function labelFor(entry, actorNames, boardNames) {
-  const actor = actorNames?.get(entry.actor) ?? (entry.actor ? `actor ${entry.actor}` : 'unknown actor');
+  const actor = actorNames?.get(entry.actor) ?? (entry.actor ? `Actor ${entry.actor}` : 'Something');
   const board = boardNames?.get(entry.boardId) ?? `board ${entry.boardId}`;
-  return `${entry.event ?? 'activity'} on ${entry.entity ?? 'item'} — ${actor}, ${board}`;
+  return `${actor} ${describeEvent(entry.event)} on ${board}`;
 }
 
 /**
