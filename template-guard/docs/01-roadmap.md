@@ -15,7 +15,8 @@ done and is blocking on your answer. Copy-paste prompts for each phase are in
 | 5 | Drift monitoring | scheduled re-check, notifications (paid tier) | engine done; scheduler not wired |
 | 6 | Docs | README: local dev, manifest, scopes, submission notes | done |
 | 7 | **Live verification** | check every `✱` claim against a real monday account | **blocked — needs an API token** |
-| — | **Marketplace duplicate check** | ~20 min of browser time; can kill the whole project | **blocked — monday.com unreachable from any session here** |
+| — | **Marketplace duplicate check** | ~20 min of browser time; can kill the whole project | **CLEARED 2026-09-20** by Samet — no competitor. See ADR-012 and `docs/04-marketplace-scan.md`. One listing left to read: Workspace Doctor. |
+| — | **Demand evidence** | 10 admin conversations about column drift | **now load-bearing** — the audit/admin category tops out at 951 installs |
 | — | **Product shape decision** | read-only auditor, or auditor + repair + monitoring | **blocked on the owner** — see ADR-010 |
 | 8 | Real storage | swap `InMemoryStorage` for Postgres behind the `Storage` interface | not started |
 | 9 | Billing UI | monday marketplace billing integration | deferred, out of v1 scope |

@@ -105,3 +105,25 @@ separate reasoning, so the writes do not buy the thing that matters most. They
 cost the "never writes to your boards" claim in full, and enlarge every security
 question at review. Worth stating plainly so the trade is visible when the shape
 is chosen, rather than discovered at submission.
+
+## ADR-012 — Gate item #1 cleared; the risk moved rather than vanished
+**Date:** 2026-09-20 · **Status:** accepted
+Samet ran the marketplace duplicate check in a browser (no session here can —
+`monday.com` is blocked by the egress policy). **No app does board-structure
+diffing or template-drift detection.** Searches for "schema" and "template
+drift" return one irrelevant hit each. The duplicate-rejection risk that killed
+the previous monday idea does not apply to this one.
+
+The same screenshots carry a worse signal. In Template Guard's own category —
+admin, audit, governance — the best listing has **951 installs** and most are
+under 100, while a board-reports app has 17.8K. The gap is real; whether it is
+an opening or a graveyard is now the open question, and it is the one the other
+thread flagged when it wrote that demand here is INFERRED, not measured.
+
+**Consequence:** the 10 admin conversations are no longer optional diligence.
+They are load-bearing before any marketing spend. Full scan and numbers:
+`docs/04-marketplace-scan.md`.
+
+**What would reverse the clear:** opening the **Workspace Doctor** listing
+(23 installs, *"scan, score & fix your monday workspace in one click"*) and
+finding it does schema scoring. Not yet read. 5 minutes.

@@ -110,11 +110,12 @@ Not all of it is conflict. The market reasoning is work this thread never did:
 
 From `monday-billable-hours/NEXT-GATE0.md`, all still open:
 
-1. **Does an equivalent app already exist?** ~20 minutes in the marketplace.
-   Their risk #2 says **UNKNOWN** — nothing surfaced in search, but they could
-   not open a single marketplace listing page. This thread couldn't either.
-   monday rejects duplicates. **This is the cheapest possible kill and it has not
-   been run.**
+1. ~~**Does an equivalent app already exist?**~~ **CLEARED 20 Sep 2026.** Samet
+   ran it; no app does board-structure diffing or template-drift detection. But
+   the scan surfaced a harder problem in its place — the admin/audit category
+   tops out at 951 installs while reporting apps hit 17.8K. See
+   `docs/04-marketplace-scan.md` and ADR-012. Demand evidence is now the
+   load-bearing gate, not duplication.
 2. **Can the builder explain this architecture, unprompted, to a reviewer?**
    monday rejects apps "built primarily with AI-generated vibe code." Template
    Guard is ~16k lines written by Claude in one session. The policy question is
@@ -125,7 +126,9 @@ From `monday-billable-hours/NEXT-GATE0.md`, all still open:
 
 Both sessions hit the same wall on #1: **the network egress policy blocks
 `monday.com` and `developer.monday.com`.** No Claude session on this setup can
-run that check. It has to be a human with a browser.
+run that check — Samet ran it himself on 20 Sep and supplied screenshots. The
+same constraint still applies to items #2 and #3 and to verifying the `✱` API
+claims: anything requiring a live monday page needs a human with a browser.
 
 ## The decision to make
 
@@ -144,8 +147,8 @@ has no network dependency, and does not care which shell it ships in. Nothing
 built today is wasted by choosing the narrower shape; the repair and server
 layers just sit unbuilt-upon until the gate clears.
 
-**Recommendation:** run gate item #1 first, because it can kill everything for
-20 minutes of browser time. If it clears, ship the **read-only** shape to
+**Recommendation (updated 20 Sep, after gate item #1 cleared):** ship the
+**read-only** shape to
 marketplace review — smallest security conversation, fastest approval — and hold
 `repair/` and `drift/` for a second release once the app is live and the review
 relationship exists. That sequences the hard security conversation *after* the
