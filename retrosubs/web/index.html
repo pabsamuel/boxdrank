@@ -143,6 +143,13 @@
   #meter { height: 4px; background: rgba(139,211,221,.25); border-radius: 2px; overflow: hidden; }
   #meter > i { display: block; height: 100%; width: 0; background: #F2C14E; }
   .hint { grid-column: 1 / -1; font-size: 13px; line-height: 1.5; color: #9fb6d8; }
+  #diag {
+    position: fixed; left: 10px; right: 10px; top: calc(env(safe-area-inset-top) + 62px);
+    z-index: 6; display: none; background: rgba(8,10,30,.88); border: 2px solid var(--frame-inner);
+    border-radius: 6px; padding: 8px 10px; font-size: 12px; line-height: 1.5; color: #cfe8ec;
+    white-space: pre-wrap; font-family: ui-monospace, Menlo, monospace;
+  }
+  body[data-diag="on"] #diag { display: block; }
 </style>
 </head>
 <body data-frame="classic" data-cam="off">
@@ -156,8 +163,10 @@
   <button class="chip" id="camBtn">KAMERA</button>
   <button class="chip" id="gear">AYAR</button>
   <span id="status">hazir</span>
-  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v8</span>
+  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v9</span>
 </div>
+
+<div id="diag"></div>
 
 <div id="stage">
   <div id="box">
@@ -216,9 +225,9 @@
   <div>
     <label for="speed">HIZ</label>
     <select id="speed">
-      <option value="140">cok yavas</option>
-      <option value="100">yavas</option>
-      <option value="90" selected>normal</option>
+      <option value="180">cok yavas</option>
+      <option value="120" selected>yavas</option>
+      <option value="90">normal</option>
       <option value="70">hizli</option>
       <option value="45">cok hizli</option>
       <option value="0">aninda</option>
@@ -230,6 +239,10 @@
       <option value="1" selected>acik</option>
       <option value="0">kapali</option>
     </select>
+  </div>
+  <div class="full">
+    <label for="diagSel">TANI</label>
+    <select id="diagSel"><option value="0" selected>kapali</option><option value="1">acik</option></select>
   </div>
   <button class="btn full" id="test">TEST SATIRI (tempoyu gor)</button>
   <button class="btn full" id="demo">DEMO (izin gerekmez)</button>
@@ -248,7 +261,7 @@
     go: $("go"), cam: $("cam"), camBtn: $("camBtn"), gear: $("gear"), sheet: $("sheet"),
     meter: $("meter").firstElementChild, engine: $("engine"), lang: $("lang"), size: $("size"),
     frame: $("frame"), speed: $("speed"), sound: $("sound"), demo: $("demo"), name: $("name"),
-    test: $("test"),
+    test: $("test"), diag: $("diag"), diagSel: $("diagSel"),
   };
 
   // ---------------- text blip: synthesised, one per character ----------------
@@ -316,6 +329,32 @@
       return this.text;
     }
   }
+
+  // ---------------- diagnostics ----------------
+  // The phone is the only place the real recogniser runs, so when the box misbehaves there the
+  // only way to know why is to have the page say what it received and what it drew.
+  const diagLog = [];
+  let revealed = 0, revealFirst = 0, revealLast = 0;
+
+  function diag(msg) {
+    if (el.diagSel.value !== "1") return;
+    diagLog.push(Math.round(performance.now() / 100) / 10 + "s " + msg);
+    while (diagLog.length > 7) diagLog.shift();
+    render();
+  }
+
+  function render() {
+    if (el.diagSel.value !== "1") return;
+    const span = revealLast > revealFirst ? (revealLast - revealFirst) : 0;
+    el.diag.textContent =
+      "harf: " + revealed + "  sure: " + Math.round(span) + "ms" +
+      "  hiz: " + el.speed.value + "ms\n" + diagLog.join("\n");
+  }
+
+  el.diagSel.onchange = () => {
+    document.body.dataset.diag = el.diagSel.value === "1" ? "on" : "off";
+    render();
+  };
 
   // ---------------- renderer: two lines a page, typed character by character ----------------
   // A handheld dialogue box never scrolls: it fills two lines, blinks the caret, and turns the
@@ -436,12 +475,16 @@
     }
     const ch = target[shown];
     shown++;
+    if (!revealed) revealFirst = performance.now();
+    revealed++; revealLast = performance.now();
     if (ch !== " ") blip();
     paint();
+    render();
   }
 
   function say(text, final) {
     if (!text) return;
+    if (typeof diag === "function") diag("say len=" + text.length + " shown=" + shown);
     if (!text.startsWith(target.slice(0, 8))) shown = Math.min(shown, text.length);
     target = text; isFinal = !!final;
     rewrap(text);
@@ -478,6 +521,7 @@
     waiting = false; pageTop = 0;
     target = ""; shown = 0; isFinal = false;
     lines = []; wrapped = "";
+    revealed = 0; revealFirst = 0; revealLast = 0;
     el.line.textContent = msg;
     el.line.classList.add("idle");
     el.caret.classList.remove("on");
@@ -690,7 +734,11 @@
       let text = "", fin = false;
       for (let i = e.resultIndex; i < e.results.length; i++) { text += e.results[i][0].transcript; fin = e.results[i].isFinal; }
       text = text.trim();
-      if (text) { heard++; el.status.textContent = "dinliyor"; say(fin ? punctuate(text) : text, fin); }
+      if (text) {
+        heard++; el.status.textContent = "dinliyor";
+        diag((fin ? "final" : "ara") + " len=" + text.length);
+        say(fin ? punctuate(text) : text, fin);
+      }
     };
     recog.onerror = e => {
       const fatal = ["not-allowed", "service-not-allowed", "language-not-supported", "audio-capture"];
