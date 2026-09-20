@@ -499,3 +499,37 @@ time. A minimum interval rather than a token bucket, deliberately: a bucket
 permits a burst, and a burst at the start of a sweep is exactly the shape that
 trips the limit. Slower and even beats faster and throttled — being an hour
 late with a drift alert costs nothing.
+
+## ADR-023 — The server never served the client
+**Date:** 2026-09-20 · **Status:** accepted
+`createServer` had OAuth, the API, the billing webhook and the cron route, and
+no route for the app itself. monday loads the board view from
+`https://your-app/` and the OAuth callback redirects to `/installed.html`;
+both were 404. The app would not have rendered at all, and every successful
+install would have finished on an error page.
+
+It survived this long because of the development setup, not in spite of it:
+`npm run dev` serves the client from Vite on :8301 and the API from :8302, so
+the missing route is invisible locally and only appears where there is one
+origin. Worth recording as a class of bug rather than an incident — the same
+shape as ADR-021's silent delivery gap, and found the same way, by asking what
+would actually happen rather than whether the tests passed.
+
+Three decisions inside the fix:
+
+- **Fingerprinted assets cache for a year; `index.html` is `no-store`.** Vite
+  hashes asset filenames, so they are safe to cache hard. Caching the entry
+  HTML points browsers at assets the next deploy deletes.
+- **Service paths never fall through to the app shell.** A single-page
+  fallback that answers `/api/typo` with HTTP 200 and HTML reaches the client
+  as a JSON parse error metres away from the real problem. `/api`, `/auth`,
+  `/webhooks`, `/mndy-cronjob` and `/health` return a JSON 404 instead. The
+  test suite caught this — the first version did swallow them.
+- **A missing build says so.** If `dist/client/index.html` is absent the server
+  answers with an explicit "run `npm run build`" rather than a blank page,
+  because a deployment that forgot to build otherwise looks exactly like a
+  broken app.
+
+This is also the first test coverage the HTTP layer has had: `test/server.test.ts`
+runs the real Express app on an ephemeral port and checks what a browser would
+actually receive.

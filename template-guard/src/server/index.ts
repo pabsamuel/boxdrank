@@ -1,3 +1,6 @@
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import { MondayClient } from '../api/client.js';
 import { TemplateGuardError } from '../api/errors.js';
@@ -60,6 +63,12 @@ export interface ServerDeps {
   automationsPreview?: boolean;
   /** Shared secret the monday code scheduler must present. */
   cronSecret?: string;
+  /**
+   * Built client bundle to serve. Defaults to `dist/client`. Set to `null` to
+   * serve no static files at all, which is only right in local development,
+   * where Vite serves the client on its own port.
+   */
+  clientDir?: string | null;
 }
 
 /**
@@ -108,6 +117,12 @@ export function assertSafeWebhookUrl(raw: string): URL {
   }
   return url;
 }
+
+/**
+ * Paths that belong to the server, never to the single-page app. Anything
+ * under one of these that has no route is a 404, not the app shell.
+ */
+const SERVICE_PREFIXES = ['/api', '/auth', '/webhooks', '/mndy-cronjob', '/health'];
 
 export function createServer(deps: ServerDeps) {
   const app = express();
@@ -517,6 +532,70 @@ export function createServer(deps: ServerDeps) {
     res.status(202).json({ ok: true, started: true });
   });
 
+  // --- The client -----------------------------------------------------------
+
+  /**
+   * Serves the board view and the dashboard widget.
+   *
+   * This is easy to forget and impossible to notice in development, because
+   * `npm run dev` serves the client from Vite on :8301 and the API from here
+   * on :8302. In production there is one origin: monday loads the board view
+   * from `https://your-app/`, and without this every install ends on a 404
+   * and the app renders nothing at all.
+   *
+   * Registered *after* the API routes so that a mistyped `/api/...` path gets
+   * a JSON 404 from the error handler below rather than an HTML page, which
+   * is a confusing thing to debug through a browser console.
+   */
+  const clientDir =
+    deps.clientDir === null
+      ? null
+      : (deps.clientDir ?? path.join(path.dirname(fileURLToPath(import.meta.url)), '../../dist/client'));
+
+  if (clientDir) {
+    const indexHtml = path.join(clientDir, 'index.html');
+
+    app.use(
+      express.static(clientDir, {
+        // Vite fingerprints asset filenames, so they can be cached hard. The
+        // entry HTML must not be, or a deploy leaves browsers pointed at
+        // assets that no longer exist.
+        setHeaders: (res, filePath) => {
+          res.setHeader(
+            'Cache-Control',
+            filePath.endsWith('.html') ? 'no-store' : 'public, max-age=31536000, immutable',
+          );
+        },
+      }),
+    );
+
+    // Everything else is the single-page app: monday appends its own query
+    // string, and the widget is the same bundle under `?surface=widget`.
+    app.get('*', (req, res, next) => {
+      if (req.method !== 'GET') return next();
+
+      // Never answer a service path with the app shell. A mistyped or removed
+      // API route would otherwise return HTTP 200 and HTML, which reaches the
+      // client as a JSON parse error metres from where the real problem is.
+      if (SERVICE_PREFIXES.some((prefix) => req.path === prefix || req.path.startsWith(`${prefix}/`))) {
+        res.status(404).json({ error: `No such endpoint: ${req.method} ${req.path}`, kind: 'unexpected_shape' });
+        return;
+      }
+
+      if (!fs.existsSync(indexHtml)) {
+        // Said plainly rather than as a blank page: a deployment that forgot
+        // to build looks exactly like a broken app otherwise.
+        res.status(500).json({
+          error:
+            'Template Guard has no built client to serve. Run `npm run build` before starting the server, or set clientDir to null in development.',
+        });
+        return;
+      }
+      res.setHeader('Cache-Control', 'no-store');
+      res.sendFile(indexHtml);
+    });
+  }
+
   // --- Errors --------------------------------------------------------------
 
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
@@ -663,6 +742,10 @@ if (isMain) {
     scheduler,
     automationsPreview,
     cronSecret: config.get('DRIFT_CRON_SECRET') ?? undefined,
+    // Only set this when the built client lives somewhere other than
+    // `dist/client`. In local development Vite serves the client on its own
+    // port, so the API server having nothing to serve is expected.
+    clientDir: config.get('CLIENT_DIR') ?? undefined,
     enforceHttps: platform !== null || config.flag('ENFORCE_HTTPS'),
     paidPlanIds: (config.get('MONDAY_PAID_PLAN_IDS') ?? '')
       .split(',')
