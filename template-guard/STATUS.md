@@ -1,6 +1,6 @@
 # Status — how much of this is done
 
-**Updated:** 20 Sep 2026 · 176 tests passing · typecheck clean · production build clean
+**Updated:** 20 Sep 2026 · 198 tests passing · typecheck clean · production build clean
 
 Two numbers, because they are genuinely different and mixing them would be the
 kind of comfortable lie this project is supposed to be allergic to.
@@ -24,7 +24,7 @@ Every deliverable the spec named, plus the two the README listed as still to do.
 | API findings report + Path A/B recommendation | Done | `docs/00-api-findings.md` |
 | App skeleton, OAuth, board view, dashboard widget | Done | `src/server/`, `src/ui/` |
 | Snapshot + diff engine | Done | `src/snapshot/`, `src/diff/` |
-| Unit tests over fixtures — the four required cases | Done, 176 tests | `test/` |
+| Unit tests over fixtures — the four required cases | Done, 198 tests | `test/` |
 | Repair layer (auto where safe, manual checklist where not) | Done | `src/repair/` |
 | README | Done | `README.md` |
 | Project docs, decision log, prompts | Done | `docs/` |
@@ -34,7 +34,8 @@ Every deliverable the spec named, plus the two the README listed as still to do.
 | **Live verification script** — the five `✱` claims, one command | **Done** | `scripts/verify-live.ts`, ADR-017 |
 | **Security middleware** — the standard Burp findings, pre-empted | **Done** | `src/server/security.ts`, ADR-015 |
 | **Marketplace billing** — signed subscription webhook → plan state | **Done** | `src/billing/subscription.ts`, ADR-016 |
-| **Notification delivery** — monday notification, webhook, fallback chain | **Done** | `src/drift/sinks.ts` |
+| **Notification delivery** — end to end: recipient captured at OAuth, per-account settings, fallback chain, settings UI | **Done** | `src/drift/sinks.ts`, ADR-021 |
+| **Sweep paces against its own storage** — the 7 req/s limit | **Done** | ADR-022 |
 | **Deployment** — Dockerfile, non-root, data on a volume | **Done** | `Dockerfile`, `docs/06-deployment-and-submission.md` |
 | **Submission checklist** | Done | `docs/06-deployment-and-submission.md` |
 | **Delete everything on uninstall** | **Done** | `Storage.deleteAccount()`, ADR-019 |

@@ -2,7 +2,13 @@ import { createRequire } from 'node:module';
 import type { AccountPlan, PlanId } from '../billing/tiers.js';
 import type { BoardSnapshot, TemplateRecord } from '../snapshot/types.js';
 import { SNAPSHOT_SCHEMA_VERSION } from '../snapshot/types.js';
-import { assertNoItemData, type Storage, type StoredInstall } from './storage.js';
+import {
+  DEFAULT_NOTIFICATION_SETTINGS,
+  assertNoItemData,
+  type NotificationSettings,
+  type Storage,
+  type StoredInstall,
+} from './storage.js';
 
 /**
  * Durable storage.
@@ -86,13 +92,41 @@ const MIGRATIONS: string[] = [
      renews_at  TEXT
    );`,
   `CREATE INDEX IF NOT EXISTS templates_by_account ON templates (account_id);`,
+  `ALTER TABLE installs ADD COLUMN installed_by_user_id TEXT;`,
+  `CREATE TABLE IF NOT EXISTS notification_settings (
+     account_id     TEXT PRIMARY KEY,
+     monday_user_id TEXT,
+     webhook_url    TEXT,
+     enabled        INTEGER NOT NULL DEFAULT 1
+   );`,
 ];
+
+/**
+ * Migrations run in order on every start and must be idempotent.
+ *
+ * `CREATE TABLE IF NOT EXISTS` is. `ALTER TABLE ADD COLUMN` is not — SQLite
+ * raises "duplicate column name" the second time. That specific error means
+ * the migration already ran, so it is swallowed *by name*; anything else is a
+ * real problem and still throws. A blanket try/catch around migrations would
+ * hide a genuinely broken schema behind a working-looking start-up.
+ */
+function isAlreadyApplied(err: unknown): boolean {
+  return err instanceof Error && /duplicate column name/i.test(err.message);
+}
 
 interface InstallRow {
   account_id: string;
   account_slug: string;
   encrypted_token: string;
   installed_at: string;
+  installed_by_user_id: string | null;
+}
+
+interface NotificationRow {
+  account_id: string;
+  monday_user_id: string | null;
+  webhook_url: string | null;
+  enabled: number;
 }
 
 interface TemplateRow {
@@ -120,7 +154,13 @@ export class SqliteStorage implements Storage {
     this.db = new DatabaseSync(filename);
     this.db.exec('PRAGMA journal_mode = WAL;');
     this.db.exec('PRAGMA foreign_keys = ON;');
-    for (const migration of MIGRATIONS) this.db.exec(migration);
+    for (const migration of MIGRATIONS) {
+      try {
+        this.db.exec(migration);
+      } catch (err) {
+        if (!isAlreadyApplied(err)) throw err;
+      }
+    }
   }
 
   close(): void {
@@ -130,14 +170,21 @@ export class SqliteStorage implements Storage {
   async saveInstall(install: StoredInstall): Promise<void> {
     this.db
       .prepare(
-        `INSERT INTO installs (account_id, account_slug, encrypted_token, installed_at)
-         VALUES (?, ?, ?, ?)
+        `INSERT INTO installs (account_id, account_slug, encrypted_token, installed_at, installed_by_user_id)
+         VALUES (?, ?, ?, ?, ?)
          ON CONFLICT(account_id) DO UPDATE SET
            account_slug = excluded.account_slug,
            encrypted_token = excluded.encrypted_token,
-           installed_at = excluded.installed_at`,
+           installed_at = excluded.installed_at,
+           installed_by_user_id = excluded.installed_by_user_id`,
       )
-      .run(install.accountId, install.accountSlug, install.encryptedToken, install.installedAt);
+      .run(
+        install.accountId,
+        install.accountSlug,
+        install.encryptedToken,
+        install.installedAt,
+        install.installedByUserId ?? null,
+      );
   }
 
   async getInstall(accountId: string): Promise<StoredInstall | null> {
@@ -229,6 +276,32 @@ export class SqliteStorage implements Storage {
       .run(plan.accountId, plan.planId, plan.renewsAt);
   }
 
+  async getNotificationSettings(accountId: string): Promise<NotificationSettings> {
+    const row = this.db
+      .prepare(`SELECT * FROM notification_settings WHERE account_id = ?`)
+      .get(accountId) as NotificationRow | undefined;
+    if (!row) return DEFAULT_NOTIFICATION_SETTINGS(accountId);
+    return {
+      accountId: row.account_id,
+      mondayUserId: row.monday_user_id,
+      webhookUrl: row.webhook_url,
+      enabled: row.enabled === 1,
+    };
+  }
+
+  async saveNotificationSettings(settings: NotificationSettings): Promise<void> {
+    this.db
+      .prepare(
+        `INSERT INTO notification_settings (account_id, monday_user_id, webhook_url, enabled)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(account_id) DO UPDATE SET
+           monday_user_id = excluded.monday_user_id,
+           webhook_url = excluded.webhook_url,
+           enabled = excluded.enabled`,
+      )
+      .run(settings.accountId, settings.mondayUserId, settings.webhookUrl, settings.enabled ? 1 : 0);
+  }
+
   async deleteAccount(accountId: string): Promise<void> {
     // One transaction: a partial purge that left the token behind while
     // deleting the snapshots would be the worst of both outcomes.
@@ -236,6 +309,7 @@ export class SqliteStorage implements Storage {
     try {
       this.db.prepare(`DELETE FROM templates WHERE account_id = ?`).run(accountId);
       this.db.prepare(`DELETE FROM plans WHERE account_id = ?`).run(accountId);
+      this.db.prepare(`DELETE FROM notification_settings WHERE account_id = ?`).run(accountId);
       this.db.prepare(`DELETE FROM installs WHERE account_id = ?`).run(accountId);
       this.db.exec('COMMIT');
     } catch (err) {
@@ -251,6 +325,7 @@ function toInstall(row: InstallRow): StoredInstall {
     accountSlug: row.account_slug,
     encryptedToken: row.encrypted_token,
     installedAt: row.installed_at,
+    installedByUserId: row.installed_by_user_id ?? undefined,
   };
 }
 

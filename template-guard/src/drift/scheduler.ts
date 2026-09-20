@@ -81,6 +81,17 @@ export interface SchedulerOptions {
   jitterMs?: number;
   /** Pause between accounts within one sweep. */
   accountPauseMs?: number;
+  /**
+   * Ceiling on storage reads per second during a sweep.
+   *
+   * monday code's Secure Storage is limited to 7 requests/second (reduced
+   * from 30 in February 2026), and the sweep reads an install, a plan and a
+   * settings record for every account. Pacing the monday API but not our own
+   * storage would just move the throttle somewhere less visible. Default 5,
+   * which leaves headroom for the requests the app is serving to people at
+   * the same time. (ADR-020.)
+   */
+  storageOpsPerSecond?: number;
   automationsPreviewEnabled?: boolean;
   sleep?: (ms: number) => Promise<void>;
   now?: () => Date;
@@ -98,12 +109,36 @@ export class DriftScheduler {
   private skippedTicks = 0;
   private lastSweep: SweepResult | null = null;
 
+  /** Timestamp the next storage read is allowed at, for pacing. */
+  private nextStorageOpAt = 0;
+
   constructor(
     private readonly storage: Storage,
     private readonly cipher: TokenCipher,
     private readonly sink: NotificationSink,
     private readonly opts: SchedulerOptions = {},
   ) {}
+
+  /**
+   * Spaces storage reads out.
+   *
+   * A minimum interval rather than a token bucket, deliberately: a bucket
+   * allows a burst, and a burst is exactly what trips a 7/second limit at the
+   * start of a sweep over many accounts. Slower and even beats faster and
+   * throttled — being an hour late with a drift alert costs nothing.
+   */
+  private async pacedRead<T>(read: () => Promise<T>): Promise<T> {
+    const perSecond = this.opts.storageOpsPerSecond ?? 5;
+    if (perSecond <= 0) return read();
+
+    const now = (this.opts.now ?? (() => new Date()))().getTime();
+    const minInterval = Math.ceil(1000 / perSecond);
+    const waitMs = Math.max(0, this.nextStorageOpAt - now);
+    if (waitMs > 0) await (this.opts.sleep ?? defaultSleep)(waitMs);
+
+    this.nextStorageOpAt = now + waitMs + minInterval;
+    return read();
+  }
 
   get status() {
     return {
@@ -183,7 +218,7 @@ export class DriftScheduler {
   private async sweepAccount(accountId: string): Promise<AccountSweepResult> {
     const out: AccountSweepResult = { accountId, reports: [], notificationsSent: 0, errors: [] };
 
-    const plan = await this.storage.getPlan(accountId);
+    const plan = await this.pacedRead(() => this.storage.getPlan(accountId));
     const gate = canUseDriftMonitoring(plan);
     if (!gate.allowed) {
       // Not an error. A free account simply is not monitored, and saying so
@@ -192,7 +227,7 @@ export class DriftScheduler {
       return out;
     }
 
-    const install = await this.storage.getInstall(accountId);
+    const install = await this.pacedRead(() => this.storage.getInstall(accountId));
     if (!install) {
       out.skipped = 'No stored install: the app was uninstalled or its token was revoked.';
       return out;
@@ -210,7 +245,7 @@ export class DriftScheduler {
       return out;
     }
 
-    const templates = await this.storage.listTemplates(accountId);
+    const templates = await this.pacedRead(() => this.storage.listTemplates(accountId));
     for (const template of templates) {
       if (template.linkedBoardIds.length === 0) continue;
 

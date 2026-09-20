@@ -274,3 +274,61 @@ describe('DriftScheduler', () => {
     expect(scheduler.status.started).toBe(false);
   });
 });
+
+describe('DriftScheduler storage pacing', () => {
+  it('spaces storage reads so a sweep cannot trip the 7/second Secure Storage limit', async () => {
+    const storage = await seed();
+    await storage.saveInstall({
+      accountId: 'acct-2',
+      accountSlug: 'other',
+      encryptedToken: cipher.encrypt('monday-token'),
+      installedAt: '2026-09-01T00:00:00.000Z',
+    });
+    await storage.savePlan({ accountId: 'acct-2', planId: 'pro', renewsAt: null });
+    await storage.saveTemplate({
+      accountId: 'acct-2',
+      templateBoardId: TEMPLATE_BOARD_ID,
+      label: 'Template',
+      snapshot: templateBoard,
+      linkedBoardIds: [COPY_BOARD_ID],
+      createdAt: '2026-09-01T00:00:00.000Z',
+      updatedAt: '2026-09-01T00:00:00.000Z',
+    });
+
+    const waits: number[] = [];
+    let clock = 0;
+    const scheduler = new DriftScheduler(storage, cipher, new RecordingSink(), {
+      jitterMs: 0,
+      accountPauseMs: 0,
+      storageOpsPerSecond: 5,
+      now: () => new Date(clock),
+      sleep: async (ms: number) => {
+        waits.push(ms);
+        clock += ms;
+      },
+      makeClient: () => fakeClient(cleanCopy),
+    });
+
+    await scheduler.sweep();
+
+    // Three storage reads per account, two accounts: the first read runs
+    // immediately, the rest are spaced by 1000/5 = 200ms.
+    expect(waits.filter((w) => w === 200).length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('does not pace when the limit is disabled', async () => {
+    const storage = await seed();
+    const waits: number[] = [];
+    const scheduler = new DriftScheduler(storage, cipher, new RecordingSink(), {
+      jitterMs: 0,
+      storageOpsPerSecond: 0,
+      sleep: async (ms: number) => {
+        waits.push(ms);
+      },
+      makeClient: () => fakeClient(cleanCopy),
+    });
+
+    await scheduler.sweep();
+    expect(waits).toEqual([]);
+  });
+});

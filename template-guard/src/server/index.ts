@@ -19,7 +19,8 @@ import {
 } from './oauth.js';
 import { InMemoryStorage, TokenCipher, type Storage } from './storage.js';
 import { SqliteStorage } from './sqlite-storage.js';
-import { ConsoleNotificationSink, DriftScheduler } from '../drift/scheduler.js';
+import { ConsoleNotificationSink, DriftScheduler, type NotificationSink } from '../drift/scheduler.js';
+import { FallbackSink, MondayNotificationSink, WebhookSink } from '../drift/sinks.js';
 import { mondayCors, rateLimit, requireHttps, securityHeaders } from './security.js';
 import { EnvConfig, MondayCodeConfig, type Config } from './config.js';
 import { MondayCodeStorage, type AccountStore, type SecureStore } from './monday-code-storage.js';
@@ -59,6 +60,53 @@ export interface ServerDeps {
   automationsPreview?: boolean;
   /** Shared secret the monday code scheduler must present. */
   cronSecret?: string;
+}
+
+/**
+ * Refuses a webhook target that would turn this app into a probe of its own
+ * network. It runs next to monday's infrastructure and, on a self-hosted
+ * deployment, possibly next to a cloud metadata service.
+ *
+ * Deliberately a blocklist of shapes rather than a DNS resolution check: a
+ * name that resolves to a private address at send time would defeat the
+ * check anyway, and pretending otherwise would be worse than being plain
+ * about what this stops. The platform's outbound allowlist is the real
+ * control; this stops the obvious mistake.
+ */
+export function assertSafeWebhookUrl(raw: string): URL {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new TemplateGuardError('That webhook address is not a valid URL.', 'unexpected_shape');
+  }
+
+  if (url.protocol !== 'https:') {
+    throw new TemplateGuardError(
+      'Webhook addresses must use https. Drift alerts name your boards, and we will not send them in the clear.',
+      'unexpected_shape',
+    );
+  }
+
+  const host = url.hostname.toLowerCase();
+  const blocked =
+    host === 'localhost' ||
+    host === '::1' ||
+    host.endsWith('.localhost') ||
+    host.endsWith('.internal') ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+
+  if (blocked) {
+    throw new TemplateGuardError(
+      'That webhook address points at a private or loopback host, which Template Guard will not call.',
+      'unexpected_shape',
+    );
+  }
+  return url;
 }
 
 export function createServer(deps: ServerDeps) {
@@ -149,8 +197,8 @@ export function createServer(deps: ServerDeps) {
       const client = new MondayClient({ token: token.access_token });
 
       const { data, errors } = await client.request<{
-        me: { account: { id: string; slug: string } };
-      }>(`query { me { account { id slug } } }`);
+        me: { id: string; account: { id: string; slug: string } };
+      }>(`query { me { id account { id slug } } }`);
 
       if (!data?.me?.account) {
         throw new TemplateGuardError(
@@ -164,6 +212,9 @@ export function createServer(deps: ServerDeps) {
         accountSlug: data.me.account.slug,
         encryptedToken: deps.cipher.encrypt(token.access_token),
         installedAt: new Date().toISOString(),
+        // The only moment this is known for free, and without it a drift alert
+        // has nobody to go to. Captured here rather than asked for later.
+        installedByUserId: data.me.id != null ? String(data.me.id) : undefined,
       });
 
       res.redirect('/installed.html');
@@ -313,6 +364,55 @@ export function createServer(deps: ServerDeps) {
       // 207 when some succeeded and some did not, so a caller that only checks
       // res.ok cannot mistake a half-applied repair for a clean one.
       res.status(result.failed > 0 ? 207 : 200).json(result);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // --- Notification settings ------------------------------------------------
+
+  app.get('/api/notifications', async (req, res, next) => {
+    try {
+      const { session, install } = await authenticate(req);
+      const settings = await deps.storage.getNotificationSettings(session.accountId);
+      res.json({
+        settings,
+        // What would actually happen today, rather than what is configured.
+        // "Monitoring is on" with nowhere to deliver is the quiet failure this
+        // endpoint exists to make visible.
+        effectiveMondayUserId: settings.mondayUserId ?? install.installedByUserId ?? null,
+        deliverable:
+          settings.enabled &&
+          Boolean(settings.webhookUrl ?? settings.mondayUserId ?? install.installedByUserId),
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post('/api/notifications', async (req, res, next) => {
+    try {
+      const { session } = await authenticate(req);
+      const body = req.body as { mondayUserId?: string | null; webhookUrl?: string | null; enabled?: boolean };
+
+      if (body.webhookUrl) {
+        // A webhook is an outbound request this app makes on a customer's
+        // behalf, so the target is checked rather than trusted: https only,
+        // and no loopback or link-local host. Refusing here is a one-line
+        // error; not refusing is server-side request forgery.
+        assertSafeWebhookUrl(body.webhookUrl);
+      }
+
+      const current = await deps.storage.getNotificationSettings(session.accountId);
+      const updated = {
+        accountId: session.accountId,
+        mondayUserId: body.mondayUserId === undefined ? current.mondayUserId : body.mondayUserId,
+        webhookUrl: body.webhookUrl === undefined ? current.webhookUrl : body.webhookUrl,
+        enabled: body.enabled === undefined ? current.enabled : body.enabled,
+      };
+
+      await deps.storage.saveNotificationSettings(updated);
+      res.json({ settings: updated });
     } catch (err) {
       next(err);
     }
@@ -511,12 +611,47 @@ if (isMain) {
   const automationsPreview = config.flag('FEATURE_AUTOMATIONS_PREVIEW');
 
   /**
+   * Where drift alerts actually go.
+   *
+   * Two channels, tried in order, and the fallback matters: monday's own
+   * notification is the better experience, but it needs a recipient we may
+   * not have, and a webhook needs a URL the customer may not have set. An
+   * account with both keeps getting alerts when one of them is down.
+   *
+   * The console sink stays last so a deployment with nothing configured still
+   * leaves a trace in `mapps code:logs` rather than dropping the alert and
+   * counting it as delivered — which would be this product failing in exactly
+   * the way it sells against.
+   */
+  const clientForAccount = async (accountId: string): Promise<MondayClient | null> => {
+    const install = await storage.getInstall(accountId);
+    if (!install) return null;
+    return new MondayClient({ token: cipher.decrypt(install.encryptedToken) });
+  };
+
+  const sink: NotificationSink = new FallbackSink([
+    new MondayNotificationSink(clientForAccount, async (accountId) => {
+      const settings = await storage.getNotificationSettings(accountId);
+      if (!settings.enabled) return null;
+      // Falls back to whoever installed the app: the person who chose to put
+      // an auditing tool on the account is the right default recipient for it.
+      if (settings.mondayUserId) return settings.mondayUserId;
+      return (await storage.getInstall(accountId))?.installedByUserId ?? null;
+    }),
+    new WebhookSink(async (accountId) => {
+      const settings = await storage.getNotificationSettings(accountId);
+      return settings.enabled ? settings.webhookUrl : null;
+    }),
+    new ConsoleNotificationSink(),
+  ]);
+
+  /**
    * On monday code the sweep is driven by the platform scheduler calling
    * `/mndy-cronjob/drift`, so the in-process timer stays off — two schedulers
    * for one job is how an app ends up sweeping twice and getting throttled.
    */
   const scheduler = config.flag('DRIFT_SCHEDULER_ENABLED')
-    ? new DriftScheduler(storage, cipher, new ConsoleNotificationSink(), {
+    ? new DriftScheduler(storage, cipher, sink, {
         intervalMs: Number(config.get('DRIFT_INTERVAL_MS') ?? 6 * 60 * 60 * 1000),
         automationsPreviewEnabled: automationsPreview,
       })

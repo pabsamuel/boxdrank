@@ -143,6 +143,10 @@ Tick these honestly. An untested item is not a tick.
 - [x] Stated plainly in the README and the listing
 - [x] Everything deleted on uninstall — a real delete, in one transaction
       (ADR-019)
+- [x] The one user-identifying value stored (the installing user's monday id)
+      is named in the README and the listing, with its reason (ADR-021)
+- [x] Customer-supplied webhook targets validated: https only, no loopback,
+      private ranges or cloud metadata address (ADR-021)
 
 ### Product
 
@@ -174,7 +178,8 @@ Verbatim, because it shortens the security review and it is true:
 > updates. It requests no item, update or file permissions, so it could not
 > read them if it wanted to. Access tokens are encrypted at rest with
 > AES-256-GCM, and everything we hold for your account is deleted when you
-> uninstall.
+> uninstall. The one thing it keeps about a person is the monday user id of
+> whoever installed it, so drift alerts have somewhere to go.
 
 **Before deploying anywhere, read ADR-018.** The nearest app on the marketplace
 runs its scheduled backend on `monday code` — monday's own infrastructure —

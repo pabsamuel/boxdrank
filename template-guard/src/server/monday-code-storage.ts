@@ -3,7 +3,13 @@ import type { AccountPlan } from '../billing/tiers.js';
 import type { BoardSnapshot, TemplateRecord } from '../snapshot/types.js';
 import { SNAPSHOT_SCHEMA_VERSION } from '../snapshot/types.js';
 import { StaleSnapshotError } from './sqlite-storage.js';
-import { assertNoItemData, type Storage, type StoredInstall } from './storage.js';
+import {
+  DEFAULT_NOTIFICATION_SETTINGS,
+  assertNoItemData,
+  type NotificationSettings,
+  type Storage,
+  type StoredInstall,
+} from './storage.js';
 
 /**
  * `Storage` implemented on monday code.
@@ -72,6 +78,7 @@ export interface AccountStore {
 
 const INSTALL_PREFIX = 'install:';
 const PLAN_PREFIX = 'plan:';
+const NOTIFY_PREFIX = 'notify:';
 const TEMPLATE_PREFIX = 'template:';
 /**
  * The app-level list of accounts that have at least one template.
@@ -126,6 +133,19 @@ export class MondayCodeStorage implements Storage {
 
   async savePlan(plan: AccountPlan): Promise<void> {
     await this.secureSet(`${PLAN_PREFIX}${plan.accountId}`, plan, 'plan');
+  }
+
+  /**
+   * App-scoped, like plans and for the same reason: the sweep reads these to
+   * decide where an alert goes, and at that moment it has no account token.
+   */
+  async getNotificationSettings(accountId: string): Promise<NotificationSettings> {
+    const stored = await this.secure.get<NotificationSettings>(`${NOTIFY_PREFIX}${accountId}`);
+    return stored ?? DEFAULT_NOTIFICATION_SETTINGS(accountId);
+  }
+
+  async saveNotificationSettings(settings: NotificationSettings): Promise<void> {
+    await this.secureSet(`${NOTIFY_PREFIX}${settings.accountId}`, settings, 'notification settings');
   }
 
   // --- Templates (account-scoped) -------------------------------------------
@@ -261,6 +281,7 @@ export class MondayCodeStorage implements Storage {
     }
 
     await this.secure.delete(`${PLAN_PREFIX}${accountId}`);
+    await this.secure.delete(`${NOTIFY_PREFIX}${accountId}`);
     await this.secure.delete(`${INSTALL_PREFIX}${accountId}`);
   }
 

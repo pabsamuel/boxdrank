@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import { assertSafeWebhookUrl } from '../src/server/index.js';
 import {
   MONDAY_FRAME_ANCESTORS,
   mondayCors,
@@ -186,5 +187,40 @@ describe('requireHttps', () => {
     const { raw, next } = run(requireHttps(), fakeReq({ method: 'POST' }));
     expect(raw.statusCode).toBe(403);
     expect(next).not.toHaveBeenCalled();
+  });
+});
+
+describe('assertSafeWebhookUrl', () => {
+  it('accepts an ordinary https endpoint', () => {
+    expect(assertSafeWebhookUrl('https://hooks.slack.com/services/abc').hostname).toBe(
+      'hooks.slack.com',
+    );
+  });
+
+  it('refuses http — drift alerts name your boards', () => {
+    expect(() => assertSafeWebhookUrl('http://hooks.example.com')).toThrow(/must use https/);
+  });
+
+  it.each([
+    'https://localhost/hook',
+    'https://127.0.0.1/hook',
+    'https://10.0.0.5/hook',
+    'https://192.168.1.10/hook',
+    'https://172.16.0.1/hook',
+    'https://169.254.169.254/latest/meta-data/',
+    'https://vault.internal/hook',
+  ])('refuses %s', (url) => {
+    // The last one is a cloud metadata service. An app that will POST to any
+    // address a user types is a probe of its own network.
+    expect(() => assertSafeWebhookUrl(url)).toThrow(/private or loopback/);
+  });
+
+  it('does not refuse a public address that merely looks private', () => {
+    // 172.32.x is outside the 172.16–172.31 private range.
+    expect(() => assertSafeWebhookUrl('https://172.32.0.1/hook')).not.toThrow();
+  });
+
+  it('refuses something that is not a URL at all', () => {
+    expect(() => assertSafeWebhookUrl('not a url')).toThrow(/not a valid URL/);
   });
 });

@@ -22,7 +22,41 @@ export interface StoredInstall {
   /** Encrypted. Never leaves this module in plaintext except via `token()`. */
   encryptedToken: string;
   installedAt: string;
+  /**
+   * The monday user who installed the app.
+   *
+   * Captured at OAuth because it is the only moment it is known for free, and
+   * because without it a drift alert has nobody to go to. A monday user id is
+   * not personal data in the sense rule 4 forbids — it is an identifier, not
+   * item content — but it is still the only user-identifying thing stored, so
+   * it is here on purpose and for one stated reason.
+   */
+  installedByUserId?: string;
 }
+
+/**
+ * Where an account wants drift alerts delivered.
+ *
+ * Kept separate from the install record on purpose: settings change often and
+ * the install record holds an access token. Rewriting a token every time
+ * somebody edits a webhook URL is a good way to eventually lose one.
+ */
+export interface NotificationSettings {
+  accountId: string;
+  /** Notify inside monday. Defaults to whoever installed the app. */
+  mondayUserId: string | null;
+  /** POST the alert as JSON here. Slack, a relay, an internal system. */
+  webhookUrl: string | null;
+  /** Off means the sweep still runs and reports; nothing is delivered. */
+  enabled: boolean;
+}
+
+export const DEFAULT_NOTIFICATION_SETTINGS = (accountId: string): NotificationSettings => ({
+  accountId,
+  mondayUserId: null,
+  webhookUrl: null,
+  enabled: true,
+});
 
 export interface Storage {
   saveInstall(install: StoredInstall): Promise<void>;
@@ -55,6 +89,8 @@ export interface Storage {
    * sentence false while looking like it was true.
    */
   deleteAccount(accountId: string): Promise<void>;
+  getNotificationSettings(accountId: string): Promise<NotificationSettings>;
+  saveNotificationSettings(settings: NotificationSettings): Promise<void>;
 }
 
 const ALGORITHM = 'aes-256-gcm';
@@ -130,6 +166,7 @@ export class InMemoryStorage implements Storage {
   private installs = new Map<string, StoredInstall>();
   private templates = new Map<string, TemplateRecord>();
   private plans = new Map<string, AccountPlan>();
+  private notifications = new Map<string, NotificationSettings>();
 
   private key(accountId: string, boardId: string): string {
     return `${accountId}:${boardId}`;
@@ -172,9 +209,18 @@ export class InMemoryStorage implements Storage {
     this.plans.set(plan.accountId, plan);
   }
 
+  async getNotificationSettings(accountId: string): Promise<NotificationSettings> {
+    return this.notifications.get(accountId) ?? DEFAULT_NOTIFICATION_SETTINGS(accountId);
+  }
+
+  async saveNotificationSettings(settings: NotificationSettings): Promise<void> {
+    this.notifications.set(settings.accountId, settings);
+  }
+
   async deleteAccount(accountId: string): Promise<void> {
     this.installs.delete(accountId);
     this.plans.delete(accountId);
+    this.notifications.delete(accountId);
     for (const [key, record] of this.templates) {
       if (record.accountId === accountId) this.templates.delete(key);
     }

@@ -26,7 +26,7 @@
       "boards:read": "Read board structure — columns, groups, views, connections. The comparison is built entirely from this.",
       "boards:write": "Create a missing column or group, and rename a column back, when the user explicitly confirms a repair.",
       "account:read": "Account ID and slug, used for deep links into the right monday account and for per-account billing.",
-      "me:read": "Identify the installing user at OAuth time.",
+      "me:read": "Identify the installing user at OAuth time, and record their user id so drift alerts have a recipient (ADR-021).",
       "$notRequested": "No item, update, or file scopes are requested. Template Guard never reads board items, so it does not hold the permission to."
     }
   },

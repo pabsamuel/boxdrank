@@ -439,3 +439,63 @@ a second concurrent sweep.
 `npm run verify:live` does not cover these — they need a deployment. First
 deploy to a private app, watch `mapps code:logs`, and treat the first sweep as
 the test.
+
+## ADR-021 — Drift alerts had nowhere to go
+**Date:** 2026-09-20 · **Status:** accepted
+`NotificationSink` and its implementations were written, and the bootstrap
+still constructed `ConsoleNotificationSink`. Nothing stored a recipient, and
+nothing stored a webhook URL. The Pro feature — the one thing people would pay
+for — detected drift and told nobody.
+
+Worth naming as what it was: a *silent* gap. Every test passed, the sweep ran,
+findings were recorded on the report, and the delivery step succeeded by
+logging to a console no customer reads. An app whose entire claim is "we tell
+you what silently broke" had shipped exactly that shape of bug, which is the
+clearest argument available for why the rule exists.
+
+Closed end to end:
+
+- **The recipient is captured at OAuth.** `me { id }` alongside the account,
+  stored as `installedByUserId`. It is the only moment it is free, and the
+  person who chose to install an auditing tool is the right default recipient
+  for its alerts. It is also the only user-identifying value this app stores,
+  so it is there for one stated reason rather than because it was available.
+- **`NotificationSettings` is separate from the install record.** Settings
+  change often and the install record holds an access token; rewriting a token
+  every time somebody edits a webhook URL is a good way to eventually lose one.
+- **Delivery is a `FallbackSink`**: monday notification, then webhook, then
+  console. The console stays last so a deployment with nothing configured
+  leaves a trace in the logs rather than dropping an alert and counting it as
+  delivered.
+- **The UI reports `deliverable`, computed server-side from what would actually
+  happen** — not from which fields are filled in. "Monitoring is on and there
+  is nowhere to send an alert" renders as an alarm, because it is this
+  product's own failure mode wearing a disguise.
+
+### Webhook targets are validated, not trusted
+
+`assertSafeWebhookUrl` requires https and refuses loopback, private ranges and
+`169.254.0.0/16` — the last one being the cloud metadata address. An app that
+will POST to any address a user types is a probe of its own network, and this
+one runs next to monday's infrastructure.
+
+It is a blocklist of *shapes*, not a DNS check, and the comment says so: a
+hostname that resolves to a private address at send time defeats it. The real
+control is monday code's outbound allowlist. This stops the obvious mistake and
+does not pretend to stop the clever one.
+
+## ADR-022 — The sweep now paces against its own storage
+**Date:** 2026-09-20 · **Status:** accepted
+ADR-020 recorded that monday code's Secure Storage allows 7 requests/second
+(down from 30 in February 2026) and that the scheduler paced against the monday
+API but not against its own storage. A sweep reads a plan, an install and a
+template list per account, so on a few dozen accounts it would have tripped a
+limit we already knew about — moving the throttle somewhere less visible rather
+than avoiding it.
+
+`pacedRead()` spaces storage reads at a configurable ceiling, default 5/second,
+leaving headroom for the requests the app is serving to people at the same
+time. A minimum interval rather than a token bucket, deliberately: a bucket
+permits a burst, and a burst at the start of a sweep is exactly the shape that
+trips the limit. Slower and even beats faster and throttled — being an hour
+late with a drift alert costs nothing.

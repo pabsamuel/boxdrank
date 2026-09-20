@@ -152,6 +152,12 @@ describe.each(implementations)('%s', (_name, make) => {
       installedAt: '2026-09-01T00:00:00.000Z',
     });
     await storage.savePlan({ accountId: 'acct-1', planId: 'pro', renewsAt: null });
+    await storage.saveNotificationSettings({
+      accountId: 'acct-1',
+      mondayUserId: '1',
+      webhookUrl: 'https://hooks.example.com/tg',
+      enabled: true,
+    });
     await seedInstall(storage, 'acct-2');
     await storage.saveTemplate(record({ accountId: 'acct-1' }));
     await storage.saveTemplate(record({ accountId: 'acct-2' }));
@@ -160,10 +166,49 @@ describe.each(implementations)('%s', (_name, make) => {
 
     expect(await storage.getInstall('acct-1')).toBeNull();
     expect((await storage.getPlan('acct-1')).planId).toBe('free');
+    expect((await storage.getNotificationSettings('acct-1')).webhookUrl).toBeNull();
     // Out of the sweep, so a purged account is never checked again.
     expect(await storage.listAccountIdsWithTemplates()).not.toContain('acct-1');
     // Another account's data must be untouched.
     expect(await storage.listTemplates('acct-2')).toHaveLength(1);
+  });
+
+  it('defaults notification settings to enabled with nothing configured', async () => {
+    const storage = make();
+    expect(await storage.getNotificationSettings('acct-1')).toEqual({
+      accountId: 'acct-1',
+      mondayUserId: null,
+      webhookUrl: null,
+      enabled: true,
+    });
+  });
+
+  it('round-trips notification settings', async () => {
+    const storage = make();
+    await storage.saveNotificationSettings({
+      accountId: 'acct-1',
+      mondayUserId: '12345',
+      webhookUrl: 'https://hooks.example.com/tg',
+      enabled: false,
+    });
+
+    expect(await storage.getNotificationSettings('acct-1')).toMatchObject({
+      mondayUserId: '12345',
+      webhookUrl: 'https://hooks.example.com/tg',
+      enabled: false,
+    });
+  });
+
+  it('keeps the installing user id, which is where a drift alert goes by default', async () => {
+    const storage = make();
+    await storage.saveInstall({
+      accountId: 'acct-1',
+      accountSlug: 'agency',
+      encryptedToken: 'enc',
+      installedAt: '2026-09-01T00:00:00.000Z',
+      installedByUserId: '98765',
+    });
+    expect(await storage.getInstall('acct-1')).toMatchObject({ installedByUserId: '98765' });
   });
 
   it('refuses to store a snapshot carrying customer item data', async () => {

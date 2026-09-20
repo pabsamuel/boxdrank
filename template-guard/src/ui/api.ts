@@ -3,6 +3,7 @@ import type { DiffResult } from '../diff/types.js';
 import type { RepairPlan, AutoRepair } from '../repair/plan.js';
 import type { TemplateRecord } from '../snapshot/types.js';
 import type { AccountPlan } from '../billing/tiers.js';
+import type { NotificationSettings } from '../server/storage.js';
 
 /**
  * Browser-side calls to the Template Guard backend.
@@ -98,6 +99,19 @@ export const api = {
         body: JSON.stringify({ templateBoardId, copyBoardId, includeCosmetic }),
       },
     ),
+
+  notificationSettings: () =>
+    call<{
+      settings: NotificationSettings;
+      effectiveMondayUserId: string | null;
+      deliverable: boolean;
+    }>('/api/notifications'),
+
+  saveNotificationSettings: (patch: Partial<Omit<NotificationSettings, 'accountId'>>) =>
+    call<{ settings: NotificationSettings }>('/api/notifications', {
+      method: 'POST',
+      body: JSON.stringify(patch),
+    }),
 
   repair: (repairs: AutoRepair[]) =>
     call<{
