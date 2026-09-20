@@ -158,3 +158,46 @@ describe('authentication', () => {
     expect(res.status).toBe(403);
   });
 });
+
+describe('the OAuth install flow', () => {
+  it('sets a state cookie and redirects to monday with the same state', async () => {
+    const res = await fetch(`${base}/auth/install`, { redirect: 'manual' });
+    expect(res.status).toBe(302);
+
+    const location = new URL(res.headers.get('location') ?? '');
+    expect(location.host).toBe('auth.monday.com');
+
+    const setCookie = res.headers.get('set-cookie') ?? '';
+    expect(setCookie).toContain('tg_state=');
+    expect(setCookie).toMatch(/HttpOnly/i);
+    expect(setCookie).toMatch(/SameSite=Lax/i);
+    // The redirect and the cookie must carry the same value, or no callback
+    // can ever succeed.
+    expect(setCookie).toContain(encodeURIComponent(location.searchParams.get('state') ?? 'x'));
+  });
+
+  it('refuses a callback whose state has no matching cookie', async () => {
+    // The attack this stops: someone starts an install, gets a genuinely
+    // signed state, and has a victim's browser complete their authorization.
+    const install = await fetch(`${base}/auth/install`, { redirect: 'manual' });
+    const state = new URL(install.headers.get('location') ?? '').searchParams.get('state') ?? '';
+
+    const res = await fetch(`${base}/auth/callback?code=abc&state=${encodeURIComponent(state)}`, {
+      redirect: 'manual',
+    });
+    expect(res.status).toBe(403);
+    expect((await res.json()) as { error: string }).toMatchObject({
+      error: expect.stringContaining('could not be verified') as unknown as string,
+    });
+  });
+
+  it('refuses a callback with no state at all', async () => {
+    const res = await fetch(`${base}/auth/callback?code=abc`, { redirect: 'manual' });
+    expect(res.status).toBe(403);
+  });
+
+  it('refuses a callback with no code', async () => {
+    const res = await fetch(`${base}/auth/callback?state=x`, { redirect: 'manual' });
+    expect(res.status).toBe(403);
+  });
+});

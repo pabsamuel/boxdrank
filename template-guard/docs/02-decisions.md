@@ -533,3 +533,41 @@ Three decisions inside the fix:
 This is also the first test coverage the HTTP layer has had: `test/server.test.ts`
 runs the real Express app on an ephemeral port and checks what a browser would
 actually receive.
+
+## ADR-024 — The OAuth state cookie was written and never read
+**Date:** 2026-09-20 · **Status:** accepted
+`/auth/install` set a `tg_state` cookie. The callback verified the state's
+HMAC and **never looked at the cookie**. The signature proves a state came
+from us; it does not prove it came from *this browser* — and anyone can call
+`/auth/install` and be handed a perfectly valid signed state.
+
+That is login CSRF: an attacker starts an install, obtains a valid state, and
+gets a victim's browser to complete the authorization. It is also the kind of
+finding a reviewer or a Burp scan names directly ("state parameter not bound
+to the user session"), so it belonged in gate #3's column rather than in
+production.
+
+Three things changed:
+
+- **The callback compares the state to the cookie**, in constant time, and
+  clears the cookie afterwards. One state, one install; leaving it set makes
+  it replayable. `stateMatchesCookie` is deliberately a separate function from
+  `verifyState`, because they answer different questions — and collapsing them
+  is how the cookie ended up written but never read in the first place.
+- **The state expires.** It now carries an issue time inside the signed
+  payload, valid for ten minutes: longer than any real install, shorter than
+  an attacker's convenience. A state issued in the future is refused rather
+  than guessed at.
+- **`secure` follows the deployment** instead of being hard-coded true. On
+  local http it meant the browser dropped the cookie silently, so the fix
+  would have made every local install fail in a way that looks like a bug in
+  the fix.
+
+The cookie is read from the `Cookie` header directly rather than by adding
+`cookie-parser`. One small function with tests beats a dependency for a single
+value, and it is one fewer package in a supply chain a reviewer will ask about.
+
+**How it was found:** the same pass that found ADR-023 — reading the flow and
+asking what actually happens, rather than whether anything is red. The two
+were in code that had no tests at all, which is not a coincidence; the HTTP
+layer now has 18.

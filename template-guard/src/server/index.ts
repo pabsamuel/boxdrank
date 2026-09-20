@@ -15,6 +15,8 @@ import { SNAPSHOT_SCHEMA_VERSION } from '../snapshot/types.js';
 import {
   authorizeUrl,
   createState,
+  readCookie,
+  stateMatchesCookie,
   exchangeCodeForToken,
   verifySessionToken,
   verifyState,
@@ -194,9 +196,21 @@ export function createServer(deps: ServerDeps) {
 
   // --- OAuth ---------------------------------------------------------------
 
+  const STATE_COOKIE = 'tg_state';
+
   app.get('/auth/install', (_req, res) => {
     const state = createState(deps.signingSecret);
-    res.cookie?.('tg_state', state, { httpOnly: true, sameSite: 'lax', secure: true });
+    // `lax` because the callback arrives as a top-level GET redirect from
+    // monday, which lax allows. `secure` follows the deployment so local http
+    // development is not silently cookie-less — and therefore not silently
+    // unable to finish an install.
+    res.cookie(STATE_COOKIE, state, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: deps.enforceHttps !== false,
+      maxAge: 10 * 60 * 1000,
+      path: '/auth',
+    });
     res.redirect(authorizeUrl(deps.oauth, state));
   });
 
@@ -204,9 +218,20 @@ export function createServer(deps: ServerDeps) {
     try {
       const { code, state } = req.query as { code?: string; state?: string };
       if (!code) throw new TemplateGuardError('monday did not return an authorization code.', 'permission_denied');
-      if (!state || !verifyState(deps.signingSecret, state)) {
-        throw new TemplateGuardError('Sign-in could not be verified. Please start the install again.', 'permission_denied');
+
+      // Two checks, and both are needed. The signature proves the state came
+      // from us; the cookie proves it came from *this browser*. Without the
+      // second, anyone can start an install, obtain a valid signed state, and
+      // have someone else's browser complete their authorization.
+      const cookie = readCookie(req.header('Cookie'), STATE_COOKIE);
+      if (!state || !verifyState(deps.signingSecret, state) || !stateMatchesCookie(state, cookie)) {
+        throw new TemplateGuardError(
+          'Sign-in could not be verified. Please start the install again from monday.',
+          'permission_denied',
+        );
       }
+      // One state, one install. Leaving it set makes it replayable.
+      res.clearCookie(STATE_COOKIE, { path: '/auth' });
 
       const token = await exchangeCodeForToken(deps.oauth, code);
       const client = new MondayClient({ token: token.access_token });

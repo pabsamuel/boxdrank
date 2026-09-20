@@ -130,6 +130,8 @@ Tick these honestly. An untested item is not a tick.
 - [x] Tokens encrypted at rest (AES-256-GCM; tampering fails authentication
       rather than decrypting to garbage)
 - [x] Webhook signature verified with a pinned algorithm and `timingSafeEqual`
+- [x] OAuth state signed, **bound to the browser by cookie**, expiring after
+      ten minutes, cleared on use (ADR-024)
 - [x] Container runs as non-root, secrets by environment, data on a volume
 - [ ] **Burp scan run and findings remediated** — needs a deployed instance.
       This is gate item #3, and it is the last technical unknown.

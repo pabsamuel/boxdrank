@@ -8,7 +8,7 @@ import { parseSettings, toColumnSnapshot } from '../src/snapshot/capture.js';
 import { assertNoItemData, TokenCipher } from '../src/server/storage.js';
 import { assertNoPaidPreviewDependency, canAddTemplate, PLANS } from '../src/billing/tiers.js';
 import { isWorthReporting, notificationFor } from '../src/drift/monitor.js';
-import { createState, verifyState, REQUIRED_SCOPES } from '../src/server/oauth.js';
+import { createState, verifyState, readCookie, stateMatchesCookie, STATE_MAX_AGE_MS, REQUIRED_SCOPES } from '../src/server/oauth.js';
 import { diffBoards } from '../src/diff/diff.js';
 import { countBySeverity } from '../src/diff/types.js';
 import { column, cleanCopy, copyWith, templateBoard, TEMPLATE_BOARD_ID } from './fixtures/boards.js';
@@ -291,6 +291,7 @@ describe('oauth', () => {
     expect(verifyState('secret', state)).toBe(true);
     expect(verifyState('secret', `${state}x`)).toBe(false);
     expect(verifyState('other-secret', state)).toBe(false);
+    expect(verifyState('secret', 'nonsense')).toBe(false);
   });
 
   it('requests no item-level scope', () => {
@@ -303,5 +304,54 @@ describe('the healthy-copy invariant', () => {
     // Guards against the failure mode that would sink the product fastest:
     // false positives teach users to ignore the tool.
     expect(diffBoards(templateBoard, cleanCopy).findings).toHaveLength(0);
+  });
+});
+
+describe('OAuth state, the CSRF half', () => {
+  const SECRET = 'signing-secret';
+
+  it('expires, so a signed state cannot be replayed indefinitely', () => {
+    const issued = 1_000_000_000_000;
+    const state = createState(SECRET, 'nonce', () => issued);
+
+    expect(verifyState(SECRET, state, { now: () => issued + 60_000 })).toBe(true);
+    expect(verifyState(SECRET, state, { now: () => issued + STATE_MAX_AGE_MS + 1 })).toBe(false);
+  });
+
+  it('rejects a state issued in the future', () => {
+    const state = createState(SECRET, 'nonce', () => 2_000);
+    // A clock that has gone backwards is a reason to refuse, not to guess.
+    expect(verifyState(SECRET, state, { now: () => 1_000 })).toBe(false);
+  });
+
+  it('a valid signature alone is not the protection — the cookie is', () => {
+    // An attacker can call /auth/install and get a genuinely signed state.
+    const attackerState = createState(SECRET);
+    expect(verifyState(SECRET, attackerState)).toBe(true);
+
+    // What stops them is that the victim's browser carries a different one.
+    expect(stateMatchesCookie(attackerState, createState(SECRET))).toBe(false);
+    expect(stateMatchesCookie(attackerState, null)).toBe(false);
+    expect(stateMatchesCookie(attackerState, attackerState)).toBe(true);
+  });
+});
+
+describe('readCookie', () => {
+  it('finds a cookie among others', () => {
+    expect(readCookie('a=1; tg_state=abc.def; b=2', 'tg_state')).toBe('abc.def');
+  });
+
+  it('does not match a cookie whose name merely ends the same way', () => {
+    expect(readCookie('other_tg_state=wrong', 'tg_state')).toBeNull();
+  });
+
+  it('returns null for a missing header or cookie', () => {
+    expect(readCookie(undefined, 'tg_state')).toBeNull();
+    expect(readCookie('a=1', 'tg_state')).toBeNull();
+  });
+
+  it('decodes a percent-encoded value and refuses a malformed one', () => {
+    expect(readCookie('tg_state=a%2Eb', 'tg_state')).toBe('a.b');
+    expect(readCookie('tg_state=%E0%A4%A', 'tg_state')).toBeNull();
   });
 });

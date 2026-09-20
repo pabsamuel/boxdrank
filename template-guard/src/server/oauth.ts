@@ -42,19 +42,84 @@ export interface OAuthConfig {
   redirectUri: string;
 }
 
-/** CSRF state. Signed rather than stored, so a restart mid-install is fine. */
-export function createState(secret: string, nonce = crypto.randomBytes(16).toString('hex')): string {
-  const mac = crypto.createHmac('sha256', secret).update(nonce).digest('hex');
-  return `${nonce}.${mac}`;
+/**
+ * CSRF state: a nonce and an issue time, signed.
+ *
+ * Signed rather than stored server-side so that a restart mid-install does not
+ * strand anyone. **The signature alone is not the protection** — anyone can
+ * request `/auth/install` and receive a perfectly valid signed state. It
+ * proves the value came from us, not that it came from *this browser*.
+ *
+ * The browser binding is the cookie the install route sets and the callback
+ * compares against. Both halves are required: the signature stops a forged
+ * state, the cookie stops an attacker completing their own authorization in
+ * someone else's session.
+ */
+export function createState(
+  secret: string,
+  nonce = crypto.randomBytes(16).toString('hex'),
+  now: () => number = Date.now,
+): string {
+  const issuedAt = now().toString(36);
+  const payload = `${nonce}.${issuedAt}`;
+  const mac = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+  return `${payload}.${mac}`;
 }
 
-export function verifyState(secret: string, state: string): boolean {
-  const [nonce, mac] = state.split('.');
-  if (!nonce || !mac) return false;
-  const expected = crypto.createHmac('sha256', secret).update(nonce).digest('hex');
+/** An install that has sat unfinished for this long is not being finished. */
+export const STATE_MAX_AGE_MS = 10 * 60 * 1000;
+
+export function verifyState(
+  secret: string,
+  state: string,
+  opts: { maxAgeMs?: number; now?: () => number } = {},
+): boolean {
+  const parts = state.split('.');
+  if (parts.length !== 3) return false;
+  const [nonce, issuedAt, mac] = parts as [string, string, string];
+
+  const expected = crypto.createHmac('sha256', secret).update(`${nonce}.${issuedAt}`).digest('hex');
   const a = Buffer.from(mac);
   const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return false;
+
+  // A state that never expires is a replayable one. Ten minutes is longer
+  // than any real install takes and shorter than an attacker's convenience.
+  const issued = Number.parseInt(issuedAt, 36);
+  if (!Number.isFinite(issued)) return false;
+  const age = (opts.now ?? Date.now)() - issued;
+  return age >= 0 && age <= (opts.maxAgeMs ?? STATE_MAX_AGE_MS);
+}
+
+/**
+ * Constant-time comparison of the callback's state against the cookie.
+ *
+ * Separate from `verifyState` because they answer different questions, and
+ * collapsing them is how the cookie ends up written but never read — which is
+ * exactly what happened here before ADR-024.
+ */
+export function stateMatchesCookie(state: string, cookieValue: string | null): boolean {
+  if (!cookieValue) return false;
+  const a = Buffer.from(state);
+  const b = Buffer.from(cookieValue);
   return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+/** Reads one cookie out of a raw `Cookie` header, without a dependency. */
+export function readCookie(header: string | undefined, name: string): string | null {
+  if (!header) return null;
+  for (const part of header.split(';')) {
+    const eq = part.indexOf('=');
+    if (eq === -1) continue;
+    if (part.slice(0, eq).trim() !== name) continue;
+    try {
+      return decodeURIComponent(part.slice(eq + 1).trim());
+    } catch {
+      // A malformed cookie value is not a cookie we will act on.
+      return null;
+    }
+  }
+  return null;
 }
 
 export function authorizeUrl(config: OAuthConfig, state: string): string {
