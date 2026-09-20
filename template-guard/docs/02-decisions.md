@@ -127,3 +127,74 @@ They are load-bearing before any marketing spend. Full scan and numbers:
 **What would reverse the clear:** opening the **Workspace Doctor** listing
 (23 installs, *"scan, score & fix your monday workspace in one click"*) and
 finding it does schema scoring. Not yet read. 5 minutes.
+
+## ADR-013 — SQLite for durable storage, behind the same `Storage` interface
+**Date:** 2026-09-20 · **Status:** accepted
+`InMemoryStorage` loses every install token on restart, which means every
+customer reinstalls after every deploy. That is an outage, not a rough edge, so
+it had to go before anything ships.
+
+SQLite, via Node's built-in `node:sqlite`. The workload is one ops person per
+account and a handful of snapshots each — a file, not a Postgres cluster. A
+single file also shortens the security conversation: no database server on a
+port, no second connection string, backups are `cp`.
+
+**What it costs, stated now rather than discovered later:** `node:sqlite` is
+marked experimental by Node, one process owns the file, and there is no
+horizontal scale. All three stop mattering the moment this becomes Postgres —
+which is one new file implementing `Storage` and nothing else. The interface
+existing *before* the second implementation is what makes that true, and
+`test/storage.test.ts` runs the same suite against both to keep it true.
+
+Two behaviours worth naming, both chosen so a failure cannot read as success:
+
+- A snapshot whose `schemaVersion` is not current is **refused** on read
+  (`StaleSnapshotError`), not coerced. Diffing a snapshot written by an older
+  build would produce findings that are artefacts of our own schema change —
+  false alarms, which for this product are worse than missed findings.
+- An unrecognised `plan_id` degrades to `free`. Trusting whatever string is in
+  the row would hand out paid features on a typo.
+
+`assertNoItemData` runs before serialisation. Once a snapshot is a JSON string
+the forbidden keys are invisible to every later check.
+
+## ADR-014 — The drift scheduler, and why it is separate from `runDriftCheck`
+**Date:** 2026-09-20 · **Status:** accepted
+`runDriftCheck` checks one template for one account and is pure enough to test
+without a clock. `DriftScheduler` walks every paying account on a timer. They
+are separate files because merging them would make the interesting logic
+untestable without a fake clock and a fake network at once.
+
+The scheduler's rules, in the order of how badly breaking them would hurt:
+
+1. **Never get the app rate-limited.** A sweep hits monday on behalf of every
+   customer simultaneously. Throttling the app's token takes the product away
+   from everyone at once, including the person sitting in front of it clicking
+   Compare. Accounts are processed one at a time with a pause; a rate-limit
+   response ends that account's sweep rather than retrying into the wall.
+2. **Never overlap with itself.** A tick arriving while a sweep runs is skipped
+   and counted, never queued. The counter is exposed on `/health`, because the
+   interval being shorter than a sweep is a real operational condition and not
+   something to learn from a doubled API bill.
+3. **Never fail quietly.** A free account is reported as *skipped, because free*
+   — not as checked. A missing install, an undecryptable token, a failed
+   notification delivery: each is recorded on the sweep result. Silence in a
+   monitoring product reads as "everything is fine", which is the exact failure
+   this app exists to catch.
+
+The `running` flag clears in a `finally`. A stuck flag is a monitor that has
+silently stopped monitoring, which would be this product failing in its own
+signature way.
+
+Notification delivery is an interface (`NotificationSink`) with a console
+implementation. Delivery has its own failure modes — mail outages, webhook
+timeouts — and none of them may break a sweep. A failed delivery is recorded
+and the sweep continues; it is not retried inside the sweep, because retrying
+there turns a mail outage into a stalled monitor.
+
+**On ADR-010:** this is `server/` and `drift/` work while the product shape is
+still open, which CLAUDE.md restricts. It was taken deliberately: both were
+already-specified deliverables rather than new features, and both are *droppable
+whole* if the read-only shape wins — deleting `drift/`, `server/` and
+`repair/execute.ts` leaves the diff engine and UI untouched. Nothing here makes
+the narrow shape harder to choose. No new feature was added.

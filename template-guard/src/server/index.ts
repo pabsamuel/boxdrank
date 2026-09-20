@@ -18,6 +18,8 @@ import {
   type OAuthConfig,
 } from './oauth.js';
 import { InMemoryStorage, TokenCipher, type Storage } from './storage.js';
+import { SqliteStorage } from './sqlite-storage.js';
+import { ConsoleNotificationSink, DriftScheduler } from '../drift/scheduler.js';
 
 /**
  * The backend.
@@ -38,6 +40,8 @@ export interface ServerDeps {
   cipher: TokenCipher;
   oauth: OAuthConfig;
   signingSecret: string;
+  /** Present only when scheduled drift monitoring is switched on. */
+  scheduler?: DriftScheduler;
 }
 
 export function createServer(deps: ServerDeps) {
@@ -67,10 +71,24 @@ export function createServer(deps: ServerDeps) {
   };
 
   app.get('/health', (_req, res) => {
+    // The scheduler's state belongs here rather than in a log nobody reads: a
+    // monitor that has quietly stopped sweeping is this product's own version
+    // of the failure it sells against.
+    const scheduler = deps.scheduler?.status;
     res.json({
       ok: true,
       snapshotSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
       automationsPreview: automationsPreviewEnabled(),
+      driftScheduler: scheduler
+        ? {
+            started: scheduler.started,
+            sweepInProgress: scheduler.running,
+            skippedTicks: scheduler.skippedTicks,
+            lastSweepFinishedAt: scheduler.lastSweep?.finishedAt ?? null,
+            lastSweepAccountsChecked: scheduler.lastSweep?.accountsChecked ?? null,
+            lastSweepErrors: scheduler.lastSweep?.results.flatMap((r) => r.errors) ?? [],
+          }
+        : { started: false },
     });
   });
 
@@ -286,9 +304,33 @@ export function createServer(deps: ServerDeps) {
 /* c8 ignore start — process bootstrap */
 const isMain = process.argv[1]?.endsWith('server/index.ts') || process.argv[1]?.endsWith('server/index.js');
 if (isMain) {
+  // Durable by default. `InMemoryStorage` is only reachable by explicitly
+  // unsetting DATABASE_FILE, and it says so on the way up — losing every
+  // install token on restart means every customer has to reinstall, and that
+  // is not something to discover in production.
+  const databaseFile = process.env.DATABASE_FILE ?? './data/template-guard.db';
+  const storage: Storage =
+    databaseFile === ':memory:' || databaseFile === ''
+      ? (console.warn(
+          '[template-guard] DATABASE_FILE is unset or :memory: — running with in-memory storage. Every install token and template snapshot is lost on restart. Do not run this way in production.',
+        ),
+        new InMemoryStorage())
+      : new SqliteStorage(databaseFile);
+
+  const cipher = new TokenCipher(requireEnv('TOKEN_ENCRYPTION_KEY'));
+
+  const scheduler =
+    process.env.DRIFT_SCHEDULER_ENABLED === 'true'
+      ? new DriftScheduler(storage, cipher, new ConsoleNotificationSink(), {
+          intervalMs: Number(process.env.DRIFT_INTERVAL_MS ?? 6 * 60 * 60 * 1000),
+          automationsPreviewEnabled: automationsPreviewEnabled(),
+        })
+      : undefined;
+
   const app = createServer({
-    storage: new InMemoryStorage(),
-    cipher: new TokenCipher(requireEnv('TOKEN_ENCRYPTION_KEY')),
+    storage,
+    cipher,
+    scheduler,
     signingSecret: requireEnv('MONDAY_SIGNING_SECRET'),
     oauth: {
       clientId: requireEnv('MONDAY_CLIENT_ID'),
@@ -296,6 +338,10 @@ if (isMain) {
       redirectUri: requireEnv('MONDAY_REDIRECT_URI'),
     },
   });
+
+  scheduler?.start();
+  if (scheduler) console.log('[template-guard] drift scheduler started');
+
   const port = Number(process.env.PORT ?? 8302);
   app.listen(port, () => console.log(`[template-guard] listening on :${port}`));
 }

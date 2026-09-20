@@ -52,14 +52,16 @@ are encrypted at rest with AES-256-GCM.
 | Piece | State |
 |---|---|
 | API findings report | Done — `docs/00-api-findings.md` |
-| Snapshot + diff engine | Done, 76 tests |
+| Snapshot + diff engine | Done, 109 tests |
 | Repair layer | Done |
 | Board view + dashboard widget | Done, builds clean |
 | OAuth + server | Done, **never run against a live monday account** |
-| Drift monitoring | Engine done; no scheduler wired up |
+| Durable storage | Done — SQLite behind the `Storage` interface (ADR-013) |
+| Drift monitoring | Done — engine + scheduler; notification delivery is console-only |
 | Billing | Gating logic done; no billing UI (out of scope for v1) |
 
-**Nothing here has touched a real monday account.** See *Before you ship* below.
+**Nothing here has touched a real monday account.** See *Before you ship* below,
+and `STATUS.md` for how much of the project is done and what is left.
 
 ## Local development
 
@@ -67,7 +69,7 @@ are encrypted at rest with AES-256-GCM.
 cd template-guard
 npm install
 cp .env.example .env     # then fill it in
-npm test                 # 76 tests, no network, no credentials needed
+npm test                 # 109 tests, no network, no credentials needed
 npm run typecheck
 npm run dev              # client on :8301
 npm run dev:server       # API on :8302
@@ -85,6 +87,9 @@ riskiest part of the product and they need to be testable in isolation.
 | `MONDAY_SIGNING_SECRET` | Signs OAuth state and verifies the embedded view's session token |
 | `MONDAY_REDIRECT_URI` | Must match the console exactly |
 | `TOKEN_ENCRYPTION_KEY` | 32 bytes base64: `openssl rand -base64 32` |
+| `DATABASE_FILE` | SQLite file. Defaults to `./data/template-guard.db`. Set to `:memory:` only for throwaway runs — every install token is lost on restart, and the server says so on the way up. |
+| `DRIFT_SCHEDULER_ENABLED` | `true` starts the drift sweep loop in-process. Default off. |
+| `DRIFT_INTERVAL_MS` | How often a sweep starts. Default 6 hours. |
 | `FEATURE_AUTOMATIONS_PREVIEW` | Default `false`. See below. |
 
 ## The monday app manifest
@@ -226,10 +231,17 @@ unverified, and these must be checked first:
 Every one of these is isolated behind a named function with a `✱` comment, so
 verification is a morning's work with a dev account, not an archaeology project.
 
-Also still to do before submission: swap `InMemoryStorage` for a real database
-(implement the `Storage` interface — nothing else changes), wire a scheduler to
-`runDriftCheck`, and build the billing UI against monday's marketplace billing
-API.
+Also still to do before submission: build the billing UI against monday's
+marketplace billing API (out of scope for v1), and replace
+`ConsoleNotificationSink` with real delivery — email or a monday notification —
+behind the `NotificationSink` interface.
+
+Storage and the drift scheduler are done: `SqliteStorage` implements the same
+`Storage` interface `InMemoryStorage` does, and `test/storage.test.ts` runs one
+suite against both so that stays true. `DriftScheduler` sweeps paying accounts
+on a timer and reports its own state on `/health` — including ticks it had to
+skip, because a monitor that has quietly stopped is this product's own
+signature failure.
 
 ## Submission notes
 
@@ -258,12 +270,13 @@ src/
   snapshot/     BoardSnapshot type and capture
   diff/         match.ts (the hard part) · connect.ts (mis-wiring) · diff.ts
   repair/       plan.ts (auto vs manual) · execute.ts · deeplinks.ts
-  drift/        scheduled re-checks
+  drift/        monitor.ts (one account) · scheduler.ts (the timer)
   billing/      plan gating
-  server/       OAuth, storage, HTTP API
+  server/       OAuth, storage (in-memory + SQLite), HTTP API
   ui/           board view, dashboard widget, Vibe components
-test/           76 tests over fixture board configs
+test/           109 tests over fixture board configs
 docs/           findings report, roadmap, decision log, prompts
 ```
 
 `CLAUDE.md` holds the working agreement — read it before changing anything.
+`STATUS.md` holds the honest completion numbers.

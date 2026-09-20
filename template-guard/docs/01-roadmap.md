@@ -10,15 +10,16 @@ done and is blocking on your answer. Copy-paste prompts for each phase are in
 | — | Path decision | **B + flagged A**, confirmed 2026-09-16 | done |
 | 1 | Skeleton | monday OAuth, manifest, board view renders, version pinned | done |
 | 2 | Snapshot | read a board's full stable config into a versioned snapshot | done |
-| 3 | Diff engine | snapshot vs snapshot → severity-grouped findings + unit tests | done, 76 tests |
+| 3 | Diff engine | snapshot vs snapshot → severity-grouped findings + unit tests | done, 109 tests |
 | 4 | Repair | one-click fixes where the API allows, deep-linked manual checklist where it doesn't | done |
-| 5 | Drift monitoring | scheduled re-check, notifications (paid tier) | engine done; scheduler not wired |
+| 5 | Drift monitoring | scheduled re-check, notifications (paid tier) | **done 2026-09-20** — `drift/scheduler.ts`, ADR-014. Delivery sink is console-only. |
 | 6 | Docs | README: local dev, manifest, scopes, submission notes | done |
 | 7 | **Live verification** | check every `✱` claim against a real monday account | **blocked — needs an API token** |
 | — | **Marketplace duplicate check** | ~20 min of browser time; can kill the whole project | **CLEARED 2026-09-20** by Samet — no competitor. See ADR-012 and `docs/04-marketplace-scan.md`. One listing left to read: Workspace Doctor. |
 | — | **Demand evidence** | 10 admin conversations about column drift | **now load-bearing** — the audit/admin category tops out at 951 installs |
 | — | **Product shape decision** | read-only auditor, or auditor + repair + monitoring | **blocked on the owner** — see ADR-010 |
-| 8 | Real storage | swap `InMemoryStorage` for Postgres behind the `Storage` interface | not started |
+| 8 | Real storage | a real database behind the `Storage` interface | **done 2026-09-20** — SQLite, ADR-013. One suite runs against both implementations. |
+| — | **Gate #2 answer key** | architecture defence for a marketplace reviewer | **done 2026-09-20** — `docs/05-architecture-walkthrough.md`. Reading it is on the owner. |
 | 9 | Billing UI | monday marketplace billing integration | deferred, out of v1 scope |
 
 ## Phase 1 — Skeleton

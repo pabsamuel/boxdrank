@@ -27,10 +27,18 @@ export interface StoredInstall {
 export interface Storage {
   saveInstall(install: StoredInstall): Promise<void>;
   getInstall(accountId: string): Promise<StoredInstall | null>;
+  /** Every install. Used only by the drift scheduler, which sweeps accounts. */
+  listInstalls(): Promise<StoredInstall[]>;
   saveTemplate(record: TemplateRecord): Promise<void>;
   getTemplate(accountId: string, templateBoardId: string): Promise<TemplateRecord | null>;
   listTemplates(accountId: string): Promise<TemplateRecord[]>;
   deleteTemplate(accountId: string, templateBoardId: string): Promise<void>;
+  /**
+   * Accounts that have at least one template. The scheduler iterates these
+   * rather than all installs, so an account that installed the app and never
+   * designated a template costs nothing on every sweep.
+   */
+  listAccountIdsWithTemplates(): Promise<string[]>;
   getPlan(accountId: string): Promise<AccountPlan>;
   savePlan(plan: AccountPlan): Promise<void>;
 }
@@ -121,6 +129,10 @@ export class InMemoryStorage implements Storage {
     return this.installs.get(accountId) ?? null;
   }
 
+  async listInstalls(): Promise<StoredInstall[]> {
+    return [...this.installs.values()];
+  }
+
   async saveTemplate(record: TemplateRecord): Promise<void> {
     assertNoItemData(record.snapshot);
     this.templates.set(this.key(record.accountId, record.templateBoardId), record);
@@ -136,6 +148,10 @@ export class InMemoryStorage implements Storage {
 
   async deleteTemplate(accountId: string, templateBoardId: string): Promise<void> {
     this.templates.delete(this.key(accountId, templateBoardId));
+  }
+
+  async listAccountIdsWithTemplates(): Promise<string[]> {
+    return [...new Set([...this.templates.values()].map((t) => t.accountId))].sort();
   }
 
   async getPlan(accountId: string): Promise<AccountPlan> {

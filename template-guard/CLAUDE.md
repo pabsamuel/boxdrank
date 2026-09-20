@@ -26,6 +26,14 @@ specified read-only and client-side, this one is read-write with a server.
 recommendation. **The shape is an open decision (ADR-010). Do not add features
 to `repair/`, `server/` or `drift/` until it is settled** — that work may be cut.
 
+Completing an already-specified deliverable is not adding a feature. Durable
+storage (ADR-013) and the drift scheduler (ADR-014) were finished on 20 Sep
+under that reading, and both stay droppable whole: if the read-only shape wins,
+deleting `drift/`, `server/` and `repair/execute.ts` leaves the diff engine and
+the UI untouched.
+
+`STATUS.md` is the completion tracker. Update it whenever a deliverable moves.
+
 ## Hard rules
 
 1. **Never invent monday API behaviour.** If a query, field, or scope is not in
