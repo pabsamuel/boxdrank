@@ -234,3 +234,82 @@ a failure.
 **What would reopen it:** nothing currently foreseeable. Not a new feature, not a
 lower price, not a different segment. Only a demonstrated buyer — someone saying
 they will pay a real number for column-structure drift specifically, unprompted.
+
+---
+
+## 2026-09-20 — Building the Automation Watchdog. Why this one is different.
+
+**Decision:** build Candidate G from the third screening round.
+
+**The reason is structural, not enthusiasm.** Two products died in this
+repository, both killed by the market and neither by the code:
+
+- **Billable-hours reporting** — reported on time instead of capturing it.
+- **Board Schema Auditor** — reported on structure instead of fixing it.
+
+Both were audits. **An audit is run once, acted on, and cancelled**, which is why
+workspace-hygiene apps on this marketplace sit at a median of 23 installs and
+charge $2–8/month.
+
+A watchdog cannot be cancelled without turning it off. Retention is the product
+rather than a feature bolted onto it. That is the entire argument, and it is the
+first time a candidate has had one.
+
+### The evidence it rests on
+
+- **FACT:** monday automatically deactivates an automation when a referenced
+  group, board, status label or user is deleted, or when limits are hit, and
+  **sends no notification**. One reported case ran silently for weeks.
+- **FACT:** an automation can show a green toggle and no error badge while
+  failing every run.
+- **FACT:** Slack/Gmail/Salesforce integration tokens expire roughly every 90
+  days, after which those automations fail silently.
+- **FACT:** monday does not allow email notification of automation failures.
+- **FACT:** two open community feature requests ask for exactly this.
+- **No automation-monitoring app surfaced in any search**, and no native
+  mechanism exists.
+
+### Built around unknowns rather than past them
+
+`developer.monday.com` is unreachable from this environment, so three things were
+designed so the answer does not matter:
+
+1. **Whether the API identifies automation-performed actions is UNVERIFIED.** So
+   a signal is any repeating (actor, event, entity, board) pattern. If monday
+   does expose automations, labels sharpen; if not, patterns still go quiet when
+   the automation behind them dies. Monitoring by outcome, not by status.
+2. **The `created_at` format is UNVERIFIED**, and a community thread exists about
+   that specific field — which does not happen for a plain ISO string. Guessing
+   wrong would not throw; it would scale every interval by a thousand and produce
+   confident nonsense. So timestamps normalise by magnitude instead.
+3. **monday code's storage and scheduling APIs are UNVERIFIED.** So `runCheck`
+   takes injected `storage` and `mailer` interfaces. Writing them from memory
+   would have produced something that looks finished and does not run.
+
+### Two bugs worth remembering
+
+Both were the failure the product exists to prevent, found in the product itself:
+
+- Inferring inactive weekdays from absence alone froze the active-time clock, so
+  a dead signal could never escalate past 'late'. **A monitor that silently stops
+  escalating.**
+- A numeric `0` timestamp fell through to `Date.parse`, which returns the year
+  2000 in Node — turning an obviously broken value into a confident date.
+
+### State of it
+
+71 tests, all offline. Detection, alert suppression, email rendering and the
+scheduled job are complete and tested. The UI works against generated demo data
+and was verified in a browser.
+
+**Still missing: a host.** Nothing schedules `runCheck` and nothing sends real
+mail. That is one file's work once the monday code APIs can be read.
+
+**Still missing: a customer.** Nobody has said they would pay for this. The
+evidence is monday's own documentation and two community threads, which is more
+than the previous two products had at this stage and is still not a person.
+
+**New security question this product introduces:** the UI uses seamless auth and
+holds no secret, but a scheduled job runs with no user present and needs a stored
+token. That is the first secret any product in this repository has held, and it
+is the main thing its security review will be about.
