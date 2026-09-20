@@ -3,8 +3,8 @@
 Tells you when a monday.com automation that used to fire regularly has gone
 quiet — because monday will not.
 
-Status: **working demo, real monday adapter, no scheduling or email yet.**
-See "What is not built" at the bottom.
+Status: **complete logic, tested end to end. Not deployed.** The one thing
+missing is a host to run it on — see "What is not built" at the bottom.
 
 ```bash
 git clone https://github.com/pabsamuel/boxdrank.git
@@ -88,17 +88,21 @@ src/core/            zero dependencies, no network, no monday
   signals.js           group activity-log entries into watchable patterns
   event-labels.js      raw monday event names into readable prose
   watch.js             join them, rank worst-first, decide whether to alert
+  alerts.js            what to say, given what was said last time
+  email.js             render a notification plan as text and HTML
 src/app/
   monday-source.js     the only file that talks to monday
   main.js              plain-DOM UI, no framework
   index.html           single page, inline CSS, light and dark
+src/server/
+  run-check.js         one scheduled check: read, judge, notify, remember
 scripts/
   make-fixtures.js     generates the demo account
   serve.js             node:http static server for the demo
   build.js             emits a deployable dist/
 ```
 
-**48 tests**, all offline — no network, no account, no monday dependency.
+**71 tests**, all offline — no network, no account, no monday dependency.
 One runtime dependency (`monday-sdk-js`, pinned to 0.5.9 for the same reason as
 the schema auditor: 1.0.0-beta has removed `api()`).
 
@@ -119,6 +123,49 @@ milliseconds, microseconds, nanoseconds and ISO strings all resolve to the same
 instant, and anything unusable returns null rather than a wrong number. Entries
 with unreadable timestamps are counted and surfaced in the UI, so a parsing
 problem and a quiet account never look the same.
+
+## Knowing when to shut up
+
+The cadence engine decides whether an automation is broken. `alerts.js` decides
+whether that is worth an email, which is the harder question. A monitor that
+mails every run about the same known problem is nagging, and nagging earns a
+filter rule that takes the next real alert down with it.
+
+- **Only `silent` is ever emailed.** `late` is a nudge. Escalating a nudge is
+  crying wolf, and the product dies the first time it does.
+- **Said once**, then suppressed. Still broken after three days gets one
+  reminder — not a daily one, which reads as noise rather than as urgency.
+- **The reminder clock runs from the last mail actually sent**, so a run that
+  suppressed itself cannot quietly reset it and starve the reminder forever.
+- **Recovery is announced**, and only to someone who was told it broke.
+  Without it people keep checking by hand and stop trusting the silence.
+- **`dormant` is never emailed.** Someone switched that off on purpose.
+- One account-wide outage lists at most 20 items; the full count still leads the
+  subject line. Only the detail gets trimmed.
+
+What it looks like:
+
+```
+1 monday automation has stopped
+
+STOPPED
+
+  • Slack Notifier posts an update on Client Projects
+    Normally every 3 hr, but nothing for 3 days of working time.
+
+monday does not notify anyone when an automation is deactivated or starts
+failing. If one of these matters, check it in the board's Automations centre.
+```
+
+One hour later, with nothing changed: nothing is sent.
+
+### The ordering that matters
+
+State is persisted **after** the mail is accepted, never before. A storage write
+that lands while the send fails would record the alert as delivered and silently
+swallow it. A watchdog that loses alerts is worse than no watchdog, because it is
+trusted. Failing the other way merely repeats an alert, which is survivable.
+Tested both directions.
 
 ## The unknown this is built around
 
@@ -141,12 +188,23 @@ signal. The engine does not require it.
 
 ## What is not built
 
-- **No scheduling and no email.** This is the gap between a dashboard and a
-  watchdog: right now it only reports when someone opens it, and the whole
-  premise is that nobody opens things. Both need a backend — unlike the schema
-  auditor, this one cannot stay client-side only.
-- No manifest or app configuration. `developer.monday.com` is unreachable from
-  the environment this was built in, so none of it was written from memory.
+- **Nowhere to run.** `runCheck` is the whole scheduled job and it is tested,
+  but nothing schedules it and nothing sends real mail. It takes two injected
+  interfaces:
+
+  ```
+  storage: { get(key) -> Promise<any|null>, set(key, value) -> Promise<void> }
+  mailer:  { send({ to, subject, text, html }) -> Promise<void> }
+  ```
+
+  Wiring those to monday code's real storage and a mail provider is a contained
+  job in one file. They are injected rather than imported precisely because
+  monday code's APIs could not be verified from here, and writing them from
+  memory would have produced something that looks finished and does not run.
+- No manifest or app configuration, for the same reason.
+- No OAuth flow. The UI uses seamless auth; a scheduled job runs without a user
+  present and needs a stored token, which is the one place this app would hold a
+  secret. That is the main new question for its security review.
 - **No validation.** Nobody has said they would pay for this. The evidence is
   monday's own documentation and two community threads. That is better than the
   last two products had at this stage, and it is still not a customer.
