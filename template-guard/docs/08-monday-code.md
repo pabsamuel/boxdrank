@@ -6,6 +6,13 @@ environment's egress policy, so **nothing below was read on the page itself.**
 Same evidence class as `docs/00-api-findings.md`: good enough to decide with,
 not good enough to build on unverified.
 
+> **Update, same day:** the port was written. Question 1 below — whether an
+> app-scoped storage key exists — was answered by installing
+> `@mondaycom/apps-sdk@3.3.2` and reading its type definitions:
+> `SecureStorage` takes **no token** (app-scoped), `Storage` takes the
+> account's token (account-scoped). See **ADR-020**. Four *behavioural*
+> questions remain and need a deployment, not a terminal.
+
 **Verdict: it is real, it is the right target, and it is not free.** It
 resolves most of what made ADR-010 a genuine dilemma. It also invalidates
 `SqliteStorage`, breaks one specific design in the drift scheduler, and

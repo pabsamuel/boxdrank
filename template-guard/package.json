@@ -11,9 +11,14 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify:live": "tsx scripts/verify-live.ts"
+    "verify:live": "tsx scripts/verify-live.ts",
+    "deploy:monday": "mapps code:push",
+    "deploy:monday:scan": "mapps code:push -s",
+    "monday:logs": "mapps code:logs",
+    "monday:report": "mapps code:report"
   },
   "dependencies": {
+    "@mondaycom/apps-sdk": "^3.3.2",
     "express": "^4.21.2",
     "monday-sdk-js": "^0.5.6",
     "monday-ui-react-core": "^2.146.0",

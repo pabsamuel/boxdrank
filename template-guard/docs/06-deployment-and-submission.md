@@ -181,3 +181,74 @@ runs its scheduled backend on `monday code` — monday's own infrastructure —
 and says "never on third-party servers" in its listing. If that works for this
 app, most of Part 2 above becomes someone else's problem and the Burp scan
 shrinks to whatever monday's platform already satisfies.
+
+---
+
+## Part 5 — Deploying to monday code (the preferred target)
+
+Read `docs/08-monday-code.md` and ADR-020 first. The short version: this runs
+on monday's own infrastructure, which removes "third-party server" from the
+security conversation, inherits SOC 2 / ISO 27001 / HIPAA / GDPR, puts data
+residency in the customer's region automatically, and is free today.
+
+The code is written and tested against the SDK's type definitions. **It has
+never run on the platform.** Treat the first deploy as the test.
+
+```bash
+npm install -g @mondaycom/apps-cli
+mapps init                       # authenticate
+
+# Secrets — never in a file, never in the image
+mapps code:secret -i <APP_ID> -m set -k MONDAY_CLIENT_SECRET   -v "..."
+mapps code:secret -i <APP_ID> -m set -k MONDAY_SIGNING_SECRET  -v "..."
+mapps code:secret -i <APP_ID> -m set -k TOKEN_ENCRYPTION_KEY   -v "$(openssl rand -base64 32)"
+mapps code:secret -i <APP_ID> -m set -k DRIFT_CRON_SECRET      -v "$(openssl rand -hex 32)"
+
+# Non-secret configuration
+mapps code:env -i <APP_ID> -m set -k TEMPLATE_GUARD_PLATFORM     -v "monday-code"
+mapps code:env -i <APP_ID> -m set -k MONDAY_CLIENT_ID            -v "..."
+mapps code:env -i <APP_ID> -m set -k MONDAY_REDIRECT_URI         -v "https://<app-url>/auth/callback"
+mapps code:env -i <APP_ID> -m set -k DRIFT_SCHEDULER_ENABLED     -v "true"
+mapps code:env -i <APP_ID> -m set -k FEATURE_AUTOMATIONS_PREVIEW -v "false"
+
+npm run deploy:monday:scan       # mapps code:push -s — deploy and security scan
+npm run monday:report            # read the scan report
+```
+
+Then register the sweep. One job is enough; the platform allows five per
+region, and the `il` region has no cron at all:
+
+```bash
+mapps scheduler:create -a <APP_ID> \
+  -s "0 */6 * * *" -e "mndy-cronjob/drift" \
+  -n "template-guard-drift" -d "Re-check linked boards against their templates."
+```
+
+Environment variable changes need a redeploy to take effect. Secrets do not.
+
+### What changes on monday code
+
+| | Self-hosted | monday code |
+|---|---|---|
+| Config | `.env` | `mapps code:env` / `code:secret`, read through the SDK |
+| Install tokens | SQLite, encrypted by us | Secure Storage, **and** encrypted by us — two locks |
+| Template snapshots | SQLite | The account's own `Storage` partition |
+| Account enumeration | `SELECT DISTINCT` | An app-level index key we maintain (ADR-020) |
+| Sweep trigger | In-process timer | The platform scheduler calling `/mndy-cronjob/drift`; the timer stays **off** |
+| HTTPS | Your proxy | The platform |
+
+### Watch these on the first sweep
+
+Four things are still `✱` and none of them can be checked without a deployment
+(`npm run verify:live` does not cover them — it tests the GraphQL API, not the
+platform). Deploy to a **private** app first, run `mapps code:logs`, and watch:
+
+1. A large board snapshot against the per-key size limit.
+2. Whether `search('template:')` returns what this code expects.
+3. Secure Storage's 7 requests/second limit during a multi-account sweep — the
+   scheduler paces against the monday API, not against its own storage.
+4. The container's request timeout versus sweep duration. The cron route
+   answers 202 and sweeps in the background, which helps; it is not a proof.
+
+If any of these bites, the fallback is unchanged and fully supported: Part 2
+above, with `TEMPLATE_GUARD_PLATFORM=self-hosted`.

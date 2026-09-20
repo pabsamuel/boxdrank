@@ -348,3 +348,94 @@ both outcomes.
 A real delete, not a soft one. A `deleted_at` column would make the listing
 sentence false while looking like it was true, and the point of saying it in
 the listing is that it is checkable.
+
+## ADR-020 — The monday code port: what the SDK's own types decided
+**Date:** 2026-09-20 · **Status:** accepted (code written, **never run on the
+platform**)
+
+Ported on instruction, ahead of the "verify first" sequencing ADR-018
+recommended. That changed *how* it was written rather than whether: instead of
+building against a documentation summary, `@mondaycom/apps-sdk@3.3.2` was
+installed and its **type definitions read from the package**. Signatures below
+are quoted from `dist/types`, not inferred. Behaviour still is not verified,
+and every such claim stays `✱`.
+
+### The SDK fact that decided the design
+
+```ts
+export declare class SecureStorage { constructor(); ... }          // no token
+export declare class Storage extends BaseStorage { ... }           // constructor(token: Token)
+```
+
+`SecureStorage` takes no token, so it is **app-scoped**. `Storage` takes an
+account's OAuth token, so everything in it is **account-scoped** — and its
+`search(key, { cursor })` only ever walks that account's keys.
+
+That answers the question `docs/08-monday-code.md` called the first one to
+answer, and it settles the sweep:
+
+| What | Where | Why |
+|---|---|---|
+| Install records | SecureStorage | Sensitive, and needed *before* there is a token to open account storage with |
+| Account index | SecureStorage | The sweep must enumerate accounts; no account-scoped store can |
+| Plans | SecureStorage | The sweep reads them before it has an account token |
+| Template snapshots | account `Storage` | The customer's data, in the customer's partition, and `search()` lists it |
+
+The index is the price of cross-account isolation being real. It is maintained
+on every template write and removed when an account's last template goes, and
+a failed index write **throws** — an account silently dropped from the sweep is
+a monitoring product that quietly stopped monitoring.
+
+### The second SDK fact: nothing throws
+
+`Storage` methods answer `{ success, error }`; `SecureStorage.set` answers a
+boolean. An unchecked call is an *invisible lost write* — the app says "template
+saved" and saved nothing. Every call in `MondayCodeStorage` is checked and
+converted to a thrown `TemplateGuardError`, and there are tests for the failed
+write, the failed index write and the failed search. A failed search raises
+rather than returning `[]`, because "you have no templates" and "we could not
+read your templates" are different sentences.
+
+### `listInstalls()` deleted rather than faked
+
+It was added for the scheduler, which then used the account index instead, so
+it had no production caller. On monday code it could not be honoured uniformly
+— Secure Storage has no enumeration — and the choices were a misleading partial
+answer or removal. An interface method that cannot be met honestly and nobody
+calls is dead weight.
+
+### The platform is stated, never sniffed
+
+`TEMPLATE_GUARD_PLATFORM=monday-code`. No auto-detection, although the SDK
+exposes a runtime context that hints at one: the variable that signals the
+platform is not something this codebase has verified, and guessing wrong fails
+in the worst direction — a quiet fall back to a SQLite file on an ephemeral
+container, losing every install token on the next deploy while looking healthy.
+One variable, set once. (Hard rule 1.)
+
+The SDK is imported dynamically, so a self-hosted deployment never loads it and
+the test suite never needs it. Self-hosting stays fully supported: `SqliteStorage`,
+the Dockerfile and the in-process scheduler all remain, and `test/storage.test.ts`
+now runs one suite against **three** implementations.
+
+### Scheduling
+
+On monday code the platform scheduler POSTs `/mndy-cronjob/drift` (the prefix
+and method are its contract) and the in-process timer stays **off** — two
+schedulers for one job is how an app sweeps twice and gets throttled. The route
+answers 202 immediately rather than holding the connection open for a sweep,
+rejects a mismatched `DRIFT_CRON_SECRET`, and answers 409 rather than starting
+a second concurrent sweep.
+
+### Still `✱`, and load-bearing
+
+1. Per-key size limit vs. a large board snapshot.
+2. Whether `search` needs a key-prefix convention beyond what is assumed here.
+3. Secure Storage's 7 req/s limit in practice — the sweep paces against the
+   monday API, not against its own storage.
+4. Container request timeout: if the cron invocation is short-lived, the sweep
+   must become resumable. The 202 helps; it is not a proof.
+
+`npm run verify:live` does not cover these — they need a deployment. First
+deploy to a private app, watch `mapps code:logs`, and treat the first sweep as
+the test.

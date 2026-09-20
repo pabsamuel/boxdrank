@@ -147,11 +147,6 @@ export class SqliteStorage implements Storage {
     return row ? toInstall(row) : null;
   }
 
-  async listInstalls(): Promise<StoredInstall[]> {
-    const rows = this.db.prepare(`SELECT * FROM installs`).all() as unknown as InstallRow[];
-    return rows.map(toInstall);
-  }
-
   async saveTemplate(record: TemplateRecord): Promise<void> {
     // Before serialisation, deliberately: once this is a JSON string the
     // forbidden keys are invisible to every later check.

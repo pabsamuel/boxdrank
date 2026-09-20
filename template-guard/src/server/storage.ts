@@ -27,16 +27,20 @@ export interface StoredInstall {
 export interface Storage {
   saveInstall(install: StoredInstall): Promise<void>;
   getInstall(accountId: string): Promise<StoredInstall | null>;
-  /** Every install. Used only by the drift scheduler, which sweeps accounts. */
-  listInstalls(): Promise<StoredInstall[]>;
   saveTemplate(record: TemplateRecord): Promise<void>;
   getTemplate(accountId: string, templateBoardId: string): Promise<TemplateRecord | null>;
   listTemplates(accountId: string): Promise<TemplateRecord[]>;
   deleteTemplate(accountId: string, templateBoardId: string): Promise<void>;
   /**
-   * Accounts that have at least one template. The scheduler iterates these
-   * rather than all installs, so an account that installed the app and never
-   * designated a template costs nothing on every sweep.
+   * Accounts that have at least one template — what the drift scheduler
+   * iterates.
+   *
+   * Deliberately not "every install". An account that installed the app and
+   * never designated a template has nothing to sweep, so it costs nothing on
+   * every run. It is also the only enumeration monday code can answer: its
+   * storage is segregated per account, so the list has to be maintained by us
+   * as an app-level index, and a second list of every install would be a
+   * second thing to keep correct for no caller. (ADR-020.)
    */
   listAccountIdsWithTemplates(): Promise<string[]>;
   getPlan(accountId: string): Promise<AccountPlan>;
@@ -137,10 +141,6 @@ export class InMemoryStorage implements Storage {
 
   async getInstall(accountId: string): Promise<StoredInstall | null> {
     return this.installs.get(accountId) ?? null;
-  }
-
-  async listInstalls(): Promise<StoredInstall[]> {
-    return [...this.installs.values()];
   }
 
   async saveTemplate(record: TemplateRecord): Promise<void> {

@@ -56,11 +56,12 @@ are encrypted at rest with AES-256-GCM.
 | Piece | State |
 |---|---|
 | API findings report | Done — `docs/00-api-findings.md` |
-| Snapshot + diff engine | Done, 150 tests |
+| Snapshot + diff engine | Done, 176 tests |
 | Repair layer | Done |
 | Board view + dashboard widget | Done, builds clean |
 | OAuth + server | Done, **never run against a live monday account** |
-| Durable storage | Done — SQLite behind the `Storage` interface (ADR-013) |
+| Durable storage | Done — three implementations behind one `Storage` interface: in-memory, SQLite, monday code (ADR-013, ADR-020) |
+| monday code hosting | Done, **never run on the platform** — `docs/06-deployment-and-submission.md` Part 5 |
 | Drift monitoring | Done — engine + scheduler; notification delivery is console-only |
 | Billing | Done — signed subscription webhook syncs plan state; plan surface links to monday's upgrade page. No payment form, by design. |
 | Security hardening | Done — CSP, CORS, rate limiting, HTTPS enforcement (ADR-015) |
@@ -75,7 +76,7 @@ and `STATUS.md` for how much of the project is done and what is left.
 cd template-guard
 npm install
 cp .env.example .env     # then fill it in
-npm test                 # 150 tests, no network, no credentials needed
+npm test                 # 176 tests, no network, no credentials needed
 npm run typecheck
 npm run dev              # client on :8301
 npm run dev:server       # API on :8302
@@ -286,9 +287,9 @@ src/
   repair/       plan.ts (auto vs manual) · execute.ts · deeplinks.ts
   drift/        monitor.ts (one account) · scheduler.ts (the timer) · sinks.ts
   billing/      plan gating · subscription webhook
-  server/       OAuth, storage (in-memory + SQLite), security, HTTP API
+  server/       OAuth, storage (in-memory · SQLite · monday code), config, security, HTTP API
   ui/           board view, dashboard widget, Vibe components
-test/           150 tests over fixture board configs
+test/           176 tests over fixture board configs
 scripts/        verify-live.ts — checks the ✱ claims against a real account
 docs/           findings report, roadmap, decision log, deployment, prompts
 ```

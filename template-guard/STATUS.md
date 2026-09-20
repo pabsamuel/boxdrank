@@ -1,6 +1,6 @@
 # Status — how much of this is done
 
-**Updated:** 20 Sep 2026 · 150 tests passing · typecheck clean · production build clean
+**Updated:** 20 Sep 2026 · 176 tests passing · typecheck clean · production build clean
 
 Two numbers, because they are genuinely different and mixing them would be the
 kind of comfortable lie this project is supposed to be allergic to.
@@ -24,7 +24,7 @@ Every deliverable the spec named, plus the two the README listed as still to do.
 | API findings report + Path A/B recommendation | Done | `docs/00-api-findings.md` |
 | App skeleton, OAuth, board view, dashboard widget | Done | `src/server/`, `src/ui/` |
 | Snapshot + diff engine | Done | `src/snapshot/`, `src/diff/` |
-| Unit tests over fixtures — the four required cases | Done, 150 tests | `test/` |
+| Unit tests over fixtures — the four required cases | Done, 176 tests | `test/` |
 | Repair layer (auto where safe, manual checklist where not) | Done | `src/repair/` |
 | README | Done | `README.md` |
 | Project docs, decision log, prompts | Done | `docs/` |
@@ -38,6 +38,7 @@ Every deliverable the spec named, plus the two the README listed as still to do.
 | **Deployment** — Dockerfile, non-root, data on a volume | **Done** | `Dockerfile`, `docs/06-deployment-and-submission.md` |
 | **Submission checklist** | Done | `docs/06-deployment-and-submission.md` |
 | **Delete everything on uninstall** | **Done** | `Storage.deleteAccount()`, ADR-019 |
+| **monday code port** — third `Storage`, `Config`, cron route | **Done, never run on the platform** | `src/server/monday-code-storage.ts`, `config.ts`, ADR-020 |
 
 Deliberately **not** built, because the spec said not to: the marketing site.
 
@@ -61,18 +62,28 @@ What is left, and who can do it.
 | 5 | **10 admin conversations about column drift.** Load-bearing since the marketplace scan: the category tops out at 951 installs while reporting apps hit 17.8K. | You | A week of asking |
 | 6 | ~~Open the Workspace Doctor listing~~ **Done 20 Sep.** It does account-wide hygiene, not template fidelity. The clear holds; "nothing adjacent exists" no longer does. `docs/07-workspace-doctor.md` | — | — |
 | 9 | ~~Investigate `monday code`~~ **Done 20 Sep — `docs/08-monday-code.md`.** It is real and it is the right target: native scheduler, Secure Storage segregated per account, SOC 2 / ISO 27001 / HIPAA / GDPR inherited, data residency automatic, free today. **Five `✱` questions remain**, answerable in an hour with the CLI installed. Question 1 — whether an app-scoped storage key exists — decides the drift sweep's design. | You, 1 hour with the CLI | 1 hour |
-| 10 | **Port to monday code**, after 9 and ADR-010. New `Storage` implementation, a `Config` interface, a `/mndy-cronjob` route, and a new sweep shape. The diff engine does not move. | Me, once 9 is answered | ~1 day |
-| 7 | **Deploy it.** `docker build` / `docker run`, per `docs/06-deployment-and-submission.md`. Needs a host with TLS. | You | An afternoon |
+| 10 | ~~Port to monday code~~ **Done 20 Sep — ADR-020.** Built against the SDK's own type definitions (`@mondaycom/apps-sdk@3.3.2`, read from the installed package, not from documentation). `SecureStorage` takes no token so it is app-scoped; `Storage` takes the account's token so it is account-scoped — which settled the sweep design. **Never run on the platform:** four `✱` behaviours need a deployment, listed in `docs/06-deployment-and-submission.md` Part 5. | — | — |
+| 11 | **Deploy to a private app on monday code and watch the first sweep.** The only way to close the four remaining `✱` behaviours: per-key size limit, `search` behaviour, the 7 req/s Secure Storage limit, and the container request timeout. | You | An afternoon |
+| 7 | ~~Deploy to your own host~~ **superseded by 11** — still fully supported as the fallback (`TEMPLATE_GUARD_PLATFORM=self-hosted`, Dockerfile, SQLite), but monday code is the better target. | — | — |
 | 8 | Configure the developer console: features, OAuth redirect, billing webhook URL, plan ids | You | An hour |
 
 Items 1–3 and 7–8 are hard prerequisites for submission. Items 4, 5 and 9
 decide **what** to submit and whether it is worth submitting at all.
 
-**Item 9 is answered.** Next is the hour that closes both technical unknowns
-in one sitting: install `@mondaycom/apps-cli`, answer the five `✱` questions in
-`docs/08-monday-code.md` (question 1 first — it decides the sweep design), then
-run `npm run verify:live` for the API claims. After that, ADR-010 becomes a
-decision made with information rather than a forced choice.
+**Items 9 and 10 are done.** The five `✱` questions that blocked the port were
+answered by reading the SDK's type definitions out of the installed package,
+which is ground truth for signatures. Four questions about *behaviour* remain
+and none of them can be answered from a terminal.
+
+Next, in order:
+
+1. **`npm run verify:live`** with a dev token — ten minutes, closes the
+   GraphQL `✱` claims.
+2. **Deploy to a private monday code app** and watch the first sweep in
+   `mapps code:logs` — closes the platform `✱` behaviours.
+3. **ADR-010**, now with information behind it. monday code makes the
+   monitoring shape much cheaper to defend than it was when the dilemma was
+   written.
 
 ---
 
