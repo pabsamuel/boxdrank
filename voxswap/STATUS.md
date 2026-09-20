@@ -6,7 +6,7 @@
 ## Current state
 
 **v0.1.0 — the pipeline is complete and runs end to end offline.** Ten stages,
-six provider adapters, five target adapters, 175 tests green on Python
+six provider adapters, five target adapters, 178 tests green on Python
 3.10/3.11/3.12, with and without ffmpeg. **It can run fully offline** —
 transcription, translation and voice cloning all have a local path. No real *provider* has been exercised
 against a real account yet — that is the next milestone and it needs an API key,
@@ -59,7 +59,7 @@ drift. All of them are env-overridable for exactly this reason.
 
 ```
 python3 -m unittest discover -s tests -t .
-→ 175 tests, OK, ~45s, no network, no API keys
+→ 178 tests, OK, ~45s, no network, no API keys
 
 python3 tools/make_example.py && python3 -m voxswap run EXAMPLE-GAME
 → 10 stages, 0.4s, 4/4 lines at 100% QC, median slot error 0 ms

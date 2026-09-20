@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 
 from tests.helpers import consent_record, days_from_now, make_config, make_game_order
@@ -94,6 +95,41 @@ class ConsentTests(unittest.TestCase):
         phrase = phrase_for(order, order.consents[0])
         self.assertIn(order.order_id, phrase)
         self.assertIn("Test Customer", phrase)
+
+    def test_the_phrase_carries_a_date_a_person_would_say(self) -> None:
+        """`2026-09-20` gets stumbled over and re-recorded; `20 September 2026` does not."""
+        order = self._order()
+        phrase = phrase_for(order, order.consents[0])
+        today = date.today()
+        self.assertNotIn(today.isoformat(), phrase)
+        self.assertIn(str(today.day), phrase)
+        self.assertIn(str(today.year), phrase)
+
+    def test_it_is_spoken_in_the_customers_own_language(self) -> None:
+        """A Turkish customer reading an English legal sentence records it worse
+        and understands less of what they just agreed to."""
+        order = self._order()
+        consent = order.consents[0]
+
+        turkish = phrase_for(order, consent, language="tr")
+        self.assertIn("sesimi kullanma izni", turkish)
+        self.assertIn(order.order_id, turkish)
+        self.assertIn("Test Customer", turkish)
+        self.assertTrue(any(m in turkish for m in
+                            ("Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz",
+                             "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık")), turkish)
+
+        # A language nobody wrote a phrase for falls back rather than failing.
+        self.assertEqual(phrase_for(order, consent, language="xx"),
+                         phrase_for(order, consent, language="en"))
+
+    def test_the_phrase_stays_short_enough_to_read_in_one_go(self) -> None:
+        """Every extra clause is another retake. The terms live in the signed
+        document; the recording only has to be specific and live."""
+        order = self._order()
+        for language in ("en", "tr"):
+            phrase = phrase_for(order, order.consents[0], language=language)
+            self.assertLess(len(phrase.split()), 26, f"{language}: {phrase}")
 
     def test_revocation_is_written_and_audited(self) -> None:
         order = self._order()

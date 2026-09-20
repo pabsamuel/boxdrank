@@ -42,11 +42,37 @@ MIN_PHRASE_SECONDS = 3.0
 MIN_SAMPLE_SECONDS = 30.0        # below this, clones sound like a bad impression
 GOOD_SAMPLE_SECONDS = 90.0
 
-PHRASE_TEMPLATE = (
-    "My name is {person_name}. Today is {today}. "
-    "I give VoxSwap permission to create a synthetic copy of my voice "
-    "for order {order_id}. I understand I can withdraw this permission at any time."
-)
+# What the phrase has to achieve is narrow: prove the person was present on a
+# specific day, for a specific order. Name, date and order ID do all of that —
+# none of them can be lifted from voice notes recorded for someone else.
+#
+# Everything past that is cost. The first version also had them recite the
+# withdrawal clause, and read the date as `2026-09-20`, which real people
+# stumble over and re-record several times. The terms belong in the document
+# they sign; the recording only has to be specific and live. Say it in their
+# own language, too: a Turkish customer reading an English legal sentence gets
+# a worse recording and understands less of what they just agreed to.
+PHRASE_TEMPLATES = {
+    "en": "I am {person_name}. Today is {today}. I give VoxSwap permission to use my voice for order {order_id}.",
+    "tr": "Ben {person_name}. Bugün {today}. VoxSwap'e {order_id} numaralı sipariş için sesimi kullanma izni veriyorum.",
+}
+PHRASE_TEMPLATE = PHRASE_TEMPLATES["en"]        # kept for callers that predate the mapping
+
+_MONTHS = {
+    "en": ["January", "February", "March", "April", "May", "June",
+           "July", "August", "September", "October", "November", "December"],
+    "tr": ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+           "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"],
+}
+
+
+def spoken_date(when: date, language: str = "en") -> str:
+    """A date as a person would actually say it, not as a computer stores one."""
+    code = (language or "en").split("-")[0].lower()
+    months = _MONTHS.get(code, _MONTHS["en"])
+    if code == "tr":
+        return f"{when.day} {months[when.month - 1]} {when.year}"
+    return f"{when.day} {months[when.month - 1]} {when.year}"
 
 
 @dataclass
@@ -59,10 +85,17 @@ class ConsentCheck:
     warnings: list[str]
 
 
-def phrase_for(order: Order, consent: Consent) -> str:
-    return PHRASE_TEMPLATE.format(
+def phrase_for(order: Order, consent: Consent, language: str = "") -> str:
+    """The sentence this person records, in the language they were sold in.
+
+    `language` defaults to the customer's contact locale, because that is the
+    language the rest of the order already talks to them in.
+    """
+    code = (language or order.customer.contact_locale or "en").split("-")[0].lower()
+    template = PHRASE_TEMPLATES.get(code, PHRASE_TEMPLATES["en"])
+    return template.format(
         person_name=consent.person_name,
-        today=date.today().isoformat(),
+        today=spoken_date(date.today(), code),
         order_id=order.order_id,
     )
 
