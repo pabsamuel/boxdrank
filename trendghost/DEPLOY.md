@@ -28,28 +28,33 @@ and pick it from the app, until there's a native build.
 
 ## Deploying to GitHub Pages (what this repo does)
 
-`.github/workflows/trendghost-pages.yml` builds and publishes on every push to
-`main`, and can be run by hand from the Actions tab (`workflow_dispatch`). It
-turns Pages on the first time it runs, so there is no manual repo setup. The
-site lands at:
+**A repository gets exactly one Pages site**, and in this repo that site is
+assembled by `.github/workflows/retrosubs-pages.yml` from every browser app
+here — RetroSubs at the root, VoxSwap under `/voxswap/`, TrendGhost under
+`/trendghost/`. Do not add a second Pages workflow: two of them just overwrite
+each other's deploy, which is exactly what happened the first time this shipped.
+
+It publishes on every push to `main` that touches one of those apps, and can be
+run by hand from the Actions tab (`workflow_dispatch`). The app lands at:
 
 ```
-https://pabsamuel.github.io/boxdrank/
+https://pabsamuel.github.io/boxdrank/trendghost/
 ```
 
-Pages serves from `/<repo>/`, not the domain root, so the workflow builds with
-`BASE_PATH`. Nothing in the source hard-codes that path:
+That sub-path has to be baked in at build time, so the workflow builds with
+`BASE_PATH`. Nothing in the source hard-codes it:
 
 - the app reads `import.meta.env.BASE_URL` (models, wasm, `sw.js`, share key),
 - `public/sw.js` derives its base from its own `self.location`,
 - `public/manifest.webmanifest` uses relative URLs (`./share-target`).
 
-So the same tree serves correctly at `/` (dev, preview, e2e) and at `/boxdrank/`.
-Because that sub-path changes the service worker's scope and the share-target
-URL — the two things hardest to get right — the smoke suite can run against it:
+So the same tree serves correctly at `/` (dev, preview, e2e) and at
+`/boxdrank/trendghost/`. Because that sub-path changes the service worker's
+scope and the share-target URL — the two things hardest to get right — the
+smoke suite can run against it:
 
 ```bash
-npm run test:e2e:pages   # builds with BASE_PATH, previews at /boxdrank/, runs the suite
+npm run test:e2e:pages   # builds with BASE_PATH, previews at the sub-path, runs the suite
 ```
 
 Run that before changing anything path-related.

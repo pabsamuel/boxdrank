@@ -5,6 +5,7 @@ name: RetroSubs Web (Pages)
 #
 #   /                  retrosubs/web   the retro dialogue box
 #   /voxswap/          voxswap/web     the VoxSwap recording booth
+#   /trendghost/       trendghost/     the viral-trend ghost overlay
 #
 # RetroSubs keeps the root and its URLs are unchanged. The booth needs a
 # top-level HTTPS page for a different reason: browsers refuse a microphone to
@@ -15,6 +16,7 @@ on:
     paths:
       - 'retrosubs/web/**'
       - 'voxswap/web/**'
+      - 'trendghost/**'
       - '.github/workflows/retrosubs-pages.yml'
   workflow_dispatch:
 
@@ -36,6 +38,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: trendghost/package-lock.json
+
+      - name: Build TrendGhost
+        # The only app here that compiles. Its sub-path has to be baked in at
+        # build time — assets, the pose models and the service worker's scope
+        # all derive from it — and the ~15 MB of MediaPipe weights are fetched
+        # rather than committed.
+        run: |
+          npm ci
+          npm run fetch-models
+          npm run build
+        working-directory: trendghost
+        env:
+          BASE_PATH: /boxdrank/trendghost/
+
       - name: Assemble the site
         run: |
           set -euo pipefail
@@ -46,7 +67,12 @@ jobs:
             # Only the page itself — the folder's README is for contributors.
             cp voxswap/web/*.html _site/voxswap/
           fi
-          find _site -type f | sort
+          mkdir -p _site/trendghost
+          cp -r trendghost/dist/. _site/trendghost/
+          # Pages has no rewrite rules, so a reload inside the app would 404.
+          cp trendghost/dist/index.html _site/trendghost/404.html
+          # The model files are large and uninteresting; keep the log readable.
+          find _site -type f -not -path '_site/trendghost/models/*' | sort
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

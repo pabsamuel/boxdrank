@@ -10,7 +10,7 @@
 import { spawn } from 'node:child_process';
 import process from 'node:process';
 
-const BASE = '/boxdrank/';
+const BASE = '/boxdrank/trendghost/';
 const PORT = 4174;
 const ORIGIN = `http://localhost:${PORT}`;
 
