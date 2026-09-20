@@ -276,3 +276,51 @@ skipped check is not a pass. A board with no connect column cannot verify the
 connect-column claim, and a summary that let those blur would be this codebase
 committing its own signature failure — reporting "we did not look" as "we
 looked, it is fine."
+
+## ADR-018 — `monday code` may be the third answer to ADR-010
+**Date:** 2026-09-20 · **Status:** open — investigate before choosing the shape
+Reading the Workspace Doctor listing turned up a design fact, not just a
+competitive one. Its privacy paragraph says it *"runs entirely on monday's own
+infrastructure (monday code), never on third-party servers"* — while also
+offering weekly scheduled checks, stored score history and email summaries.
+
+That is both halves of ADR-010 at once. The dilemma was:
+
+- read-only + client-side → easy review, no scheduled monitoring, weak
+  retention (#17's shape);
+- our own server → monitoring works, but we own stored credentials and a Burp
+  scan against our own host.
+
+Hosting the backend **on monday** dissolves it. If monday code can run this
+Express app and hold this SQLite file, then the "third-party server" objection
+leaves the security review, gate item #3 shrinks to whatever monday's own
+platform already satisfies, and `drift/` survives without paying the price
+that made the choice hard.
+
+**Consequence:** this is now the highest-value unknown in the project, ahead of
+the `✱` API claims — because it could change which shape we ship, while the
+`✱` claims only change whether the shape we ship is correct. It costs nothing
+in code: `Storage` is an interface and the server is already a factory function
+taking its dependencies, so the port is a deployment target, not a rewrite.
+
+⚠️ **Sourced from a competitor's marketing paragraph**, which is the weakest
+evidence this project has acted on. What monday code actually supports —
+runtime, persistent storage, scheduled execution, outbound network, secrets —
+is unverified. Confirm against monday's own documentation before anything
+depends on it. Per CLAUDE.md rule 1 this stays `✱` until then.
+
+## ADR-019 — Delete everything on uninstall
+**Date:** 2026-09-20 · **Status:** accepted
+Workspace Doctor's listing says *"everything is deleted on uninstall."* We were
+not saying it and were not doing it — an account that removed the app kept an
+encrypted token and its snapshots in our database indefinitely.
+
+`Storage.deleteAccount()` now erases the install, every template snapshot and
+the plan row, and the subscription webhook calls it on `uninstall` before
+anything else happens. The SQLite implementation does it in one transaction: a
+partial purge that deleted the snapshots but left the token is the worst of
+both outcomes.
+
+A real delete, not a soft one. A `deleted_at` column would make the listing
+sentence false while looking like it was true, and the point of saying it in
+the listing is that it is checkable.

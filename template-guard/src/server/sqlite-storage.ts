@@ -233,6 +233,21 @@ export class SqliteStorage implements Storage {
       )
       .run(plan.accountId, plan.planId, plan.renewsAt);
   }
+
+  async deleteAccount(accountId: string): Promise<void> {
+    // One transaction: a partial purge that left the token behind while
+    // deleting the snapshots would be the worst of both outcomes.
+    this.db.exec('BEGIN');
+    try {
+      this.db.prepare(`DELETE FROM templates WHERE account_id = ?`).run(accountId);
+      this.db.prepare(`DELETE FROM plans WHERE account_id = ?`).run(accountId);
+      this.db.prepare(`DELETE FROM installs WHERE account_id = ?`).run(accountId);
+      this.db.exec('COMMIT');
+    } catch (err) {
+      this.db.exec('ROLLBACK');
+      throw err;
+    }
+  }
 }
 
 function toInstall(row: InstallRow): StoredInstall {

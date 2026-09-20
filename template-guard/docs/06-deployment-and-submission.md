@@ -141,6 +141,8 @@ Tick these honestly. An untested item is not a tick.
       storage implementations, before serialisation
 - [x] No item, update or file scopes requested
 - [x] Stated plainly in the README and the listing
+- [x] Everything deleted on uninstall — a real delete, in one transaction
+      (ADR-019)
 
 ### Product
 
@@ -170,4 +172,12 @@ Verbatim, because it shortens the security review and it is true:
 > Template Guard stores board IDs, column IDs and board configuration. It never
 > stores your item data — no item names, no column values, no files, no
 > updates. It requests no item, update or file permissions, so it could not
-> read them if it wanted to. Access tokens are encrypted at rest.
+> read them if it wanted to. Access tokens are encrypted at rest with
+> AES-256-GCM, and everything we hold for your account is deleted when you
+> uninstall.
+
+**Before deploying anywhere, read ADR-018.** The nearest app on the marketplace
+runs its scheduled backend on `monday code` — monday's own infrastructure —
+and says "never on third-party servers" in its listing. If that works for this
+app, most of Part 2 above becomes someone else's problem and the Burp scan
+shrinks to whatever monday's platform already satisfies.

@@ -41,6 +41,16 @@ export interface Storage {
   listAccountIdsWithTemplates(): Promise<string[]>;
   getPlan(accountId: string): Promise<AccountPlan>;
   savePlan(plan: AccountPlan): Promise<void>;
+  /**
+   * Erases everything held for an account: install token, template snapshots,
+   * plan. Called when monday says the app was uninstalled.
+   *
+   * This is a listing claim ("everything is deleted on uninstall"), which
+   * means it is also a security-review claim and a data-protection one. It
+   * must actually delete, not mark deleted — a soft delete would make the
+   * sentence false while looking like it was true.
+   */
+  deleteAccount(accountId: string): Promise<void>;
 }
 
 const ALGORITHM = 'aes-256-gcm';
@@ -160,5 +170,13 @@ export class InMemoryStorage implements Storage {
 
   async savePlan(plan: AccountPlan): Promise<void> {
     this.plans.set(plan.accountId, plan);
+  }
+
+  async deleteAccount(accountId: string): Promise<void> {
+    this.installs.delete(accountId);
+    this.plans.delete(accountId);
+    for (const [key, record] of this.templates) {
+      if (record.accountId === accountId) this.templates.delete(key);
+    }
   }
 }

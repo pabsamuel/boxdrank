@@ -109,6 +109,27 @@ describe.each(implementations)('%s', (_name, make) => {
     expect(await storage.getPlan('acct-1')).toMatchObject({ planId: 'pro' });
   });
 
+  it('erases everything for an account on uninstall — a listing claim, so a real delete', async () => {
+    const storage = make();
+    await storage.saveInstall({
+      accountId: 'acct-1',
+      accountSlug: 'agency',
+      encryptedToken: 'enc',
+      installedAt: '2026-09-01T00:00:00.000Z',
+    });
+    await storage.savePlan({ accountId: 'acct-1', planId: 'pro', renewsAt: null });
+    await storage.saveTemplate(record({ accountId: 'acct-1' }));
+    await storage.saveTemplate(record({ accountId: 'acct-2' }));
+
+    await storage.deleteAccount('acct-1');
+
+    expect(await storage.getInstall('acct-1')).toBeNull();
+    expect(await storage.listTemplates('acct-1')).toEqual([]);
+    expect((await storage.getPlan('acct-1')).planId).toBe('free');
+    // Another account's data must be untouched.
+    expect(await storage.listTemplates('acct-2')).toHaveLength(1);
+  });
+
   it('refuses to store a snapshot carrying customer item data', async () => {
     const storage = make();
     const poisoned = record();

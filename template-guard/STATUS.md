@@ -1,6 +1,6 @@
 # Status — how much of this is done
 
-**Updated:** 20 Sep 2026 · 148 tests passing · typecheck clean · production build clean
+**Updated:** 20 Sep 2026 · 150 tests passing · typecheck clean · production build clean
 
 Two numbers, because they are genuinely different and mixing them would be the
 kind of comfortable lie this project is supposed to be allergic to.
@@ -24,7 +24,7 @@ Every deliverable the spec named, plus the two the README listed as still to do.
 | API findings report + Path A/B recommendation | Done | `docs/00-api-findings.md` |
 | App skeleton, OAuth, board view, dashboard widget | Done | `src/server/`, `src/ui/` |
 | Snapshot + diff engine | Done | `src/snapshot/`, `src/diff/` |
-| Unit tests over fixtures — the four required cases | Done, 148 tests | `test/` |
+| Unit tests over fixtures — the four required cases | Done, 150 tests | `test/` |
 | Repair layer (auto where safe, manual checklist where not) | Done | `src/repair/` |
 | README | Done | `README.md` |
 | Project docs, decision log, prompts | Done | `docs/` |
@@ -37,6 +37,7 @@ Every deliverable the spec named, plus the two the README listed as still to do.
 | **Notification delivery** — monday notification, webhook, fallback chain | **Done** | `src/drift/sinks.ts` |
 | **Deployment** — Dockerfile, non-root, data on a volume | **Done** | `Dockerfile`, `docs/06-deployment-and-submission.md` |
 | **Submission checklist** | Done | `docs/06-deployment-and-submission.md` |
+| **Delete everything on uninstall** | **Done** | `Storage.deleteAccount()`, ADR-019 |
 
 Deliberately **not** built, because the spec said not to: the marketing site.
 
@@ -58,13 +59,17 @@ What is left, and who can do it.
 | 3 | **Gate #3 — run the Burp scan and remediate what it finds.** The standard findings are pre-empted (headers, CORS, rate limiting, body cap, non-root container) and tested. What is left is whatever the scan turns up on a deployed instance. | You, after deploying | Unknown until scanned |
 | 4 | **ADR-010 — pick the product shape.** Read-only auditor, or auditor + repair + monitoring. Recommendation: read-only first. | You | A decision, not a task |
 | 5 | **10 admin conversations about column drift.** Load-bearing since the marketplace scan: the category tops out at 951 installs while reporting apps hit 17.8K. | You | A week of asking |
-| 6 | **Open the Workspace Doctor listing** (23 installs, *"scan, score & fix"*). The one thing that could narrow the duplicate-check clear. | You | 5 minutes |
+| 6 | ~~Open the Workspace Doctor listing~~ **Done 20 Sep.** It does account-wide hygiene, not template fidelity. The clear holds; "nothing adjacent exists" no longer does. `docs/07-workspace-doctor.md` | — | — |
+| 9 | **Investigate `monday code`.** Workspace Doctor runs its scheduled backend on monday's own infrastructure while claiming "never on third-party servers". If that works for us, the ADR-010 dilemma dissolves and gate #3 shrinks. **Highest-value unknown in the project.** | You, 30 min in monday's docs | 30 minutes |
 | 7 | **Deploy it.** `docker build` / `docker run`, per `docs/06-deployment-and-submission.md`. Needs a host with TLS. | You | An afternoon |
 | 8 | Configure the developer console: features, OAuth redirect, billing webhook URL, plan ids | You | An hour |
 
-Items 1–3 and 7–8 are hard prerequisites for submission. Items 4–6 decide
-whether submission is worth doing at all. **Item 6 is five minutes and should
-be next.**
+Items 1–3 and 7–8 are hard prerequisites for submission. Items 4, 5 and 9
+decide **what** to submit and whether it is worth submitting at all.
+
+**Item 9 is next and it is thirty minutes.** It comes before deploying
+anything, because it may change where this deploys — and before the Burp
+scan, because it may change what gets scanned.
 
 ---
 
@@ -78,9 +83,16 @@ It moved. It is no longer "does this work" or "has someone built it".
   dependency. The riskiest unknowns are five named functions, each isolated
   behind a `✱` comment — and now checkable in ten minutes rather than a
   morning (`npm run verify:live`).
-- **Demand risk: open, and now the main one.** The admin/audit/governance
-  category's best performer has 951 installs. Either nobody thought of this, or
-  people build these and they do not sell. Ten conversations distinguish those
-  two, and nothing else does.
+- **Demand risk: open, and the main one — with a second data point now.** The
+  admin/audit/governance category's best performer has 951 installs, and the
+  nearest neighbour to this product did **23 in three months** with AI
+  features, scheduled checks and good artwork, tagged into the category where
+  the 17.8K apps live. Either nobody thought of this, or people build these and
+  they do not sell. Ten conversations distinguish those two, and nothing else
+  does.
+- **Duplication risk, revisited:** still clear — Workspace Doctor has no
+  template concept, so missing columns, changed types and mis-wired connect
+  columns are questions its model cannot ask. But the positioning must lead
+  with mis-wiring and template fidelity, never with the word "drift".
 
 Nothing in this repository has touched a real monday account.

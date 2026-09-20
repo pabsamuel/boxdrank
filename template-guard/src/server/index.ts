@@ -338,6 +338,16 @@ export function createServer(deps: ServerDeps) {
 
       const payload = verifySubscriptionToken(token, deps.signingSecret);
       const event = parseSubscriptionEvent(payload);
+
+      if (event.type === 'uninstall') {
+        // "Everything is deleted on uninstall" is a listing claim, so it runs
+        // here rather than in a cleanup job somebody remembers to write.
+        await deps.storage.deleteAccount(event.accountId);
+        console.log(`[template-guard] uninstall account=${event.accountId} -> purged`);
+        res.json({ ok: true, purged: true });
+        return;
+      }
+
       const plan = planFromEvent(event, deps.paidPlanIds ?? []);
       await deps.storage.savePlan(plan);
 

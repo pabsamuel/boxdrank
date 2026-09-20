@@ -23,7 +23,7 @@ None of these compare board structure against a template. Listed closest-first.
 
 | App | Vendor | Installs | Rating | What it actually does |
 |---|---|---|---|---|
-| **Workspace Doctor** | Tiberiu Jinga | 23 | — | *"Scan, score & fix your monday workspace in one click."* **The only genuinely adjacent listing. Not yet opened and read — do this before committing.** |
+| **Workspace Doctor** | Tiberiu Jinga | 23 | — | *"Scan, score & fix your monday workspace in one click."* **Opened and read 20 Sep — see `docs/07-workspace-doctor.md`.** Account-wide hygiene: stale boards, status-label drift across boards, dead assignees, adoption. No template concept, so no missing column, no type change, no mis-wiring. The clear holds and narrows. |
 | Advanced Templates | APMD SOFT | 2K | 5.0 (10) | *Creates* reusable templates with dynamic dates and variables. Authoring, not auditing. |
 | Super Admin | Boost Apps | 81 | — | Admin oversight with board creation control. Prevention, not drift detection. |
 | Workspace Admin Toolkit | Satisfaction Drivers | 8 | — | Bulk board operations. |
@@ -72,9 +72,33 @@ but it has to be answered before marketing spend, not after.
 
 ## Still open
 
-- **Open the Workspace Doctor listing and read it.** 5 minutes. If it does
-  schema scoring, this verdict narrows.
+- ~~Open the Workspace Doctor listing and read it.~~ **Done 20 Sep.** It does
+  account-wide *hygiene*, not template fidelity — the clear holds but the
+  "nothing adjacent exists" line does not. Full read, and the two things the
+  listing gave us that are worth more than the verdict:
+  `docs/07-workspace-doctor.md`.
+- **`monday code` as the deployment target (ADR-018)** — new, and now the
+  highest-value unknown in the project. Workspace Doctor runs its scheduled
+  backend on monday's own infrastructure, which is the third answer to the
+  ADR-010 dilemma nobody in either thread had considered.
 - Gate items #2 and #3 from `NEXT-GATE0.md` (defend the architecture to a
   reviewer; remediate a Burp finding) — untouched.
-- 10 admin conversations about column drift — now load-bearing, per above.
+- 10 admin conversations about column drift — load-bearing, and more so after
+  Workspace Doctor: 23 installs in three months for a polished app in this
+  exact space.
 - The product-shape decision, ADR-010.
+
+## Second measured data point on demand
+
+Workspace Doctor launched **Jun 2026** and has **23 installs, no ratings**.
+Four scan categories, AI embeddings, health score, scheduled checks, email
+summaries, CSV export, good artwork — and it is tagged into *Reporting &
+analytics*, the category where the 17.8K apps live, so it is not hiding.
+
+Roughly eight installs a month. One app's marketing is not a market, but this
+points the same way as the category ceiling above, and two measured points
+beat a hunch. The counter-reading worth holding: every Workspace Doctor finding
+is hygiene, and nobody's client work breaks because a label reads "Done!"
+instead of "Done". Template Guard's headline finding is a board that has been
+writing to the wrong client for three weeks. Those may sell very differently —
+which is a hypothesis, and ten conversations settle it.
