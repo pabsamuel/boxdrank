@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="theme-color" content="#0A0D24" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>RetroSubs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  /*
+    Original art only: the dialogue frame is drawn here with borders and gradients, the
+    typeface is an open-licence pixel font, and the text blip is synthesised at runtime.
+    Nothing is taken from any existing game.
+  */
+  :root {
+    --bg: #0A0D24;
+    --paper: #F8F8F0;
+    --paper-edge: #D8D8C8;
+    --ink: #383838;
+    --frame-outer: #303848;
+    --frame-inner: #8090A8;
+    --caret: #C03028;
+    --ui: #8BD3DD;
+  }
+  body[data-frame="emerald"] { --frame-outer: #1E6E4A; --frame-inner: #6EE0A8; }
+  body[data-frame="gold"]    { --frame-outer: #5A4420; --frame-inner: #D8A038; }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+  body {
+    font-family: "Pixelify Sans", ui-monospace, Menlo, monospace;
+    color: var(--ui);
+    -webkit-user-select: none; user-select: none;
+  }
+
+  /* ---------- stage: camera behind, dialogue in front ---------- */
+  #stage { position: fixed; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; }
+  #cam {
+    position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover;
+    transform: scaleX(-1); background: #05060f; display: none;
+  }
+  body[data-cam="on"] #cam { display: block; }
+  #mark {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-family: "Press Start 2P", monospace; font-size: 20px; color: #1b2150;
+    letter-spacing: .1em; pointer-events: none;
+  }
+  body[data-cam="on"] #mark { display: none; }
+  body[data-cam="on"] #stage::before {
+    content: ""; position: fixed; inset: 0;
+    background: linear-gradient(180deg, rgba(10,13,36,.35) 0%, rgba(10,13,36,0) 35%, rgba(10,13,36,.55) 100%);
+  }
+  /* handheld LCD: scanline grid + vignette over everything */
+  #lcd {
+    position: fixed; inset: 0; pointer-events: none; z-index: 3;
+    background:
+      repeating-linear-gradient(180deg, rgba(0,0,0,.14) 0 1px, transparent 1px 3px),
+      radial-gradient(120% 80% at 50% 45%, transparent 55%, rgba(0,0,0,.45) 100%);
+    mix-blend-mode: multiply;
+  }
+
+  /* ---------- the dialogue box ---------- */
+  #box {
+    position: relative; margin: 0 12px calc(env(safe-area-inset-bottom) + 14px);
+    background: var(--frame-outer);
+    border-radius: 10px;
+    padding: 4px;
+    box-shadow: 0 6px 0 rgba(0,0,0,.35);
+  }
+  #box .inner {
+    background: var(--frame-inner);
+    border-radius: 7px;
+    padding: 3px;
+  }
+  #box .paper {
+    position: relative;
+    background: linear-gradient(180deg, var(--paper) 0%, var(--paper) 86%, var(--paper-edge) 100%);
+    border-radius: 5px;
+    padding: 16px 18px 22px;
+    min-height: 120px;
+  }
+  #speaker {
+    font-family: "Press Start 2P", monospace;
+    font-size: 10px; letter-spacing: .06em; color: var(--frame-outer);
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  }
+  #sigil { width: 18px; height: 18px; display: block; }
+  /* exactly two lines, like a handheld dialogue box — the rest waits for the caret */
+  #line {
+    color: var(--ink);
+    font-size: 26px; line-height: 1.35; font-weight: 500;
+    letter-spacing: .02em; white-space: pre;
+    height: 2.7em; overflow: hidden;
+  }
+  #line.idle { color: #909090; }
+  #caret {
+    position: absolute; right: 14px; bottom: 8px;
+    width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent;
+    border-top: 10px solid var(--caret); opacity: 0;
+  }
+  #caret.on { animation: bob .9s steps(2,end) infinite; }
+  @keyframes bob {
+    0%   { opacity: 1; transform: translateY(0) }
+    50%  { opacity: 1; transform: translateY(3px) }
+    100% { opacity: 1; transform: translateY(0) }
+  }
+
+  /* ---------- top bar ---------- */
+  #bar {
+    position: fixed; top: calc(env(safe-area-inset-top) + 8px); left: 10px; right: 10px;
+    display: flex; gap: 8px; align-items: center; z-index: 5;
+  }
+  .chip {
+    font-family: "Press Start 2P", monospace; font-size: 10px;
+    background: rgba(20,26,60,.85); color: #F5EFDC; border: 2px solid var(--frame-inner);
+    border-radius: 6px; padding: 10px 11px; line-height: 1;
+  }
+  #go { background: #F2C14E; color: #14163C; border-color: #F8F8F0; }
+  #go[data-on="1"] { background: #C03028; color: #F8F8F0; }
+  #status { flex: 1; font-size: 11px; color: #cfe8ec; text-align: right; opacity: .9; }
+
+  /* ---------- settings sheet ---------- */
+  #sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+    background: #10143a; border-top: 3px solid var(--frame-inner);
+    padding: 14px 16px calc(env(safe-area-inset-bottom) + 18px);
+    display: none; gap: 10px; grid-template-columns: 1fr 1fr;
+  }
+  #sheet.open { display: grid; }
+  #sheet .full { grid-column: 1 / -1; }
+  label { display: block; font-size: 10px; letter-spacing: .1em; color: var(--ui); margin-bottom: 5px; font-family: "Press Start 2P", monospace; }
+  select, input[type="text"], .btn {
+    width: 100%; font-family: "Pixelify Sans", monospace; font-size: 16px;
+    background: #1b2150; color: #F5EFDC; border: 2px solid var(--frame-inner);
+    border-radius: 6px; padding: 12px; appearance: none;
+  }
+  .btn { text-align: center; }
+  input[type="text"] { text-transform: uppercase; letter-spacing: .08em; }
+  #meter { height: 4px; background: rgba(139,211,221,.25); border-radius: 2px; overflow: hidden; }
+  #meter > i { display: block; height: 100%; width: 0; background: #F2C14E; }
+  .hint { grid-column: 1 / -1; font-size: 13px; line-height: 1.5; color: #9fb6d8; }
+  #diag {
+    position: fixed; left: 10px; right: 10px; top: calc(env(safe-area-inset-top) + 62px);
+    z-index: 6; display: none; background: rgba(8,10,30,.88); border: 2px solid var(--frame-inner);
+    border-radius: 6px; padding: 8px 10px; font-size: 12px; line-height: 1.5; color: #cfe8ec;
+    white-space: pre-wrap; font-family: ui-monospace, Menlo, monospace;
+  }
+  body[data-diag="on"] #diag { display: block; }
+</style>
+</head>
+<body data-frame="classic" data-cam="off">
+
+<video id="cam" playsinline autoplay muted></video>
+<div id="lcd"></div>
+<div id="mark">RETROSUBS</div>
+
+<div id="bar">
+  <button class="chip" id="go">BASLAT</button>
+  <button class="chip" id="camBtn">KAMERA</button>
+  <button class="chip" id="gear">AYAR</button>
+  <span id="status">hazir</span>
+  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v10</span>
+</div>
+
+<div id="diag"></div>
+
+<div id="stage">
+  <div id="box">
+    <div class="inner">
+      <div class="paper">
+        <div id="speaker"><svg id="sigil" viewBox="0 0 5 5" shape-rendering="crispEdges"></svg><span id="who">RETROSUBS</span></div>
+        <div id="line" class="idle">BASLAT'a bas ve konus.</div>
+        <div id="caret"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="sheet">
+  <div class="full"><div id="meter"><i></i></div></div>
+  <div class="full">
+    <label for="name">KONUSAN</label>
+    <input id="name" type="text" maxlength="14" placeholder="comolli" autocomplete="off" />
+  </div>
+  <div>
+    <label for="engine">MOTOR</label>
+    <select id="engine">
+      <option value="real">gercek yazi</option>
+      <option value="vibe-kana">vibe kana</option>
+      <option value="vibe-latin">vibe latin</option>
+    </select>
+  </div>
+  <div>
+    <label for="lang">DIL</label>
+    <select id="lang">
+      <option value="tr-TR">Turkce</option>
+      <option value="en-US">English</option>
+      <option value="ja-JP">日本語</option>
+      <option value="de-DE">Deutsch</option>
+      <option value="fr-FR">Francais</option>
+      <option value="es-ES">Espanol</option>
+    </select>
+  </div>
+  <div>
+    <label for="size">PUNTO</label>
+    <select id="size">
+      <option value="20">kucuk</option>
+      <option value="26" selected>orta</option>
+      <option value="32">buyuk</option>
+      <option value="40">kocaman</option>
+    </select>
+  </div>
+  <div>
+    <label for="frame">CERCEVE</label>
+    <select id="frame">
+      <option value="classic">klasik</option>
+      <option value="emerald">zumrut</option>
+      <option value="gold">altin</option>
+    </select>
+  </div>
+  <div>
+    <label for="speed">HIZ</label>
+    <select id="speed">
+      <option value="180">cok yavas</option>
+      <option value="120" selected>yavas</option>
+      <option value="90">normal</option>
+      <option value="70">hizli</option>
+      <option value="45">cok hizli</option>
+      <option value="0">aninda</option>
+    </select>
+  </div>
+  <div>
+    <label for="sound">SES</label>
+    <select id="sound">
+      <option value="1" selected>acik</option>
+      <option value="0">kapali</option>
+    </select>
+  </div>
+  <div class="full">
+    <label for="diagSel">TANI</label>
+    <select id="diagSel"><option value="0" selected>kapali</option><option value="1">acik</option></select>
+  </div>
+  <button class="btn full" id="test">TEST SATIRI (tempoyu gor)</button>
+  <button class="btn full" id="demo">DEMO (izin gerekmez)</button>
+  <p class="hint">
+    iOS baska uygulamanin ustune kutu cizdirmez, o yuzden bu tam ekran.
+    Vibe modu kelimeleri tanimaz, sadece konusma temposuna uyar.
+  </p>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const el = {
+    line: $("line"), who: $("who"), sigil: $("sigil"), caret: $("caret"), status: $("status"),
+    go: $("go"), cam: $("cam"), camBtn: $("camBtn"), gear: $("gear"), sheet: $("sheet"),
+    meter: $("meter").firstElementChild, engine: $("engine"), lang: $("lang"), size: $("size"),
+    frame: $("frame"), speed: $("speed"), sound: $("sound"), demo: $("demo"), name: $("name"),
+    test: $("test"), diag: $("diag"), diagSel: $("diagSel"),
+  };
+
+  // ---------------- text blip: synthesised, one per character ----------------
+  let actx = null;
+  function audio() {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === "suspended") actx.resume();
+    return actx;
+  }
+  /** One short, bright tick per character — in lockstep with the typewriter. */
+  function blip() {
+    if (el.sound.value !== "1") return;
+    try {
+      const ctx = audio(), t = ctx.currentTime;
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(2050, t);
+      osc.frequency.exponentialRampToValueAtTime(1150, t + 0.016);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.05, t + 0.002);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.024);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t); osc.stop(t + 0.03);
+    } catch (e) {}
+  }
+
+  /** A softer, lower note when a page is full and the caret starts waiting. */
+  function pageBeep() {
+    if (el.sound.value !== "1") return;
+    try {
+      const ctx = audio(), t = ctx.currentTime;
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(760, t);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.035, t + 0.004);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t); osc.stop(t + 0.1);
+    } catch (e) {}
+  }
+
+  // ---------------- gibberish (same rules as VibeProvider on Android) ----------------
+  const KANA = [..."あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもらりるれろやゆよわんだでどがご"];
+  const LATIN = ["ka","to","mi","ren","sha","lo","ven","dar","el","nu","ta","sel","vor","ith","an","ori","ma","kel","sun","dra","fen","lor","ish","ume","bal","tor","nea","vik","sae","rin"];
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  class Utterance {
+    constructor(script) { this.k = script === "kana"; this.text = ""; this.left = 0; this.words = 0; }
+    get isEmpty() { return !this.text; }
+    advance() {
+      if (this.left <= 0) {
+        if (this.words && !this.k) this.text += " ";
+        this.left = this.k ? 2 + ((Math.random() * 3) | 0) : 1 + ((Math.random() * 3) | 0);
+        this.words++;
+        let s = this.k ? pick(KANA) : pick(LATIN);
+        if (this.words === 1 && !this.k) s = s[0].toUpperCase() + s.slice(1);
+        this.text += s; this.left--; return;
+      }
+      this.text += this.k ? pick(KANA) : pick(LATIN); this.left--;
+    }
+    finish() {
+      if (!this.text) return "";
+      const q = Math.random() < 0.25;
+      this.text += this.k ? (q ? "？" : "。") : (q ? "?" : ".");
+      return this.text;
+    }
+  }
+
+  // ---------------- diagnostics ----------------
+  // The phone is the only place the real recogniser runs, so when the box misbehaves there the
+  // only way to know why is to have the page say what it received and what it drew.
+  const diagLog = [];
+  let revealed = 0, revealFirst = 0, revealLast = 0;
+
+  function diag(msg) {
+    if (el.diagSel.value !== "1") return;
+    diagLog.push(Math.round(performance.now() / 100) / 10 + "s " + msg);
+    while (diagLog.length > 7) diagLog.shift();
+    render();
+  }
+
+  function render() {
+    if (el.diagSel.value !== "1") return;
+    const span = revealLast > revealFirst ? (revealLast - revealFirst) : 0;
+    el.diag.textContent =
+      "harf: " + revealed + "  sure: " + Math.round(span) + "ms" +
+      "  hiz: " + el.speed.value + "ms\n" + diagLog.join("\n");
+  }
+
+  el.diagSel.onchange = () => {
+    document.body.dataset.diag = el.diagSel.value === "1" ? "on" : "off";
+    render();
+  };
+
+  // ---------------- renderer: two lines a page, typed character by character ----------------
+  // A handheld dialogue box never scrolls: it fills two lines, blinks the caret, and turns the
+  // page. That rhythm is most of the nostalgia, so the renderer wraps the text itself.
+  let target = "", shown = 0, isFinal = false, timer = null;
+  let lines = [], pageTop = 0, waiting = false, waitTimer = null;
+
+  const LINES = 2;
+  const measureCanvas = document.createElement("canvas");
+  const measure = measureCanvas.getContext("2d");
+
+  function wrap(text) {
+    const cs = getComputedStyle(el.line);
+    measure.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const max = el.line.clientWidth || 300;
+    const out = [];
+    let start = 0, current = "";
+    for (const word of text.split(" ")) {
+      const candidate = current ? current + " " + word : word;
+      if (current && measure.measureText(candidate).width > max) {
+        out.push({ text: current, start, end: start + current.length });
+        start += current.length + 1;            // the space is consumed by the break
+        current = word;
+      } else {
+        current = candidate;
+      }
+    }
+    if (current) out.push({ text: current, start, end: start + current.length });
+    return out.length ? out : [{ text: "", start: 0, end: 0 }];
+  }
+
+  /**
+   * Partial hypotheses only ever extend the text, so re-wrapping the whole line every time
+   * shifts the line breaks underneath what is already typed and the box lurches. Keep every
+   * settled line and re-wrap only the tail.
+   */
+  let wrapped = "";
+
+  function rewrap(text) {
+    if (!lines.length || !text.startsWith(wrapped) || !wrapped) {
+      lines = wrap(text);
+      wrapped = text;
+      return;
+    }
+    const keep = lines.slice(0, -1);
+    const tailStart = keep.length ? keep[keep.length - 1].end + 1 : 0;
+    const tail = text.slice(tailStart);
+    lines = keep.concat(wrap(tail).map(l => ({
+      text: l.text, start: l.start + tailStart, end: l.end + tailStart,
+    })));
+    wrapped = text;
+  }
+
+  function pageEnd() {
+    const last = lines[Math.min(pageTop + LINES - 1, lines.length - 1)];
+    return last ? last.end : 0;
+  }
+
+  function pageFor(index) {
+    for (let p = 0; p < lines.length; p += LINES) {
+      const last = lines[Math.min(p + LINES - 1, lines.length - 1)];
+      if (index <= last.end) return p;
+    }
+    return Math.max(0, lines.length - LINES);
+  }
+
+  function sigil(id) {
+    let h = ((id * 2654435761) ^ 0x5f3759df) | 0, out = "";
+    for (let r = 0; r < 5; r++) for (let c = 0; c < 3; c++) {
+      h = (h * 1103515245 + 12345) | 0;
+      if (Math.abs(h >> 16) % 3 === 0) continue;
+      out += `<rect x="${c}" y="${r}" width="1" height="1" fill="currentColor"/>`;
+      out += `<rect x="${4 - c}" y="${r}" width="1" height="1" fill="currentColor"/>`;
+    }
+    el.sigil.innerHTML = out;
+  }
+
+  function speaker(name, id) {
+    if (el.who.textContent === name) return;
+    el.who.textContent = name; sigil(id);
+  }
+
+  function paint() {
+    const render = ln => {
+      if (!ln) return "";
+      const n = Math.max(0, Math.min(ln.text.length, shown - ln.start));
+      return ln.text.slice(0, n);
+    };
+    el.line.textContent = render(lines[pageTop]) + "\n" + render(lines[pageTop + 1]);
+    const done = shown >= target.length;
+    el.caret.classList.toggle("on", waiting || (done && isFinal));
+  }
+
+  function turnPage() {
+    clearTimeout(waitTimer); waitTimer = null;
+    if (!waiting) return;
+    waiting = false;
+    pageTop = Math.min(pageTop + LINES, Math.max(0, lines.length - 1));
+    paint();
+    if (!timer) timer = setInterval(tick, parseInt(el.speed.value, 10) || 70);
+  }
+
+  function tick() {
+    if (waiting) return;
+    if (shown >= target.length) {
+      paint();
+      clearInterval(timer); timer = null;
+      return;
+    }
+    if (shown >= pageEnd() && lines.length > pageTop + LINES) {
+      waiting = true;
+      pageBeep();
+      paint();
+      clearInterval(timer); timer = null;
+      const queued = lines.length > pageTop + LINES * 2;
+      waitTimer = setTimeout(turnPage, queued ? 380 : 1100);   // or tap the box to turn it now
+      return;
+    }
+    const ch = target[shown];
+    shown++;
+    if (!revealed) revealFirst = performance.now();
+    revealed++; revealLast = performance.now();
+    if (ch !== " ") blip();
+    paint();
+    render();
+  }
+
+  /** How much of the old line the new one still agrees with. */
+  function sharedPrefix(a, b) {
+    const n = Math.min(a.length, b.length);
+    let i = 0;
+    while (i < n && a[i] === b[i]) i++;
+    return i;
+  }
+
+  function say(text, final) {
+    if (!text) return;
+    if (typeof diag === "function") diag("say len=" + text.length + " shown=" + shown);
+
+    // A new utterance shares nothing with the last one. Clamping the revealed count to the new
+    // length (rather than to what the two lines actually share) left it far past the end of a
+    // short line, so every sentence after the first appeared fully typed at once.
+    const common = sharedPrefix(target, text);
+    if (common < target.length) {
+      shown = Math.min(shown, common);
+      lines = []; wrapped = "";
+      pageTop = 0;
+      waiting = false;
+      clearTimeout(waitTimer); waitTimer = null;
+      revealed = 0; revealFirst = 0; revealLast = 0;
+    }
+
+    target = text; isFinal = !!final;
+    rewrap(text);
+    if (!waiting) {
+      // Live speech outruns a 70 ms typewriter, so we do skip ahead — but only when genuinely
+      // behind. Skipping the moment the text passes one page turns the typewriter into a
+      // word-by-word stutter, because every new partial would reset the box to the newest page.
+      const capacity = (lines[pageTop] ? lines[pageTop].text.length : 40) +
+                       (lines[pageTop + 1] ? lines[pageTop + 1].text.length : 40);
+      const backlog = target.length - shown;
+      if (backlog > capacity * 1.5) {
+        pageTop = pageFor(target.length);
+        shown = Math.max(shown, lines[pageTop].start);
+      } else {
+        // Forward only. Recomputing freely drags the box back to the page we just turned away
+        // from, which reads as the text jumping between a full page and an empty one.
+        pageTop = Math.max(pageTop, pageFor(shown));
+      }
+    }
+    el.line.classList.remove("idle");
+    const step = parseInt(el.speed.value, 10);
+    if (step === 0) {
+      shown = target.length;
+      pageTop = pageFor(shown);
+      paint();
+      return;
+    }
+    if (!timer && !waiting) timer = setInterval(tick, step);
+  }
+
+  function idle(msg) {
+    clearInterval(timer); timer = null;
+    clearTimeout(waitTimer); waitTimer = null;
+    waiting = false; pageTop = 0;
+    target = ""; shown = 0; isFinal = false;
+    lines = []; wrapped = "";
+    revealed = 0; revealFirst = 0; revealLast = 0;
+    el.line.textContent = msg;
+    el.line.classList.add("idle");
+    el.caret.classList.remove("on");
+  }
+
+  /**
+   * Speech recognition hands back text with no punctuation, which reads nothing like a game
+   * line. Close a finished sentence: a question mark when it looks like a question, a full
+   * stop otherwise.
+   */
+  const TR_QUESTION_TAIL = /\bm[ıiuü](s[ıiuü]n(ız|iz|uz|üz)?|y[ıiuü][zm]|sınız|siniz|sunuz|sünüz)?\s*$/i;
+  const QUESTION_WORD = /^(ne|neden|niye|nasıl|kim|kime|kimin|kaç|hangi|nerede|nereye|nereden|ne zaman|what|where|when|why|how|who|which|is|are|do|does|did|can|could|would|should)\b/i;
+
+  function punctuate(text) {
+    const t = text.trim();
+    if (!t || /[.!?…。？！]$/.test(t)) return t;
+    return t + (TR_QUESTION_TAIL.test(t) || QUESTION_WORD.test(t) ? "?" : ".");
+  }
+
+  document.getElementById("box").addEventListener("click", turnPage);
+
+  /** Whoever the microphone is listening to — the user names them, and we remember it. */
+  function micName() {
+    const typed = (el.name.value || "").trim();
+    return (typed || "SEN").toUpperCase();
+  }
+
+  function micId() {
+    const n = micName();
+    let h = 0;
+    for (let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) | 0;
+    return Math.abs(h) % 64;                         // same name, same sigil, every time
+  }
+
+  try { el.name.value = localStorage.getItem("retrosubs.name") || ""; } catch (e) {}
+  el.name.oninput = () => {
+    try { localStorage.setItem("retrosubs.name", el.name.value); } catch (e) {}
+    if (running) speaker(micName(), micId());
+  };
+
+  el.size.onchange = () => { el.line.style.fontSize = el.size.value + "px"; };
+  el.speed.onchange = () => {
+    if (!timer) return;
+    clearInterval(timer); timer = null;
+    const step = parseInt(el.speed.value, 10);
+    if (step === 0) { shown = target.length; pageTop = pageFor(shown); paint(); return; }
+    timer = setInterval(tick, step);
+  };
+  el.frame.onchange = () => { document.body.dataset.frame = el.frame.value; };
+  el.gear.onclick = () => el.sheet.classList.toggle("open");
+
+  // ---------------- demo ----------------
+  const SCRIPT = [
+    [null, "Yarin geliyor musun?"],
+    ["SEN", "Sanirim. Saat kacta basliyor?"],
+    [null, "Yedi civari, eski istasyonun orada."],
+    ["SEN", "Tamam, biletleri ben getiririm."],
+    [null, "Bu sefer gec kalma, son tren geceyarisindan once kalkiyor."],
+  ];
+  let demoOn = false, demoTimers = [];
+  function stopDemo() { demoOn = false; demoTimers.forEach(clearTimeout); demoTimers = []; el.demo.textContent = "DEMO (izin gerekmez)"; }
+  function playDemo(i) {
+    if (!demoOn) return;
+    const [who, text] = SCRIPT[i % SCRIPT.length];
+    if (who) speaker(who, 0); else speaker(micName(), micId());
+    const words = text.split(" ");
+    let d = 0;
+    words.forEach((_, w) => {
+      const partial = words.slice(0, w + 1).join(" ");
+      d += 150 + partial.length * 14;
+      demoTimers.push(setTimeout(() => say(partial, w === words.length - 1), d));
+    });
+    demoTimers.push(setTimeout(() => playDemo(i + 1), d + 1800));
+  }
+  el.test.onclick = () => {
+    stopDemo(); audio();
+    speaker(micName(), micId());
+    idle("");
+    say("Nasilsiniz? Harfler tek tek gelmeli.", true);
+  };
+
+  el.demo.onclick = () => {
+    if (demoOn) { stopDemo(); idle("Demo durdu."); return; }
+    stopAll(); audio(); demoOn = true;
+    el.demo.textContent = "DEMOYU DURDUR";
+    el.status.textContent = "demo";
+    playDemo(0);
+  };
+  window.__demo = playDemo;              // used by the layout check in CI/dev
+  window.__say = say;
+
+  // ---------------- engines ----------------
+  let stream = null, raf = 0, recog = null, running = false, wantCam = true;
+
+  function stopAll() {
+    running = false;
+    clearInterval(watchdog); watchdog = null;
+    cancelAnimationFrame(raf);
+    if (recog) { try { recog.onend = null; recog.stop(); } catch (e) {} recog = null; }
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    el.cam.srcObject = null;
+    el.meter.style.width = "0%";
+    el.go.textContent = "BASLAT"; el.go.dataset.on = "0";
+  }
+
+  /** True inside an app's built-in browser (Instagram, Twitter, the Claude app...), where iOS
+   *  refuses camera and microphone outright. The fix is not code, it is opening in Safari. */
+  function inAppBrowser() {
+    const ua = navigator.userAgent || "";
+    if (/(FBAN|FBAV|Instagram|Line|Twitter|Snapchat|LinkedIn|Pinterest|WhatsApp|Claude)/i.test(ua)) return true;
+    const ios = /iPhone|iPad|iPod/.test(ua);
+    // Real Safari reports "Version/x Safari"; in-app WebViews usually do not.
+    return ios && /Safari/.test(ua) === false;
+  }
+
+  function accessMessage(err) {
+    const name = (err && err.name) || String(err);
+    if (inAppBrowser()) return "Uygulama ici tarayici izin vermiyor. Paylas > Safari'de Ac.";
+    switch (name) {
+      case "NotAllowedError":
+      case "SecurityError":
+        return "Izin verilmedi. Adres cubugundaki aA > Web Sitesi Ayarlari'ndan Mikrofon ve Kamera'ya Izin Ver.";
+      case "NotFoundError":
+      case "OverconstrainedError":
+        return "Cihaz bulunamadi (kamera/mikrofon yok).";
+      case "NotReadableError":
+        return "Mikrofon baska bir uygulamada acik. Onu kapat ve tekrar bas.";
+      default:
+        return "Erisilemedi: " + name;
+    }
+  }
+
+  const VIDEO = { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } };
+
+  async function getStream(wantCam, wantMic) {
+    if (!wantCam && !wantMic) return null;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error("no-getusermedia");
+    }
+    const want = {};
+    if (wantMic) want.audio = true;
+    if (wantCam) want.video = VIDEO;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(want);
+    } catch (err) {
+      // The camera is the optional half: if only it is blocked, carry on with the microphone.
+      if (!wantCam || !wantMic) throw err;
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      wantCam = false;
+      document.body.dataset.cam = "off";
+      el.status.textContent = "kamera acilamadi, ses devam ediyor";
+    }
+    if (wantCam) { el.cam.srcObject = stream; el.cam.play().catch(() => {}); document.body.dataset.cam = "on"; }
+    return stream;
+  }
+
+  function vibe(script) {
+    const ctx = audio();
+    const src = ctx.createMediaStreamSource(stream);
+    const an = ctx.createAnalyser(); an.fftSize = 1024; src.connect(an);
+    const buf = new Float32Array(an.fftSize);
+    let u = new Utterance(script), speaking = false, floor = 0.004, lastVoice = 0, lastSyll = 0;
+    speaker(micName(), micId());
+    el.status.textContent = "dinliyor";
+    const loop = () => {
+      if (!running) return;
+      an.getFloatTimeDomainData(buf);
+      let s = 0; for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
+      const level = Math.sqrt(s / buf.length);
+      el.meter.style.width = Math.min(100, level * 900) + "%";
+      floor = level < floor ? floor * 0.9 + level * 0.1 : floor * 0.995 + level * 0.005;
+      const voiced = level > Math.max(floor * 2.6, 0.012);
+      const now = performance.now();
+      if (voiced) {
+        lastVoice = now;
+        if (!speaking) { speaking = true; u = new Utterance(script); lastSyll = 0; }
+        const gap = Math.min(150, Math.max(70, 150 - level * 900));
+        if (now - lastSyll >= gap) {
+          lastSyll = now; u.advance(); say(u.text, false);
+          if (u.text.length >= 70) { say(u.finish(), true); u = new Utterance(script); }
+        }
+      } else if (speaking && now - lastVoice > 550) {
+        speaking = false;
+        if (!u.isEmpty) say(u.finish(), true);
+        u = new Utterance(script);
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    loop();
+  }
+
+  let heard = 0, watchdog = null;
+
+  function real() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) throw new Error("unsupported");
+    heard = 0;
+    clearInterval(watchdog);
+    watchdog = setInterval(() => {
+      if (!running || recog === null) return;
+      if (heard) { clearInterval(watchdog); watchdog = null; return; }
+      el.status.textContent = "hala bir sey duymadim - AYAR > MOTOR > vibe kana dene";
+    }, 9000);
+    recog = new SR();
+    recog.lang = el.lang.value;
+    recog.continuous = true;
+    recog.interimResults = true;
+    speaker(micName(), micId());
+    recog.onresult = e => {
+      let text = "", fin = false;
+      for (let i = e.resultIndex; i < e.results.length; i++) { text += e.results[i][0].transcript; fin = e.results[i].isFinal; }
+      text = text.trim();
+      if (text) {
+        heard++; el.status.textContent = "dinliyor";
+        diag((fin ? "final" : "ara") + " len=" + text.length);
+        say(fin ? punctuate(text) : text, fin);
+      }
+    };
+    recog.onerror = e => {
+      const fatal = ["not-allowed", "service-not-allowed", "language-not-supported", "audio-capture"];
+      if (!fatal.includes(e.error)) { el.status.textContent = "hata: " + e.error; return; }
+      // Say so plainly and stop. Silently dropping into another engine — and another
+      // alphabet — is worse than failing: you end up watching kana while speaking Turkish.
+      stopAll();
+      el.status.textContent = "tanima yok";
+      idle(e.error === "not-allowed" || e.error === "service-not-allowed"
+        ? "Safari konusma tanimaya izin vermedi. Ayarlar > Genel > Klavye > Dikte'yi ac, ya da AYAR > MOTOR > vibe sec."
+        : "Konusma tanima bu telefonda calismadi (" + e.error + "). AYAR > MOTOR > vibe sec.");
+    };
+    recog.onend = () => { if (running) { try { recog.start(); } catch (err) {} } };
+    recog.start();
+    el.status.textContent = "dinliyor";
+  }
+
+  el.camBtn.onclick = async () => {
+    wantCam = document.body.dataset.cam !== "on";
+    if (!wantCam) {
+      document.body.dataset.cam = "off";
+      if (stream) stream.getVideoTracks().forEach(t => t.stop());
+      el.cam.srcObject = null;
+      return;
+    }
+    try {
+      if (running) { const mode = el.engine.value; stopAll(); await start(true, mode); }
+      else { await getStream(true, false); }
+    } catch (e) { el.status.textContent = "kameraya erisilemedi"; }
+  };
+
+  async function start(withCam, mode) {
+    running = true;
+    el.go.textContent = "DURDUR"; el.go.dataset.on = "1";
+    el.status.textContent = "izin bekleniyor";
+    idle("Dinliyor...");
+    audio();
+    if (mode === "real") {
+      // Take ONLY the camera here. On iOS the recogniser cannot share a microphone that
+      // getUserMedia already holds: it starts, reports nothing, and the box sits empty.
+      await getStream(withCam, false);
+      real();
+    } else {
+      await getStream(withCam, true);
+      vibe(mode === "vibe-kana" ? "kana" : "latin");
+    }
+  }
+
+  el.go.onclick = async () => {
+    if (running) { stopAll(); idle("Durdu."); el.status.textContent = "hazir"; return; }
+    stopDemo();
+    try {
+      await start(wantCam, el.engine.value);
+    } catch (err) {
+      stopAll();
+      let msg;
+      if (err && err.message === "unsupported") {
+        msg = "Bu tarayici konusma tanimayi desteklemiyor. AYAR > MOTOR > vibe kana sec.";
+      } else if (err && err.message === "no-getusermedia") {
+        msg = "Bu tarayici mikrofon vermiyor. Sayfayi Safari'de ac.";
+      } else {
+        msg = accessMessage(err);
+      }
+      el.status.textContent = "hata"; idle(msg);
+    }
+  };
+
+  sigil(1);
+  el.line.style.fontSize = el.size.value + "px";
+  if (inAppBrowser()) {
+    idle("Uygulama ici tarayicidasin: iOS burada mikrofon ve kamera vermez. Paylas > Safari'de Ac.");
+    el.status.textContent = "safari'de ac";
+  }
+})();
+</script>
+</body>
+</html>

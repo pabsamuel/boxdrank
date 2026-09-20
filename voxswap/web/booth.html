@@ -1,0 +1,838 @@
+<title>VoxSwap Recording Booth</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<style>
+  :root {
+    --ground:    #eef1f4;
+    --surface:   #ffffff;
+    --surface-2: #f6f8fa;
+    --ink:       #16202b;
+    --ink-2:     #4d6070;
+    --ink-3:     #7d8f9d;
+    --line:      #d5dee4;
+    --line-2:    #e7edf1;
+    --steel:     #35566e;
+    --rec:       #e03131;
+    --rec-deep:  #b11f1f;
+    --good:      #14714f;
+    --good-bg:   #e3f4ec;
+    --warn:      #96600a;
+    --warn-bg:   #fbf0dc;
+    --bad:       #a72620;
+    --bad-bg:    #fbe6e4;
+    --shadow:    0 1px 2px rgba(22,32,43,.06), 0 8px 24px rgba(22,32,43,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #10161c; --surface: #18212a; --surface-2: #1e2933;
+      --ink: #e6edf2; --ink-2: #a3b4c1; --ink-3: #7b8d9a;
+      --line: #2c3a46; --line-2: #232f3a; --steel: #8fb2cc;
+      --rec: #f2564f; --rec-deep: #c9372f;
+      --good: #5fd3a5; --good-bg: #10352a;
+      --warn: #e8b567; --warn-bg: #38290f;
+      --bad: #f58a82; --bad-bg: #3a1a17;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 26px rgba(0,0,0,.34);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #10161c; --surface: #18212a; --surface-2: #1e2933;
+    --ink: #e6edf2; --ink-2: #a3b4c1; --ink-3: #7b8d9a;
+    --line: #2c3a46; --line-2: #232f3a; --steel: #8fb2cc;
+    --rec: #f2564f; --rec-deep: #c9372f;
+    --good: #5fd3a5; --good-bg: #10352a;
+    --warn: #e8b567; --warn-bg: #38290f;
+    --bad: #f58a82; --bad-bg: #3a1a17;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 26px rgba(0,0,0,.34);
+  }
+
+  html, body { height: 100%; }
+  body {
+    background: var(--ground); color: var(--ink);
+    font-family: Archivo, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+  }
+  * { box-sizing: border-box; }
+
+  .shell { min-height: 100%; display: flex; flex-direction: column; max-width: 640px; margin: 0 auto; padding-inline: 16px; padding-block: 18px 22px; }
+
+  /* progress rail */
+  .rail { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .rail-track { flex: 1; height: 6px; border-radius: 3px; background: var(--line-2); overflow: hidden; }
+  .rail-fill { height: 100%; width: 0; background: var(--steel); transition: width .3s ease; }
+  .rail-count {
+    font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12px;
+    font-variant-numeric: tabular-nums; color: var(--ink-3); white-space: nowrap;
+  }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: var(--shadow); padding: 22px 20px; flex: 1 0 auto;
+    display: flex; flex-direction: column;
+  }
+  .eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--steel); margin: 0 0 8px;
+  }
+  h1 { font-size: clamp(22px, 5vw, 27px); font-weight: 700; letter-spacing: -.02em; margin: 0 0 8px; text-wrap: balance; }
+  .lede { color: var(--ink-2); margin: 0 0 20px; font-size: 14.5px; max-width: 52ch; }
+
+  .fields { display: grid; gap: 14px; }
+  @media (min-width: 480px) { .fields { grid-template-columns: 1fr 1fr; } }
+  label { display: block; font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 5px; }
+  input, select {
+    width: 100%; padding: 10px 12px; font: inherit; font-size: 15px;
+    color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px;
+  }
+  input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--steel); outline-offset: 2px;
+  }
+  .hint { font-size: 13px; color: var(--ink-3); margin: 14px 0 0; }
+
+  /* the line to read */
+  .script {
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: clamp(20px, 4.4vw, 26px); line-height: 1.42; margin: 0 0 6px;
+    text-wrap: pretty;
+  }
+  .direction { font-size: 13px; color: var(--ink-3); margin: 0 0 22px; }
+  .direction b { color: var(--ink-2); font-weight: 600; }
+
+  /* transport */
+  .booth { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-block: auto; padding-block: 8px; }
+  .recbtn {
+    font: inherit; font-weight: 600; font-size: 16px; cursor: pointer; color: #fff;
+    background: var(--rec); border: 1px solid var(--rec-deep); border-radius: 999px;
+    padding: 14px 30px; display: inline-flex; align-items: center; gap: 11px;
+  }
+  .recbtn:hover { background: var(--rec-deep); }
+  .recbtn.live { background: var(--ink); border-color: var(--ink); }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: currentColor; flex: none; }
+  .recbtn.live .dot { border-radius: 3px; }
+  @media (prefers-reduced-motion: no-preference) {
+    .recbtn.live .dot { animation: pulse 1.1s ease-in-out infinite; }
+  }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .2 } }
+
+  .meter { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 340px; }
+  .meter-track { flex: 1; height: 7px; border-radius: 4px; background: var(--line-2); overflow: hidden; }
+  .meter-fill { height: 100%; width: 0; background: var(--good); }
+  .meter-fill.hot { background: var(--rec); }
+  .clock { font-family: "IBM Plex Mono", monospace; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--ink-2); min-width: 44px; text-align: right; }
+
+  audio { width: 100%; max-width: 380px; height: 36px; }
+
+  .alt { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .altbtn {
+    font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+    background: none; border: 1px solid var(--line); border-radius: 8px;
+    color: var(--ink-2); padding: 8px 16px;
+  }
+  .altbtn:hover { border-color: var(--ink-3); color: var(--ink); }
+  .alt small { font-size: 12px; color: var(--ink-3); text-align: center; max-width: 40ch; }
+  input[type=file] { display: none; }
+
+  .probe { font-size: 13px; border-radius: 9px; padding: 10px 12px; margin-top: 16px; border: 1px solid transparent; }
+  .probe.ok   { background: var(--good-bg); border-color: color-mix(in srgb, var(--good) 28%, transparent); color: var(--good); }
+  .probe.no   { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 28%, transparent); color: var(--warn); }
+  .probe b { display: block; margin-bottom: 2px; }
+
+  .verdict { width: 100%; border-radius: 10px; padding: 12px 14px; font-size: 14px; border: 1px solid transparent; }
+  .verdict b { display: block; font-size: 14px; margin-bottom: 3px; }
+  .verdict ul { margin: 6px 0 0; padding-left: 18px; }
+  .verdict li { margin-bottom: 3px; }
+  .v-good { background: var(--good-bg); border-color: color-mix(in srgb, var(--good) 30%, transparent); color: var(--good); }
+  .v-warn { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 30%, transparent); color: var(--warn); }
+  .v-bad  { background: var(--bad-bg);  border-color: color-mix(in srgb, var(--bad) 30%, transparent);  color: var(--bad); }
+  .stats {
+    font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--ink-3);
+    margin-top: 9px; display: flex; flex-wrap: wrap; gap: 3px 14px; font-variant-numeric: tabular-nums;
+  }
+
+  /* footer nav */
+  .nav { display: flex; align-items: center; gap: 10px; margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line-2); }
+  .nav .spacer { flex: 1; }
+  button.nav-btn {
+    font: inherit; font-weight: 600; font-size: 15px; cursor: pointer;
+    border-radius: 9px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink);
+    padding: 11px 20px;
+  }
+  button.nav-btn:hover:not(:disabled) { border-color: var(--ink-3); }
+  button.nav-btn:disabled { opacity: .4; cursor: not-allowed; }
+  button.nav-btn.go { background: var(--steel); border-color: var(--steel); color: var(--surface); }
+  .skip { font-size: 13px; color: var(--ink-3); background: none; border: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; font-family: inherit; padding: 6px; }
+  .skip:hover { color: var(--ink-2); }
+
+  .banked { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+  /* summary */
+  .checklist { list-style: none; margin: 0 0 18px; padding: 0; }
+  .checklist li { display: flex; gap: 10px; align-items: baseline; padding: 6px 0; font-size: 14.5px; color: var(--ink-2); border-bottom: 1px solid var(--line-2); }
+  .checklist li:last-child { border-bottom: 0; }
+  .tick { font-family: "IBM Plex Mono", monospace; flex: none; width: 15px; }
+  .tick.on { color: var(--good); } .tick.off { color: var(--ink-3); }
+  .fine { font-size: 13px; color: var(--ink-3); margin: 16px 0 0; }
+  code { font-family: "IBM Plex Mono", monospace; font-size: .92em; background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 4px; padding: 1px 5px; }
+</style>
+
+<div class="shell">
+  <div class="rail">
+    <div class="rail-track"><div class="rail-fill" id="railFill"></div></div>
+    <span class="rail-count" id="railCount">1 / 11</span>
+  </div>
+
+  <main class="card" id="stage" aria-live="polite"></main>
+
+  <nav class="nav">
+    <button class="nav-btn" id="back" type="button">Back</button>
+    <span class="banked" id="banked"></span>
+    <span class="spacer"></span>
+    <button class="skip" id="skip" type="button" hidden>Skip this one</button>
+    <button class="nav-btn go" id="next" type="button">Next</button>
+  </nav>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var MIN_PHRASE_S = 3, MIN_TOTAL_S = 30, GOOD_TOTAL_S = 90, MIN_TAKE_S = 3, RATE = 48000;
+
+  // Two homes, two sets of rules. Inside the Claude viewer the page sits in a
+  // frame that was not given a microphone, and cannot start its own downloads.
+  // Saved to disk and opened directly it is an ordinary page: the microphone
+  // prompt appears, and a plain download link works.
+  var HOSTED = !!(window.claude && window.claude.use);
+
+  var SCRIPTS = {
+    en: [
+      ["My name is {name}, and this is a recording of my own voice.", "plain, how you normally talk"],
+      ["I am reading a few sentences so the studio has enough material to work with.", "plain"],
+      ["The weather today is cold and bright, and the streets are almost empty.", "plain"],
+      ["Wait. Did you hear that? Something moved behind the door.", "quiet — almost a whisper"],
+      ["Get back — all of you, right now! I am not asking twice.", "shouted, like you mean it"],
+      ["One, two, three, four, five, six, seven, eight, nine, ten.", "steady, even pace"],
+      ["I usually play in the evening, after work, with the lights turned down low.", "relaxed, unhurried"],
+      ["That should be more than enough for a clean reference recording. Thank you.", "plain"]
+    ],
+    tr: [
+      ["Benim adım {name} ve bu kendi sesimin kaydı.", "düz, normalde konuştuğun gibi"],
+      ["Stüdyonun çalışacak yeterli malzemesi olsun diye birkaç cümle okuyorum.", "düz"],
+      ["Bugün hava soğuk ve parlak, sokaklar neredeyse bomboş.", "düz"],
+      ["Dur. Duydun mu? Kapının arkasında bir şey kımıldadı.", "alçak sesle — neredeyse fısıltı"],
+      ["Geri çekilin — hepiniz, hemen! İki kere söylemeyeceğim.", "bağırarak, gerçekten"],
+      ["Bir, iki, üç, dört, beş, altı, yedi, sekiz, dokuz, on.", "sabit, eşit tempoda"],
+      ["Genelde akşamları oynarım, işten sonra, ışıkları kısarak.", "rahat, aceleye getirmeden"],
+      ["Temiz bir referans kaydı için bu fazlasıyla yeter. Teşekkürler.", "düz"]
+    ]
+  };
+
+  var who = { name: "", mail: "", order: "ORD-001", lang: "en" };
+  var takes = {};
+  var step = 0;
+  var stream = null, actx = null, rec = null, recording = false, raf = 0, tick = 0, t0 = 0;
+  var ui = {};   // live nodes of the current step
+
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function todayISO() {
+    var d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function slug(s) {
+    return (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 32);
+  }
+  function phraseText() {
+    return "My name is " + (who.name || "…") + ". Today is " + todayISO() +
+      ". I give VoxSwap permission to create a synthetic copy of my voice for order " +
+      (who.order || "ORD-001") + ". I understand I can withdraw this permission at any time.";
+  }
+  function passages() { return SCRIPTS[who.lang]; }
+  function stepCount() { return passages().length + 3; }   // identity + phrase + passages + finish
+
+  // ---------------- analysis ----------------
+  function percentile(sorted, p) {
+    if (!sorted.length) return 0;
+    return sorted[Math.min(sorted.length - 1, Math.max(0, Math.round((sorted.length - 1) * p)))];
+  }
+  function analyse(pcm, rate) {
+    var n = pcm.length, peak = 0, clipRuns = 0, run = 0, i;
+    for (i = 0; i < n; i++) {
+      var a = Math.abs(pcm[i]);
+      if (a > peak) peak = a;
+      if (a >= 0.992) { run++; if (run === 3) clipRuns++; } else run = 0;
+    }
+    var win = Math.max(1, Math.round(rate * 0.02)), frames = [];
+    for (i = 0; i + win <= n; i += win) {
+      var s = 0;
+      for (var j = i; j < i + win; j++) s += pcm[j] * pcm[j];
+      frames.push(Math.sqrt(s / win));
+    }
+    var sorted = frames.slice().sort(function (a, b) { return a - b; });
+    var floor = percentile(sorted, 0.10), speech = percentile(sorted, 0.92);
+    var gate = Math.max(floor * 3, speech * 0.16);
+    var voiced = frames.filter(function (f) { return f > gate; }).length;
+    return {
+      secs: n / rate, peak: peak, clipRuns: clipRuns,
+      snr: 20 * Math.log10((speech + 1e-9) / (floor + 1e-9)),
+      speechRatio: frames.length ? voiced / frames.length : 0,
+      level: speech
+    };
+  }
+  // A bad take must say what to change, not that something is wrong.
+  function judge(st, isPhrase) {
+    var bad = [], soft = [], floorS = isPhrase ? MIN_PHRASE_S : MIN_TAKE_S;
+    if (st.secs < floorS) bad.push("Only " + st.secs.toFixed(1) + " seconds — read the whole line, it needs at least " + floorS + ".");
+    if (st.clipRuns > 0) bad.push("The microphone is clipping (" + st.clipRuns + " spot" + (st.clipRuns > 1 ? "s" : "") +
+      "). Move back a hand's width or turn the input gain down — clipped audio cannot be repaired later.");
+    if (st.level < 0.012) bad.push("Far too quiet. Get closer to the microphone, or raise its level in your system settings.");
+    else if (st.level < 0.03) soft.push("On the quiet side — a little closer would clone better.");
+    if (st.snr < 11) bad.push("Too much background noise (" + st.snr.toFixed(0) + " dB of separation). Close the window, stop any fan or music, then try again.");
+    else if (st.snr < 17) soft.push("Some room noise behind you (" + st.snr.toFixed(0) + " dB). Usable, but a quieter room clones noticeably better.");
+    if (st.speechRatio < 0.3) bad.push("Mostly silence. Start reading right after you press record, and stop as soon as you finish.");
+    if (st.peak > 0.995 && !st.clipRuns) soft.push("Right at the ceiling — one loud word away from distortion.");
+    if (bad.length) return { level: "bad", title: "Record this one again", lines: bad };
+    if (soft.length) return { level: "warn", title: "Good enough — could be better", lines: soft };
+    return { level: "good", title: "Clean take", lines: ["Clear, well-levelled, quiet room. Nothing to fix."] };
+  }
+
+  // ---------------- wav ----------------
+  function encodeWav(pcm, rate) {
+    var n = pcm.length, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf), i;
+    var str = function (o, s) { for (var k = 0; k < s.length; k++) v.setUint8(o + k, s.charCodeAt(k)); };
+    str(0, "RIFF"); v.setUint32(4, 36 + n * 2, true); str(8, "WAVE");
+    str(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    str(36, "data"); v.setUint32(40, n * 2, true);
+    for (i = 0; i < n; i++) {
+      var s = Math.max(-1, Math.min(1, pcm[i]));
+      v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+    }
+    return new Blob([buf], { type: "audio/wav" });
+  }
+  async function toMonoPcm(blob) {
+    var dec = new (window.AudioContext || window.webkitAudioContext)();
+    var decoded = await dec.decodeAudioData(await blob.arrayBuffer());
+    dec.close();
+    var off = new OfflineAudioContext(1, Math.ceil(decoded.duration * RATE), RATE);
+    var src = off.createBufferSource();
+    src.buffer = decoded; src.connect(off.destination); src.start();
+    return (await off.startRendering()).getChannelData(0);
+  }
+
+  // ---------------- recording ----------------
+  async function mic() {
+    if (stream) return stream;
+    // Browser DSP is tuned for phone calls and hurts a clone: AGC rides the
+    // level between takes, noise suppression eats the timbre.
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 }
+    });
+    return stream;
+  }
+  // Opens the microphone for real and closes it again. A capability query
+  // would answer "prompt" for a frame that can never actually get one.
+  async function checkMic() {
+    if (!window.isSecureContext) {
+      return { ok: false, why: "The connection is not secure, so browsers will not hand over a microphone. Every line can still be uploaded from your phone's voice recorder." };
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return { ok: false, why: "This browser view has no microphone API at all. Record each line in your phone's voice recorder and upload it — the page checks uploads the same way." };
+    }
+    try {
+      var s = await navigator.mediaDevices.getUserMedia({ audio: true });
+      s.getTracks().forEach(function (t) { t.stop(); });
+      return { ok: true, why: "You will be asked to allow it once, on the first recording." };
+    } catch (err) {
+      var name = (err && err.name) || "Error";
+      if (name === "NotFoundError" || name === "OverconstrainedError") {
+        return { ok: false, why: "No microphone on this device. You can still upload a recording made elsewhere." };
+      }
+      if (HOSTED) {
+        return { ok: false, blocked: true, why: "The microphone was refused without asking you: this page is running inside the Claude viewer's frame, and that frame was never given one, so no prompt can appear (" + name + "). Save this page to your computer and open the file directly — it records normally there. Or use the upload button on every screen." };
+      }
+      return { ok: false, why: "The browser refused the microphone (" + name + "). Check the site permissions in the address bar. You can also record each line in your phone's voice recorder and upload the file." };
+    }
+  }
+
+  function teardownMeter() {
+    if (raf) cancelAnimationFrame(raf); raf = 0;
+    if (tick) clearInterval(tick); tick = 0;
+    if (actx) { actx.close(); actx = null; }
+  }
+  function showVerdict(level, title, lines, st) {
+    ui.verdict.className = "verdict v-" + (level === "good" ? "good" : level === "warn" ? "warn" : "bad");
+    ui.verdict.innerHTML = "";
+    ui.verdict.appendChild(el("b", null, title));
+    if (lines.length === 1) ui.verdict.appendChild(el("div", null, lines[0]));
+    else {
+      var ul = el("ul");
+      lines.forEach(function (t) { ul.appendChild(el("li", null, t)); });
+      ui.verdict.appendChild(ul);
+    }
+    if (st) {
+      var s = el("div", "stats");
+      [["length", st.secs.toFixed(1) + "s"], ["peak", Math.round(st.peak * 100) + "%"],
+       ["noise gap", st.snr.toFixed(0) + " dB"], ["speech", Math.round(st.speechRatio * 100) + "%"]]
+        .forEach(function (p) { s.appendChild(el("span", null, p[0] + " " + p[1])); });
+      ui.verdict.appendChild(s);
+    }
+    ui.verdict.hidden = false;
+  }
+
+  // A page inside the viewer's frame only gets a microphone if the frame was
+  // given one; when it was not, getUserMedia rejects outright and the browser
+  // never shows a prompt at all. Say which of those happened, and leave the
+  // upload route working either way.
+  function micProblem(err) {
+    var name = (err && err.name) || "Error";
+    var detail = name + (err && err.message ? ": " + err.message : "");
+    if (!window.isSecureContext) {
+      return ["This page is not on a secure connection, so browsers refuse microphone access. Use the upload route below.", detail];
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return ["This browser view does not expose a microphone at all — nothing was blocked, there is simply no API here. Use the upload route below.", detail];
+    }
+    if (name === "NotAllowedError" || name === "SecurityError") {
+      return ["Microphone access was refused without asking you. That usually means the window this page is embedded in was not given a microphone, so the permission prompt never appears. Record in your phone's own voice recorder and upload the file instead — it works exactly the same.", detail];
+    }
+    if (name === "NotFoundError" || name === "OverconstrainedError") {
+      return ["No microphone was found on this device. Plug one in, or upload a recording made elsewhere.", detail];
+    }
+    if (name === "NotReadableError") {
+      return ["The microphone is busy — another app or tab is holding it. Close that, then press record again.", detail];
+    }
+    return ["The microphone could not be opened. Use the upload route below.", detail];
+  }
+
+  async function startRec(id) {
+    var s;
+    try { s = await mic(); }
+    catch (err) {
+      showVerdict("bad", "Recording is not available here", micProblem(err));
+      if (ui.alt) ui.alt.hidden = false;
+      return;
+    }
+    var chunks = [];
+    rec = new MediaRecorder(s);
+    rec.ondataavailable = function (e) { if (e.data.size) chunks.push(e.data); };
+    rec.onstop = function () { finishRec(id, new Blob(chunks, { type: rec.mimeType || "audio/webm" })); };
+    rec.start();
+    recording = true;
+
+    ui.btn.classList.add("live");
+    ui.lbl.textContent = "Stop";
+    ui.verdict.hidden = true;
+    if (ui.player) ui.player.hidden = true;
+
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    var an = actx.createAnalyser(); an.fftSize = 1024;
+    actx.createMediaStreamSource(s).connect(an);
+    var buf = new Float32Array(an.fftSize);
+    (function draw() {
+      an.getFloatTimeDomainData(buf);
+      var p = 0;
+      for (var i = 0; i < buf.length; i++) p = Math.max(p, Math.abs(buf[i]));
+      ui.meterFill.style.width = Math.min(100, Math.round(Math.sqrt(p) * 118)) + "%";
+      ui.meterFill.className = "meter-fill" + (p > 0.96 ? " hot" : "");
+      raf = requestAnimationFrame(draw);
+    })();
+
+    t0 = Date.now();
+    ui.clock.textContent = "0.0s";
+    tick = setInterval(function () { ui.clock.textContent = ((Date.now() - t0) / 1000).toFixed(1) + "s"; }, 100);
+    paint();
+  }
+
+  function stopRec() { if (rec && rec.state !== "inactive") rec.stop(); }
+
+  async function finishRec(id, blob) {
+    teardownMeter();
+    recording = false;
+    ui.btn.classList.remove("live");
+    ui.lbl.textContent = "Record again";
+    ui.meterFill.style.width = "0";
+    await ingest(id, blob, "Nothing was saved. Press record and try once more.");
+  }
+
+  // One path for both routes: whatever the audio came from, it is decoded,
+  // measured and judged identically, so an uploaded take is held to the same
+  // standard as one recorded here.
+  async function ingest(id, blob, retryHint) {
+    var pcm;
+    try { pcm = await toMonoPcm(blob); }
+    catch (err) {
+      showVerdict("bad", "That audio could not be read", [retryHint,
+        "Formats that work: m4a, mp3, wav, ogg, webm — whatever your phone's voice recorder makes."]);
+      paint();
+      return;
+    }
+    var st = analyse(pcm, RATE), v = judge(st, id === "phrase");
+    takes[id] = { wav: encodeWav(pcm, RATE), secs: st.secs, level: v.level, stats: st };
+    showVerdict(v.level, v.title, v.lines, st);
+    if (ui.player) { ui.player.src = URL.createObjectURL(takes[id].wav); ui.player.hidden = false; }
+    ui.clock.textContent = st.secs.toFixed(1) + "s";
+    paint();
+  }
+
+  // ---------------- booth block ----------------
+  function boothBlock(id) {
+    var wrap = el("div", "booth");
+    var btn = el("button", "recbtn");
+    btn.type = "button";
+    btn.appendChild(el("span", "dot"));
+    var lbl = el("span", null, takes[id] ? "Record again" : "Record");
+    btn.appendChild(lbl);
+    wrap.appendChild(btn);
+
+    var meter = el("div", "meter");
+    var track = el("div", "meter-track");
+    var fill = el("div", "meter-fill");
+    track.appendChild(fill); meter.appendChild(track);
+    var clock = el("span", "clock", takes[id] ? takes[id].secs.toFixed(1) + "s" : "0.0s");
+    meter.appendChild(clock);
+    wrap.appendChild(meter);
+
+    var player = el("audio");
+    player.controls = true;
+    player.hidden = !takes[id];
+    if (takes[id]) player.src = URL.createObjectURL(takes[id].wav);
+    wrap.appendChild(player);
+
+    var verdict = el("div", "verdict");
+    verdict.hidden = true;
+    wrap.appendChild(verdict);
+
+    // The upload route is always there, not just after a failure: on a phone
+    // the built-in voice recorder often has a better microphone path than a
+    // page inside a frame ever gets.
+    var alt = el("div", "alt");
+    var file = el("input");
+    file.type = "file";
+    file.accept = "audio/*";
+    file.id = "up_" + id;
+    var altBtn = el("button", "altbtn", "Upload a recording instead");
+    altBtn.type = "button";
+    alt.appendChild(altBtn);
+    alt.appendChild(el("small", null, "Record this line in your phone's voice recorder, then pick the file. It gets checked exactly the same way."));
+    alt.appendChild(file);
+    wrap.appendChild(alt);
+
+    ui = { btn: btn, lbl: lbl, meterFill: fill, clock: clock, player: player, verdict: verdict, alt: alt };
+    btn.addEventListener("click", function () { recording ? stopRec() : startRec(id); });
+    altBtn.addEventListener("click", function () { file.click(); });
+    file.addEventListener("change", async function () {
+      var f = file.files && file.files[0];
+      if (!f) return;
+      altBtn.textContent = "Reading…";
+      await ingest(id, f, "Try a different file, or a different format.");
+      altBtn.textContent = "Upload a different file";
+      file.value = "";
+    });
+
+    if (takes[id]) {
+      var t = takes[id], v = judge(t.stats, id === "phrase");
+      showVerdict(v.level, v.title, v.lines, t.stats);
+    }
+    return wrap;
+  }
+
+  // ---------------- steps ----------------
+  function banked() {
+    var s = 0;
+    Object.keys(takes).forEach(function (k) {
+      if (k !== "phrase" && takes[k].level !== "bad") s += takes[k].secs;
+    });
+    return s;
+  }
+
+  function render() {
+    if (recording) stopRec();
+    teardownMeter();
+    var stage = $("stage");
+    stage.innerHTML = "";
+    ui = {};
+    var last = stepCount() - 1;
+
+    if (step === 0) {
+      stage.appendChild(el("p", "eyebrow", "VoxSwap intake"));
+      stage.appendChild(el("h1", null, "Let's record your voice"));
+      stage.appendChild(el("p", "lede",
+        "Eleven short screens. You read one line on each, and the page tells you straight away whether the take is good enough — so a noisy room gets caught here, not after your game has been rebuilt."));
+      var f = el("div", "fields");
+      [["name", "Full name", "text", "Ayse Demir", "name"],
+       ["mail", "Email", "email", "you@example.com", "email"],
+       ["order", "Order ID", "text", "ORD-001", "off"],
+       ["lang", "Reading language", "select", "", "off"]].forEach(function (spec) {
+        var box = el("div");
+        var lab = el("label", null, spec[1]);
+        lab.setAttribute("for", "f_" + spec[0]);
+        box.appendChild(lab);
+        var input;
+        if (spec[2] === "select") {
+          input = el("select");
+          [["en", "English"], ["tr", "Türkçe"]].forEach(function (o) {
+            var opt = el("option", null, o[1]); opt.value = o[0];
+            if (who.lang === o[0]) opt.selected = true;
+            input.appendChild(opt);
+          });
+          input.addEventListener("change", function () {
+            who.lang = input.value;
+            Object.keys(takes).forEach(function (k) { if (k !== "phrase") delete takes[k]; });
+            paint();
+          });
+        } else {
+          input = el("input");
+          input.type = spec[2];
+          input.placeholder = spec[3];
+          input.autocomplete = spec[4];
+          input.value = who[spec[0]] || "";
+          input.addEventListener("input", function () {
+            who[spec[0]] = input.value;
+            // the spoken phrase names them and the order, so an edit invalidates it
+            if (spec[0] !== "mail") delete takes.phrase;
+            paint();
+          });
+        }
+        input.id = "f_" + spec[0];
+        box.appendChild(input);
+        f.appendChild(box);
+      });
+      stage.appendChild(f);
+      stage.appendChild(el("p", "hint",
+        "No order ID yet? Leave the default — whoever builds your order can rename it. Nothing is uploaded from this page unless you press the button on the last screen."));
+
+      // Find out now whether this view can record at all. Discovering it on
+      // passage six, after reading five out loud, is the worst possible time.
+      var probe = el("div", "probe");
+      probe.hidden = true;
+      stage.appendChild(probe);
+      checkMic().then(function (r) {
+        probe.className = "probe " + (r.ok ? "ok" : "no");
+        probe.innerHTML = "";
+        probe.appendChild(el("b", null, r.ok ? "Microphone ready" : "This window cannot record"));
+        probe.appendChild(el("div", null, r.why));
+        probe.hidden = false;
+      });
+
+    } else if (step === 1) {
+      stage.appendChild(el("p", "eyebrow", "Permission"));
+      stage.appendChild(el("h1", null, "Say this out loud"));
+      stage.appendChild(el("p", "lede",
+        "A typed form only proves someone typed. This sentence names you, today's date and this order, so it cannot be lifted from voice notes you once sent someone."));
+      stage.appendChild(el("p", "script", phraseText()));
+      stage.appendChild(el("p", "direction", "Read it exactly as written. Say the date however feels natural."));
+      stage.appendChild(boothBlock("phrase"));
+
+    } else if (step === last) {
+      var total = banked(), n = 0, bad = 0;
+      Object.keys(takes).forEach(function (k) {
+        if (k === "phrase") return;
+        if (takes[k].level === "bad") bad++; else n++;
+      });
+      stage.appendChild(el("p", "eyebrow", "Last step"));
+      stage.appendChild(el("h1", null, "Send it over"));
+      stage.appendChild(el("p", "lede",
+        "This packs everything into one file, laid out the way VoxSwap expects. It stays on your computer — you decide who gets it."));
+      var list = el("ul", "checklist");
+      [[!!who.name && !!who.mail, "Name and email filled in"],
+       [!!takes.phrase && takes.phrase.level !== "bad", takes.phrase ? "Spoken permission recorded (" + takes.phrase.secs.toFixed(1) + "s)" : "Spoken permission — not recorded yet"],
+       [total >= MIN_TOTAL_S, Math.round(total) + "s of samples across " + n + " take" + (n === 1 ? "" : "s") + (total >= GOOD_TOTAL_S ? " — plenty" : total >= MIN_TOTAL_S ? " — enough, more is better" : " — need at least " + MIN_TOTAL_S + "s")],
+       [bad === 0, bad === 0 ? "Nothing flagged for a redo" : bad + " take" + (bad === 1 ? "" : "s") + " flagged — they will be left out"]
+      ].forEach(function (it) {
+        var li = el("li");
+        li.appendChild(el("span", "tick " + (it[0] ? "on" : "off"), it[0] ? "✓" : "—"));
+        li.appendChild(el("span", null, it[1]));
+        list.appendChild(li);
+      });
+      stage.appendChild(list);
+      var note = el("p", "hint");
+      note.id = "buildNote";
+      stage.appendChild(note);
+      stage.appendChild(el("p", "fine",
+        "Changed your mind later? Ask for a purge and the cloned voice, every line made from it and the delivery are destroyed. Files already sent to you cannot be recalled — nobody can promise that."));
+
+    } else {
+      var idx = step - 2, p = passages()[idx], id = "s" + (idx + 1);
+      stage.appendChild(el("p", "eyebrow", "Passage " + (idx + 1) + " of " + passages().length));
+      stage.appendChild(el("p", "script", p[0].replace("{name}", who.name || "…")));
+      var d = el("p", "direction");
+      d.appendChild(document.createTextNode(who.lang === "tr" ? "Ton: " : "Delivery: "));
+      d.appendChild(el("b", null, p[1]));
+      stage.appendChild(d);
+      stage.appendChild(boothBlock(id));
+    }
+    paint();
+  }
+
+  function paint() {
+    var last = stepCount() - 1, total = banked();
+    $("railFill").style.width = ((step / last) * 100) + "%";
+    $("railCount").textContent = (step + 1) + " / " + stepCount();
+    $("banked").textContent = step > 0 && step < last
+      ? Math.round(total) + "s of " + GOOD_TOTAL_S + "s banked" : "";
+
+    $("back").disabled = step === 0 || recording;
+
+    var nextBtn = $("next"), skipBtn = $("skip");
+    skipBtn.hidden = true;
+
+    if (step === 0) {
+      nextBtn.textContent = "Start";
+      nextBtn.disabled = !(who.name.trim() && who.mail.trim());
+    } else if (step === 1) {
+      nextBtn.textContent = "Next";
+      nextBtn.disabled = recording || !takes.phrase || takes.phrase.level === "bad";
+    } else if (step === last) {
+      nextBtn.textContent = "Build my recording pack";
+      nextBtn.disabled = !(who.name.trim() && who.mail.trim() && takes.phrase &&
+                           takes.phrase.level !== "bad" && total >= MIN_TOTAL_S);
+      var note = $("buildNote");
+      if (note) note.textContent = nextBtn.disabled
+        ? "Go back and finish the unticked lines above, then this turns on."
+        : "Saves a .zip to your computer. Send that file to whoever is building your order.";
+    } else {
+      var id = "s" + (step - 1);
+      nextBtn.textContent = "Next";
+      nextBtn.disabled = recording || !takes[id] || takes[id].level === "bad";
+      skipBtn.hidden = recording || (!!takes[id] && takes[id].level !== "bad");
+    }
+  }
+
+  // ---------------- the pack ----------------
+  async function build() {
+    var btn = $("next");
+    btn.disabled = true;
+    btn.textContent = "Packing…";
+    var voiceId = slug(who.name) || "customer", order = who.order.trim() || "ORD-001";
+    var zip = new JSZip();
+
+    zip.file("consent/C-1-phrase.wav", takes.phrase.wav);
+    zip.file("consent/C-1-signed.md",
+      "# Consent — " + order + "\n\nI, " + who.name + ", give VoxSwap permission to create a synthetic copy of my\n" +
+      "voice and to use it for the roles agreed in order " + order + ".\n\n" +
+      "I understand that I can withdraw this permission at any time, that doing so\n" +
+      "destroys the cloned voice and everything made from it, and that files already\n" +
+      "delivered to me cannot be recalled.\n\n" +
+      "Scope: voice_clone, personal_use\nName:  " + who.name + "\nEmail: " + who.mail +
+      "\nDate:  " + todayISO() + "\nSigned in the VoxSwap Recording Booth, and spoken aloud in C-1-phrase.wav.\n");
+
+    var used = [], i = 1;
+    for (var k = 1; k <= 12; k++) {
+      var t = takes["s" + k];
+      if (!t || t.level === "bad") continue;
+      var fn = "voices/" + voiceId + "/sample_" + String(i).padStart(2, "0") + ".wav";
+      zip.file(fn, t.wav);
+      used.push({ file: fn, seconds: +t.secs.toFixed(2), quality: t.level,
+                  peak: +t.stats.peak.toFixed(3), noise_gap_db: +t.stats.snr.toFixed(1) });
+      i++;
+    }
+    var total = used.reduce(function (a, b) { return a + b.seconds; }, 0);
+
+    zip.file("intake.json", JSON.stringify({
+      order_id: order,
+      recorded_at: new Date().toISOString().replace(/\.\d+Z$/, "Z"),
+      reading_language: who.lang,
+      voice: { voice_id: voiceId, person_label: who.name, samples_dir: "voices/" + voiceId, consent_ref: "C-1" },
+      consent: {
+        consent_ref: "C-1", person_name: who.name, person_email: who.mail, is_self: true,
+        signed_at: todayISO(), signature_file: "consent/C-1-signed.md",
+        phrase_audio: "consent/C-1-phrase.wav", scope: ["voice_clone", "personal_use"],
+        expires_at: "", revoked: false,
+        phrase_spoken: phraseText(), phrase_seconds: +takes.phrase.secs.toFixed(2)
+      },
+      samples: used,
+      total_sample_seconds: +total.toFixed(2),
+      audio_format: "PCM WAV, mono, " + RATE + " Hz, 16-bit",
+      captured_with: "VoxSwap Recording Booth"
+    }, null, 2));
+
+    zip.file("README.txt",
+      "VoxSwap recording pack — order " + order + "\n" + "=".repeat(46) + "\n\n" +
+      "Recorded by " + who.name + " on " + todayISO() + ".\n" +
+      total.toFixed(0) + " seconds of samples across " + used.length + " takes, plus the spoken permission.\n\n" +
+      "FOR THE OPERATOR\n" +
+      "  1. Unzip into orders/" + order + "/ so you end up with:\n" +
+      "       orders/" + order + "/consent/C-1-phrase.wav\n" +
+      "       orders/" + order + "/consent/C-1-signed.md\n" +
+      "       orders/" + order + "/voices/" + voiceId + "/sample_*.wav\n" +
+      "  2. Copy the voice/consent blocks out of intake.json into order.json.\n" +
+      "  3. Add the game's audio under assets/ and run:\n" +
+      "       python3 -m voxswap validate " + order + "\n\n" +
+      "  Play C-1-phrase.wav before building anything. It should say this person's\n" +
+      "  name, today's date and this order ID — that check is what makes a stolen\n" +
+      "  voice note useless, and only a human can actually do it.\n\n" +
+      "  The declaration here is what the customer typed and spoke. If your\n" +
+      "  jurisdiction wants a countersigned document, keep that as well.\n\n" +
+      "EVERY TAKE, AS MEASURED\n" +
+      used.map(function (u) {
+        return "  " + u.file.split("/").pop() + "  " + u.seconds.toFixed(1) + "s  peak " +
+          Math.round(u.peak * 100) + "%  noise gap " + u.noise_gap_db + " dB  (" + u.quality + ")";
+      }).join("\n") + "\n");
+
+    var blob = await zip.generateAsync({ type: "blob", compression: "STORE" });
+    var filename = "voxswap-" + slug(order) + "-" + voiceId + ".zip";
+    var note = $("buildNote");
+    var done = "Saved as " + filename + ". Send that file to whoever is building your order.";
+
+    if (HOSTED) {
+      // Inside the Claude viewer a page cannot start a download itself; the
+      // platform asks the viewer and saves on the page's behalf.
+      try {
+        var dl = await window.claude.use("downloads");
+        if (!dl) throw { code: "unavailable" };
+        await dl.save({ filename: filename, data: blob });
+        if (note) note.textContent = done;
+      } catch (err) {
+        var code = (err && err.code) || "unavailable";
+        if (note) note.textContent =
+          code === "declined" ? "Save cancelled — press the button again when you are ready."
+          : code === "rate_limited" ? "A save prompt is already open. Finish that one, then try again."
+          : "Saving is not available in this view. Open the copy of this page saved on your own computer and build the pack there.";
+      }
+    } else {
+      // Standalone copy: an ordinary browser download, which is also the only
+      // route that exists when the page is opened straight from disk.
+      var a = document.createElement("a");
+      var href = URL.createObjectURL(blob);
+      a.href = href;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(href); }, 20000);
+      if (note) note.textContent = done;
+    }
+    paint();
+  }
+
+  // ---------------- nav ----------------
+  $("next").addEventListener("click", function () {
+    if (step === stepCount() - 1) { build(); return; }
+    step++;
+    render();
+    window.scrollTo(0, 0);
+  });
+  $("back").addEventListener("click", function () {
+    if (step > 0) { step--; render(); window.scrollTo(0, 0); }
+  });
+  $("skip").addEventListener("click", function () {
+    step++;
+    render();
+    window.scrollTo(0, 0);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !recording && document.activeElement.tagName !== "BUTTON" && !$("next").disabled) {
+      $("next").click();
+    }
+  });
+
+  render();
+})();
+</script>
