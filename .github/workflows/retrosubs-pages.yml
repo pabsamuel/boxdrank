@@ -1,12 +1,20 @@
 name: RetroSubs Web (Pages)
 
-# Publishes the browser version of the retro dialogue box (retrosubs/web) to GitHub Pages,
-# so it can be opened on any phone — including iOS, where no overlay API exists.
+# A repository gets one Pages site, so this workflow publishes every browser
+# app in the repo rather than just one:
+#
+#   /                  retrosubs/web   the retro dialogue box
+#   /voxswap/          voxswap/web     the VoxSwap recording booth
+#
+# RetroSubs keeps the root and its URLs are unchanged. The booth needs a
+# top-level HTTPS page for a different reason: browsers refuse a microphone to
+# a page inside another site's frame, and never even show the prompt.
 on:
   push:
     branches: [main]
     paths:
       - 'retrosubs/web/**'
+      - 'voxswap/web/**'
       - '.github/workflows/retrosubs-pages.yml'
   workflow_dispatch:
 
@@ -27,9 +35,22 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Assemble the site
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp -r retrosubs/web/. _site/
+          if [ -d voxswap/web ]; then
+            mkdir -p _site/voxswap
+            # Only the page itself — the folder's README is for contributors.
+            cp voxswap/web/*.html _site/voxswap/
+          fi
+          find _site -type f | sort
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: retrosubs/web
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
