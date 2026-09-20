@@ -20,6 +20,13 @@ import {
 import { InMemoryStorage, TokenCipher, type Storage } from './storage.js';
 import { SqliteStorage } from './sqlite-storage.js';
 import { ConsoleNotificationSink, DriftScheduler } from '../drift/scheduler.js';
+import { mondayCors, rateLimit, requireHttps, securityHeaders } from './security.js';
+import {
+  SubscriptionError,
+  parseSubscriptionEvent,
+  planFromEvent,
+  verifySubscriptionToken,
+} from '../billing/subscription.js';
 
 /**
  * The backend.
@@ -42,11 +49,36 @@ export interface ServerDeps {
   signingSecret: string;
   /** Present only when scheduled drift monitoring is switched on. */
   scheduler?: DriftScheduler;
+  /**
+   * monday plan ids that grant Pro. Empty means "any subscription grants Pro",
+   * which is correct until the developer console has pricing configured.
+   */
+  paidPlanIds?: string[];
+  /** Off in tests and local dev, on everywhere a browser will reach this. */
+  enforceHttps?: boolean;
 }
 
 export function createServer(deps: ServerDeps) {
   const app = express();
+
+  // Behind a load balancer, req.protocol and req.ip are only meaningful with
+  // this set. Without it the HTTPS redirect below is a no-op and the rate
+  // limiter buckets every caller together as the proxy's address.
+  app.set('trust proxy', 1);
+  app.disable('x-powered-by');
+
+  if (deps.enforceHttps) app.use(requireHttps());
+  app.use(securityHeaders({ hsts: deps.enforceHttps !== false }));
+  app.use(mondayCors());
+
+  // 1mb is far more than any request here needs; a board id and a flag is a
+  // few hundred bytes. The limit exists so an unbounded body cannot be used
+  // to exhaust memory before authentication has even run.
   app.use(express.json({ limit: '1mb' }));
+
+  // Applied to the API surface only. /health must stay answerable by an
+  // uptime checker that polls it more often than a person clicks anything.
+  app.use('/api', rateLimit({ max: 120, windowMs: 60_000 }));
 
   /** Resolves the caller's account from monday's signed session token. */
   const authenticate = async (req: Request) => {
@@ -281,6 +313,52 @@ export function createServer(deps: ServerDeps) {
     }
   });
 
+  // --- Billing -------------------------------------------------------------
+
+  /**
+   * monday's marketplace billing webhook.
+   *
+   * monday takes the payment; this endpoint learns the outcome. It is the only
+   * unauthenticated route that writes state, so the signature check is the
+   * whole security boundary — an unverifiable payload is rejected before
+   * anything is read out of it.
+   */
+  app.post('/webhooks/subscription', async (req, res) => {
+    const body = req.body as { challenge?: string; token?: string };
+
+    // monday verifies a new webhook URL by posting a challenge to echo back.
+    if (body?.challenge) {
+      res.json({ challenge: body.challenge });
+      return;
+    }
+
+    try {
+      const token = body?.token ?? req.header('Authorization')?.replace(/^Bearer\s+/i, '');
+      if (!token) throw new SubscriptionError('Subscription webhook carried no token.', 'unverified');
+
+      const payload = verifySubscriptionToken(token, deps.signingSecret);
+      const event = parseSubscriptionEvent(payload);
+      const plan = planFromEvent(event, deps.paidPlanIds ?? []);
+      await deps.storage.savePlan(plan);
+
+      console.log(
+        `[template-guard] subscription ${event.type} account=${event.accountId} -> ${plan.planId}`,
+      );
+      res.json({ ok: true });
+    } catch (err) {
+      if (err instanceof SubscriptionError) {
+        // Logged in full and answered with a status monday will retry on for
+        // anything that is not an authentication failure. A silently-accepted
+        // billing event is an account on the wrong plan.
+        console.error(`[template-guard] subscription webhook rejected (${err.reason}): ${err.message}`);
+        res.status(err.reason === 'unverified' ? 401 : 400).json({ error: err.message, kind: err.reason });
+        return;
+      }
+      console.error('[template-guard] subscription webhook failed', err);
+      res.status(500).json({ error: 'Could not record this subscription change.' });
+    }
+  });
+
   // --- Errors --------------------------------------------------------------
 
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
@@ -331,6 +409,11 @@ if (isMain) {
     storage,
     cipher,
     scheduler,
+    enforceHttps: process.env.ENFORCE_HTTPS === 'true',
+    paidPlanIds: (process.env.MONDAY_PAID_PLAN_IDS ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
     signingSecret: requireEnv('MONDAY_SIGNING_SECRET'),
     oauth: {
       clientId: requireEnv('MONDAY_CLIENT_ID'),

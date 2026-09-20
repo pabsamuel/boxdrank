@@ -3,6 +3,7 @@ import { Button, Dropdown, Flex, Loader, Text, Toggle } from 'monday-ui-react-co
 import { api, ApiError, currentBoardId, type BoardSummary } from './api.js';
 import { FindingList } from './components/FindingList.js';
 import { AutomationCoverageNotice, ErrorNotice, IncompleteDataNotice } from './components/Notices.js';
+import { PlanBanner } from './components/PlanBanner.js';
 import { RepairPanel } from './components/RepairPanel.js';
 import { countBySeverity, type DiffResult } from '../diff/types.js';
 import type { RepairPlan } from '../repair/plan.js';
@@ -124,6 +125,8 @@ export function BoardView() {
           what it dropped on {boardName}.
         </Text>
       </header>
+
+      <PlanBanner plan={plan} templateCount={templates.length} />
 
       {error && <ErrorNotice message={error.message} upsell={error.upsell} />}
 

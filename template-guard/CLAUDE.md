@@ -78,5 +78,8 @@ App surfaces: board view + item-less dashboard widget. Nothing else in v1.
 
 ## Out of scope for v1 — do not build
 
-Marketing site. Billing UI. Item-level data sync. Workspace-level workflow
-repair. Anything that writes to a board the user did not explicitly select.
+Marketing site. A payment form of any kind — monday collects the money and
+`/webhooks/subscription` learns the outcome; building our own checkout would
+trade away the largest security-review reduction available to a marketplace app
+(ADR-016). Item-level data sync. Workspace-level workflow repair. Anything that
+writes to a board the user did not explicitly select.

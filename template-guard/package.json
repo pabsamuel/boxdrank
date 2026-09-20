@@ -10,7 +10,8 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify:live": "tsx scripts/verify-live.ts"
   },
   "dependencies": {
     "express": "^4.21.2",

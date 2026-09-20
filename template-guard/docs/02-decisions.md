@@ -198,3 +198,81 @@ already-specified deliverables rather than new features, and both are *droppable
 whole* if the read-only shape wins — deleting `drift/`, `server/` and
 `repair/execute.ts` leaves the diff engine and UI untouched. Nothing here makes
 the narrow shape harder to choose. No new feature was added.
+
+## ADR-015 — Hand-rolled security middleware, and the one header that must not be strict
+**Date:** 2026-09-20 · **Status:** accepted
+monday's review runs a Burp scan and expects findings remediated. Most findings
+on a small Express app are not clever: missing response headers, permissive
+CORS, an endpoint that accepts unlimited requests. Writing them now is cheaper
+than remediating them under a review deadline, and none of it is speculative —
+these are the standard findings.
+
+Hand-rolled rather than a helmet-style dependency. Four short functions are
+auditable in one sitting by the person who has to defend them at review; a
+dependency tree is not. The trade is real — a library tracks new header
+recommendations and this does not — so the header set is dated and cheap to
+revisit.
+
+**The exception worth knowing before a scanner asks:** the app renders inside a
+monday iframe, so `X-Frame-Options: DENY` would break the product. CSP
+`frame-ancestors` limited to monday origins is the correct control, and
+`X-Frame-Options` is explicitly removed rather than left to a default, because
+it cannot express "only these origins." Similarly, `'unsafe-inline'` is granted
+to `style-src` because Vibe injects styles at runtime, and **never** to
+`script-src`, which is where it would matter.
+
+The rate limiter is honest about being per-process and fixed-window: it exists
+to stop one caller spending the monday API quota every customer shares, and to
+remove a scan finding. It is not a DDoS defence, that belongs at the edge, and
+`docs/06-deployment-and-submission.md` says so rather than implying coverage
+that does not exist.
+
+## ADR-016 — Billing: monday takes the money, we take a signed webhook
+**Date:** 2026-09-20 · **Status:** accepted
+There is no payment form in this app and there will not be one. monday collects
+the money; `/webhooks/subscription` learns the outcome. That is the largest
+single reduction in security-review surface available to a marketplace app — no
+card data, no billing address, no PCI conversation — and it is free.
+
+It is also the only unauthenticated route that writes state, so the signature
+check *is* the security boundary. Two things that are easy to omit and
+expensive to omit: the JWT algorithm is pinned to HS256 rather than read from
+the token (accepting the token's own choice is the `alg: none` family of
+attacks), and the comparison is `timingSafeEqual` rather than `===`.
+
+Two judgements in `planFromEvent`:
+
+- **Ambiguity resolves downward.** An unrecognised plan id, once plan ids are
+  configured, means Free. Serving Pro to an account that stopped paying is a
+  bug nobody ever finds; serving Free to one that is paying is reported within
+  the hour and ends in an apology, not an accounting problem.
+- **An unrecognised *event* is rejected, not ignored.** Treating an unknown
+  event as a no-op means the one that cancels a subscription silently does
+  nothing.
+
+Trials get the full Pro feature set. A trial of an auditing tool that cannot
+run the scheduled audit is not a trial of anything.
+
+`src/ui/components/PlanBanner.tsx` is the whole billing UI: which plan you are
+on, and a link to monday's own upgrade page. It does not nag. The free tier
+shows every finding at every severity, mis-wiring included, and an upsell that
+interrupts someone reading a real finding teaches them to close the panel.
+
+## ADR-017 — A verification script instead of a verification morning
+**Date:** 2026-09-20 · **Status:** accepted
+Five claims are marked `✱` — believed from indexed documentation, never
+observed, because `developer.monday.com` was unreachable while this was built.
+The README called checking them "a morning's work with a dev account." A
+morning of work that has to be repeated after every API version bump is a
+morning nobody spends twice.
+
+`scripts/verify-live.ts` makes it one command. Read-only: no mutations, no item
+reads. It prints the **observed shape** next to each claim, so a failure says
+what to change rather than only that something is wrong, and it exits non-zero
+so it can gate a release.
+
+It reports SKIPPED separately from VERIFIED and says in the output that a
+skipped check is not a pass. A board with no connect column cannot verify the
+connect-column claim, and a summary that let those blur would be this codebase
+committing its own signature failure — reporting "we did not look" as "we
+looked, it is fine."

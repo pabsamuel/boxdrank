@@ -52,13 +52,15 @@ are encrypted at rest with AES-256-GCM.
 | Piece | State |
 |---|---|
 | API findings report | Done — `docs/00-api-findings.md` |
-| Snapshot + diff engine | Done, 109 tests |
+| Snapshot + diff engine | Done, 148 tests |
 | Repair layer | Done |
 | Board view + dashboard widget | Done, builds clean |
 | OAuth + server | Done, **never run against a live monday account** |
 | Durable storage | Done — SQLite behind the `Storage` interface (ADR-013) |
 | Drift monitoring | Done — engine + scheduler; notification delivery is console-only |
-| Billing | Gating logic done; no billing UI (out of scope for v1) |
+| Billing | Done — signed subscription webhook syncs plan state; plan surface links to monday's upgrade page. No payment form, by design. |
+| Security hardening | Done — CSP, CORS, rate limiting, HTTPS enforcement (ADR-015) |
+| Deployment | Done — `Dockerfile`, `docs/06-deployment-and-submission.md` |
 
 **Nothing here has touched a real monday account.** See *Before you ship* below,
 and `STATUS.md` for how much of the project is done and what is left.
@@ -69,7 +71,7 @@ and `STATUS.md` for how much of the project is done and what is left.
 cd template-guard
 npm install
 cp .env.example .env     # then fill it in
-npm test                 # 109 tests, no network, no credentials needed
+npm test                 # 148 tests, no network, no credentials needed
 npm run typecheck
 npm run dev              # client on :8301
 npm run dev:server       # API on :8302
@@ -228,20 +230,28 @@ unverified, and these must be checked first:
 5. **The OAuth endpoints and the session-token JWT claim shape.**
    — `src/server/oauth.ts`
 
-Every one of these is isolated behind a named function with a `✱` comment, so
-verification is a morning's work with a dev account, not an archaeology project.
+Every one of these is isolated behind a named function with a `✱` comment, and
+there is a script that checks all of them:
 
-Also still to do before submission: build the billing UI against monday's
-marketplace billing API (out of scope for v1), and replace
-`ConsoleNotificationSink` with real delivery — email or a monday notification —
-behind the `NotificationSink` interface.
+```bash
+MONDAY_API_TOKEN=... npm run verify:live -- \
+  --board <a board you own> --connect-board <linked board> --automations
+```
 
-Storage and the drift scheduler are done: `SqliteStorage` implements the same
+Read-only — no mutations, no item reads. It prints VERIFIED / FAILED / SKIPPED
+with the **observed shape** next to each claim, so a failure says what to
+change, and exits non-zero so it can gate a release. A SKIPPED check is not a
+pass, and the output says so. (ADR-017.)
+
+Storage, billing, delivery, security hardening and deployment are done: `SqliteStorage` implements the same
 `Storage` interface `InMemoryStorage` does, and `test/storage.test.ts` runs one
 suite against both so that stays true. `DriftScheduler` sweeps paying accounts
 on a timer and reports its own state on `/health` — including ticks it had to
 skip, because a monitor that has quietly stopped is this product's own
 signature failure.
+
+Deployment, the developer-console setup and the full submission checklist are
+in `docs/06-deployment-and-submission.md`.
 
 ## Submission notes
 
@@ -270,12 +280,13 @@ src/
   snapshot/     BoardSnapshot type and capture
   diff/         match.ts (the hard part) · connect.ts (mis-wiring) · diff.ts
   repair/       plan.ts (auto vs manual) · execute.ts · deeplinks.ts
-  drift/        monitor.ts (one account) · scheduler.ts (the timer)
-  billing/      plan gating
-  server/       OAuth, storage (in-memory + SQLite), HTTP API
+  drift/        monitor.ts (one account) · scheduler.ts (the timer) · sinks.ts
+  billing/      plan gating · subscription webhook
+  server/       OAuth, storage (in-memory + SQLite), security, HTTP API
   ui/           board view, dashboard widget, Vibe components
-test/           109 tests over fixture board configs
-docs/           findings report, roadmap, decision log, prompts
+test/           148 tests over fixture board configs
+scripts/        verify-live.ts — checks the ✱ claims against a real account
+docs/           findings report, roadmap, decision log, deployment, prompts
 ```
 
 `CLAUDE.md` holds the working agreement — read it before changing anything.

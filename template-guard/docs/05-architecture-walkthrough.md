@@ -218,6 +218,52 @@ that emails about a column width trains people to ignore it.
 
 ---
 
+## 7b. Security and billing — the review questions
+
+**Q: What did you do about the Burp scan before it ran?**
+The standard findings, pre-empted and tested: CSP, `nosniff`,
+`Referrer-Policy`, `Permissions-Policy`, HSTS, no `X-Powered-By`, CORS
+restricted to monday origins (a test asserts `evil-monday.com` is rejected), a
+120/min rate limit with `Retry-After`, a 1mb body cap applied before
+authentication runs, and a container that runs as `node` rather than root.
+`src/server/security.ts`, ADR-015.
+
+**Q: Your CSP allows framing. Is that not a finding?**
+It is the correct setting here and worth saying before it is asked. The app
+renders inside a monday iframe, so `X-Frame-Options: DENY` would break the
+product. `frame-ancestors` limited to monday origins is the control that can
+express "only these origins"; `X-Frame-Options` cannot, so it is explicitly
+removed rather than left to a default. Likewise `'unsafe-inline'` is granted to
+`style-src`, because Vibe injects styles at runtime, and never to `script-src`.
+
+**Q: Why hand-rolled instead of a security middleware library?**
+Because I have to defend it. Four short functions are auditable in one sitting;
+a dependency tree is not. The cost is that a library would track new header
+recommendations and this does not, so the header set is dated and cheap to
+revisit.
+
+**Q: How does billing work, and where is the payment form?**
+There is none, and there will not be one. monday collects the money;
+`/webhooks/subscription` learns the outcome. No card data, no billing address,
+no PCI conversation — the largest single reduction in review surface available
+to a marketplace app, and it is free.
+
+**Q: That endpoint is unauthenticated and writes plan state.**
+The signature *is* the authentication, and it is the whole boundary. The JWT
+algorithm is pinned to HS256 rather than read from the token — accepting the
+token's own choice is the `alg: none` family of attacks — and the comparison is
+`timingSafeEqual`, because `===` on a signature leaks it a byte at a time. An
+unverifiable payload is rejected with 401 before anything is parsed out of it.
+
+**Q: What if monday sends an event you do not recognise?**
+It is rejected, loudly, not treated as a no-op. A no-op on an unknown event
+means the one that cancels a subscription silently does nothing. And where a
+plan id is ambiguous, it resolves **downward**: serving Pro to an account that
+stopped paying is a bug nobody ever finds, while serving Free to one that is
+paying is reported within the hour. (ADR-016.)
+
+---
+
 ## 8. `catch {}`
 
 There is none in this codebase, and that is the answer to a whole family of
@@ -255,7 +301,7 @@ swallow is local, the report never is.
 
 ## 9. Tests — what they are actually for
 
-109 tests, no network, no credentials. The diff engine is pure, which is
+148 tests, no network, no credentials. The diff engine is pure, which is
 deliberate: the matching heuristics are the riskiest part of the product, so
 they have to be testable in isolation from monday entirely.
 
@@ -282,7 +328,9 @@ them.
   `✱` in the source and listed in the README's *Before you ship*. The
   `configuration` shape from `board_automations` and the settings key holding
   linked board IDs are the two that matter; each is isolated behind one named
-  function, so verification is a morning with a dev account.
+  function, and `npm run verify:live` checks all five in one read-only pass
+  that prints the observed shape next to each claim (ADR-017). Ten minutes,
+  not a morning — but ten minutes that have not been spent yet.
 - **"Did you write this?"** It was written with Claude, in a session where I
   set the constraints: pin the API version, isolate the preview schema, never
   store item data, fail loudly, price per account. Those constraints are in
