@@ -80,6 +80,30 @@ What you cannot do is recall a file already delivered. Say that plainly in the
 consent form — it is in the template — rather than promising something you
 cannot deliver.
 
+### Who has to be on tape
+
+The spoken phrase is the control that makes *"I downloaded my ex's voice notes"*
+hard: it names the person, today's date and this order, so it cannot be
+satisfied with audio recorded for anything else.
+
+That threat is about **someone else's voice**, and that is where it is required:
+
+| Whose voice | What the gate needs |
+| --- | --- |
+| The customer's own (`is_self: true`) | A signed declaration. No recording. |
+| Anyone else (`is_self: false`) | A signed declaration **and** the spoken phrase, plus their own contact address |
+
+A customer cloning their own voice holds the account, paid for the order, and
+signed the declaration; the samples are theirs to give. Demanding a spoken
+phrase there costs a retake on every order and buys almost nothing. For a
+partner's or a friend's voice it buys the whole thing, so there it is not
+optional.
+
+A phrase supplied for a self-consent anyway is still length-checked — opting in
+must never mean opting out of the check. A `phrase_audio` path that points at a
+file which is not there is reported rather than ignored, because the likeliest
+explanation is a recording that went missing.
+
 ### The audit trail
 
 Every order folder grows a `consent-audit.log`: one tab-separated line per

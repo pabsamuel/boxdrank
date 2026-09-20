@@ -116,6 +116,21 @@
 
   audio { width: 100%; max-width: 380px; height: 36px; }
 
+  .agree { display: flex; flex-direction: column; gap: 4px; margin-bottom: 18px; }
+  .tickrow {
+    display: flex; gap: 12px; align-items: flex-start; cursor: pointer;
+    padding: 12px 13px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--surface-2); font-size: 14.5px; line-height: 1.45;
+    color: var(--ink-2); text-transform: none; letter-spacing: 0; font-weight: 400;
+    margin-bottom: 0;
+  }
+  .tickrow:has(input:checked) { border-color: color-mix(in srgb, var(--good) 45%, transparent); background: var(--good-bg); color: var(--ink); }
+  .tickrow input { width: 21px; height: 21px; flex: none; margin: 1px 0 0; accent-color: var(--good); cursor: pointer; }
+  .signbox { border-top: 1px solid var(--line-2); padding-top: 16px; }
+  .signnote { font-size: 13px; color: var(--ink-3); margin: 8px 0 0; }
+  .signnote.ok  { color: var(--good); font-weight: 600; }
+  .signnote.bad { color: var(--bad); }
+
   .alt { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .altbtn { font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; background: none; border: 1px solid var(--line); border-radius: 8px; color: var(--ink-2); padding: 8px 16px; }
   .altbtn:hover { border-color: var(--ink-3); color: var(--ink); }
@@ -184,9 +199,20 @@
       name: "Ad soyad", mail: "E-posta", order: "Sipariş no", langLabel: "Okuma dili",
       namePh: "Samet Ateşen",
       idHint: "Sipariş numaran yoksa varsayılanı bırak, sonradan değişir. Son ekrandaki düğmeye basana kadar bu sayfadan hiçbir şey gönderilmiyor.",
-      permission: "İzin", sayThis: "Bunu sesli oku",
-      permLede: "Yazılı form sadece birinin yazdığını kanıtlar. Bu cümle adını, bugünün tarihini ve bu siparişi içeriyor — yani başkasına gönderdiğin eski bir ses kaydından kopyalanamaz.",
-      readExactly: "Yazıldığı gibi oku. Tarihi rahat geldiği şekilde söyle.",
+      permission: "İzin", sayThis: "İzin formu",
+      permLede: "Ses klonlamak izin ister. Aşağıdakilerin hepsini okuyup onayla — bu form pakete girecek ve siparişi hazırlayan kişide kalacak.",
+      readExactly: "",
+      ck1: "Kaydedeceğim ses benim kendi sesim.",
+      ck2: "Sesimin sentetik bir kopyasının oluşturulmasına ve bu siparişte anlaşılan rollerde kullanılmasına izin veriyorum.",
+      ck3: "Bu izni istediğim zaman geri çekebileceğimi, geri çektiğimde klonlanan sesin ve ondan üretilen her şeyin yok edileceğini biliyorum.",
+      ck4: "Bana zaten teslim edilmiş dosyaların geri alınamayacağını biliyorum.",
+      signLabel: "Onaylıyorum — adını yaz",
+      signPh: "Ad soyadını yaz",
+      signNote: "Yazdığın ad, yukarıdaki alandaki adla aynı olmalı.",
+      signMismatch: "Yazdığın ad ilk ekrandaki adla aynı değil.",
+      allTicked: "Hepsini işaretle ve adını yaz.",
+      formDone: "✓ İzin alındı",
+      thirdParty: "Başkasının sesi mi? O zaman o kişinin sesli onayı gerekiyor — siparişi hazırlayan kişiye söyle.",
       passage: "Pasaj", of: "/", tone: "Ton: ",
       lastStep: "Son adım", sendIt: "Gönder",
       sendLede: "Her şeyi tek dosyaya paketler, VoxSwap'in beklediği düzende. Dosya senin bilgisayarında kalır — kime vereceğine sen karar verirsin.",
@@ -223,7 +249,7 @@
       vRetryRec: "Hiçbir şey kaydedilmedi. Kaydet'e basıp tekrar dene.", vRetryFile: "Başka bir dosya ya da başka bir format dene.",
       sLen: "süre", sPeak: "tepe", sNoise: "gürültü farkı", sSpeech: "konuşma",
       ckName: "Ad ve e-posta girildi",
-      ckPhrase: function (s) { return s ? "Sözlü izin kaydedildi (" + s + " sn)" : "Sözlü izin — henüz kaydedilmedi"; },
+      ckPhrase: function (ok) { return ok ? "İzin formu onaylandı" : "İzin formu — henüz tamamlanmadı"; },
       ckSamples: function (sec, n, tail) { return sec + " sn örnek, " + n + " kayıtta" + tail; },
       ckPlenty: " — fazlasıyla yeter", ckEnough: " — yeter, daha fazlası daha iyi",
       ckNeed: " — en az " + MIN_TOTAL_S + " sn lazım",
@@ -243,9 +269,20 @@
       name: "Full name", mail: "Email", order: "Order ID", langLabel: "Reading language",
       namePh: "Ayse Demir",
       idHint: "No order ID yet? Leave the default — whoever builds your order can rename it. Nothing is uploaded from this page unless you press the button on the last screen.",
-      permission: "Permission", sayThis: "Say this out loud",
-      permLede: "A typed form only proves someone typed. This sentence names you, today's date and this order, so it cannot be lifted from voice notes you once sent someone.",
-      readExactly: "Read it exactly as written. Say the date however feels natural.",
+      permission: "Permission", sayThis: "Permission form",
+      permLede: "Cloning a voice needs permission. Read these and tick each one — this form goes into the pack and stays with whoever builds your order.",
+      readExactly: "",
+      ck1: "The voice I am about to record is my own.",
+      ck2: "I give permission to create a synthetic copy of my voice and use it for the roles agreed in this order.",
+      ck3: "I understand I can withdraw this permission at any time, and that doing so destroys the cloned voice and everything made from it.",
+      ck4: "I understand that files already delivered to me cannot be recalled.",
+      signLabel: "I agree — type your name",
+      signPh: "Type your full name",
+      signNote: "It has to match the name you gave on the first screen.",
+      signMismatch: "That does not match the name on the first screen.",
+      allTicked: "Tick all four and type your name.",
+      formDone: "✓ Permission recorded",
+      thirdParty: "Recording someone else's voice? That needs a spoken confirmation from them — tell whoever is building your order.",
       passage: "Passage", of: "of", tone: "Delivery: ",
       lastStep: "Last step", sendIt: "Send it over",
       sendLede: "This packs everything into one file, laid out the way VoxSwap expects. It stays on your computer — you decide who gets it.",
@@ -280,7 +317,7 @@
       vRetryRec: "Nothing was saved. Press record and try once more.", vRetryFile: "Try a different file, or a different format.",
       sLen: "length", sPeak: "peak", sNoise: "noise gap", sSpeech: "speech",
       ckName: "Name and email filled in",
-      ckPhrase: function (s) { return s ? "Spoken permission recorded (" + s + "s)" : "Spoken permission — not recorded yet"; },
+      ckPhrase: function (ok) { return ok ? "Permission form agreed" : "Permission form — not finished yet"; },
       ckSamples: function (sec, n, tail) { return sec + "s of samples across " + n + " take" + (n === 1 ? "" : "s") + tail; },
       ckPlenty: " — plenty", ckEnough: " — enough, more is better", ckNeed: " — need at least " + MIN_TOTAL_S + "s",
       ckClean: "Nothing flagged for a redo",
@@ -324,6 +361,7 @@
   };
 
   var who = { name: "", mail: "", order: "ORD-001", lang: "tr" };
+  var agreed = { ck1: false, ck2: false, ck3: false, ck4: false, signature: "" };
   var takes = {}, step = 0;
   var stream = null, actx = null, rec = null, recording = false, raf = 0, tick = 0, t0 = 0;
   var ui = {};
@@ -443,6 +481,11 @@
 
   // Turkish breaks the naive lowercase: "İ".toLowerCase() leaves a combining
   // dot behind, and "I" lowercases to "i" rather than "ı".
+  function consentGiven() {
+    var typed = agreed.signature.trim().toLowerCase(), given = who.name.trim().toLowerCase();
+    return agreed.ck1 && agreed.ck2 && agreed.ck3 && agreed.ck4 && !!typed && typed === given;
+  }
+
   function fold(word) {
     return String(word)
       .replace(/İ/g, "i").replace(/I/g, "ı").replace(/Ş/g, "ş").replace(/Ğ/g, "ğ")
@@ -866,7 +909,7 @@
           input.value = who[spec[0]] || "";
           input.addEventListener("input", function () {
             who[spec[0]] = input.value;
-            if (spec[0] !== "mail") delete takes.phrase;   // it names them and the order
+            if (spec[0] === "name") agreed.signature = "";   // a signature has to match the name
             paint();
           });
         }
@@ -894,11 +937,39 @@
       stage.appendChild(el("p", "eyebrow", L.permission));
       stage.appendChild(el("h1", null, L.sayThis));
       stage.appendChild(el("p", "lede", L.permLede));
-      var sp = scriptNode(phraseText());
-      ui.script = sp.node; ui.words = sp.words;
-      stage.appendChild(sp.node);
-      stage.appendChild(el("p", "direction", L.readExactly));
-      stage.appendChild(boothBlock("phrase"));
+
+      var box = el("div", "agree");
+      ["ck1", "ck2", "ck3", "ck4"].forEach(function (key) {
+        var row = el("label", "tickrow");
+        var cb = el("input");
+        cb.type = "checkbox";
+        cb.id = "a_" + key;
+        cb.checked = !!agreed[key];
+        cb.addEventListener("change", function () { agreed[key] = cb.checked; paint(); });
+        row.setAttribute("for", cb.id);
+        row.appendChild(cb);
+        row.appendChild(el("span", null, L[key]));
+        box.appendChild(row);
+      });
+      stage.appendChild(box);
+
+      var sign = el("div", "signbox");
+      var slab = el("label", null, L.signLabel);
+      slab.setAttribute("for", "a_sign");
+      sign.appendChild(slab);
+      var sig = el("input");
+      sig.type = "text";
+      sig.id = "a_sign";
+      sig.placeholder = L.signPh;
+      sig.autocomplete = "name";
+      sig.value = agreed.signature;
+      sig.addEventListener("input", function () { agreed.signature = sig.value; paint(); });
+      sign.appendChild(sig);
+      var snote = el("p", "signnote");
+      snote.id = "signNote";
+      sign.appendChild(snote);
+      stage.appendChild(sign);
+      stage.appendChild(el("p", "hint", L.thirdParty));
 
     } else if (step === last) {
       var total = banked(), n = 0, bad = 0;
@@ -912,7 +983,7 @@
       var list = el("ul", "checklist");
       var tail = total >= GOOD_TOTAL_S ? L.ckPlenty : total >= MIN_TOTAL_S ? L.ckEnough : L.ckNeed;
       [[!!who.name && !!who.mail, L.ckName],
-       [!!takes.phrase && takes.phrase.level !== "bad", L.ckPhrase(takes.phrase ? takes.phrase.secs.toFixed(1) : null)],
+       [consentGiven(), L.ckPhrase(consentGiven())],
        [total >= MIN_TOTAL_S, L.ckSamples(Math.round(total), n, tail)],
        [bad === 0, bad === 0 ? L.ckClean : L.ckBad(bad)]
       ].forEach(function (it) {
@@ -959,11 +1030,18 @@
       nextBtn.disabled = !(who.name.trim() && who.mail.trim());
     } else if (step === 1) {
       nextBtn.textContent = L.next;
-      nextBtn.disabled = recording || !takes.phrase || takes.phrase.level === "bad";
+      nextBtn.disabled = !consentGiven();
+      var sn = $("signNote");
+      if (sn) {
+        var typed = agreed.signature.trim();
+        sn.textContent = !typed ? L.signNote
+          : typed.toLowerCase() !== who.name.trim().toLowerCase() ? L.signMismatch
+          : consentGiven() ? L.formDone : L.allTicked;
+        sn.className = "signnote" + (consentGiven() ? " ok" : typed && typed.toLowerCase() !== who.name.trim().toLowerCase() ? " bad" : "");
+      }
     } else if (step === last) {
       nextBtn.textContent = L.build;
-      nextBtn.disabled = !(who.name.trim() && who.mail.trim() && takes.phrase &&
-                           takes.phrase.level !== "bad" && total >= MIN_TOTAL_S);
+      nextBtn.disabled = !(who.name.trim() && who.mail.trim() && consentGiven() && total >= MIN_TOTAL_S);
       var note = $("buildNote");
       if (note) note.textContent = nextBtn.disabled ? L.buildOff : L.buildOn;
     } else {
@@ -982,15 +1060,18 @@
     var voiceId = slug(who.name) || "customer", order = who.order.trim() || "ORD-001";
     var zip = new JSZip();
 
-    zip.file("consent/C-1-phrase.wav", takes.phrase.wav);
     zip.file("consent/C-1-signed.md",
       "# Consent — " + order + "\n\nI, " + who.name + ", give VoxSwap permission to create a synthetic copy of my\n" +
       "voice and to use it for the roles agreed in order " + order + ".\n\n" +
       "I understand that I can withdraw this permission at any time, that doing so\n" +
       "destroys the cloned voice and everything made from it, and that files already\n" +
       "delivered to me cannot be recalled.\n\n" +
+      "Agreed, each point ticked in turn:\n" +
+      ["ck1", "ck2", "ck3", "ck4"].map(function (k) { return "  [x] " + T.en[k]; }).join("\n") + "\n\n" +
       "Scope: voice_clone, personal_use\nName:  " + who.name + "\nEmail: " + who.mail +
-      "\nDate:  " + todayISO() + "\nSigned in the VoxSwap Recording Booth, and spoken aloud in C-1-phrase.wav.\n");
+      "\nDate:  " + todayISO() + "\nSigned: " + agreed.signature +
+      "\nSigned in the VoxSwap Recording Booth. This voice is the customer's own,\n" +
+      "so no spoken verification phrase was required.\n");
 
     var used = [], i = 1;
     for (var k = 1; k <= 12; k++) {
@@ -1012,10 +1093,10 @@
       consent: {
         consent_ref: "C-1", person_name: who.name, person_email: who.mail, is_self: true,
         signed_at: todayISO(), signature_file: "consent/C-1-signed.md",
-        phrase_audio: "consent/C-1-phrase.wav", scope: ["voice_clone", "personal_use"],
+        phrase_audio: "", scope: ["voice_clone", "personal_use"],
         expires_at: "", revoked: false,
-        phrase_spoken: phraseText(), phrase_language: who.lang,
-        phrase_seconds: +takes.phrase.secs.toFixed(2)
+        agreed_points: ["ck1", "ck2", "ck3", "ck4"].map(function (k) { return T.en[k]; }),
+        typed_signature: agreed.signature
       },
       samples: used,
       total_sample_seconds: +total.toFixed(2),

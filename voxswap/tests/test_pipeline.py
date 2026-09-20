@@ -153,12 +153,12 @@ class ResumeTests(PipelineTestCase):
 class FailureTests(PipelineTestCase):
     def test_missing_consent_stops_before_anything_is_generated(self) -> None:
         order_dir = make_game_order(self.cfg)
-        (order_dir / "consent" / "C-1-phrase.wav").unlink()
+        (order_dir / "consent" / "C-1-signed.md").unlink()
 
         result = self.run_order("TEST-GAME")
         self.assertEqual(result.status, FAILED)
         self.assertEqual(result.failed_stage, "intake")
-        self.assertIn("verification phrase", result.error)
+        self.assertIn("signed consent document", result.error)
         self.assertFalse((self.cfg.delivery_dir / "TEST-GAME").exists())
         self.assertFalse(list(Workspace.for_order(self.cfg, "TEST-GAME").synth_dir.glob("*.wav")))
 
@@ -240,7 +240,7 @@ class WatcherTests(PipelineTestCase):
 
     def test_failed_order_is_not_retried_automatically(self) -> None:
         order_dir = make_game_order(self.cfg)
-        (order_dir / "consent" / "C-1-phrase.wav").unlink()
+        (order_dir / "consent" / "C-1-signed.md").unlink()
         watch(self.cfg, once=True, interval=1, settle_seconds=0, log=self.log)
 
         decisions = scan(self.cfg, settle_seconds=0)
@@ -333,7 +333,7 @@ class PurgeTests(PipelineTestCase):
     def test_a_failed_consent_check_records_nothing(self) -> None:
         """No CLEARED line for a voice that never cleared."""
         order_dir = make_game_order(self.cfg)
-        (order_dir / "consent" / "C-1-phrase.wav").unlink()
+        (order_dir / "consent" / "C-1-signed.md").unlink()
 
         result = self.run_order("TEST-GAME")
         self.assertEqual(result.status, FAILED)

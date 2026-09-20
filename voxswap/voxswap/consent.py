@@ -138,22 +138,44 @@ def check_voice(order: Order, voice: VoiceProfile) -> ConsentCheck:
             "Template: templates/consent-form.md",
         )
 
-    # 3. verification phrase recording
-    phrase = order.resolve(consent.phrase_audio)
-    if not phrase.exists():
-        raise ConsentError(
-            f"verification phrase recording missing for {consent.consent_ref}: {consent.phrase_audio}",
-            "Ask the person to record this and send it as a WAV:\n     "
-            f'"{phrase_for(order, consent)}"',
-        )
-    phrase_seconds = _audio_seconds(phrase)
-    if phrase_seconds < 0:
-        warnings.append(f"could not read the phrase recording {phrase.name} to check its length")
-    elif phrase_seconds < MIN_PHRASE_SECONDS:
-        raise ConsentError(
-            f"verification phrase for {consent.consent_ref} is only {phrase_seconds:.1f}s long",
-            f"It must be at least {MIN_PHRASE_SECONDS:.0f}s and contain the full phrase. Ask for a new recording.",
-        )
+    # 3. verification phrase recording — required for a voice that is not the
+    #    customer's own.
+    #
+    #    The phrase is what makes "I downloaded my ex's voice notes" hard: it is
+    #    order-specific, so it cannot be satisfied with audio recorded for any
+    #    other purpose. That threat is entirely about *third-party* voices.
+    #
+    #    A customer cloning their own voice is a different situation: they hold
+    #    the account, they paid, they typed and signed the declaration, and the
+    #    samples are theirs to give. Demanding a spoken phrase there buys almost
+    #    nothing and costs every single order a retake — so a signed declaration
+    #    stands on its own, and the phrase stays mandatory exactly where the risk
+    #    lives. Supplying one anyway is always allowed, and always checked.
+    phrase = order.resolve(consent.phrase_audio) if consent.phrase_audio else None
+    if phrase is None or not phrase.exists():
+        if not consent.is_self:
+            raise ConsentError(
+                f"verification phrase recording missing for {consent.consent_ref}: "
+                f"{consent.phrase_audio or '(none given)'}",
+                f"{consent.person_name} is not the ordering customer, so a spoken phrase is required. "
+                "Ask them to record this and send it as a WAV:\n     "
+                f'"{phrase_for(order, consent)}"',
+            )
+        if phrase is not None:
+            warnings.append(
+                f"phrase_audio points at {consent.phrase_audio}, which does not exist — "
+                "remove the field or supply the recording"
+            )
+    else:
+        phrase_seconds = _audio_seconds(phrase)
+        if phrase_seconds < 0:
+            warnings.append(f"could not read the phrase recording {phrase.name} to check its length")
+        elif phrase_seconds < MIN_PHRASE_SECONDS:
+            raise ConsentError(
+                f"verification phrase for {consent.consent_ref} is only {phrase_seconds:.1f}s long",
+                f"It must be at least {MIN_PHRASE_SECONDS:.0f}s and contain the full phrase. "
+                "Ask for a new recording, or remove phrase_audio if this voice is the customer's own.",
+            )
 
     # 4. still valid
     if consent.revoked:
@@ -190,8 +212,8 @@ def check_voice(order: Order, voice: VoiceProfile) -> ConsentCheck:
                 "consent without going through the customer.",
             )
         warnings.append(
-            f"{consent.person_name} is not the ordering customer — confirm the verification phrase audio "
-            "really is them before the first paid run"
+            f"{consent.person_name} is not the ordering customer — listen to the verification phrase "
+            "and confirm it really is them before the first paid run"
         )
 
     # sample quantity: a warning, not a gate — quality, not permission

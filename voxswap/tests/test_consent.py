@@ -37,12 +37,43 @@ class ConsentTests(unittest.TestCase):
         self.assertTrue(checks[0].ok)
         self.assertGreater(checks[0].sample_seconds, 0)
 
-    def test_missing_phrase_recording_is_refused(self) -> None:
-        order = self._order()
+    def test_a_third_party_voice_must_be_spoken_for(self) -> None:
+        """The phrase exists to stop "I downloaded my ex's voice notes", and that
+        threat is entirely about someone else's voice."""
+        order = self._order(is_self=False, person_name="Partner",
+                            person_email="partner@example.com")
         (order.root / "consent" / "C-1-phrase.wav").unlink()
+
         with self.assertRaises(ConsentError) as caught:
             verify_order(order)
         self.assertIn("verification phrase", caught.exception.message)
+        self.assertIn("not the ordering customer", caught.exception.hint)
+
+    def test_the_customers_own_voice_needs_no_phrase(self) -> None:
+        """They hold the account, they paid, they signed the declaration, and the
+        samples are theirs to give. A retake per order buys nothing here."""
+        order = self._order()
+        (order.root / "consent" / "C-1-phrase.wav").unlink()
+
+        checks = verify_order(order)
+        self.assertTrue(checks[0].ok)
+
+    def test_a_phrase_that_was_promised_and_is_missing_is_flagged(self) -> None:
+        """Silently ignoring a broken path would hide a lost recording."""
+        order = self._order()
+        (order.root / "consent" / "C-1-phrase.wav").unlink()
+
+        checks = verify_order(order)
+        self.assertTrue(any("does not exist" in w for w in checks[0].warnings), checks[0].warnings)
+
+    def test_a_phrase_supplied_anyway_is_still_checked(self) -> None:
+        """Opting in must not mean opting out of the length check."""
+        from voxswap.audio import tone, write_wav
+
+        order = self._order()
+        write_wav(order.root / "consent" / "C-1-phrase.wav", tone(900, sample_rate=8000))
+        with self.assertRaises(ConsentError):
+            verify_order(order)
 
     def test_short_phrase_recording_is_refused(self) -> None:
         order = self._order()

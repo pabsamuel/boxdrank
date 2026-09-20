@@ -88,10 +88,33 @@ jobs:
 
       - name: Consent gate cannot be bypassed
         run: |
-          rm orders/EXAMPLE-GAME/consent/C-1-phrase.wav
+          # Two separate promises, so break them one at a time.
+          # 1. No signed declaration, no clone — true for every voice.
+          mv orders/EXAMPLE-GAME/consent/C-1-signed.md /tmp/signed.md
           rm -rf work delivery
           if python -m voxswap run EXAMPLE-GAME; then
-            echo "FAIL: a job ran without a consent verification phrase"
+            echo "FAIL: a job ran with no signed consent document"
+            exit 1
+          fi
+          test ! -d delivery/EXAMPLE-GAME || { echo "FAIL: a delivery was produced anyway"; exit 1; }
+          mv /tmp/signed.md orders/EXAMPLE-GAME/consent/C-1-signed.md
+
+          # 2. Someone else's voice additionally needs them on tape. This is the
+          #    control that makes stolen voice notes useless, so it has to hold
+          #    even though the customer's own voice no longer requires one.
+          rm orders/EXAMPLE-GAME/consent/C-1-phrase.wav
+          python - <<'PY'
+          import json, pathlib
+          p = pathlib.Path("orders/EXAMPLE-GAME/order.json")
+          d = json.loads(p.read_text())
+          d["consents"][0]["is_self"] = False
+          d["consents"][0]["person_name"] = "Someone Else"
+          d["consents"][0]["person_email"] = "someone.else@example.com"
+          p.write_text(json.dumps(d, indent=2))
+          PY
+          rm -rf work delivery
+          if python -m voxswap run EXAMPLE-GAME; then
+            echo "FAIL: a third party's voice was cloned with no spoken confirmation"
             exit 1
           fi
           test ! -d delivery/EXAMPLE-GAME || { echo "FAIL: a delivery was produced anyway"; exit 1; }

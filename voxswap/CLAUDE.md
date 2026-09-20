@@ -9,6 +9,10 @@ short.
    code path that skips or weakens any check in `voxswap/consent.py`. If a check
    is wrong for a real order, the order's paperwork gets fixed, not the check.
    Every provider must implement `delete_voice` — withdrawal has to actually work.
+   The spoken phrase is **mandatory for a voice that is not the customer's own**
+   and must stay that way: it is the only thing standing between this and
+   cloning someone from their voice notes. A customer's own voice takes a signed
+   declaration instead, which is a deliberate line, not a loophole to widen.
 2. **Never log, print or write an API key**, and never write one into an order
    folder, a delivery, or `manifest.json`. `doctor` prints only whether a key is
    set.
@@ -56,7 +60,7 @@ short.
 ## Before saying something works
 
 ```bash
-python3 -m unittest discover -s tests -t .      # 178 tests, ~45s, no network
+python3 -m unittest discover -s tests -t .      # 181 tests, ~45s, no network
 python3 tools/make_example.py && python3 -m voxswap run EXAMPLE-GAME
 ```
 
