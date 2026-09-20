@@ -343,6 +343,28 @@
     return out.length ? out : [{ text: "", start: 0, end: 0 }];
   }
 
+  /**
+   * Partial hypotheses only ever extend the text, so re-wrapping the whole line every time
+   * shifts the line breaks underneath what is already typed and the box lurches. Keep every
+   * settled line and re-wrap only the tail.
+   */
+  let wrapped = "";
+
+  function rewrap(text) {
+    if (!lines.length || !text.startsWith(wrapped) || !wrapped) {
+      lines = wrap(text);
+      wrapped = text;
+      return;
+    }
+    const keep = lines.slice(0, -1);
+    const tailStart = keep.length ? keep[keep.length - 1].end + 1 : 0;
+    const tail = text.slice(tailStart);
+    lines = keep.concat(wrap(tail).map(l => ({
+      text: l.text, start: l.start + tailStart, end: l.end + tailStart,
+    })));
+    wrapped = text;
+  }
+
   function pageEnd() {
     const last = lines[Math.min(pageTop + LINES - 1, lines.length - 1)];
     return last ? last.end : 0;
@@ -418,17 +440,21 @@
     if (!text) return;
     if (!text.startsWith(target.slice(0, 8))) shown = Math.min(shown, text.length);
     target = text; isFinal = !!final;
-    lines = wrap(text);
+    rewrap(text);
     if (!waiting) {
-      // Live speech outruns a 70 ms typewriter. Rather than falling minutes behind, jump to the
-      // newest page and type that: a line or two behind is a dialogue box, a paragraph behind is
-      // a transcript nobody is reading.
-      const newest = pageFor(target.length);
-      if (newest > pageTop) {
-        pageTop = newest;
+      // Live speech outruns a 70 ms typewriter, so we do skip ahead — but only when genuinely
+      // behind. Skipping the moment the text passes one page turns the typewriter into a
+      // word-by-word stutter, because every new partial would reset the box to the newest page.
+      const capacity = (lines[pageTop] ? lines[pageTop].text.length : 40) +
+                       (lines[pageTop + 1] ? lines[pageTop + 1].text.length : 40);
+      const backlog = target.length - shown;
+      if (backlog > capacity * 1.5) {
+        pageTop = pageFor(target.length);
         shown = Math.max(shown, lines[pageTop].start);
       } else {
-        pageTop = pageFor(shown);
+        // Forward only. Recomputing freely drags the box back to the page we just turned away
+        // from, which reads as the text jumping between a full page and an empty one.
+        pageTop = Math.max(pageTop, pageFor(shown));
       }
     }
     el.line.classList.remove("idle");
@@ -447,7 +473,7 @@
     clearTimeout(waitTimer); waitTimer = null;
     waiting = false; pageTop = 0;
     target = ""; shown = 0; isFinal = false;
-    lines = [];
+    lines = []; wrapped = "";
     el.line.textContent = msg;
     el.line.classList.add("idle");
     el.caret.classList.remove("on");
