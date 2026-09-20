@@ -9,6 +9,8 @@
 
 import { watch, summarize } from '../core/watch.js';
 import { formatDuration } from '../core/cadence.js';
+import { createMute, isMuteActive, pruneMutes, describeMute, MUTE_PRESETS } from '../core/mutes.js';
+import { loadMutes, saveMutes } from './mute-store.js';
 import { fetchBoards, fetchActivity, looksLikeMondayContext } from './monday-source.js';
 
 /** How far back to read activity. Long enough for the engine to learn a rhythm. */
@@ -29,9 +31,25 @@ const state = {
   summary: null,
   unparsedTimestamps: 0,
   now: Date.now(),
+  mutes: {},
+  muteStoreFailed: false,
   error: null,
   status: '',
 };
+
+/** True when this signal is currently silenced. */
+function isMuted(result) {
+  return isMuteActive(state.mutes[result.key], state.now, result.status);
+}
+
+function setMute(result, presetId) {
+  state.mutes = presetId === null
+    ? Object.fromEntries(Object.entries(state.mutes).filter(([key]) => key !== result.key))
+    : { ...state.mutes, [result.key]: createMute(presetId, state.now) };
+
+  state.muteStoreFailed = !saveMutes(state.mutes);
+  render();
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -56,9 +74,38 @@ function renderSummary() {
   return wrap;
 }
 
+/**
+ * Mute controls. A muted row keeps everything it had and gains a way back:
+ * silencing the notification must never hide the information.
+ */
+function renderMuteControls(result) {
+  const wrap = el('div', 'mute');
+
+  if (isMuted(result)) {
+    wrap.append(el('span', 'mute-state', describeMute(state.mutes[result.key], state.now)));
+    const unmute = el('button', 'link', 'Unmute');
+    unmute.addEventListener('click', () => setMute(result, null));
+    wrap.append(unmute);
+    return wrap;
+  }
+
+  // Only offered where it is meaningful. Muting something already healthy is
+  // just a way to build a blind spot for free.
+  if (result.status === 'healthy' || result.status === 'insufficient_history') return wrap;
+
+  wrap.append(el('span', 'mute-state', 'Mute'));
+  for (const preset of MUTE_PRESETS) {
+    const button = el('button', 'link', preset.label);
+    button.addEventListener('click', () => setMute(result, preset.id));
+    wrap.append(button);
+  }
+  return wrap;
+}
+
 function renderRow(result) {
   const copy = STATUS_COPY[result.status] ?? { label: result.status, tone: 'unknown' };
-  const row = el('section', `row ${copy.tone}`);
+  const muted = isMuted(result);
+  const row = el('section', `row ${copy.tone}${muted ? ' muted' : ''}`);
 
   const head = el('header', 'row-head');
   head.append(el('span', `pill ${copy.tone}`, copy.label));
@@ -71,6 +118,8 @@ function renderRow(result) {
     const meta = `Last activity ${formatDuration(state.now - result.lastFiredAt)} ago · ${result.timestamps.length} events observed`;
     row.append(el('p', 'meta', meta));
   }
+
+  row.append(renderMuteControls(result));
   return row;
 }
 
@@ -108,27 +157,36 @@ function render() {
     return;
   }
 
-  // The banner is the product. Everything else is context for it.
-  const banner = el('div', `banner ${state.summary.shouldAlert ? 'alarm' : 'calm'}`);
+  // Muted signals are excluded from the alarm, exactly as they are from email,
+  // but the count is always shown so a blind spot cannot become invisible.
+  const mutedCount = state.results.filter(isMuted).length;
+  const alarmCount = state.results.filter((r) => r.status === 'silent' && !isMuted(r)).length;
+
+  const banner = el('div', `banner ${alarmCount > 0 ? 'alarm' : 'calm'}`);
   banner.append(
     el(
       'strong',
       null,
-      state.summary.shouldAlert
-        ? `${state.summary.counts.silent} automation${state.summary.counts.silent === 1 ? ' has' : 's have'} stopped`
+      alarmCount > 0
+        ? `${alarmCount} automation${alarmCount === 1 ? ' has' : 's have'} stopped`
         : 'Everything that should be running is running',
     ),
   );
-  banner.append(
-    el(
-      'span',
-      null,
-      state.summary.shouldAlert
-        ? 'monday does not send an alert when this happens. That is why this exists.'
-        : `${state.summary.watched} recurring patterns watched.`,
-    ),
-  );
+
+  const context = [
+    alarmCount > 0
+      ? 'monday does not send an alert when this happens. That is why this exists.'
+      : `${state.summary.watched} recurring patterns watched.`,
+  ];
+  if (mutedCount > 0) context.push(`${mutedCount} muted.`);
+  banner.append(el('span', null, context.join(' ')));
   app.append(banner);
+
+  if (state.muteStoreFailed) {
+    app.append(
+      el('p', 'warning', 'This browser would not save the mute, so it will come back on reload.'),
+    );
+  }
 
   app.append(renderSummary());
 
@@ -154,6 +212,7 @@ async function loadDemo() {
   const demo = await response.json();
   state.source = 'demo';
   state.now = demo.now;
+  state.mutes = pruneMutes(loadMutes(), demo.now);
   state.results = watch(demo.entries, demo.now, {
     actorNames: new Map(demo.actors.map((a) => [a.id, a.name])),
     boardNames: new Map(demo.boards.map((b) => [b.id, b.name])),
@@ -189,6 +248,7 @@ async function loadFromMonday() {
 
   state.source = 'monday';
   state.now = now;
+  state.mutes = pruneMutes(loadMutes(), now);
   state.unparsedTimestamps = unparsedTimestamps;
   state.results = watch(entries, now, { boardNames: new Map(boards.map((b) => [b.id, b.name])) });
   state.summary = summarize(state.results);

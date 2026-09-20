@@ -61,6 +61,15 @@ export function renderEmail(plan) {
     ...section('RUNNING AGAIN', plan.recovered, (item) => `Was quiet for ${formatDuration(item.wasSilentForMs)}.`),
   );
 
+  // Muted signals get one line in mail that was going out anyway, so a blind
+  // spot cannot quietly become permanent. It never causes an email by itself.
+  if (plan.mutedCount > 0) {
+    lines.push(
+      `${plan.mutedCount} other ${plan.mutedCount === 1 ? 'automation is' : 'automations are'} muted and not listed above.`,
+      '',
+    );
+  }
+
   lines.push(
     'monday does not notify anyone when an automation is deactivated or starts',
     'failing. If one of these matters, check it in the board\'s Automations centre.',
@@ -92,6 +101,9 @@ export function renderEmail(plan) {
     htmlSection('Stopped', plan.newlySilent, (item) => item.reason, '#d83a52') +
     htmlSection('Still stopped', plan.stillSilent, (item) => `Quiet for ${formatDuration(item.silentForMs)}. ${item.reason}`, '#d83a52') +
     htmlSection('Running again', plan.recovered, (item) => `Was quiet for ${formatDuration(item.wasSilentForMs)}.`, '#16a34a') +
+    (plan.mutedCount > 0
+      ? `<p style="color:#676879;font-size:13px;margin-top:18px">${plan.mutedCount} other ${plan.mutedCount === 1 ? 'automation is' : 'automations are'} muted and not listed above.</p>`
+      : '') +
     `<p style="color:#676879;font-size:13px;margin-top:22px">monday does not notify anyone when an automation is deactivated or starts failing. ` +
     `If one of these matters, check it in the board's Automations centre.</p></div>`;
 

@@ -21,6 +21,8 @@
  * a mailbox or an account.
  */
 
+import { isMuteActive, pruneMutes } from './mutes.js';
+
 const DAY = 24 * 3600_000;
 
 /**
@@ -46,13 +48,25 @@ export const MAX_LISTED = 20;
 /**
  * Works out which notifications to send, and the state to persist for next time.
  *
+ * Muted signals are tracked exactly as loudly as any other — the state machine
+ * runs unchanged — but they are left out of the lists that become an email. A
+ * mute silences the notification, not the monitoring. `mutedCount` goes into
+ * every email that is sent anyway, so a blind spot cannot quietly become
+ * permanent.
+ *
  * @param {{key: string, label: string, status: string, reason: string}[]} results
  * @param {WatchState} previous State stored after the last run; `{}` on first run.
  * @param {number} now Epoch ms.
+ * @param {import('./mutes.js').MuteMap} [mutes]
  * @returns {{ newlySilent: object[], stillSilent: object[], recovered: object[],
- *             shouldSend: boolean, state: WatchState }}
+ *             mutedCount: number, shouldSend: boolean, state: WatchState,
+ *             mutes: import('./mutes.js').MuteMap }}
  */
-export function planNotifications(results, previous, now) {
+export function planNotifications(results, previous, now, mutes = {}) {
+  const statusByKey = new Map(results.map((result) => [result.key, result.status]));
+  const liveMutes = pruneMutes(mutes, now, statusByKey);
+  const muted = (result) => isMuteActive(liveMutes[result.key], now, result.status);
+  let mutedCount = 0;
   const newlySilent = [];
   const stillSilent = [];
   const recovered = [];
@@ -65,7 +79,27 @@ export function planNotifications(results, previous, now) {
     if (result.status === 'silent') {
       const silentSince = before?.silentSince ?? now;
 
-      if (!before || before.status !== 'silent') {
+      // A muted signal keeps its state so the machine stays correct, but never
+      // reaches a list that becomes an email.
+      //
+      // `notifiedAt` stays null when nothing was actually sent. Recording `now`
+      // here — the first version did — made a muted signal look like one that
+      // had already been reported, so when the mute lapsed the reminder window
+      // suppressed it for another three days. The mute quietly outlived itself,
+      // which is the blind spot this whole feature is designed not to create.
+      if (muted(result)) {
+        mutedCount += 1;
+        state[result.key] = {
+          status: 'silent',
+          notifiedAt: before?.notifiedAt ?? null,
+          silentSince,
+        };
+        continue;
+      }
+
+      // `notifiedAt === null` means silent but never actually announced, which
+      // is a first announcement rather than a reminder.
+      if (!before || before.status !== 'silent' || before.notifiedAt === null) {
         newlySilent.push({ ...result, silentSince, boardLabel: result.boardLabel ?? result.boardId });
         state[result.key] = { status: 'silent', notifiedAt: now, silentSince };
         continue;
@@ -84,8 +118,9 @@ export function planNotifications(results, previous, now) {
       continue;
     }
 
-    // Recovery is only worth announcing to someone who was told it broke.
-    if (result.status === 'healthy' && before?.status === 'silent') {
+    // Recovery is only worth announcing to someone who was told it broke — and
+    // someone who muted it did not want to be told in the first place.
+    if (result.status === 'healthy' && before?.status === 'silent' && !muted(result)) {
       recovered.push({ ...result, wasSilentForMs: now - before.silentSince });
       continue;
     }
@@ -114,8 +149,12 @@ export function planNotifications(results, previous, now) {
     newlySilent,
     stillSilent,
     recovered,
+    mutedCount,
+    // A run where everything actionable is muted sends nothing. The muted count
+    // rides along on emails that were going out anyway; it never causes one.
     shouldSend: newlySilent.length + stillSilent.length + recovered.length > 0,
     state,
+    mutes: pruneMutes(liveMutes, now, statusByKey),
   };
 }
 

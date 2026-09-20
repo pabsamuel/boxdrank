@@ -91,7 +91,9 @@ src/core/            zero dependencies, no network, no monday
   alerts.js            what to say, given what was said last time
   email.js             render a notification plan as text and HTML
   sanitize.js          flatten untrusted names so they cannot forge structure
+  mutes.js             silence a signal without going blind to it
 src/app/
+  mute-store.js        where mutes live in the browser (demo only)
   monday-source.js     the only file that talks to monday
   main.js              plain-DOM UI, no framework
   index.html           single page, inline CSS, light and dark
@@ -103,7 +105,7 @@ scripts/
   build.js             emits a deployable dist/
 ```
 
-**87 tests**, all offline — no network, no account, no monday dependency.
+**102 tests**, all offline — no network, no account, no monday dependency.
 One runtime dependency (`monday-sdk-js`, pinned to 0.5.9 for the same reason as
 the schema auditor: 1.0.0-beta has removed `api()`).
 
@@ -159,6 +161,41 @@ failing. If one of these matters, check it in the board's Automations centre.
 ```
 
 One hour later, with nothing changed: nothing is sent.
+
+## Muting without going blind
+
+A mute button is not optional in a monitoring product: one automation nobody
+intends to fix will otherwise poison every future alert until the whole tool gets
+filtered. But mute is also its most dangerous feature, because the obvious
+implementation — mute forever, hide the row — turns the watchdog into something
+that silently stops watching. That is the failure this product exists to catch,
+self-inflicted.
+
+- **Mutes expire.** The longest option offered is 90 days. "Forever" is not on
+  the menu.
+- **"Until it works again"** covers the real case — *I know, I'm fixing it* —
+  and clears itself on recovery, so the *next* failure is announced normally.
+  Without it people reach for an indefinite mute and never remove it.
+- **Mute silences the email, never the dashboard.** The row stays, dimmed,
+  labelled `muted for 7 more days`, with a way back.
+- **Muted signals are counted in every email that was going out anyway.** One
+  line: *"1 other automation is muted and not listed above."* It never causes an
+  email by itself, and a blind spot cannot quietly become permanent.
+- **Muting is only offered where it means something.** A healthy signal has no
+  mute button; that would just be a free blind spot.
+
+A bug the tests caught while building it, which was the same failure in
+miniature: the first version recorded a notification timestamp while muted, so a
+muted signal looked like one already reported. When the mute lapsed, the
+three-day reminder window swallowed it for another three days. **The mute quietly
+outlived itself.** Now nothing is recorded as notified unless something was
+actually sent, and two regression tests pin both directions.
+
+**Storage is the honest gap.** `mute-store.js` uses `localStorage`, so a mute set
+by one admin is invisible to a colleague and to the scheduled job that sends the
+mail. That is wrong for the real product and fine for a demo. Nothing else
+imports it, and the scheduled job already takes an injected store, so swapping in
+monday's account-scoped storage is a one-file change.
 
 ### Two findings from a security review, both fixed
 
