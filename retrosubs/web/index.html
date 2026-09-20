@@ -156,6 +156,7 @@
   <button class="chip" id="camBtn">KAMERA</button>
   <button class="chip" id="gear">AYAR</button>
   <span id="status">hazir</span>
+  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v8</span>
 </div>
 
 <div id="stage">
@@ -217,8 +218,9 @@
     <select id="speed">
       <option value="140">cok yavas</option>
       <option value="100">yavas</option>
-      <option value="70" selected>normal</option>
-      <option value="45">hizli</option>
+      <option value="90" selected>normal</option>
+      <option value="70">hizli</option>
+      <option value="45">cok hizli</option>
       <option value="0">aninda</option>
     </select>
   </div>
@@ -229,6 +231,7 @@
       <option value="0">kapali</option>
     </select>
   </div>
+  <button class="btn full" id="test">TEST SATIRI (tempoyu gor)</button>
   <button class="btn full" id="demo">DEMO (izin gerekmez)</button>
   <p class="hint">
     iOS baska uygulamanin ustune kutu cizdirmez, o yuzden bu tam ekran.
@@ -245,6 +248,7 @@
     go: $("go"), cam: $("cam"), camBtn: $("camBtn"), gear: $("gear"), sheet: $("sheet"),
     meter: $("meter").firstElementChild, engine: $("engine"), lang: $("lang"), size: $("size"),
     frame: $("frame"), speed: $("speed"), sound: $("sound"), demo: $("demo"), name: $("name"),
+    test: $("test"),
   };
 
   // ---------------- text blip: synthesised, one per character ----------------
@@ -548,6 +552,13 @@
     });
     demoTimers.push(setTimeout(() => playDemo(i + 1), d + 1800));
   }
+  el.test.onclick = () => {
+    stopDemo(); audio();
+    speaker(micName(), micId());
+    idle("");
+    say("Nasilsiniz? Harfler tek tek gelmeli.", true);
+  };
+
   el.demo.onclick = () => {
     if (demoOn) { stopDemo(); idle("Demo durdu."); return; }
     stopAll(); audio(); demoOn = true;
