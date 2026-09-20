@@ -163,7 +163,7 @@
   <button class="chip" id="camBtn">KAMERA</button>
   <button class="chip" id="gear">AYAR</button>
   <span id="status">hazir</span>
-  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v9</span>
+  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v10</span>
 </div>
 
 <div id="diag"></div>
@@ -482,10 +482,31 @@
     render();
   }
 
+  /** How much of the old line the new one still agrees with. */
+  function sharedPrefix(a, b) {
+    const n = Math.min(a.length, b.length);
+    let i = 0;
+    while (i < n && a[i] === b[i]) i++;
+    return i;
+  }
+
   function say(text, final) {
     if (!text) return;
     if (typeof diag === "function") diag("say len=" + text.length + " shown=" + shown);
-    if (!text.startsWith(target.slice(0, 8))) shown = Math.min(shown, text.length);
+
+    // A new utterance shares nothing with the last one. Clamping the revealed count to the new
+    // length (rather than to what the two lines actually share) left it far past the end of a
+    // short line, so every sentence after the first appeared fully typed at once.
+    const common = sharedPrefix(target, text);
+    if (common < target.length) {
+      shown = Math.min(shown, common);
+      lines = []; wrapped = "";
+      pageTop = 0;
+      waiting = false;
+      clearTimeout(waitTimer); waitTimer = null;
+      revealed = 0; revealFirst = 0; revealLast = 0;
+    }
+
     target = text; isFinal = !!final;
     rewrap(text);
     if (!waiting) {
