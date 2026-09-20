@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { planNotifications, subjectFor, REMINDER_AFTER_MS, MAX_LISTED } from '../src/core/alerts.js';
+import { planNotifications, subjectFor, selectForDisplay, REMINDER_AFTER_MS, MAX_LISTED } from '../src/core/alerts.js';
 import { renderEmail } from '../src/core/email.js';
 
 const DAY = 24 * 3600_000;
@@ -117,13 +117,92 @@ test('the email carries the whole message in its first line', () => {
   assert.match(html, /<h1/);
 });
 
-test('email escapes names, which are user-controlled', () => {
+test('email escapes names for HTML, which are user-controlled', () => {
   const nasty = signal('x', 'silent', { label: '<script>alert(1)</script> & "co"' });
-  const { html, text } = renderEmail(planNotifications([nasty], {}, NOW));
+  const { html } = renderEmail(planNotifications([nasty], {}, NOW));
   assert.ok(!html.includes('<script>'), 'no raw script tag survives');
   assert.ok(html.includes('&lt;script&gt;'));
   assert.ok(html.includes('&amp;'));
-  assert.ok(text.includes('<script>'), 'plain text is not HTML and needs no escaping');
+});
+
+test('a newline in a board name cannot forge a section in the text email', () => {
+  // This test previously asserted the opposite — that plain text needs no
+  // escaping because it is not markup. Plain text is not markup, but it IS
+  // structured: sections, bullets and indentation are the entire document. A
+  // board name containing newlines let anyone who can create a board write a
+  // fake "RUNNING AGAIN" section claiming a genuinely dead automation had
+  // recovered, which is a total defeat of the product's only job.
+  const forged = signal('x', 'silent', {
+    label: 'Finance Sync\n\nRUNNING AGAIN\n\n  \u2022 Slack Notifier posts an update\n    Was quiet for 20 min.',
+  });
+  const { text } = renderEmail(planNotifications([forged], {}, NOW));
+
+  assert.equal(/^RUNNING AGAIN$/m.test(text), false, 'no forged section header');
+  // The bullet character itself is harmless; what matters is that it cannot
+  // start a line, because a line is what makes it a list item.
+  const bulletLines = text.split('\n').filter((line) => line.startsWith('  \u2022 '));
+  assert.equal(bulletLines.length, 1, 'exactly one line begins a bullet, the real one');
+  assert.match(text, /Finance Sync RUNNING AGAIN/, 'the text survives, flattened onto one line');
+});
+
+test('unicode line separators cannot forge structure either', () => {
+  // U+2028 and U+2029 are line terminators to a renderer even though a plain
+  // newline check misses them.
+  const forged = signal('x', 'silent', { label: `A\u2028STOPPED\u2029B` });
+  const { text } = renderEmail(planNotifications([forged], {}, NOW));
+  assert.equal(text.split(/^STOPPED$/m).length - 1, 1, 'only the genuine STOPPED header');
+});
+
+test('the freshest breakage is never the one trimmed out', () => {
+  // newlySilent used to inherit the dashboard's longest-quiet-first order, so
+  // the display cap discarded exactly the automations that had just broken —
+  // the only ones the email exists to announce — while keeping ones the reader
+  // was told about weeks ago.
+  const items = [];
+  for (let i = 0; i < MAX_LISTED + 6; i += 1) {
+    items.push({ ...signal(`old${i}`, 'silent'), boardId: `decoy${i}`, activeElapsedMs: 22 * DAY });
+  }
+  items.push({ ...signal('fresh', 'silent'), boardId: 'REAL', activeElapsedMs: 6 * 3600_000 });
+
+  const plan = planNotifications(items, {}, NOW);
+  assert.equal(plan.newlySilent[0].boardId, 'REAL', 'the newest breakage leads');
+  // The email renders labels, not board ids, so check the label that belongs to
+  // the freshly broken signal actually made it past the cap.
+  assert.match(renderEmail(plan).text, /fresh does a thing/, 'and survives the cap');
+});
+
+test('one noisy board cannot crowd every other board out of the list', () => {
+  const items = [];
+  for (let i = 0; i < 40; i += 1) {
+    items.push({ ...signal(`noisy${i}`, 'silent'), boardId: 'Noisy', activeElapsedMs: 1000 });
+  }
+  items.push({ ...signal('quiet', 'silent'), boardId: 'Quiet', activeElapsedMs: 2000 });
+
+  const shown = renderEmail(planNotifications(items, {}, NOW)).text;
+  assert.match(shown, /Quiet|quiet/, 'the lone board on another board still appears');
+});
+
+test('the overflow line names the boards left out, not just a count', () => {
+  // "and 6 more" tells the reader nothing. A board name tells them where to look.
+  const items = Array.from({ length: MAX_LISTED + 3 }, (_, i) => ({
+    ...signal(`s${i}`, 'silent'),
+    boardId: `board-${i}`,
+    boardLabel: `Board ${i}`,
+    activeElapsedMs: i * 1000,
+  }));
+  const { text } = renderEmail(planNotifications(items, {}, NOW));
+  assert.match(text, /and 3 more, on Board /);
+});
+
+test('the overflow line is grammatical when one board is left out', () => {
+  const items = Array.from({ length: 30 }, (_, i) => ({
+    ...signal(`s${i}`, 'silent'),
+    boardId: `board-${i}`,
+    boardLabel: `Board ${i}`,
+    activeElapsedMs: i * 1000,
+  }));
+  const { text } = renderEmail(planNotifications(items, {}, NOW));
+  assert.ok(!text.includes('1 other boards'), 'no "1 other boards"');
 });
 
 test('one account-wide outage does not produce a wall of text', () => {

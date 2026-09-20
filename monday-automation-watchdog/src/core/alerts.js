@@ -66,13 +66,13 @@ export function planNotifications(results, previous, now) {
       const silentSince = before?.silentSince ?? now;
 
       if (!before || before.status !== 'silent') {
-        newlySilent.push({ ...result, silentSince });
+        newlySilent.push({ ...result, silentSince, boardLabel: result.boardLabel ?? result.boardId });
         state[result.key] = { status: 'silent', notifiedAt: now, silentSince };
         continue;
       }
 
       if (now - before.notifiedAt >= REMINDER_AFTER_MS) {
-        stillSilent.push({ ...result, silentSince, silentForMs: now - silentSince });
+        stillSilent.push({ ...result, silentSince, silentForMs: now - silentSince, boardLabel: result.boardLabel ?? result.boardId });
         state[result.key] = { status: 'silent', notifiedAt: now, silentSince };
         continue;
       }
@@ -95,6 +95,21 @@ export function planNotifications(results, previous, now) {
     // stored state cannot grow without limit.
   }
 
+  // Ordering is a correctness concern, not presentation. The lists get capped
+  // for display, so whatever sorts last is what gets thrown away.
+  //
+  // `results` arrives longest-quiet-first, inherited from the dashboard's
+  // ranking. Announcing breakages in that order meant the cap discarded exactly
+  // the automations that had *just* broken — the only ones the email exists to
+  // announce — while keeping ones the reader was told about weeks ago. In an
+  // account with more than MAX_LISTED failures the newest breakage was silently
+  // trimmed out. Someone able to create boards could also force that on purpose
+  // by parking decoys in a long silence.
+  newlySilent.sort((a, b) => a.activeElapsedMs - b.activeElapsedMs);
+  // Reminders are the other way round: the longest-unfixed is the most overdue.
+  stillSilent.sort((a, b) => b.silentForMs - a.silentForMs);
+  recovered.sort((a, b) => a.wasSilentForMs - b.wasSilentForMs);
+
   return {
     newlySilent,
     stillSilent,
@@ -102,6 +117,51 @@ export function planNotifications(results, previous, now) {
     shouldSend: newlySilent.length + stillSilent.length + recovered.length > 0,
     state,
   };
+}
+
+/**
+ * Picks which items to spell out when there are more than fit.
+ *
+ * Takes them round-robin by board rather than straight off the top, so one
+ * noisy board cannot crowd every other board out of the list. Order within each
+ * board is preserved, so the caller's ranking still decides which of a board's
+ * failures is shown first.
+ *
+ * @param {{boardId?: string|null}[]} items Already in priority order.
+ * @param {number} limit
+ * @returns {{shown: object[], hiddenCount: number, hiddenBoards: string[]}}
+ */
+export function selectForDisplay(items, limit = MAX_LISTED) {
+  if (items.length <= limit) return { shown: items, hiddenCount: 0, hiddenBoards: [] };
+
+  const queues = new Map();
+  for (const item of items) {
+    const board = item.boardId ?? 'unknown';
+    if (!queues.has(board)) queues.set(board, []);
+    queues.get(board).push(item);
+  }
+
+  const shown = [];
+  const order = [...queues.keys()];
+  while (shown.length < limit) {
+    let tookAny = false;
+    for (const board of order) {
+      if (shown.length >= limit) break;
+      const queue = queues.get(board);
+      if (queue.length > 0) {
+        shown.push(queue.shift());
+        tookAny = true;
+      }
+    }
+    if (!tookAny) break;
+  }
+
+  const hidden = [...queues.values()].flat();
+  // Naming the boards that were dropped matters: "and 6 more" tells the reader
+  // nothing, while a board name tells them where to look.
+  const hiddenBoards = [...new Set(hidden.map((item) => item.boardLabel ?? item.boardId ?? 'unknown'))];
+
+  return { shown, hiddenCount: hidden.length, hiddenBoards };
 }
 
 /**

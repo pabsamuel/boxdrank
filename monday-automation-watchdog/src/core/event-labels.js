@@ -9,6 +9,8 @@
  * "some new event" rather than breaking or being hidden.
  */
 
+import { singleLine } from './sanitize.js';
+
 const KNOWN = {
   create_pulse: 'creates an item',
   delete_pulse: 'deletes an item',
@@ -33,12 +35,18 @@ const KNOWN = {
  */
 export function describeEvent(event) {
   if (!event) return 'does something';
-  const known = KNOWN[event];
-  if (known) return known;
+  // hasOwn, not a bare lookup: an event named "constructor" would otherwise
+  // return Object itself and render as "function Object() { [native code] }".
+  if (Object.hasOwn(KNOWN, event)) return KNOWN[event];
+
   // snake_case or camelCase into plain words, so an unmapped event still reads.
-  return String(event)
-    .replace(/[_-]+/g, ' ')
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .toLowerCase()
-    .trim();
+  // Flattened too — event names come from the API and are a second injection
+  // point into the same email body as board names.
+  return singleLine(
+    String(event)
+      .replace(/[_-]+/g, ' ')
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .toLowerCase(),
+    60,
+  );
 }

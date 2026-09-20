@@ -16,6 +16,7 @@
  */
 
 import { describeEvent } from './event-labels.js';
+import { singleLine } from './sanitize.js';
 
 /**
  * Minimum firings before a pattern is worth watching at all.
@@ -46,7 +47,9 @@ function signatureOf(entry) {
 function labelFor(entry, actorNames, boardNames) {
   const actor = actorNames?.get(entry.actor) ?? (entry.actor ? `Actor ${entry.actor}` : 'Something');
   const board = boardNames?.get(entry.boardId) ?? `board ${entry.boardId}`;
-  return `${actor} ${describeEvent(entry.event)} on ${board}`;
+  // Every untrusted name passes through here, so flattening once covers the
+  // text email, the HTML email and the DOM at the same time.
+  return singleLine(`${singleLine(actor, 60)} ${describeEvent(entry.event)} on ${singleLine(board, 60)}`);
 }
 
 /**
@@ -76,6 +79,7 @@ export function extractSignals(entries, options = {}) {
         key,
         label: labelFor(entry, actorNames, boardNames),
         boardId: entry.boardId ?? null,
+        boardLabel: singleLine(boardNames?.get(entry.boardId) ?? `board ${entry.boardId}`, 60),
         actor: entry.actor ?? null,
         event: entry.event ?? null,
         entity: entry.entity ?? null,

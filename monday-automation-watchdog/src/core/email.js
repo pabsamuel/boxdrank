@@ -7,7 +7,8 @@
  */
 
 import { formatDuration } from './cadence.js';
-import { MAX_LISTED, subjectFor } from './alerts.js';
+import { singleLine } from './sanitize.js';
+import { MAX_LISTED, subjectFor, selectForDisplay } from './alerts.js';
 
 /** Escapes text for HTML. Board and automation names are user-controlled. */
 function escapeHtml(text) {
@@ -15,17 +16,33 @@ function escapeHtml(text) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    // Single quotes too. No single-quoted attribute exists here today, but the
+    // escaper should not be the reason a future one becomes a hole.
+    .replace(/'/g, '&#39;');
+}
+
+/** Describes what was left out, naming boards rather than only counting. */
+function overflowNote({ hiddenCount, hiddenBoards }) {
+  if (hiddenCount === 0) return null;
+  const named = hiddenBoards.slice(0, 5).join(', ');
+  const extra = hiddenBoards.length - 5;
+  const rest = extra > 0 ? ` and ${extra} other board${extra === 1 ? '' : 's'}` : '';
+  return `  …and ${hiddenCount} more, on ${named}${rest}.`;
 }
 
 function section(title, items, describe) {
   if (items.length === 0) return [];
+  const selection = selectForDisplay(items, MAX_LISTED);
   const lines = [title, ''];
-  for (const item of items.slice(0, MAX_LISTED)) {
-    lines.push(`  • ${item.label}`);
-    lines.push(`    ${describe(item)}`);
+  for (const item of selection.shown) {
+    // singleLine again at the sink, not because labelFor missed it, but because
+    // a second sink should not depend on a distant caller having sanitised.
+    lines.push(`  • ${singleLine(item.label)}`);
+    lines.push(`    ${singleLine(describe(item), 200)}`);
   }
-  if (items.length > MAX_LISTED) lines.push(`  …and ${items.length - MAX_LISTED} more.`);
+  const note = overflowNote(selection);
+  if (note) lines.push(note);
   lines.push('');
   return lines;
 }
@@ -53,15 +70,16 @@ export function renderEmail(plan) {
 
   const htmlSection = (title, items, describe, colour) => {
     if (items.length === 0) return '';
-    const rows = items
-      .slice(0, MAX_LISTED)
+    const selection = selectForDisplay(items, MAX_LISTED);
+    const rows = selection.shown
       .map(
         (item) =>
           `<li style="margin:0 0 10px"><strong>${escapeHtml(item.label)}</strong><br>` +
           `<span style="color:#676879">${escapeHtml(describe(item))}</span></li>`,
       )
       .join('');
-    const more = items.length > MAX_LISTED ? `<li style="color:#676879">…and ${items.length - MAX_LISTED} more.</li>` : '';
+    const note = overflowNote(selection);
+    const more = note ? `<li style="color:#676879">${escapeHtml(note.trim())}</li>` : '';
     return (
       `<h2 style="font-size:14px;text-transform:uppercase;letter-spacing:.04em;color:${colour};margin:20px 0 8px">${escapeHtml(title)}</h2>` +
       `<ul style="padding-left:18px;margin:0">${rows}${more}</ul>`

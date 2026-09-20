@@ -90,6 +90,7 @@ src/core/            zero dependencies, no network, no monday
   watch.js             join them, rank worst-first, decide whether to alert
   alerts.js            what to say, given what was said last time
   email.js             render a notification plan as text and HTML
+  sanitize.js          flatten untrusted names so they cannot forge structure
 src/app/
   monday-source.js     the only file that talks to monday
   main.js              plain-DOM UI, no framework
@@ -102,7 +103,7 @@ scripts/
   build.js             emits a deployable dist/
 ```
 
-**71 tests**, all offline — no network, no account, no monday dependency.
+**87 tests**, all offline — no network, no account, no monday dependency.
 One runtime dependency (`monday-sdk-js`, pinned to 0.5.9 for the same reason as
 the schema auditor: 1.0.0-beta has removed `api()`).
 
@@ -158,6 +159,31 @@ failing. If one of these matters, check it in the board's Automations centre.
 ```
 
 One hour later, with nothing changed: nothing is sent.
+
+### Two findings from a security review, both fixed
+
+A review on 20 Sep found two real problems, and both were failures of the
+product's own job rather than generic web bugs.
+
+**A board name could forge a section of the email.** The HTML body was escaped
+from the start; the plain-text body was not, on the reasoning that plain text is
+not markup. That reasoning was wrong, and a test asserted it. Plain text is not
+markup, but it *is* structured — sections, bullets and indentation are the entire
+document — so newlines in a board name let anyone who can create a board write a
+fake `RUNNING AGAIN` section claiming a genuinely dead automation had recovered.
+For a product whose only job is to say which automation stopped, that is a total
+defeat. Untrusted names are now flattened to a single line at every boundary,
+and the test that encoded the bug now asserts the opposite.
+
+**The freshest breakage was the one thrown away.** Notification lists inherited
+the dashboard's longest-quiet-first order and were then capped for display, so an
+account with more than twenty failures silently trimmed out exactly the
+automations that had just broken — the only ones the email exists to announce.
+Someone able to create boards could force it deliberately by parking decoys in a
+long silence. Breakages now lead with the newest, reminders with the most
+overdue, the cap takes round-robin by board so one noisy board cannot crowd out
+the rest, and the overflow line names the boards it dropped instead of only
+counting them.
 
 ### The ordering that matters
 

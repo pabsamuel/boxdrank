@@ -5,6 +5,8 @@
  * stays testable without an account, a token or a network.
  */
 
+import { singleLine } from '../core/sanitize.js';
+
 /**
  * Plausible range for a millisecond timestamp, used to decide what unit an
  * activity log is using. 1e11 ms is 1973; 1e13 ms is 2286. Anything a real
@@ -139,7 +141,9 @@ export async function fetchBoards(monday, onProgress) {
   for (let page = 1; page <= MAX_BOARD_PAGES; page += 1) {
     const data = await query(monday, BOARDS_QUERY, { limit: PAGE_SIZE, page });
     const batch = data?.boards ?? [];
-    boards.push(...batch.map((board) => ({ id: String(board.id), name: board.name ?? '(untitled board)' })));
+    boards.push(
+      ...batch.map((board) => ({ id: String(board.id), name: singleLine(board.name) || '(untitled board)' })),
+    );
     onProgress?.(boards.length);
     if (batch.length < PAGE_SIZE) break;
   }
