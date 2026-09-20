@@ -77,10 +77,17 @@
 
   /* the line to read, word by word */
   .script { font-family: "Source Serif 4", Georgia, serif; font-size: clamp(21px, 4.6vw, 27px); line-height: 1.45; margin: 0 0 6px; text-wrap: pretty; }
-  .w { transition: color .12s ease, background-color .12s ease; border-radius: 3px; padding: 0 1px; }
+  .w { transition: color .1s ease, background-color .1s ease; border-radius: 3px; padding: 0 2px; }
   .reading .w { color: var(--ink-3); }
-  .reading .w.said { color: var(--ink); }
-  .reading .w.now { color: var(--ink); background: var(--hl); }
+  .reading .w.said    { color: var(--good); font-weight: 600; }
+  .reading .w.now     { color: var(--ink); background: var(--hl); }
+  .reading .w.skipped { color: var(--bad); text-decoration: underline wavy; text-underline-offset: 4px; }
+
+  .sync { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 12.5px; color: var(--ink-3); }
+  .booth > small { font-size: 11.5px; color: var(--ink-3); text-align: center; max-width: 44ch; line-height: 1.45; }
+  .sync button { font: inherit; font-size: 12.5px; background: none; border: 0; color: var(--steel); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 4px; }
+  .coach { min-height: 28px; font-size: 16px; font-weight: 600; text-align: center; }
+  .coach.c-done { color: var(--good); font-size: 18px; }
   .direction { font-size: 13px; color: var(--ink-3); margin: 0 0 20px; }
   .direction b { color: var(--ink-2); font-weight: 600; }
 
@@ -101,7 +108,6 @@
   .clock { font-family: "IBM Plex Mono", monospace; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--ink-2); min-width: 44px; text-align: right; }
 
   /* live coaching while the take is running */
-  .coach { min-height: 24px; font-size: 14.5px; font-weight: 600; text-align: center; }
   .coach.c-ok   { color: var(--good); }
   .coach.c-low  { color: var(--warn); }
   .coach.c-hot  { color: var(--rec); }
@@ -194,6 +200,11 @@
       micOkWhy: "İlk kayıtta bir kez izin isteyecek.",
       // live coaching
       cIdle: "Hazır olunca Kaydet'e bas", cStart: "Başla, oku…",
+      cDone: "✓ Cümle tamam — durdurabilirsin", cWord: "Takip ediliyor…",
+      syncOn: "Kelime takibi açık", syncOff: "Kelime takibi kapalı",
+      syncTurnOff: "kapat", syncTurnOn: "aç",
+      syncNote: "Takip için tarayıcının ses tanıma servisi kullanılıyor. Kaydın kendisi bilgisayarından çıkmıyor.",
+      syncNone: "Bu tarayıcı kelime takibi yapamıyor — tempo rehberi kullanılıyor.",
       cOk: "İyi gidiyor", cLow: "Daha yüksek sesle oku", cVeryLow: "Çok kısık — mikrofona yaklaş",
       cHot: "Çok yüksek — biraz geri çekil", cNoise: "Ortam gürültülü",
       cSilent: "Ses gelmiyor — okumaya başla",
@@ -247,6 +258,11 @@
       micReady: "Microphone ready", micNo: "This window cannot record",
       micOkWhy: "You will be asked to allow it once, on the first recording.",
       cIdle: "Press record when you are ready", cStart: "Go ahead, start reading…",
+      cDone: "✓ Line complete — you can stop", cWord: "Following you…",
+      syncOn: "Word tracking on", syncOff: "Word tracking off",
+      syncTurnOff: "turn off", syncTurnOn: "turn on",
+      syncNote: "Tracking uses the browser's speech recognition service. The recording itself never leaves your computer.",
+      syncNone: "This browser cannot track words — using the pacing guide instead.",
       cOk: "Sounding good", cLow: "Speak up a little", cVeryLow: "Far too quiet — get closer",
       cHot: "Too loud — move back a little", cNoise: "Noisy room",
       cSilent: "Nothing coming through — start reading",
@@ -414,6 +430,86 @@
     return (await off.startRendering()).getChannelData(0);
   }
 
+  // ------------------------------------------------- following the reading
+  //
+  // The pacing guide below could only ever be a guess: it hears loudness, not
+  // words, so it drifts the moment someone reads faster or slower than the
+  // average it assumes. Real synchronisation needs recognition, which the
+  // browser has — and which, unlike the recording, does send audio to the
+  // browser vendor's service. That trade is the customer's to make, so the
+  // page says so and lets them switch it off.
+  var Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var wantSync = true;
+
+  // Turkish breaks the naive lowercase: "İ".toLowerCase() leaves a combining
+  // dot behind, and "I" lowercases to "i" rather than "ı".
+  function fold(word) {
+    return String(word)
+      .replace(/İ/g, "i").replace(/I/g, "ı").replace(/Ş/g, "ş").replace(/Ğ/g, "ğ")
+      .replace(/Ü/g, "ü").replace(/Ö/g, "ö").replace(/Ç/g, "ç")
+      .toLowerCase()
+      .replace(/[.,!?;:"'`´’“”…()\[\]—–-]/g, "")
+      .replace(/\u0307/g, "")
+      .trim();
+  }
+
+  // Walk the words they actually said against the words they were given.
+  // A word may be misheard or a filler may appear, so a spoken word that does
+  // not match is allowed to match one or two words further on — that is what
+  // stops one bad guess from stalling the whole line.
+  function align(expected, spoken) {
+    var cursor = 0, skipped = [];
+    for (var i = 0; i < spoken.length && cursor < expected.length; i++) {
+      var said = spoken[i];
+      if (!said) continue;
+      if (expected[cursor] === said || expected[cursor].indexOf(said) === 0 || said.indexOf(expected[cursor]) === 0) {
+        cursor++;
+        continue;
+      }
+      for (var look = 1; look <= 2 && cursor + look < expected.length; look++) {
+        if (expected[cursor + look] === said) {
+          for (var k = 0; k < look; k++) skipped.push(cursor + k);
+          cursor += look + 1;
+          break;
+        }
+      }
+    }
+    return { cursor: cursor, skipped: skipped };
+  }
+
+  function startSync(words, onProgress) {
+    if (!Recognition || !wantSync || !words.length) return null;
+    var expected = words.map(function (w) { return fold(w.textContent); })
+                        .filter(function (x) { return x.length; });
+    var recog;
+    try { recog = new Recognition(); }
+    catch (err) { return null; }
+
+    recog.lang = who.lang === "tr" ? "tr-TR" : "en-US";
+    recog.continuous = true;
+    recog.interimResults = true;
+    recog.maxAlternatives = 1;
+
+    var finals = "", alive = true;
+    recog.onresult = function (e) {
+      var interim = "";
+      for (var i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finals += e.results[i][0].transcript + " ";
+        else interim += e.results[i][0].transcript + " ";
+      }
+      var spoken = (finals + interim).split(/\s+/).map(fold).filter(Boolean);
+      onProgress(align(expected, spoken), expected.length);
+    };
+    // Recognisers stop on their own after a pause; while the take is running we
+    // want it back rather than silently dead.
+    recog.onend = function () { if (alive) { try { recog.start(); } catch (err) { /* already starting */ } } };
+    recog.onerror = function (e) { if (e && (e.error === "not-allowed" || e.error === "service-not-allowed")) alive = false; };
+
+    try { recog.start(); }
+    catch (err) { return null; }
+    return { stop: function () { alive = false; try { recog.stop(); } catch (err) { /* already stopped */ } } };
+  }
+
   // ----------------------------------------------------------- microphone
   async function mic() {
     if (stream) return stream;
@@ -499,11 +595,26 @@
     actx.createMediaStreamSource(s).connect(an);
     var buf = new Float32Array(an.fftSize);
 
-    // The reading guide. It cannot hear words, so it does not pretend to:
-    // it advances only while you are actually making sound, at a pace set by
-    // how long each word is. Stop talking and it stops, which is what makes
-    // it possible to follow instead of chase.
-    var words = ui.words || [], spokenMs = 0, lastFrame = performance.now();
+    // Sync first. The recogniser knows which words were actually said, so when
+    // it is running the pacing guide must not also move the highlight — two
+    // sources fighting over the same spans is worse than either alone.
+    var words = ui.words || [];
+    var synced = false, complete = false;
+    ui.sync = startSync(words, function (progress, total) {
+      synced = true;
+      for (var i = 0; i < words.length; i++) {
+        words[i].className = "w" +
+          (progress.skipped.indexOf(i) >= 0 ? " skipped"
+            : i < progress.cursor ? " said"
+            : i === progress.cursor ? " now" : "");
+      }
+      if (progress.cursor >= total && !complete) {
+        complete = true;
+        coach("done", L.cDone);
+      }
+    });
+
+    var spokenMs = 0, lastFrame = performance.now();
     var totalWeight = 0, weights = words.map(function (w) {
       var k = w.textContent.length + 1; totalWeight += k; return k;
     });
@@ -533,7 +644,7 @@
       ui.meterFill.style.width = Math.min(100, Math.round(Math.sqrt(peak) * 118)) + "%";
       ui.meterFill.className = "meter-fill" + (peak > 0.96 ? " hot" : rms < 0.012 ? " low" : "");
 
-      if (voiced && estMs > 0) {
+      if (voiced && estMs > 0 && !synced) {
         spokenMs += dt;
         var target = Math.min(1, spokenMs / estMs), acc = 0, idx = 0;
         for (i = 0; i < weights.length; i++) {
@@ -556,7 +667,7 @@
       if (voiced && rms >= 0.022) okMs += dt; else okMs = Math.max(0, okMs - dt);
       if (!voiced) quietMs += dt; else quietMs = 0;
 
-      if ((now || 0) - lastCoach > 350) {
+      if ((now || 0) - lastCoach > 350 && !complete) {
         lastCoach = now || 0;
         if (loudMs > 500) coach("hot", L.cHot);
         else if (quietMs > 2500) coach("idle", L.cSilent);
@@ -576,6 +687,7 @@
 
   async function finishRec(id, blob) {
     var L = t();
+    if (ui.sync) { ui.sync.stop(); ui.sync = null; }
     teardownMeter();
     recording = false;
     ui.btn.classList.remove("live");
@@ -638,6 +750,29 @@
     var coachEl = el("div", "coach c-idle", takes[id] ? "" : L.cIdle);
     wrap.appendChild(coachEl);
 
+    // Whether the page is really following the words, or only guessing a pace,
+    // changes what the highlight means — so it says which, every time.
+    var syncRow = el("div", "sync");
+    function paintSync() {
+      syncRow.innerHTML = "";
+      if (!Recognition) {
+        syncRow.appendChild(el("span", null, L.syncNone));
+        return;
+      }
+      syncRow.appendChild(el("span", null, wantSync ? L.syncOn : L.syncOff));
+      var toggle = el("button", null, wantSync ? L.syncTurnOff : L.syncTurnOn);
+      toggle.type = "button";
+      toggle.addEventListener("click", function () {
+        wantSync = !wantSync;
+        if (!wantSync && ui.sync) { ui.sync.stop(); ui.sync = null; }
+        paintSync();
+      });
+      syncRow.appendChild(toggle);
+    }
+    paintSync();
+    wrap.appendChild(syncRow);
+    if (Recognition) wrap.appendChild(el("small", null, L.syncNote));
+
     var player = el("audio");
     player.controls = true;
     player.hidden = !takes[id];
@@ -691,6 +826,7 @@
   // ---------------------------------------------------------------- steps
   function render() {
     if (recording) stopRec();
+    if (ui.sync) { ui.sync.stop(); ui.sync = null; }
     teardownMeter();
     var L = t(), stage = $("stage"), last = stepCount() - 1;
     stage.innerHTML = "";
