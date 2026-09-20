@@ -1,0 +1,17 @@
+{
+  "name": "monday-automation-watchdog",
+  "version": "0.1.0",
+  "description": "Alerts when a monday.com automation that used to fire regularly goes quiet.",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.js\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "private": true
+}
