@@ -7,13 +7,13 @@ import { Onboarding } from './Onboarding';
 import { Photo } from './Photo';
 import { Practice, type PracticeMode } from './Practice';
 import { Settings } from './Settings';
-import { takeSharedMedia } from '../storage/sharedMedia';
+import { takeSharedLink, takeSharedMedia } from '../storage/sharedMedia';
 import { TakeReview } from './TakeReview';
 import { useSettings } from './useSettings';
 
 type View =
   | { name: 'library' }
-  | { name: 'ingest'; sharedFile?: File | null }
+  | { name: 'ingest'; sharedFile?: File | null; sharedLink?: string | null }
   | { name: 'practice'; routine: Routine; mode: PracticeMode }
   | { name: 'photo'; routine: Routine }
   | { name: 'settings' }
@@ -34,13 +34,23 @@ export function App() {
   // rather than a message means it survives the app having been closed.
   useEffect(() => {
     let cancelled = false;
-    void takeSharedMedia().then((file) => {
-      if (cancelled || !file) return;
-      setSharedFile(file);
-      setView({ name: 'ingest', sharedFile: file });
-      // Drop ?shared=1 so a refresh doesn't look like a second share.
+    void (async () => {
+      const file = await takeSharedMedia();
+      if (cancelled) return;
+
+      if (file) {
+        setSharedFile(file);
+        setView({ name: 'ingest', sharedFile: file });
+      } else {
+        // Sharing from TikTok/Reels/Shorts sends a link, not the video. Land on
+        // the add screen and say so, rather than opening as if nothing happened.
+        const link = await takeSharedLink();
+        if (cancelled || !link) return;
+        setView({ name: 'ingest', sharedLink: link });
+      }
+      // Drop the ?shared marker so a refresh doesn't look like a second share.
       window.history.replaceState({}, '', import.meta.env.BASE_URL);
-    });
+    })();
     return () => {
       cancelled = true;
     };
@@ -57,6 +67,7 @@ export function App() {
       return (
         <Ingest
           sharedFile={view.sharedFile ?? sharedFile}
+          sharedLink={view.sharedLink}
           onCancel={() => setView({ name: 'library' })}
           onDone={async (routine) => {
             setSharedFile(null);

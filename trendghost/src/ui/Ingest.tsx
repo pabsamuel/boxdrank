@@ -13,9 +13,11 @@ interface Props {
   onCancel: () => void;
   /** A file handed to us by the OS share sheet, if that's how we got here. */
   sharedFile?: File | null;
+  /** A link shared instead of a file — see the panel below. */
+  sharedLink?: string | null;
 }
 
-export function Ingest({ onDone, onCancel, sharedFile }: Props) {
+export function Ingest({ onDone, onCancel, sharedFile, sharedLink }: Props) {
   const [progress, setProgress] = useState<IngestProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abort = useRef<AbortController | null>(null);
@@ -64,6 +66,23 @@ export function Ingest({ onDone, onCancel, sharedFile }: Props) {
         </button>
       </header>
 
+      {!progress && sharedLink && (
+        <div className="banner static">
+          <h3>That came through as a link, not the video</h3>
+          <p>
+            TikTok, Reels and Shorts only hand other apps a link — they keep the video file. A link
+            is no use here: TrendGhost reads the movement out of the actual frames, and it never
+            fetches anything from the internet.
+          </p>
+          <p>
+            <strong>Save the video first, then it works in one tap:</strong> in TikTok tap{' '}
+            <strong>Share → Save video</strong>, then either share it again from your gallery, or
+            pick it below.
+          </p>
+          <p className="muted small">Shared: {sharedLink}</p>
+        </div>
+      )}
+
       {!progress && (
         <>
           <label className="picker">
@@ -79,11 +98,15 @@ export function Ingest({ onDone, onCancel, sharedFile }: Props) {
           </label>
 
           <div className="note">
-            <h3>Quicker way: just share it</h3>
+            <h3>Quicker way: share it from your gallery</h3>
             <p>
-              Watching a trend in TikTok, Reels or Shorts? Tap <strong>Share → TrendGhost</strong>{' '}
-              and the video or photo comes straight here and starts loading by itself — no saving,
-              no file picker.
+              Anything already on your phone — camera roll, gallery, a saved video — can be sent
+              straight here with <strong>Share → TrendGhost</strong>, and it starts loading by
+              itself.
+            </p>
+            <p>
+              Straight from TikTok, Reels or Shorts it doesn't work: those apps pass a link and keep
+              the video. Tap <strong>Save video</strong> there first.
             </p>
             <p className="muted small">
               {isIOS()

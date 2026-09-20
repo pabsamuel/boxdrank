@@ -20,6 +20,14 @@ const SHELL = [BASE, `${BASE}index.html`, `${BASE}manifest.webmanifest`, `${BASE
 const SHARE_CACHE = 'trendghost-share';
 const SHARE_KEY = `${BASE}__shared-media`;
 
+/**
+ * Sharing from a gallery hands over the video itself. Sharing from inside
+ * TikTok, Reels or Shorts hands over a LINK instead — the app never gives the
+ * file away. We keep that link only so the page can explain what happened and
+ * offer the file picker; it is never fetched (CONTENT_SOURCING.md).
+ */
+const SHARE_LINK_KEY = `${BASE}__shared-link`;
+
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
   self.skipWaiting();
@@ -60,6 +68,15 @@ self.addEventListener('fetch', (event) => {
               }),
             );
             return Response.redirect(`${BASE}?shared=1`, 303);
+          }
+
+          const link = [data.get('url'), data.get('text'), data.get('title')]
+            .filter((value) => typeof value === 'string' && value.trim() !== '')
+            .join(' ');
+          if (link) {
+            const cache = await caches.open(SHARE_CACHE);
+            await cache.put(SHARE_LINK_KEY, new Response(link));
+            return Response.redirect(`${BASE}?shared=link`, 303);
           }
         } catch {
           // Fall through: open the app normally rather than showing a browser error.

@@ -10,6 +10,7 @@
 
 const SHARE_CACHE = 'trendghost-share';
 const SHARE_KEY = `${import.meta.env.BASE_URL}__shared-media`;
+const SHARE_LINK_KEY = `${import.meta.env.BASE_URL}__shared-link`;
 
 export async function takeSharedMedia(): Promise<File | null> {
   if (typeof caches === 'undefined') return null;
@@ -27,6 +28,27 @@ export async function takeSharedMedia(): Promise<File | null> {
 
     if (blob.size === 0) return null;
     return new File([blob], name, { type });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A link shared instead of a file — what TikTok, Reels and Shorts actually hand
+ * over, because they don't give the video away. Returned so the app can say so
+ * and show the picker; nothing ever fetches it.
+ */
+export async function takeSharedLink(): Promise<string | null> {
+  if (typeof caches === 'undefined') return null;
+
+  try {
+    const cache = await caches.open(SHARE_CACHE);
+    const response = await cache.match(SHARE_LINK_KEY);
+    if (!response) return null;
+
+    const text = (await response.text()).trim();
+    await cache.delete(SHARE_LINK_KEY);
+    return text === '' ? null : text;
   } catch {
     return null;
   }

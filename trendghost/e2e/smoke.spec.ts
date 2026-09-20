@@ -322,6 +322,42 @@ test('a photo shared from another app lands in TrendGhost and starts processing'
   });
 });
 
+/**
+ * What sharing from TikTok, Reels or Shorts actually does: those apps keep the
+ * video and pass a link. The app must say so and offer the picker, not open as
+ * if nothing was shared — and it must never fetch the link.
+ */
+test('a link shared instead of a video is explained, not fetched', async ({ page }) => {
+  const requests: string[] = [];
+  page.on('request', (request) => requests.push(request.url()));
+
+  await page.goto('./');
+  await completeOnboarding(page);
+  await waitForServiceWorkerControl(page);
+
+  const redirected = await page.evaluate(async () => {
+    const form = new FormData();
+    form.append('title', 'Look at this trend');
+    form.append('text', 'https://www.tiktok.com/@someone/video/1234567890');
+    const response = await fetch('share-target', { method: 'POST', body: form });
+    return response.url;
+  });
+
+  expect(redirected, 'a text-only share should still come back into the app').toContain(
+    'shared=link',
+  );
+
+  await gotoApp(page, './?shared=link');
+
+  await expect(page.getByText('That came through as a link, not the video')).toBeVisible();
+  await expect(page.getByText('tiktok.com/@someone/video/1234567890')).toBeVisible();
+
+  // CLAUDE.md rule 5: the link is displayed and nothing else. No request of any
+  // kind may go to the shared host.
+  const fetched = requests.filter((url) => url.includes('tiktok.com'));
+  expect(fetched, `the shared link must never be fetched: ${fetched.join(', ')}`).toHaveLength(0);
+});
+
 test('a shared file is consumed once, not replayed on every reload', async ({ page }) => {
   await page.goto('./');
   await completeOnboarding(page);
