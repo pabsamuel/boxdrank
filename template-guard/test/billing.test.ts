@@ -8,6 +8,8 @@ import {
   verifySubscriptionToken,
 } from '../src/billing/subscription.js';
 import { FallbackSink, WebhookSink } from '../src/drift/sinks.js';
+import { canUseOneClickRepair } from '../src/billing/tiers.js';
+import { requiredScopes } from '../src/server/oauth.js';
 import type { DriftNotification } from '../src/drift/scheduler.js';
 
 const SECRET = 'signing-secret';
@@ -191,5 +193,48 @@ describe('notification sinks', () => {
 
   it('FallbackSink with no channels says so rather than silently succeeding', async () => {
     await expect(new FallbackSink([]).deliver(notification)).rejects.toThrow(/No delivery channel/);
+  });
+});
+
+describe('one-click repair is not in v1 (ADR-025)', () => {
+  const pro = { accountId: '1', planId: 'pro' as const, renewsAt: null };
+  const free = { accountId: '1', planId: 'free' as const, renewsAt: null };
+
+  it('refuses even a Pro account when the feature is off', () => {
+    const gate = canUseOneClickRepair(pro);
+    expect(gate.allowed).toBe(false);
+    expect('reason' in gate && gate.reason).toMatch(/not part of this release/);
+  });
+
+  it('does not upsell something nobody can buy', () => {
+    // "Upgrade for this" about a capability that does not ship is a lie with
+    // a price tag on it.
+    const gate = canUseOneClickRepair(free);
+    expect('upsell' in gate && gate.upsell).toBe('');
+  });
+
+  it('still gates by plan when the feature is switched on', () => {
+    expect(canUseOneClickRepair(pro, true).allowed).toBe(true);
+    expect(canUseOneClickRepair(free, true).allowed).toBe(false);
+  });
+});
+
+describe('requested OAuth scopes follow the feature flag', () => {
+  it('asks for no write permission in v1', () => {
+    const scopes = requiredScopes(false);
+    expect(scopes).toEqual(['boards:read', 'account:read', 'me:read']);
+    // The strongest sentence available at security review: we could not write
+    // to your boards if we wanted to.
+    expect(scopes).not.toContain('boards:write');
+  });
+
+  it('adds boards:write only when one-click repair is enabled', () => {
+    expect(requiredScopes(true)).toContain('boards:write');
+  });
+
+  it('never requests item, update or file access either way', () => {
+    for (const scopes of [requiredScopes(false), requiredScopes(true)]) {
+      expect(scopes.join(' ')).not.toMatch(/items|updates|assets|files/);
+    }
   });
 });

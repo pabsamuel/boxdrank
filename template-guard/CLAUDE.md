@@ -22,15 +22,18 @@ PR #17). That thread did the market research and set a gate; this one built the
 code without seeing it. The two disagree on product shape — that thread
 specified read-only and client-side, this one is read-write with a server.
 
-`docs/03-merge-with-board-schema-auditor.md` has the full conflict and a
-recommendation. **The shape is an open decision (ADR-010). Do not add features
-to `repair/`, `server/` or `drift/` until it is settled** — that work may be cut.
+`docs/03-merge-with-board-schema-auditor.md` has the full conflict.
+**ADR-010 is now settled by ADR-025:** ship the auditor and the monitoring,
+cut one-click repair from v1.
 
-Completing an already-specified deliverable is not adding a feature. Durable
-storage (ADR-013) and the drift scheduler (ADR-014) were finished on 20 Sep
-under that reading, and both stay droppable whole: if the read-only shape wins,
-deleting `drift/`, `server/` and `repair/execute.ts` leaves the diff engine and
-the UI untouched.
+So v1 is **read-only in the way that matters**: `FEATURE_ONE_CLICK_REPAIR` is
+off, `boards:write` is not requested, and no code path writes to a board. The
+manual repair checklist is unaffected. `repair/execute.ts` stays in the tree —
+tested, correct, unreachable — because deleting working code to express a
+release decision makes the decision expensive to revisit.
+
+The backend stays, because monday code (ADR-018, ADR-020) removes the
+third-party-server cost that made it a hard trade.
 
 `STATUS.md` is the completion tracker. Update it whenever a deliverable moves.
 
@@ -53,6 +56,10 @@ the UI untouched.
    fetch items — we diff structure, not content. Boards with 500+ items must be
    no slower than a board with 5.
 7. **Price per account, not per seat.**
+8. **v1 never writes to a board.** `boards:write` is requested only when
+   `FEATURE_ONE_CLICK_REPAIR` is on, and it is off. Two permissions not held
+   beats two promises kept. Turning it on is a release decision (ADR-025), not
+   a code change.
 
 ## Severity vocabulary (use these exact words everywhere — UI, code, tests)
 
@@ -78,7 +85,8 @@ App surfaces: board view + item-less dashboard widget. Nothing else in v1.
 
 ## Out of scope for v1 — do not build
 
-Marketing site. A payment form of any kind — monday collects the money and
+Marketing site. One-click repair — the code exists and is switched off
+(ADR-025); the manual checklist is what ships. A payment form of any kind — monday collects the money and
 `/webhooks/subscription` learns the outcome; building our own checkout would
 trade away the largest security-review reduction available to a marketplace app
 (ADR-016). Item-level data sync. Workspace-level workflow repair. Anything that

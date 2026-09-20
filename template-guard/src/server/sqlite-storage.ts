@@ -6,6 +6,7 @@ import {
   DEFAULT_NOTIFICATION_SETTINGS,
   assertNoItemData,
   type NotificationSettings,
+  type SweepCheckpoint,
   type Storage,
   type StoredInstall,
 } from './storage.js';
@@ -93,6 +94,10 @@ const MIGRATIONS: string[] = [
    );`,
   `CREATE INDEX IF NOT EXISTS templates_by_account ON templates (account_id);`,
   `ALTER TABLE installs ADD COLUMN installed_by_user_id TEXT;`,
+  `CREATE TABLE IF NOT EXISTS app_state (
+     key   TEXT PRIMARY KEY,
+     value TEXT NOT NULL
+   );`,
   `CREATE TABLE IF NOT EXISTS notification_settings (
      account_id     TEXT PRIMARY KEY,
      monday_user_id TEXT,
@@ -300,6 +305,26 @@ export class SqliteStorage implements Storage {
            enabled = excluded.enabled`,
       )
       .run(settings.accountId, settings.mondayUserId, settings.webhookUrl, settings.enabled ? 1 : 0);
+  }
+
+  async getSweepCheckpoint(): Promise<SweepCheckpoint | null> {
+    const row = this.db
+      .prepare(`SELECT value FROM app_state WHERE key = 'sweep_checkpoint'`)
+      .get() as { value: string } | undefined;
+    return row ? (JSON.parse(row.value) as SweepCheckpoint) : null;
+  }
+
+  async saveSweepCheckpoint(checkpoint: SweepCheckpoint | null): Promise<void> {
+    if (checkpoint === null) {
+      this.db.prepare(`DELETE FROM app_state WHERE key = 'sweep_checkpoint'`).run();
+      return;
+    }
+    this.db
+      .prepare(
+        `INSERT INTO app_state (key, value) VALUES ('sweep_checkpoint', ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+      )
+      .run(JSON.stringify(checkpoint));
   }
 
   async deleteAccount(accountId: string): Promise<void> {

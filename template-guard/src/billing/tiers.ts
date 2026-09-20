@@ -97,7 +97,18 @@ export function canUseDriftMonitoring(plan: AccountPlan): GateResult {
   };
 }
 
-export function canUseOneClickRepair(plan: AccountPlan): GateResult {
+export function canUseOneClickRepair(plan: AccountPlan, featureEnabled = false): GateResult {
+  if (!featureEnabled) {
+    // Not an upsell. The capability is not in this release at all, and saying
+    // "upgrade for this" about something nobody can buy is a lie with a
+    // price tag on it. (ADR-025.)
+    return {
+      allowed: false,
+      reason:
+        'One-click repair is not part of this release. Template Guard does not write to your boards; the repair checklist below tells you exactly what to change.',
+      upsell: '',
+    };
+  }
   if (limitsFor(plan).oneClickRepair) return { allowed: true };
   return {
     allowed: false,

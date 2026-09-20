@@ -571,3 +571,102 @@ value, and it is one fewer package in a supply chain a reviewer will ask about.
 asking what actually happens, rather than whether anything is red. The two
 were in code that had no tests at all, which is not a coincidence; the HTTP
 layer now has 18.
+
+## ADR-025 — ADR-010 settled: ship the monitoring, cut the writes
+**Date:** 2026-09-20 · **Status:** accepted — **this closes ADR-010**
+
+The shape question has been open since the two threads were found to be the
+same product. It was open for a good reason: both answers were defensible and
+each gave up something real.
+
+| | Read-only, client-side (#17's shape) | Auditor + repair + monitoring (what got built) |
+|---|---|---|
+| Security review | Easy | Three mutations, a server, stored tokens |
+| Retention | Weak — run once, fix, churn | Real — scheduled monitoring |
+
+**monday code dissolved most of it** (ADR-018, ADR-020). The backend's cost was
+never the backend; it was owning a third-party server and defending it. On
+monday's own infrastructure that cost is largely paid by the platform, so
+keeping scheduled monitoring no longer buys weak retention at the price of a
+hard review.
+
+That leaves one thing the read-only shape was still buying, and it is worth
+naming precisely: **the sentence "Template Guard never writes to your boards."**
+
+So the decision is not either option as written:
+
+> **Ship the auditor and the monitoring. Cut one-click repair from v1.**
+
+### Why the writes are the part to cut
+
+ADR-011 already did this arithmetic without acting on it. `boards:write` plus
+three mutations buys: create a missing column, create a missing group, rename a
+column back. Three conveniences. It does **not** buy the highest-severity
+finding this product has — a mis-wired connect column is already a manual
+checklist item by ADR-006's separate reasoning, because re-pointing a column
+with existing links is a data decision, not a repair.
+
+So the writes cost the strongest sentence available at security review and buy
+nothing that carries the product. That is a bad trade in v1 and a reasonable
+one in v2, once the app is live and the review relationship exists.
+
+### How it is implemented — a flag, not a deletion
+
+`FEATURE_ONE_CLICK_REPAIR`, default **off**:
+
+- **Scopes are derived from it.** `requiredScopes()` returns
+  `boards:read`, `account:read`, `me:read`; `boards:write` appears only when
+  the flag is on. The consent screen can never ask for a permission the
+  deployment is not configured to use — a mismatch a reviewer notices and a
+  customer resents.
+- **`canUseOneClickRepair` refuses with no upsell** when the feature is off,
+  and the endpoint answers **403 rather than 402**. "Upgrade for this" about a
+  capability nobody can buy is a lie with a price tag on it, and a
+  payment-required status would send the client to a flow that cannot deliver.
+- **`repair/execute.ts` stays.** It is tested and correct; it is simply not
+  reachable in v1. Deleting working code to express a release decision makes
+  the decision expensive to revisit, and this one should be revisited.
+
+### What Pro still sells
+
+Unlimited templates, scheduled drift monitoring, and notifications. The
+retention argument — #17's *"most likely way this idea fails"* — is intact,
+because it never rested on the repair button. What people pay for is not having
+to remember to check.
+
+### What this makes true in the listing
+
+> Template Guard reads your board structure. It never writes to your boards,
+> and it never reads your items — it does not hold the permissions to do
+> either.
+
+Two permissions not held beats two promises kept, and it is the shortest
+security conversation this product can have.
+
+## ADR-026 — The sweep is resumable, and I was wrong to defer it
+**Date:** 2026-09-20 · **Status:** accepted
+ADR-020 listed the container request timeout as an unverified behaviour and
+deferred resumability until it could be measured. That was the wrong call, and
+it is worth recording why rather than quietly fixing it.
+
+**Resumability does not depend on the timeout value.** A sweep that records
+what it has finished can continue from wherever it stopped — timeout, deploy,
+crash, anything. Only the *budget* depends on the number, and a budget merely
+decides how often it checkpoints, not whether resuming is correct. I conflated
+"this behaviour is unverified" with "anything near it is unbuildable", which
+is over-applying hard rule 1 rather than following it.
+
+The failure being prevented is specific and bad: on monday code the sweep runs
+inside an HTTP request from the platform scheduler. A sweep that always starts
+from the top would, past some account count, check the same first accounts
+forever and never reach the rest — monitoring that looks healthy and silently
+covers a fraction of its boards. That is this product's signature failure
+occurring inside its own scheduler.
+
+- **Checkpoint after every account, not at the end.** A checkpoint written only
+  on a clean finish is one that never survives the thing it exists for.
+- **A two-minute run budget**, conservative against any plausible container
+  timeout. Pausing is logged but is not an error: the work is saved and the
+  next run continues it.
+- **A checkpoint older than a day is abandoned.** Without that, one bad account
+  list could freeze the queue forever while every run reported success.

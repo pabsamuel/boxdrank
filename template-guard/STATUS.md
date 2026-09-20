@@ -1,6 +1,6 @@
 # Status — how much of this is done
 
-**Updated:** 20 Sep 2026 · 223 tests passing · typecheck clean · production build clean
+**Updated:** 20 Sep 2026 · 234 tests passing · typecheck clean · production build clean
 
 Two numbers, because they are genuinely different and mixing them would be the
 kind of comfortable lie this project is supposed to be allergic to.
@@ -24,7 +24,7 @@ Every deliverable the spec named, plus the two the README listed as still to do.
 | API findings report + Path A/B recommendation | Done | `docs/00-api-findings.md` |
 | App skeleton, OAuth, board view, dashboard widget | Done | `src/server/`, `src/ui/` |
 | Snapshot + diff engine | Done | `src/snapshot/`, `src/diff/` |
-| Unit tests over fixtures — the four required cases | Done, 223 tests | `test/` |
+| Unit tests over fixtures — the four required cases | Done, 234 tests | `test/` |
 | Repair layer (auto where safe, manual checklist where not) | Done | `src/repair/` |
 | README | Done | `README.md` |
 | Project docs, decision log, prompts | Done | `docs/` |
@@ -38,6 +38,8 @@ Every deliverable the spec named, plus the two the README listed as still to do.
 | **Sweep paces against its own storage** — the 7 req/s limit | **Done** | ADR-022 |
 | **The server serves the client** — it did not; board view and post-install page were 404 | **Done** | ADR-023, `test/server.test.ts` |
 | **OAuth state bound to the browser** — the cookie was written and never read (login CSRF) | **Done** | ADR-024 |
+| **Resumable sweep** — checkpointed, survives a container timeout | **Done** | ADR-026 |
+| **ADR-010 settled** — ship monitoring, cut the writes from v1 | **Done** | ADR-025 |
 | **Deployment** — Dockerfile, non-root, data on a volume | **Done** | `Dockerfile`, `docs/06-deployment-and-submission.md` |
 | **Submission checklist** | Done | `docs/06-deployment-and-submission.md` |
 | **Delete everything on uninstall** | **Done** | `Storage.deleteAccount()`, ADR-019 |
@@ -61,7 +63,7 @@ What is left, and who can do it.
 | 1 | **Verify the five `✱` claims.** Now one command: `MONDAY_API_TOKEN=… npm run verify:live -- --board <id> --connect-board <id> --automations`. Read-only, prints the observed shape next to each claim, exits non-zero on failure. | You, with a dev account | **~10 minutes** |
 | 2 | **Gate #2 — defend the architecture.** monday rejects AI-vibe-coded apps. The answer key is written; you have to be able to give the answers cold. | You | An evening's reading |
 | 3 | **Gate #3 — run the Burp scan and remediate what it finds.** The standard findings are pre-empted (headers, CORS, rate limiting, body cap, non-root container) and tested. It does **not** go away on monday code — monday requires all domains to pass and documents no exemption — but the scanned surface becomes monday's infrastructure and `mapps code:push -s` scans at deploy time. | You, after deploying | Unknown until scanned |
-| 4 | **ADR-010 — pick the product shape.** Read-only auditor, or auditor + repair + monitoring. Recommendation: read-only first. | You | A decision, not a task |
+| 4 | ~~ADR-010 — pick the product shape~~ **Settled 20 Sep — ADR-025.** Ship the auditor and the monitoring; cut one-click repair from v1 so that "never writes to your boards" is a true listing claim. monday code removed the cost that made the backend a hard trade. | — | — |
 | 5 | **10 admin conversations about column drift.** Load-bearing since the marketplace scan: the category tops out at 951 installs while reporting apps hit 17.8K. | You | A week of asking |
 | 6 | ~~Open the Workspace Doctor listing~~ **Done 20 Sep.** It does account-wide hygiene, not template fidelity. The clear holds; "nothing adjacent exists" no longer does. `docs/07-workspace-doctor.md` | — | — |
 | 9 | ~~Investigate `monday code`~~ **Done 20 Sep — `docs/08-monday-code.md`.** It is real and it is the right target: native scheduler, Secure Storage segregated per account, SOC 2 / ISO 27001 / HIPAA / GDPR inherited, data residency automatic, free today. **Five `✱` questions remain**, answerable in an hour with the CLI installed. Question 1 — whether an app-scoped storage key exists — decides the drift sweep's design. | You, 1 hour with the CLI | 1 hour |
@@ -81,7 +83,10 @@ and none of them can be answered from a terminal.
 Next, in order:
 
 1. **`npm run verify:live`** with a dev token — ten minutes, closes the
-   GraphQL `✱` claims.
+   GraphQL `✱` claims. **It has to be you:** `api.monday.com`,
+   `auth.monday.com` and `developer.monday.com` are all blocked by this
+   environment's egress proxy (npm is not), so no session here can run it,
+   deploy, or authenticate the CLI — with or without a token.
 2. **Deploy to a private monday code app** and watch the first sweep in
    `mapps code:logs` — closes the platform `✱` behaviours.
 3. **ADR-010**, now with information behind it. monday code makes the

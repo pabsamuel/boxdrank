@@ -66,6 +66,11 @@ export interface ServerDeps {
   /** Shared secret the monday code scheduler must present. */
   cronSecret?: string;
   /**
+   * One-click repair, and with it `boards:write` and the three mutations.
+   * **Off in v1** — ADR-025. The manual checklist is unaffected.
+   */
+  oneClickRepair?: boolean;
+  /**
    * Built client bundle to serve. Defaults to `dist/client`. Set to `null` to
    * serve no static files at all, which is only right in local development,
    * where Vite serves the client on its own port.
@@ -181,6 +186,7 @@ export function createServer(deps: ServerDeps) {
       ok: true,
       snapshotSchemaVersion: SNAPSHOT_SCHEMA_VERSION,
       automationsPreview: previewOn,
+      oneClickRepair: deps.oneClickRepair ?? false,
       driftScheduler: scheduler
         ? {
             started: scheduler.started,
@@ -394,9 +400,12 @@ export function createServer(deps: ServerDeps) {
       }
 
       const plan = await deps.storage.getPlan(session.accountId);
-      const gate = canUseOneClickRepair(plan);
+      const gate = canUseOneClickRepair(plan, deps.oneClickRepair ?? false);
       if (!gate.allowed) {
-        res.status(402).json({ error: gate.reason, upsell: gate.upsell });
+        // 403 rather than 402 when the feature is off entirely: there is
+        // nothing to pay for, and a payment-required status would send the
+        // client to an upgrade flow that cannot deliver this.
+        res.status(deps.oneClickRepair ? 402 : 403).json({ error: gate.reason, upsell: gate.upsell });
         return;
       }
 
@@ -767,6 +776,7 @@ if (isMain) {
     scheduler,
     automationsPreview,
     cronSecret: config.get('DRIFT_CRON_SECRET') ?? undefined,
+    oneClickRepair: config.flag('FEATURE_ONE_CLICK_REPAIR'),
     // Only set this when the built client lives somewhere other than
     // `dist/client`. In local development Vite serves the client on its own
     // port, so the API server having nothing to serve is expected.
@@ -781,6 +791,9 @@ if (isMain) {
       clientId: config.require('MONDAY_CLIENT_ID'),
       clientSecret: config.require('MONDAY_CLIENT_SECRET'),
       redirectUri: config.require('MONDAY_REDIRECT_URI'),
+      // The consent screen must never ask for a permission this deployment is
+      // not configured to use.
+      oneClickRepairEnabled: config.flag('FEATURE_ONE_CLICK_REPAIR'),
     },
   });
 

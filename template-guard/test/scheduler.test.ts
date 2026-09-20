@@ -248,12 +248,11 @@ describe('DriftScheduler', () => {
   it('clears the running flag even when the sweep throws', async () => {
     const storage = await seed();
     const scheduler = new DriftScheduler(
-      {
-        ...storage,
+      Object.assign(Object.create(Object.getPrototypeOf(storage) as object), storage, {
         listAccountIdsWithTemplates: async () => {
           throw new Error('database unreachable');
         },
-      } as unknown as InMemoryStorage,
+      }) as InMemoryStorage,
       cipher,
       new RecordingSink(),
       { sleep: noSleep, jitterMs: 0 },
@@ -330,5 +329,135 @@ describe('DriftScheduler storage pacing', () => {
 
     await scheduler.sweep();
     expect(waits).toEqual([]);
+  });
+});
+
+describe('DriftScheduler resumability', () => {
+  /** Seeds N pro accounts, each with one template and one linked board. */
+  async function seedMany(count: number) {
+    const storage = new InMemoryStorage();
+    for (let i = 0; i < count; i += 1) {
+      const accountId = `acct-${i}`;
+      await storage.saveInstall({
+        accountId,
+        accountSlug: `slug-${i}`,
+        encryptedToken: cipher.encrypt('monday-token'),
+        installedAt: '2026-09-01T00:00:00.000Z',
+      });
+      await storage.savePlan({ accountId, planId: 'pro', renewsAt: null });
+      await storage.saveTemplate({
+        accountId,
+        templateBoardId: TEMPLATE_BOARD_ID,
+        label: 'Template',
+        snapshot: templateBoard,
+        linkedBoardIds: [COPY_BOARD_ID],
+        createdAt: '2026-09-01T00:00:00.000Z',
+        updatedAt: '2026-09-01T00:00:00.000Z',
+      });
+    }
+    return storage;
+  }
+
+  function schedulerFor(storage: InMemoryStorage, clock: { t: number }, maxRunMs: number) {
+    return new DriftScheduler(storage, cipher, new RecordingSink(), {
+      jitterMs: 0,
+      accountPauseMs: 0,
+      storageOpsPerSecond: 0,
+      maxRunMs,
+      now: () => new Date(clock.t),
+      // Every wait advances the clock, which is what eventually spends the
+      // run budget.
+      sleep: async (ms: number) => {
+        clock.t += ms || 1000;
+      },
+      makeClient: () => fakeClient(cleanCopy),
+    });
+  }
+
+  it('stops when the run budget is spent and saves what is left', async () => {
+    const storage = await seedMany(4);
+    const clock = { t: 0 };
+    const scheduler = schedulerFor(storage, clock, 1);
+
+    const first = await scheduler.sweep();
+
+    // Not an exact count: in this fake, time only moves when the sweep sleeps,
+    // so how many accounts fit is an artefact of the fake. The invariant is
+    // what matters — it stopped early and nothing was dropped.
+    expect(first.results.length).toBeGreaterThan(0);
+    expect(first.results.length).toBeLessThan(4);
+    expect(first.remainingAccountIds.length).toBe(4 - first.results.length);
+
+    const checkpoint = await storage.getSweepCheckpoint();
+    expect(checkpoint?.remainingAccountIds).toEqual(first.remainingAccountIds);
+  });
+
+  it('resumes where it stopped rather than re-checking the same accounts forever', async () => {
+    const storage = await seedMany(4);
+    const clock = { t: 0 };
+    const scheduler = schedulerFor(storage, clock, 1);
+
+    const first = await scheduler.sweep();
+    const second = await scheduler.sweep();
+
+    expect(second.resumed).toBe(true);
+
+    // The whole point: no account is checked twice while others wait. Without
+    // resumption every run would re-check the same first accounts and the
+    // rest would never be swept at all.
+    const firstIds = first.results.map((r) => r.accountId);
+    const secondIds = second.results.map((r) => r.accountId);
+    expect(secondIds.filter((id) => firstIds.includes(id))).toEqual([]);
+  });
+
+  it('eventually covers every account across runs, and then clears the checkpoint', async () => {
+    const storage = await seedMany(4);
+    const clock = { t: 0 };
+    const scheduler = schedulerFor(storage, clock, 1);
+
+    const seen: string[] = [];
+    // Run until this sweep cycle completes, rather than a fixed number of
+    // times — running past completion starts a *new* sweep, which legitimately
+    // revisits accounts.
+    for (let run = 0; run < 10; run += 1) {
+      const result = await scheduler.sweep();
+      seen.push(...result.results.map((r) => r.accountId));
+      if (result.remainingAccountIds.length === 0) break;
+    }
+
+    expect(seen.sort()).toEqual(['acct-0', 'acct-1', 'acct-2', 'acct-3']);
+    // A finished sweep leaves nothing behind, so the next one starts fresh.
+    expect(await storage.getSweepCheckpoint()).toBeNull();
+  });
+
+  it('finishes in one run when the budget allows, and saves no checkpoint', async () => {
+    const storage = await seedMany(3);
+    const clock = { t: 0 };
+    const scheduler = schedulerFor(storage, clock, 10 * 60 * 1000);
+
+    const result = await scheduler.sweep();
+
+    expect(result.results).toHaveLength(3);
+    expect(result.remainingAccountIds).toEqual([]);
+    expect(result.resumed).toBe(false);
+    expect(await storage.getSweepCheckpoint()).toBeNull();
+  });
+
+  it('abandons a checkpoint that is too old instead of freezing on a stale list', async () => {
+    const storage = await seedMany(2);
+    // A checkpoint left behind by a sweep that never completed. Without an age
+    // limit this would be resumed forever and the other accounts never seen.
+    await storage.saveSweepCheckpoint({
+      startedAt: new Date(0).toISOString(),
+      remainingAccountIds: ['acct-1'],
+    });
+
+    const clock = { t: 10 * 24 * 60 * 60 * 1000 };
+    const scheduler = schedulerFor(storage, clock, 10 * 60 * 1000);
+
+    const result = await scheduler.sweep();
+
+    expect(result.resumed).toBe(false);
+    expect(result.results.map((r) => r.accountId).sort()).toEqual(['acct-0', 'acct-1']);
   });
 });

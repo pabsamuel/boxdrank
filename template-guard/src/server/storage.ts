@@ -51,6 +51,27 @@ export interface NotificationSettings {
   enabled: boolean;
 }
 
+/**
+ * A sweep that was interrupted, and where it had got to.
+ *
+ * On monday code the sweep runs inside an HTTP request from the platform
+ * scheduler, and a container has a request timeout. A sweep that always starts
+ * from the top would, on a large enough account list, check the same first few
+ * accounts forever and never reach the rest — monitoring that looks like it is
+ * working and silently never covers most of its boards.
+ *
+ * Note what this does *not* require: knowing what the timeout is. A sweep that
+ * records what it has finished can resume from anywhere it stops, for any
+ * reason — timeout, deploy, crash. The budget below only decides how often it
+ * checkpoints, not whether resuming is correct.
+ */
+export interface SweepCheckpoint {
+  /** When this multi-run sweep began, so a stuck one can be abandoned. */
+  startedAt: string;
+  /** Accounts not yet checked in this sweep. Empty means it finished. */
+  remainingAccountIds: string[];
+}
+
 export const DEFAULT_NOTIFICATION_SETTINGS = (accountId: string): NotificationSettings => ({
   accountId,
   mondayUserId: null,
@@ -91,6 +112,9 @@ export interface Storage {
   deleteAccount(accountId: string): Promise<void>;
   getNotificationSettings(accountId: string): Promise<NotificationSettings>;
   saveNotificationSettings(settings: NotificationSettings): Promise<void>;
+  /** App-wide, not per account. `null` clears it. */
+  getSweepCheckpoint(): Promise<SweepCheckpoint | null>;
+  saveSweepCheckpoint(checkpoint: SweepCheckpoint | null): Promise<void>;
 }
 
 const ALGORITHM = 'aes-256-gcm';
@@ -167,6 +191,7 @@ export class InMemoryStorage implements Storage {
   private templates = new Map<string, TemplateRecord>();
   private plans = new Map<string, AccountPlan>();
   private notifications = new Map<string, NotificationSettings>();
+  private checkpoint: SweepCheckpoint | null = null;
 
   private key(accountId: string, boardId: string): string {
     return `${accountId}:${boardId}`;
@@ -215,6 +240,14 @@ export class InMemoryStorage implements Storage {
 
   async saveNotificationSettings(settings: NotificationSettings): Promise<void> {
     this.notifications.set(settings.accountId, settings);
+  }
+
+  async getSweepCheckpoint(): Promise<SweepCheckpoint | null> {
+    return this.checkpoint;
+  }
+
+  async saveSweepCheckpoint(checkpoint: SweepCheckpoint | null): Promise<void> {
+    this.checkpoint = checkpoint;
   }
 
   async deleteAccount(accountId: string): Promise<void> {

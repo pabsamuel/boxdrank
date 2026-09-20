@@ -69,6 +69,10 @@ export interface SweepResult {
   accountsConsidered: number;
   accountsChecked: number;
   results: AccountSweepResult[];
+  /** True when this run continued a sweep an earlier run did not finish. */
+  resumed: boolean;
+  /** Accounts left for the next run. Empty means the sweep completed. */
+  remainingAccountIds: string[];
 }
 
 export interface SchedulerOptions {
@@ -98,6 +102,19 @@ export interface SchedulerOptions {
   random?: () => number;
   /** Injectable so tests never open a socket. */
   makeClient?: (token: string) => MondayClient;
+  /**
+   * Wall-clock budget for one run. When it is spent, the sweep stops and
+   * saves what is left; the next run picks up there.
+   *
+   * On monday code the sweep runs inside an HTTP request from the platform
+   * scheduler, and a container has a request timeout this codebase has not
+   * verified. The budget does not need to know that number — it only needs to
+   * be comfortably under it. Two minutes is, for any plausible value, and
+   * being a run late with a drift alert costs nothing.
+   */
+  maxRunMs?: number;
+  /** A sweep that has not finished in this long is abandoned and restarted. */
+  checkpointMaxAgeMs?: number;
 }
 
 const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -188,23 +205,48 @@ export class DriftScheduler {
     const now = this.opts.now ?? (() => new Date());
     const sleep = this.opts.sleep ?? defaultSleep;
     const startedAt = now().toISOString();
+    const runStartedMs = now().getTime();
+    const maxRunMs = this.opts.maxRunMs ?? 120_000;
     const results: AccountSweepResult[] = [];
 
     try {
-      const accountIds = await this.storage.listAccountIdsWithTemplates();
+      const { queue, resumed, sweepStartedAt } = await this.resolveQueue(now);
+      const remaining = [...queue];
 
-      for (let i = 0; i < accountIds.length; i += 1) {
-        const accountId = accountIds[i]!;
+      while (remaining.length > 0) {
+        const accountId = remaining.shift()!;
         results.push(await this.sweepAccount(accountId));
-        if (i + 1 < accountIds.length) await sleep(this.opts.accountPauseMs ?? 2_000);
+
+        // Checkpoint after each account, not at the end. A checkpoint written
+        // only on a clean finish is a checkpoint that never survives the thing
+        // it exists for.
+        await this.storage.saveSweepCheckpoint(
+          remaining.length > 0 ? { startedAt: sweepStartedAt, remainingAccountIds: remaining } : null,
+        );
+
+        if (remaining.length === 0) break;
+
+        if (now().getTime() - runStartedMs >= maxRunMs) {
+          // Not an error and not a skip: the work is saved and the next run
+          // continues it. Logged because a sweep that never finishes within
+          // one interval is something an operator should know about.
+          console.warn(
+            `[template-guard] drift sweep paused after ${results.length} account(s); ${remaining.length} left for the next run.`,
+          );
+          break;
+        }
+
+        await sleep(this.opts.accountPauseMs ?? 2_000);
       }
 
       const result: SweepResult = {
         startedAt,
         finishedAt: now().toISOString(),
-        accountsConsidered: accountIds.length,
+        accountsConsidered: results.length + remaining.length,
         accountsChecked: results.filter((r) => !r.skipped).length,
         results,
+        resumed,
+        remainingAccountIds: remaining,
       };
       this.lastSweep = result;
       return result;
@@ -213,6 +255,38 @@ export class DriftScheduler {
       // `running` flag is a monitor that has silently stopped monitoring.
       this.running = false;
     }
+  }
+
+  /**
+   * Either continues an unfinished sweep or starts a new one.
+   *
+   * A checkpoint is abandoned once it is older than a day. Without that, one
+   * bad account could freeze the queue on a stale list forever, and every
+   * later run would re-check the same few boards while reporting success —
+   * which is this product's signature failure, in its own scheduler.
+   */
+  private async resolveQueue(
+    now: () => Date,
+  ): Promise<{ queue: string[]; resumed: boolean; sweepStartedAt: string }> {
+    const checkpoint = await this.storage.getSweepCheckpoint();
+    const maxAge = this.opts.checkpointMaxAgeMs ?? 24 * 60 * 60 * 1000;
+
+    if (checkpoint && checkpoint.remainingAccountIds.length > 0) {
+      const age = now().getTime() - Date.parse(checkpoint.startedAt);
+      if (Number.isFinite(age) && age >= 0 && age <= maxAge) {
+        return { queue: checkpoint.remainingAccountIds, resumed: true, sweepStartedAt: checkpoint.startedAt };
+      }
+      console.warn(
+        `[template-guard] abandoning a drift sweep checkpoint from ${checkpoint.startedAt}: it is older than the limit, so the account list is restarted.`,
+      );
+    }
+
+    const startedAt = now().toISOString();
+    return {
+      queue: await this.storage.listAccountIdsWithTemplates(),
+      resumed: false,
+      sweepStartedAt: startedAt,
+    };
   }
 
   private async sweepAccount(accountId: string): Promise<AccountSweepResult> {

@@ -21,10 +21,10 @@
       "http://localhost:8302/auth/callback",
       "https://YOUR-DOMAIN/auth/callback"
     ],
-    "scopes": ["boards:read", "boards:write", "account:read", "me:read"],
+    "scopes": ["boards:read", "account:read", "me:read"],
     "$scopeRationale": {
       "boards:read": "Read board structure — columns, groups, views, connections. The comparison is built entirely from this.",
-      "boards:write": "Create a missing column or group, and rename a column back, when the user explicitly confirms a repair.",
+      "$boards:write": "NOT REQUESTED IN v1. One-click repair is switched off (FEATURE_ONE_CLICK_REPAIR, ADR-025), so Template Guard never writes to a board. The manual repair checklist is unaffected. Re-add this scope only together with that flag.",
       "account:read": "Account ID and slug, used for deep links into the right monday account and for per-account billing.",
       "me:read": "Identify the installing user at OAuth time, and record their user id so drift alerts have a recipient (ADR-021).",
       "$notRequested": "No item, update, or file scopes are requested. Template Guard never reads board items, so it does not hold the permission to."

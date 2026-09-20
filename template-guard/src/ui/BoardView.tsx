@@ -103,7 +103,11 @@ export function BoardView() {
 
   const counts = useMemo(() => (diff ? countBySeverity(diff.findings) : null), [diff]);
   const boardName = boards.find((b) => b.id === boardId)?.name ?? 'this board';
-  const repairGate = plan ? canUseOneClickRepair(plan) : { allowed: false as const, reason: '', upsell: '' };
+  // v1 ships without one-click repair (ADR-025), so the panel shows the
+  // manual checklist and says plainly that nothing writes to the board.
+  const repairGate = plan
+    ? canUseOneClickRepair(plan, false)
+    : { allowed: false as const, reason: '', upsell: '' };
 
   if (loading) {
     return (

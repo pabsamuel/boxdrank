@@ -25,21 +25,43 @@ export const MONDAY_TOKEN_URL = 'https://auth.monday.com/oauth2/token';
  * install:
  *
  *  - `boards:read`     — read board structure. The entire diff depends on it.
- *  - `boards:write`    — create the missing column or group during a repair.
  *  - `account:read`    — account ID and slug, for deep links and billing.
- *  - `me:read`         — identify the installing user.
+ *  - `me:read`         — identify the installing user, and record their id so
+ *                        drift alerts have a recipient.
+ *
+ * `boards:write` is requested **only** when one-click repair is switched on,
+ * and it is off in v1. See ADR-025: shipping without it makes "Template Guard
+ * never writes to your boards" a true listing claim and removes every write
+ * from the first security review, at the cost of three conveniences. The
+ * manual repair checklist — including the highest-severity finding, which was
+ * already manual — is unaffected.
  *
  * Deliberately NOT requested:
  *  - anything granting item or update access. We never read items, and not
  *    holding the scope is a stronger claim than promising not to use it.
  *  - `workspaces:write`, `users:write`, `teams:write`. Nothing here needs them.
  */
-export const REQUIRED_SCOPES = ['boards:read', 'boards:write', 'account:read', 'me:read'] as const;
+export const READ_ONLY_SCOPES = ['boards:read', 'account:read', 'me:read'] as const;
+export const REPAIR_SCOPE = 'boards:write' as const;
+
+/**
+ * The scopes to request. Derived from the flag rather than hard-coded, so the
+ * consent screen can never ask for a permission the app is not configured to
+ * use — a mismatch a reviewer would notice and a customer would resent.
+ */
+export function requiredScopes(oneClickRepairEnabled = false): string[] {
+  return oneClickRepairEnabled ? [...READ_ONLY_SCOPES, REPAIR_SCOPE] : [...READ_ONLY_SCOPES];
+}
+
+/** @deprecated Use `requiredScopes()`. Kept for the v1 read-only default. */
+export const REQUIRED_SCOPES = READ_ONLY_SCOPES;
 
 export interface OAuthConfig {
   clientId: string;
   clientSecret: string;
   redirectUri: string;
+  /** Adds `boards:write` to the consent screen. Off in v1 — see ADR-025. */
+  oneClickRepairEnabled?: boolean;
 }
 
 /**
@@ -126,7 +148,7 @@ export function authorizeUrl(config: OAuthConfig, state: string): string {
   const url = new URL(MONDAY_AUTHORIZE_URL);
   url.searchParams.set('client_id', config.clientId);
   url.searchParams.set('redirect_uri', config.redirectUri);
-  url.searchParams.set('scope', REQUIRED_SCOPES.join(' '));
+  url.searchParams.set('scope', requiredScopes(config.oneClickRepairEnabled).join(' '));
   url.searchParams.set('state', state);
   return url.toString();
 }

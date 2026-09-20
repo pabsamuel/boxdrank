@@ -7,6 +7,7 @@ import {
   DEFAULT_NOTIFICATION_SETTINGS,
   assertNoItemData,
   type NotificationSettings,
+  type SweepCheckpoint,
   type Storage,
   type StoredInstall,
 } from './storage.js';
@@ -90,6 +91,9 @@ const TEMPLATE_PREFIX = 'template:';
  */
 const ACCOUNT_INDEX_KEY = 'accounts-with-templates';
 
+/** App-wide, like the index, and for the same reason: no account owns it. */
+const SWEEP_CHECKPOINT_KEY = 'sweep-checkpoint';
+
 /** How many `search` pages to walk before refusing to keep going. */
 const MAX_SEARCH_PAGES = 50;
 
@@ -146,6 +150,18 @@ export class MondayCodeStorage implements Storage {
 
   async saveNotificationSettings(settings: NotificationSettings): Promise<void> {
     await this.secureSet(`${NOTIFY_PREFIX}${settings.accountId}`, settings, 'notification settings');
+  }
+
+  async getSweepCheckpoint(): Promise<SweepCheckpoint | null> {
+    return this.secure.get<SweepCheckpoint>(SWEEP_CHECKPOINT_KEY);
+  }
+
+  async saveSweepCheckpoint(checkpoint: SweepCheckpoint | null): Promise<void> {
+    if (checkpoint === null) {
+      await this.secure.delete(SWEEP_CHECKPOINT_KEY);
+      return;
+    }
+    await this.secureSet(SWEEP_CHECKPOINT_KEY, checkpoint, 'sweep checkpoint');
   }
 
   // --- Templates (account-scoped) -------------------------------------------

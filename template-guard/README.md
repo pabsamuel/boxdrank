@@ -61,7 +61,7 @@ are encrypted at rest with AES-256-GCM.
 | Piece | State |
 |---|---|
 | API findings report | Done — `docs/00-api-findings.md` |
-| Snapshot + diff engine | Done, 223 tests |
+| Snapshot + diff engine | Done, 234 tests |
 | Repair layer | Done |
 | Board view + dashboard widget | Done, builds clean, and served by the server in production (ADR-023) |
 | OAuth + server | Done, **never run against a live monday account** |
@@ -81,7 +81,7 @@ and `STATUS.md` for how much of the project is done and what is left.
 cd template-guard
 npm install
 cp .env.example .env     # then fill it in
-npm test                 # 223 tests, no network, no credentials needed
+npm test                 # 234 tests, no network, no credentials needed
 npm run typecheck
 npm run dev              # client on :8301
 npm run dev:server       # API on :8302
@@ -294,7 +294,7 @@ src/
   billing/      plan gating · subscription webhook
   server/       OAuth, storage (in-memory · SQLite · monday code), config, security, HTTP API
   ui/           board view, dashboard widget, Vibe components
-test/           223 tests over fixture board configs
+test/           234 tests over fixture board configs
 scripts/        verify-live.ts — checks the ✱ claims against a real account
 docs/           findings report, roadmap, decision log, deployment, prompts
 ```
