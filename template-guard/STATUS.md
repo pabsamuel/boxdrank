@@ -56,20 +56,23 @@ What is left, and who can do it.
 |---|---|---|---|
 | 1 | **Verify the five `✱` claims.** Now one command: `MONDAY_API_TOKEN=… npm run verify:live -- --board <id> --connect-board <id> --automations`. Read-only, prints the observed shape next to each claim, exits non-zero on failure. | You, with a dev account | **~10 minutes** |
 | 2 | **Gate #2 — defend the architecture.** monday rejects AI-vibe-coded apps. The answer key is written; you have to be able to give the answers cold. | You | An evening's reading |
-| 3 | **Gate #3 — run the Burp scan and remediate what it finds.** The standard findings are pre-empted (headers, CORS, rate limiting, body cap, non-root container) and tested. What is left is whatever the scan turns up on a deployed instance. | You, after deploying | Unknown until scanned |
+| 3 | **Gate #3 — run the Burp scan and remediate what it finds.** The standard findings are pre-empted (headers, CORS, rate limiting, body cap, non-root container) and tested. It does **not** go away on monday code — monday requires all domains to pass and documents no exemption — but the scanned surface becomes monday's infrastructure and `mapps code:push -s` scans at deploy time. | You, after deploying | Unknown until scanned |
 | 4 | **ADR-010 — pick the product shape.** Read-only auditor, or auditor + repair + monitoring. Recommendation: read-only first. | You | A decision, not a task |
 | 5 | **10 admin conversations about column drift.** Load-bearing since the marketplace scan: the category tops out at 951 installs while reporting apps hit 17.8K. | You | A week of asking |
 | 6 | ~~Open the Workspace Doctor listing~~ **Done 20 Sep.** It does account-wide hygiene, not template fidelity. The clear holds; "nothing adjacent exists" no longer does. `docs/07-workspace-doctor.md` | — | — |
-| 9 | **Investigate `monday code`.** Workspace Doctor runs its scheduled backend on monday's own infrastructure while claiming "never on third-party servers". If that works for us, the ADR-010 dilemma dissolves and gate #3 shrinks. **Highest-value unknown in the project.** | You, 30 min in monday's docs | 30 minutes |
+| 9 | ~~Investigate `monday code`~~ **Done 20 Sep — `docs/08-monday-code.md`.** It is real and it is the right target: native scheduler, Secure Storage segregated per account, SOC 2 / ISO 27001 / HIPAA / GDPR inherited, data residency automatic, free today. **Five `✱` questions remain**, answerable in an hour with the CLI installed. Question 1 — whether an app-scoped storage key exists — decides the drift sweep's design. | You, 1 hour with the CLI | 1 hour |
+| 10 | **Port to monday code**, after 9 and ADR-010. New `Storage` implementation, a `Config` interface, a `/mndy-cronjob` route, and a new sweep shape. The diff engine does not move. | Me, once 9 is answered | ~1 day |
 | 7 | **Deploy it.** `docker build` / `docker run`, per `docs/06-deployment-and-submission.md`. Needs a host with TLS. | You | An afternoon |
 | 8 | Configure the developer console: features, OAuth redirect, billing webhook URL, plan ids | You | An hour |
 
 Items 1–3 and 7–8 are hard prerequisites for submission. Items 4, 5 and 9
 decide **what** to submit and whether it is worth submitting at all.
 
-**Item 9 is next and it is thirty minutes.** It comes before deploying
-anything, because it may change where this deploys — and before the Burp
-scan, because it may change what gets scanned.
+**Item 9 is answered.** Next is the hour that closes both technical unknowns
+in one sitting: install `@mondaycom/apps-cli`, answer the five `✱` questions in
+`docs/08-monday-code.md` (question 1 first — it decides the sweep design), then
+run `npm run verify:live` for the API claims. After that, ADR-010 becomes a
+decision made with information rather than a forced choice.
 
 ---
 

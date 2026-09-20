@@ -17,7 +17,8 @@ done and is blocking on your answer. Copy-paste prompts for each phase are in
 | 7 | **Live verification** | check every `✱` claim against a real monday account | **script written** — `npm run verify:live`, ADR-017. Running it needs an API token. |
 | — | **Marketplace duplicate check** | ~20 min of browser time; can kill the whole project | **CLEARED 2026-09-20** by Samet — no competitor. See ADR-012 and `docs/04-marketplace-scan.md`. One listing left to read: Workspace Doctor. |
 | — | **Demand evidence** | 10 admin conversations about column drift | **the gate** — category tops out at 951 installs, and the nearest neighbour did 23 in three months |
-| — | **`monday code` investigation** | can the backend run on monday's own infrastructure? | **highest-value unknown** — ADR-018. Could dissolve the ADR-010 dilemma entirely. |
+| — | **`monday code` investigation** | can the backend run on monday's own infrastructure? | **done 2026-09-20** — yes. `docs/08-monday-code.md`, ADR-018. Five `✱` questions left, one hour with the CLI. |
+| 12 | **Port to monday code** | `MondayCodeStorage`, `Config` interface, `/mndy-cronjob` route, new sweep shape | **blocked** on the five `✱` questions and on ADR-010 |
 | — | **Product shape decision** | read-only auditor, or auditor + repair + monitoring | **blocked on the owner** — see ADR-010 |
 | 8 | Real storage | a real database behind the `Storage` interface | **done 2026-09-20** — SQLite, ADR-013. One suite runs against both implementations. |
 | — | **Gate #2 answer key** | architecture defence for a marketplace reviewer | **done 2026-09-20** — `docs/05-architecture-walkthrough.md`. Reading it is on the owner. |

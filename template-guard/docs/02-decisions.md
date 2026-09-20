@@ -277,8 +277,32 @@ connect-column claim, and a summary that let those blur would be this codebase
 committing its own signature failure — reporting "we did not look" as "we
 looked, it is fine."
 
-## ADR-018 — `monday code` may be the third answer to ADR-010
-**Date:** 2026-09-20 · **Status:** open — investigate before choosing the shape
+## ADR-018 — `monday code` is the third answer to ADR-010
+**Date:** 2026-09-20 · **Status:** **researched — target it; do not port yet.**
+Full research: `docs/08-monday-code.md`. Verdict, in one line: it is real, it
+is the right target, and it costs about a day — one new `Storage`
+implementation, a `Config` interface, a cron route, and **a redesign of how the
+drift sweep enumerates accounts**, because monday code segregates storage by
+account and `listAccountIdsWithTemplates()` has nothing to enumerate.
+
+Two corrections to the optimistic reading below, both found in the research:
+
+- **The Burp scan does not disappear.** monday still requires that all domains
+  pass it, and no exemption for monday code apps is documented. What shrinks is
+  the surface — the scanned domain is monday's infrastructure, and
+  `mapps code:push -s` runs a scan at deploy time. Gate #3 gets smaller and
+  better-supported; it does not vanish, and STATUS.md will not say it does.
+- **`SqliteStorage` is dead there.** A container with no persistent disk cannot
+  hold the file. One more implementation behind the same interface — which is
+  what the interface was for.
+
+The scheduler is native (one cron job; the cap is five per region), secrets and
+config come through the SDK rather than `process.env`, and Secure Storage is
+capped at **7 requests/second** since February 2026, which the sweep does not
+currently pace against.
+
+*Original entry, kept because it is what was decided on and the reasoning still
+holds:*
 Reading the Workspace Doctor listing turned up a design fact, not just a
 competitive one. Its privacy paragraph says it *"runs entirely on monday's own
 infrastructure (monday code), never on third-party servers"* — while also
