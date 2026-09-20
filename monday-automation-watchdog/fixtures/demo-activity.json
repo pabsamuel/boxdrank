@@ -60,6 +60,64 @@
     "9005",
     "9006"
   ],
+  "runs": [
+    {
+      "at": 1789640400000,
+      "watched": 6,
+      "silent": 1,
+      "muted": 0,
+      "sent": true,
+      "error": null
+    },
+    {
+      "at": 1789554000000,
+      "watched": 6,
+      "silent": 0,
+      "muted": 0,
+      "sent": false,
+      "error": null
+    },
+    {
+      "at": 1789467600000,
+      "watched": 6,
+      "silent": 0,
+      "muted": 0,
+      "sent": false,
+      "error": null
+    },
+    {
+      "at": 1789381200000,
+      "watched": 6,
+      "silent": 0,
+      "muted": 0,
+      "sent": false,
+      "error": "monday API returned 500"
+    },
+    {
+      "at": 1789294800000,
+      "watched": 6,
+      "silent": 0,
+      "muted": 0,
+      "sent": false,
+      "error": null
+    },
+    {
+      "at": 1789208400000,
+      "watched": 6,
+      "silent": 0,
+      "muted": 0,
+      "sent": false,
+      "error": null
+    },
+    {
+      "at": 1789122000000,
+      "watched": 6,
+      "silent": 0,
+      "muted": 0,
+      "sent": false,
+      "error": null
+    }
+  ],
   "entries": [
     {
       "boardId": "103",

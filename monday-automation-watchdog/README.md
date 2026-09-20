@@ -92,6 +92,7 @@ src/core/            zero dependencies, no network, no monday
   email.js             render a notification plan as text and HTML
   sanitize.js          flatten untrusted names so they cannot forge structure
   mutes.js             silence a signal without going blind to it
+  run-log.js           did the checks themselves run?
 src/app/
   mute-store.js        where mutes live in the browser (demo only)
   monday-source.js     the only file that talks to monday
@@ -105,7 +106,7 @@ scripts/
   build.js             emits a deployable dist/
 ```
 
-**102 tests**, all offline — no network, no account, no monday dependency.
+**114 tests**, all offline — no network, no account, no monday dependency.
 One runtime dependency (`monday-sdk-js`, pinned to 0.5.9 for the same reason as
 the schema auditor: 1.0.0-beta has removed `api()`).
 
@@ -161,6 +162,33 @@ failing. If one of these matters, check it in the board's Automations centre.
 ```
 
 One hour later, with nothing changed: nothing is sent.
+
+## Who watches the watchdog
+
+Every failure this product detects is a silent one, so the worst thing it can do
+is fail silently itself. A scheduled job that has stopped — crashed worker,
+revoked token, uninstalled integration — produces **exactly the same screen** as
+an account where nothing is broken: calm, and no email. The calm screen is the
+more convincing of the two.
+
+So the page always says when it last checked, and says the following without
+being asked:
+
+- **Never run:** *"Scheduled checks are not running yet. This page only reports
+  when you open it. Until checks are scheduled, nothing will email you when an
+  automation stops — which is the whole point."* This is the state the app is in
+  today, and it says so rather than implying otherwise.
+- **Stale:** *"No check has run for 8 days. The watchdog itself has stopped.
+  Nothing below is current, and no email will arrive."*
+- **Failing:** *"The last 2 checks failed"* with the error. A job that runs and
+  keeps erroring is a different problem from a job that stopped, and needs a
+  different response, so they are never merged.
+- **Healthy:** *"Last checked 40 min ago. Checks run daily."*
+
+One missed run plus slippage is tolerated before anything is called stale;
+`runCheck` records every run including failures, and a run log that cannot be
+written never takes down a check that otherwise worked — losing a history entry
+is survivable, losing an alert is not.
 
 ## Muting without going blind
 

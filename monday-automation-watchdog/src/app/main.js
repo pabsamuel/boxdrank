@@ -11,6 +11,7 @@ import { watch, summarize } from '../core/watch.js';
 import { formatDuration } from '../core/cadence.js';
 import { createMute, isMuteActive, pruneMutes, describeMute, MUTE_PRESETS } from '../core/mutes.js';
 import { loadMutes, saveMutes } from './mute-store.js';
+import { summarizeRuns } from '../core/run-log.js';
 import { fetchBoards, fetchActivity, looksLikeMondayContext } from './monday-source.js';
 
 /** How far back to read activity. Long enough for the engine to learn a rhythm. */
@@ -33,9 +34,60 @@ const state = {
   now: Date.now(),
   mutes: {},
   muteStoreFailed: false,
+  runs: [],
   error: null,
   status: '',
 };
+
+/**
+ * The strip that says whether the watchdog itself is working.
+ *
+ * Every failure this product detects is a silent one, so the worst thing it can
+ * do is fail silently itself. A scheduled job that has stopped produces exactly
+ * the same screen as an account where nothing is broken — calm, no email — and
+ * the calm screen is the more convincing of the two. So this is shown always,
+ * not only when something is wrong.
+ */
+function renderRunStatus() {
+  const summary = summarizeRuns(state.runs, state.now);
+
+  if (summary.neverRun) {
+    const strip = el('div', 'checks warn');
+    strip.append(
+      el('strong', null, 'Scheduled checks are not running yet'),
+      el(
+        'span',
+        null,
+        'This page only reports when you open it. Until checks are scheduled, nothing will email you when an automation stops — which is the whole point.',
+      ),
+    );
+    return strip;
+  }
+
+  const ago = formatDuration(summary.sinceLastMs);
+
+  if (summary.isStale) {
+    const strip = el('div', 'checks warn');
+    strip.append(
+      el('strong', null, `No check has run for ${ago}`),
+      el('span', null, 'The watchdog itself has stopped. Nothing below is current, and no email will arrive.'),
+    );
+    return strip;
+  }
+
+  if (summary.consecutiveErrors > 0) {
+    const strip = el('div', 'checks warn');
+    strip.append(
+      el('strong', null, `The last ${summary.consecutiveErrors} check${summary.consecutiveErrors === 1 ? '' : 's'} failed`),
+      el('span', null, summary.lastError ?? 'monday returned an error.'),
+    );
+    return strip;
+  }
+
+  const strip = el('div', 'checks ok');
+  strip.append(el('span', null, `Last checked ${ago} ago. Checks run daily.`));
+  return strip;
+}
 
 /** True when this signal is currently silenced. */
 function isMuted(result) {
@@ -181,6 +233,7 @@ function render() {
   if (mutedCount > 0) context.push(`${mutedCount} muted.`);
   banner.append(el('span', null, context.join(' ')));
   app.append(banner);
+  app.append(renderRunStatus());
 
   if (state.muteStoreFailed) {
     app.append(
@@ -213,6 +266,7 @@ async function loadDemo() {
   state.source = 'demo';
   state.now = demo.now;
   state.mutes = pruneMutes(loadMutes(), demo.now);
+  state.runs = demo.runs ?? [];
   state.results = watch(demo.entries, demo.now, {
     actorNames: new Map(demo.actors.map((a) => [a.id, a.name])),
     boardNames: new Map(demo.boards.map((b) => [b.id, b.name])),
@@ -249,6 +303,9 @@ async function loadFromMonday() {
   state.source = 'monday';
   state.now = now;
   state.mutes = pruneMutes(loadMutes(), now);
+  // The board view has no access to the scheduled job's run log yet, so it
+  // honestly reports that checks are not running rather than implying they are.
+  state.runs = [];
   state.unparsedTimestamps = unparsedTimestamps;
   state.results = watch(entries, now, { boardNames: new Map(boards.map((b) => [b.id, b.name])) });
   state.summary = summarize(state.results);

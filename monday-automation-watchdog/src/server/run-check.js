@@ -19,6 +19,7 @@ import { fetchBoards, fetchActivity } from '../app/monday-source.js';
 import { watch, summarize } from '../core/watch.js';
 import { planNotifications } from '../core/alerts.js';
 import { renderEmail } from '../core/email.js';
+import { recordRun } from '../core/run-log.js';
 
 const DAY = 24 * 3600_000;
 
@@ -27,6 +28,15 @@ export const HISTORY_DAYS = 60;
 
 /** Where an account's alert state lives. Namespaced so it cannot collide. */
 export const stateKey = (accountId) => `watchdog:state:v1:${accountId}`;
+
+/**
+ * Where the record of runs lives, separately from alert state.
+ *
+ * Separate on purpose: the run log has to be written even when a check fails,
+ * and alert state must not be. Sharing one key would force a single write and
+ * one of those two rules would have to give.
+ */
+export const runLogKey = (accountId) => `watchdog:runs:v1:${accountId}`;
 
 /**
  * @param {object} deps
@@ -40,14 +50,36 @@ export const stateKey = (accountId) => `watchdog:state:v1:${accountId}`;
  *                    counts: object, unparsedTimestamps: number}>}
  */
 export async function runCheck({ monday, storage, mailer, accountId, recipient, now = Date.now() }) {
-  const boards = await fetchBoards(monday);
+  // Recorded whatever happens, including a failure, so the UI can tell "the
+  // checks stopped" apart from "the checks run and keep erroring". Those look
+  // identical from the outside and need completely different responses.
+  const logRun = async (entry) => {
+    try {
+      const history = (await storage.get(runLogKey(accountId))) ?? [];
+      await storage.set(runLogKey(accountId), recordRun(history, { at: now, ...entry }));
+    } catch {
+      // A run log that cannot be written must never take down a check that
+      // otherwise worked. Losing a history entry is survivable; losing an
+      // alert is not.
+    }
+  };
 
-  const { entries, unparsedTimestamps } = await fetchActivity(
-    monday,
-    boards.map((board) => board.id),
-    now - HISTORY_DAYS * DAY,
-    now,
-  );
+  let boards;
+  try {
+    boards = await fetchBoards(monday);
+
+    var activity = await fetchActivity(
+      monday,
+      boards.map((board) => board.id),
+      now - HISTORY_DAYS * DAY,
+      now,
+    );
+  } catch (error) {
+    await logRun({ watched: 0, silent: 0, sent: false, error: error?.message ?? String(error) });
+    throw error;
+  }
+
+  const { entries, unparsedTimestamps } = activity;
 
   const results = watch(entries, now, { boardNames: new Map(boards.map((b) => [b.id, b.name])) });
   const summary = summarize(results);
@@ -67,6 +99,14 @@ export async function runCheck({ monday, storage, mailer, accountId, recipient, 
   // and a watchdog that loses alerts is worse than no watchdog, because it is
   // trusted. Failing the other way just repeats an alert, which is survivable.
   await storage.set(stateKey(accountId), plan.state);
+
+  await logRun({
+    watched: summary.watched,
+    silent: summary.counts.silent,
+    muted: plan.mutedCount,
+    sent: plan.shouldSend,
+    error: null,
+  });
 
   return {
     watched: summary.watched,

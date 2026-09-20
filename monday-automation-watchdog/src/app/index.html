@@ -54,6 +54,17 @@
       .banner.alarm strong { color: var(--silent); }
       .banner.calm { border-left: 4px solid var(--healthy); }
 
+      .checks {
+        display: flex; flex-direction: column; gap: 2px;
+        padding: 10px 14px; border-radius: 9px; margin-bottom: 18px;
+        border: 1px solid var(--border); font-size: 13.5px;
+      }
+      .checks strong { font-size: 14px; }
+      .checks span { color: var(--muted); }
+      .checks.ok { background: var(--surface); }
+      .checks.warn { border-color: var(--late); }
+      .checks.warn strong { color: var(--late); }
+
       .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 18px; }
       .tile { padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
       .tile-value { font-size: 26px; font-weight: 700; line-height: 1.1; }

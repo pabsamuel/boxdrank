@@ -1,6 +1,6 @@
 # Progress — monday Automation Watchdog
 
-Updated 20 Sep 2026. Percentages are counted from the checklist below, not
+Updated 20 Sep 2026 (second pass). Percentages are counted from the checklist below, not
 estimated. An item is done or it is not; half-done items are listed as not done
 with a note.
 
@@ -8,8 +8,15 @@ with a note.
 
 | | Done | Note |
 |---|---|---|
-| **Code that can be written from here** | **9 / 10 — 90%** | Everything except a real-API smoke test |
-| **Distance to a product someone pays for** | **10 / 25 — 40%** | The remaining 60% is mostly not code |
+| **Code that can be written from here** | **12 / 13 — 92%** | Everything except a real-API smoke test |
+| **Distance to a product someone pays for** | **13 / 33 — 39%** | The remaining 61% is mostly not code |
+
+**The second number went down while work was being done.** That is not an error.
+Muting, the run log and the staleness strip added three items to section 1 and
+zero to sections 2–6. Building more does not move you closer to shipping when
+what stands between you and shipping is documentation, an account and five
+conversations. It is worth noticing the first time it happens rather than the
+fifth.
 
 The gap between those two numbers is the honest state of this project. The
 engine is nearly finished. The product is not, and the rest is blocked on things
@@ -17,7 +24,7 @@ no amount of building fixes.
 
 ---
 
-## 1. Code writable in this environment — 9/10
+## 1. Code writable in this environment — 12/13
 
 - [x] Cadence engine — late / silent / dormant / healthy, with false-alarm restraint
 - [x] Working-day awareness, so weekends do not produce alerts
@@ -29,10 +36,13 @@ no amount of building fixes.
 - [x] monday API adapter with magnitude-normalised timestamp parsing
 - [x] Board view UI, verified in a real browser
 - [x] Demo account, generated and drift-checked in CI
+- [x] Muting, designed so it expires and cannot become a blind spot
+- [x] Run log and staleness detection — the watchdog reporting on itself
+- [x] Two security reviews, four findings, all fixed with regression tests
 - [ ] **A single query run against a real monday account.** Everything above is
       tested against fakes. Nothing has touched the real API even once.
 
-**71 tests, all offline.**
+**114 tests, all offline.**
 
 ## 2. Blocked on `developer.monday.com` being unreachable — 0/4
 

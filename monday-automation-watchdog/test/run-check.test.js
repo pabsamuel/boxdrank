@@ -150,3 +150,61 @@ test('unreadable timestamps are reported back to the caller', async () => {
   });
   assert.equal(result.unparsedTimestamps, 1);
 });
+
+test('every run is recorded, including ones that sent nothing', async () => {
+  const storage = fakeStorage();
+  await runCheck({
+    monday: fakeMonday(NOW - 10 * 60_000), storage, mailer: fakeMailer(),
+    accountId: 'acc1', recipient: 'a@b.c', now: NOW,
+  });
+  const log = storage.writes.find((write) => write.key === 'watchdog:runs:v1:acc1');
+  assert.ok(log, 'a run log entry exists');
+  assert.equal(log.value[0].at, NOW);
+  assert.equal(log.value[0].sent, false);
+  assert.equal(log.value[0].error, null);
+});
+
+test('a failed check is recorded too, so silence can be told apart from errors', async () => {
+  // A job that stopped and a job that runs and keeps failing look identical
+  // from outside and need completely different responses.
+  const storage = fakeStorage();
+  const broken = { api: async () => ({ errors: [{ message: 'Upstream exploded' }] }) };
+
+  await assert.rejects(() => runCheck({
+    monday: broken, storage, mailer: fakeMailer(),
+    accountId: 'acc1', recipient: 'a@b.c', now: NOW,
+  }));
+
+  const log = storage.writes.find((write) => write.key === 'watchdog:runs:v1:acc1');
+  assert.ok(log, 'the failure was still logged');
+  assert.match(log.value[0].error, /Upstream exploded/);
+  assert.equal(storage.writes.some((w) => w.key === 'watchdog:state:v1:acc1'), false, 'alert state untouched');
+});
+
+test('a run log that cannot be written does not take down a working check', async () => {
+  // Losing a history entry is survivable. Losing an alert is not.
+  const mailer = fakeMailer();
+  const storage = {
+    writes: [],
+    async get(key) { if (key.startsWith('watchdog:runs')) throw new Error('storage down'); return null; },
+    async set(key, value) { if (key.startsWith('watchdog:runs')) throw new Error('storage down'); this.writes.push({ key, value }); },
+  };
+
+  const result = await runCheck({
+    monday: fakeMonday(NOW - 12 * HOUR), storage, mailer,
+    accountId: 'acc1', recipient: 'a@b.c', now: NOW,
+  });
+  assert.equal(result.sent, true);
+  assert.equal(mailer.sent.length, 1, 'the alert still went out');
+});
+
+test('run history accumulates across checks', async () => {
+  const storage = fakeStorage();
+  const args = { monday: fakeMonday(NOW - 10 * 60_000), storage, mailer: fakeMailer(), accountId: 'acc1', recipient: 'a@b.c' };
+  await runCheck({ ...args, now: NOW });
+  await runCheck({ ...args, now: NOW + HOUR });
+
+  const last = [...storage.writes].reverse().find((write) => write.key === 'watchdog:runs:v1:acc1');
+  assert.equal(last.value.length, 2);
+  assert.equal(last.value[0].at, NOW + HOUR, 'newest first');
+});
