@@ -80,6 +80,10 @@ not code.** `docs/09-first-hour.md` is the runbook: token, find the right
 board, run the verification, read the output. The one thing I need back is
 that output.
 
+**Next: run the product itself.** `--compare-to` runs the real pipeline —
+capture, diff, repair plan — against a real board and a real duplicate of it.
+Nothing has ever done that. See `docs/09-first-hour.md` step 3b.
+
 **Items 9 and 10 are done.** The five `✱` questions that blocked the port were
 answered by reading the SDK's type definitions out of the installed package,
 which is ground truth for signatures. Four questions about *behaviour* remain

@@ -100,6 +100,43 @@ clean one — it is the thing this hour exists to find.
 
 ---
 
+## Step 3b — Run the actual product against a real duplicate (10 minutes)
+
+**Do this one.** Every check above verifies a single claim. None of them runs
+the pipeline a customer runs — `captureBoards` → `diffBoards` →
+`buildRepairPlan` — and that pipeline has never executed against real monday
+data. That is exactly how `board_automations` sat in the repository for months
+with a query that could not parse: *a code path nothing runs is a code path
+nobody has checked.*
+
+1. In monday, take a board with some structure — the one with the connect
+   column is ideal — and **duplicate it** (board menu → Duplicate Board →
+   *Duplicate board and its structure*, the option that copies no items).
+2. `npm run verify:live -- --list-boards` to get the new board's id.
+3. Then:
+
+```bash
+npm run verify:live -- --board <original id> --compare-to <duplicate id> --automations
+```
+
+It prints both snapshots, any read failures, every finding with its severity
+and its explanation, and the repair checklist. Read-only, and it calls
+`assertNoItemData` on both snapshots to *prove* the storage rule rather than
+assert it.
+
+### What to look for
+
+| What you see | What it means |
+|---|---|
+| **A `miswired` finding** | The product just did the thing it exists for, on real data. The connect column in the duplicate still points at the original. |
+| Findings that look wrong | More valuable than clean output. Send them — a false positive is the failure this codebase most wants to avoid. |
+| **Nothing at all** | Suspicious rather than reassuring. Either monday copied everything faithfully, or the matcher is too quiet. The second is worth more attention. |
+| Automation counts differing | If the duplicate has fewer automations than the original, you have reproduced the documented *44 became 39* on your own account. |
+
+Send me the output whatever it says.
+
+---
+
 ## Step 4 — Deploy to monday code, privately (an afternoon)
 
 Only after step 3. Full commands are in

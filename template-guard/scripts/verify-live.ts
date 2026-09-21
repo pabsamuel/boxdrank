@@ -30,7 +30,11 @@ import { MondayClient } from '../src/api/client.js';
 import { MONDAY_API_PREVIEW_VERSION, MONDAY_API_VERSION } from '../src/api/version.js';
 import { BOARD_CONFIG_QUERY, BOARD_LIST_PAGE_LIMIT, BOARD_LIST_QUERY } from '../src/api/queries.js';
 import { readBoardAutomations } from '../src/api/preview/automations.js';
-import { parseSettings } from '../src/snapshot/capture.js';
+import { captureBoards, parseSettings } from '../src/snapshot/capture.js';
+import { diffBoards } from '../src/diff/diff.js';
+import { countBySeverity, sortFindings } from '../src/diff/types.js';
+import { buildRepairPlan } from '../src/repair/plan.js';
+import { assertNoItemData } from '../src/server/storage.js';
 import { isBoardReferencing, linkedBoardIds } from '../src/diff/connect.js';
 import type { PartialFailure } from '../src/api/errors.js';
 import type { ColumnSnapshot } from '../src/snapshot/types.js';
@@ -308,11 +312,97 @@ async function probeField(token: string, fieldName: string): Promise<void> {
   console.log();
 }
 
+/**
+ * Runs the actual product against two real boards.
+ *
+ * Everything else in this file checks one claim at a time. This runs the
+ * pipeline customers will run — `captureBoards` then `diffBoards` then
+ * `buildRepairPlan` — which, until now, had never executed against real monday
+ * data even once. That is how `board_automations` shipped for months with a
+ * query that could not parse: a code path nothing runs is a code path nobody
+ * has checked.
+ *
+ * Read-only. It captures structure, never items, and `assertNoItemData` is
+ * called on both snapshots to prove that rather than assert it.
+ */
+async function compareBoards(
+  token: string,
+  templateBoardId: string,
+  copyBoardId: string,
+  automationsOn: boolean,
+): Promise<void> {
+  const client = new MondayClient({ token });
+
+  console.log(`\nTemplate: ${templateBoardId}`);
+  console.log(`Copy:     ${copyBoardId}`);
+  console.log(`Automations: ${automationsOn ? 'on (preview schema)' : 'off'}\n`);
+
+  const [template, copy] = await captureBoards(client, [templateBoardId, copyBoardId], {
+    automationsPreviewEnabled: automationsOn,
+  });
+
+  if (!template || !copy) {
+    console.error('Could not read both boards.');
+    process.exit(2);
+  }
+
+  // The storage rule, proven on real data rather than promised. If monday ever
+  // starts returning something item-shaped in a config read, this is where it
+  // surfaces — loudly, before anything is stored.
+  try {
+    assertNoItemData(template);
+    assertNoItemData(copy);
+    console.log('✓ Neither snapshot contains item data.\n');
+  } catch (err) {
+    console.error(`✗ STORAGE RULE VIOLATED: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
+
+  for (const [label, snap] of [['template', template], ['copy', copy]] as const) {
+    console.log(
+      `  ${label}: "${snap.name}" — ${snap.columns.length} columns, ${snap.groups.length} groups, ${snap.views.length} views, automations ${snap.automations === null ? 'not read' : snap.automations.length}`,
+    );
+    for (const f of snap.failures) console.log(`    ! ${f.kind}: ${f.message}`);
+  }
+
+  const diff = diffBoards(template, copy, { includeCosmetic: true });
+  const counts = countBySeverity(diff.findings);
+
+  console.log(`\n── ${diff.findings.length} finding(s) ──`);
+  console.log(
+    `  miswired ${counts.miswired} · missing ${counts.missing} · altered ${counts.altered} · cosmetic ${counts.cosmetic}`,
+  );
+  if (diff.basedOnIncompleteData) {
+    console.log(`  ⚠ Based on incomplete data: ${diff.dataWarnings.join(' | ')}`);
+  }
+  if (!diff.automationCoverage.checked) {
+    console.log(`  · ${diff.automationCoverage.reason ?? 'Automations were not compared.'}`);
+  }
+  console.log();
+
+  for (const f of sortFindings(diff.findings)) {
+    console.log(`  [${f.severity}] ${f.what}`);
+    console.log(`      why: ${f.whyItMatters}`);
+    console.log(`      fix: ${f.howToFix}`);
+    console.log(`      confidence: ${f.confidence}\n`);
+  }
+
+  if (diff.findings.length === 0) {
+    console.log('  Nothing. If these really are a template and a fresh duplicate of it,\n  that is either a clean copy or a matcher that is too quiet — and the\n  second is worth more attention than the first.\n');
+  }
+
+  const plan = buildRepairPlan(diff.findings, { accountSlug: 'your-account', boardId: copyBoardId }, template.name);
+  console.log(`── repair plan: ${plan.auto.length} automatic (not shipped in v1), ${plan.manual.length} manual ──`);
+  for (const m of plan.manual) console.log(`  · ${m.instruction}`);
+  console.log();
+}
+
 async function main(): Promise<void> {
   const token = process.env.MONDAY_API_TOKEN;
   const boardId = arg('board');
   const wantsList = process.argv.includes('--list-boards');
   const wantsProbe = process.argv.includes('--probe-preview');
+  const compareTo = arg('compare-to');
 
   if (!token) {
     console.error(
@@ -328,6 +418,15 @@ async function main(): Promise<void> {
 
   if (wantsProbe) {
     await probePreview(token);
+    process.exit(0);
+  }
+
+  if (compareTo) {
+    if (!boardId) {
+      console.error('Usage: --board <template id> --compare-to <copy id> [--automations]');
+      process.exit(2);
+    }
+    await compareBoards(token, boardId, compareTo, process.argv.includes('--automations'));
     process.exit(0);
   }
 
