@@ -13,11 +13,16 @@
 > | The column points where we say it does | ✓ |
 > | `isBoardReferencing` recognises `board_relation` | ✓ |
 > | `owners`/`subscribers` paginate with `limit`/`page` | ✗ → **✓ on re-run.** Those arguments do not exist. Fixed by folding both fields into the config query, which also removed a whole request per board. |
-> | `board_automations` readable | ✗, **twice.** Two hypotheses have now failed — the pinned header, then `dev`. Stop guessing: `--probe-preview` asks the schema. |
+> | `board_automations` readable | ✗ twice, then **diagnosed by introspection.** The field exists on `dev` and **nowhere on `2026-07`** — 96 root fields there, none about automations. Our argument list is wrong (`board_id` vs the declared `board_ids`); the signature probe settles it. ADR-030. |
 >
 > **Re-run, same day: 6 verified, 1 failed.** The only open claim is the
 > preview automations read, which is behind a default-off flag that no paid
 > tier depends on.
+>
+> **And one long-standing assumption became a measurement:** the pinned schema
+> exposes *no* automation read at all. ADR-002's whole premise — that
+> automations cannot be version-pinned and therefore must sit behind a flag —
+> is now observed rather than argued. (ADR-030.)
 >
 > The third row is the one that mattered. It was the single worst failure this
 > app could have — guess the key wrong and every board reports as correctly

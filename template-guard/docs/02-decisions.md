@@ -775,9 +775,13 @@ preview adapter passes `dev`. A per-call argument rather than a second client,
 so the pin stays the default everywhere and the exception is visible at the
 call site.
 
-✱ **The hypothesis was wrong.** The re-run, with the `dev` header, failed
-identically. Recorded rather than quietly amended, because two failed guesses
-in a row is the signal hard rule 1 exists for.
+✱ **Correction, later the same day.** I wrote here that the `dev` hypothesis
+"was wrong" when the re-run failed identically. Introspection showed it was
+**necessary but not sufficient**: `2026-07` exposes 96 root fields and *zero*
+matching `automat|recipe|workflow`, while `dev` exposes 180 and eleven —
+`board_automations` among them. The header change was required and worked. What
+still failed was the argument list. Getting the diagnosis directionally wrong
+and saying so is cheaper than leaving a confident wrong note in the log.
 
 What the re-run also exposed: the script was printing only the failure's
 `message` — the sentence written for a *customer* — and never its `cause`,
@@ -822,3 +826,37 @@ the error. The script now prints `cause` first and falls back to `message`.
 The general shape is worth keeping: a user-facing message and a developer-facing
 cause are different artefacts, and a diagnostic tool that shows only the first
 is a tool that makes you re-run to learn nothing twice.
+
+## ADR-030 — ADR-002's premise, finally measured
+**Date:** 2026-09-21 · **Status:** accepted
+Introspection against the live account settled something this project has
+asserted since day one without evidence.
+
+| Schema | Root fields | Matching `automat\|recipe\|workflow` |
+|---|---|---|
+| `2026-07` (the pin) | 96 | **0** |
+| `dev` (preview) | 180 | **11**, including `board_automations` |
+
+So automations are **not readable on any pinned version at all** — not
+deprecated, not restricted, simply absent. ADR-002 said we could not
+version-pin automation reads and therefore had to put them behind a default-off
+flag with no paid tier depending on them. That was reasoning from documentation
+summaries. It is now a measurement.
+
+It also means the `dev` header change in ADR-028 was necessary, not mistaken —
+the failure that followed it was the argument list, not the schema. The earlier
+note in ADR-028 saying the hypothesis "was wrong" is corrected in place.
+
+`board_automations` describes itself as: *"Get board automations. Filter by ids
+(specific automation IDs) or board_ids (up to 1 board). Omit all filters to get
+all account automations."* Our query sends `board_id` (singular) and a
+`cursor`. Rather than guess a third time at what that means, `--probe-preview`
+now reads the field's **declared signature** — argument names and types, the
+return type, and its fields — straight from the schema. A description sentence
+is not an API contract.
+
+**The "up to 1 board" limit is worth noting for later:** it means automations
+cannot be batched across boards the way `BOARD_CONFIG_QUERY` batches ten. If
+the flag is ever switched on for a drift sweep, that is one request per board
+on top of the config read, and the pacing in ADR-022 and ADR-014 would need
+revisiting before it ships.

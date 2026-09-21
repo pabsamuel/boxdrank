@@ -203,6 +203,109 @@ async function probePreview(token: string): Promise<void> {
   console.log(
     '\nIf a field exists under one version and not the other, that is the answer.\nIf it exists nowhere, automations are not readable by this token and the\nfeature flag stays off — which the product is already built to handle.\n',
   );
+
+  // The field existing is not the same as knowing how to call it. Two guesses
+  // have already been spent; this reads the signature instead of inventing a
+  // third.
+  await probeField(token, 'board_automations');
+}
+
+/** A type reference, unwrapped through NON_NULL and LIST layers. */
+interface TypeRef {
+  kind: string;
+  name: string | null;
+  ofType?: TypeRef | null;
+}
+
+function typeName(t: TypeRef | null | undefined): string {
+  if (!t) return '?';
+  if (t.name) return t.kind === 'NON_NULL' ? `${t.name}!` : t.name;
+  const inner = typeName(t.ofType);
+  if (t.kind === 'NON_NULL') return `${inner}!`;
+  if (t.kind === 'LIST') return `[${inner}]`;
+  return inner;
+}
+
+/** The bare type name, with NON_NULL/LIST wrappers stripped. */
+function bareTypeName(t: TypeRef | null | undefined): string | null {
+  if (!t) return null;
+  return t.name ?? bareTypeName(t.ofType);
+}
+
+const TYPE_REF = `kind name ofType { kind name ofType { kind name ofType { kind name } } }`;
+
+/**
+ * Prints a root field's exact arguments and its return shape.
+ *
+ * This is the disciplined alternative to a third guess: monday's own schema
+ * states the signature, so the query gets written from that rather than from
+ * a description sentence that says "filter by ids or board_ids" without
+ * saying what either one is.
+ */
+async function probeField(token: string, fieldName: string): Promise<void> {
+  const client = new MondayClient({ token, apiVersion: MONDAY_API_PREVIEW_VERSION });
+
+  const { data, errors } = await client.request<{
+    __type?: {
+      fields?: {
+        name: string;
+        args: { name: string; type: TypeRef; defaultValue?: string | null }[];
+        type: TypeRef;
+      }[];
+    };
+  }>(
+    `query { __type(name: "Query") { fields { name args { name defaultValue type { ${TYPE_REF} } } type { ${TYPE_REF} } } } }`,
+    {},
+    MONDAY_API_PREVIEW_VERSION,
+  );
+
+  if (errors.length > 0) {
+    console.log(`Could not read the signature of ${fieldName}: ${errors.map((e) => e.message).join(' | ')}`);
+    return;
+  }
+
+  const field = (data?.__type?.fields ?? []).find((f) => f.name === fieldName);
+  if (!field) {
+    console.log(`${fieldName} is not a root field on the dev schema after all.`);
+    return;
+  }
+
+  console.log(`── ${fieldName}, exactly as the schema declares it ──\n`);
+  console.log(`  returns: ${typeName(field.type)}`);
+  console.log(`  arguments:`);
+  for (const a of field.args) {
+    console.log(`    · ${a.name}: ${typeName(a.type)}${a.defaultValue ? ` = ${a.defaultValue}` : ''}`);
+  }
+  if (field.args.length === 0) console.log('    (none)');
+
+  const returnType = bareTypeName(field.type);
+  if (!returnType) return;
+
+  const shape = await client.request<{
+    __type?: { name: string; fields?: { name: string; type: TypeRef }[] };
+  }>(`query($n:String!){ __type(name:$n){ name fields { name type { ${TYPE_REF} } } } }`, { n: returnType }, MONDAY_API_PREVIEW_VERSION);
+
+  const fields = shape.data?.__type?.fields ?? [];
+  if (fields.length > 0) {
+    console.log(`\n  ${returnType} has:`);
+    for (const f of fields) console.log(`    · ${f.name}: ${typeName(f.type)}`);
+
+    // One more level for whichever field carries the automations themselves.
+    const listField = fields.find((f) => /automation|item|node|record/i.test(f.name));
+    const nested = listField ? bareTypeName(listField.type) : null;
+    if (nested && nested !== returnType) {
+      const deep = await client.request<{
+        __type?: { name: string; fields?: { name: string; type: TypeRef }[] };
+      }>(`query($n:String!){ __type(name:$n){ name fields { name type { ${TYPE_REF} } } } }`, { n: nested }, MONDAY_API_PREVIEW_VERSION);
+
+      const deepFields = deep.data?.__type?.fields ?? [];
+      if (deepFields.length > 0) {
+        console.log(`\n  ${nested} has:`);
+        for (const f of deepFields) console.log(`    · ${f.name}: ${typeName(f.type)}`);
+      }
+    }
+  }
+  console.log();
 }
 
 async function main(): Promise<void> {
