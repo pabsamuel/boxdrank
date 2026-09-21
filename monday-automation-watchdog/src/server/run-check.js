@@ -15,7 +15,8 @@
  * one file. Everything below is already tested.
  */
 
-import { fetchBoards, fetchActivity } from '../app/monday-source.js';
+import { fetchBoards, fetchActivity, fetchUsers } from '../app/monday-source.js';
+import { classifyActors } from '../core/actors.js';
 import { watch, summarize } from '../core/watch.js';
 import { planNotifications } from '../core/alerts.js';
 import { renderEmail } from '../core/email.js';
@@ -81,7 +82,17 @@ export async function runCheck({ monday, storage, mailer, accountId, recipient, 
 
   const { entries, unparsedTimestamps } = activity;
 
-  const results = watch(entries, now, { boardNames: new Map(boards.map((b) => [b.id, b.name])) });
+  // Narrow to non-human actors when the account's people can be established.
+  // When they cannot, every repeating pattern stays watched — losing precision
+  // rather than coverage, which is the right direction for a watchdog.
+  const users = await fetchUsers(monday);
+  const { automationActors, unknown } = classifyActors(entries, (users ?? []).map((user) => user.id));
+
+  const results = watch(entries, now, {
+    boardNames: new Map(boards.map((b) => [b.id, b.name])),
+    actorNames: new Map((users ?? []).map((user) => [user.id, user.name])),
+    automationActors: unknown ? undefined : automationActors,
+  });
   const summary = summarize(results);
 
   const previous = (await storage.get(stateKey(accountId))) ?? {};

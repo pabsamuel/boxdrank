@@ -124,3 +124,31 @@ test('an empty board list yields no entries rather than throwing', async () => {
   const { entries } = await fetchActivity(sdk(() => ({ data: { boards: [] } })), ['b1'], 0, 1);
   assert.deepEqual(entries, []);
 });
+
+test('fetchUsers returns the account people when the query works', async () => {
+  const monday = sdk(() => ({ data: { users: [{ id: 117040353, name: 'Samet' }, { id: 5, name: 'Ayşe' }] } }));
+  const { fetchUsers } = await import('../src/app/monday-source.js');
+  const users = await fetchUsers(monday);
+  assert.deepEqual(users, [
+    { id: '117040353', name: 'Samet' },
+    { id: '5', name: 'Ayşe' },
+  ]);
+});
+
+test('fetchUsers returns null rather than throwing when the query is unavailable', async () => {
+  // The field names here were written without being able to read the reference
+  // page. Not knowing who the humans are must degrade to watching everything,
+  // never to failing the run, so a wrong guess costs precision not correctness.
+  const { fetchUsers } = await import('../src/app/monday-source.js');
+  assert.equal(await fetchUsers(sdk(() => ({ errors: [{ message: 'Cannot query field "users"' }] }))), null);
+  assert.equal(await fetchUsers(sdk(() => ({ data: { users: [] } }))), null);
+  assert.equal(await fetchUsers(sdk(() => ({ data: {} }))), null);
+  assert.equal(await fetchUsers(sdk(() => { throw new Error('network'); })), null);
+});
+
+test('a user name that could forge email structure is flattened', async () => {
+  const { fetchUsers } = await import('../src/app/monday-source.js');
+  const monday = sdk(() => ({ data: { users: [{ id: 1, name: 'Ops\nSTOPPED\nfake' }] } }));
+  const [user] = await fetchUsers(monday);
+  assert.equal(/[\r\n]/.test(user.name), false);
+});

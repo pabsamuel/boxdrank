@@ -91,6 +91,7 @@ src/core/            zero dependencies, no network, no monday
   alerts.js            what to say, given what was said last time
   email.js             render a notification plan as text and HTML
   sanitize.js          flatten untrusted names so they cannot forge structure
+  actors.js            which actors in a log are not people
   mutes.js             silence a signal without going blind to it
   run-log.js           did the checks themselves run?
 src/app/
@@ -106,7 +107,7 @@ scripts/
   build.js             emits a deployable dist/
 ```
 
-**121 tests**, all offline — no network, no account, no monday dependency.
+**133 tests**, all offline — no network, no account, no monday dependency.
 One runtime dependency (`monday-sdk-js`, pinned to 0.5.9 for the same reason as
 the schema auditor: 1.0.0-beta has removed `api()`).
 
@@ -146,7 +147,26 @@ CI, so this assumption cannot drift back into a guess.
 
 **Still UNKNOWN:** whether an automation-performed action carries a different
 `user_id`. The captured account has only one actor, so there was nothing to
-compare. The app works either way.
+compare.
+
+### Finding the automations without asking anyone
+
+The alternative was a settings screen where someone ticks which actors are
+automations. That is worse in every direction: work before the app does anything
+useful, stale the moment an automation is added, and getting it wrong means
+silently not watching something.
+
+So it is inferred instead. An account knows exactly who its people are; anything
+that appears in an activity log and is not one of them acted without a person
+behind it — an automation, an integration, or an installed app. All three can
+quietly stop working and all three are worth watching, so "not a human" happens
+to select exactly the right set.
+
+**This degrades in the safe direction.** The `users` query it depends on was
+written without being able to read the reference page, so `fetchUsers` returns
+null rather than throwing on any failure, and a null means every repeating
+pattern stays watched exactly as before. A wrong guess costs precision, never
+coverage. Both paths are tested.
 
 ## Knowing when to shut up
 

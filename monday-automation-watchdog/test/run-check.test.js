@@ -208,3 +208,63 @@ test('run history accumulates across checks', async () => {
   assert.equal(last.value.length, 2);
   assert.equal(last.value[0].at, NOW + HOUR, 'newest first');
 });
+
+test('when the account people are known, only non-human actors are watched', async () => {
+  // Watching people's manual edits would alert when someone goes on holiday.
+  const HUMAN = '117040353';
+  const BOT = '9001';
+  const monday = {
+    api: async (graphql) => {
+      if (graphql.includes('users')) return { data: { users: [{ id: HUMAN, name: 'Samet' }] } };
+      if (graphql.includes('activity_logs')) {
+        const logs = [];
+        for (const actor of [HUMAN, BOT]) {
+          for (let i = 0; i < 30; i += 1) {
+            logs.push({
+              id: `${actor}-${i}`, event: 'change_column_value', entity: 'pulse', user_id: actor,
+              created_at: new Date(NOW - 12 * HOUR - i * HOUR).toISOString(),
+            });
+          }
+        }
+        return { data: { boards: [{ activity_logs: logs }] } };
+      }
+      return { data: { boards: [{ id: 1, name: 'B' }] } };
+    },
+  };
+
+  const mailer = fakeMailer();
+  const result = await runCheck({
+    monday, storage: fakeStorage(), mailer, accountId: 'acc1', recipient: 'a@b.c', now: NOW,
+  });
+
+  assert.equal(result.watched, 1, 'only the bot pattern is watched');
+  assert.match(mailer.sent[0].text, /9001|Actor 9001/, 'and it is the bot that is reported');
+  assert.ok(!mailer.sent[0].text.includes('Samet'), 'the human is not reported as a broken automation');
+});
+
+test('when the people cannot be established, everything stays watched', async () => {
+  // Losing precision is the right direction for a watchdog; losing coverage is not.
+  const monday = {
+    api: async (graphql) => {
+      if (graphql.includes('users')) return { errors: [{ message: 'Cannot query field "users"' }] };
+      if (graphql.includes('activity_logs')) {
+        const logs = [];
+        for (const actor of ['1', '2']) {
+          for (let i = 0; i < 30; i += 1) {
+            logs.push({
+              id: `${actor}-${i}`, event: 'change_column_value', entity: 'pulse', user_id: actor,
+              created_at: new Date(NOW - 12 * HOUR - i * HOUR).toISOString(),
+            });
+          }
+        }
+        return { data: { boards: [{ activity_logs: logs }] } };
+      }
+      return { data: { boards: [{ id: 1, name: 'B' }] } };
+    },
+  };
+
+  const result = await runCheck({
+    monday, storage: fakeStorage(), mailer: fakeMailer(), accountId: 'acc1', recipient: 'a@b.c', now: NOW,
+  });
+  assert.equal(result.watched, 2, 'both patterns stay watched rather than being guessed at');
+});

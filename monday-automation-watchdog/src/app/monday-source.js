@@ -116,6 +116,25 @@ const ACTIVITY_QUERY = `
   }
 `;
 
+/**
+ * The account's real users, so activity by anything else can be recognised as
+ * an automation or app.
+ *
+ * **Field names here are UNVERIFIED** — monday's basics page lists users as a
+ * supported operation but the reference page was unreachable. Every caller
+ * treats a failure here as "unknown", which makes the app watch every repeating
+ * pattern exactly as it did before this query existed. A wrong guess therefore
+ * costs precision, never correctness.
+ */
+const USERS_QUERY = `
+  query {
+    users {
+      id
+      name
+    }
+  }
+`;
+
 const PAGE_SIZE = 100;
 
 /** monday returns at most 10,000 activity logs, so 100 pages is the real ceiling. */
@@ -210,6 +229,24 @@ export async function fetchActivity(monday, boardIds, fromMs, toMs, onProgress) 
   }
 
   return { entries, unparsedTimestamps };
+}
+
+/**
+ * Fetches the account's people. Returns null rather than throwing when the query
+ * is not available, because not knowing who the humans are must degrade to
+ * watching everything, not to failing the run.
+ *
+ * @returns {Promise<{id: string, name: string}[]|null>}
+ */
+export async function fetchUsers(monday) {
+  try {
+    const data = await query(monday, USERS_QUERY, {});
+    const users = data?.users;
+    if (!Array.isArray(users) || users.length === 0) return null;
+    return users.map((user) => ({ id: String(user.id), name: singleLine(user.name) || `user ${user.id}` }));
+  } catch {
+    return null;
+  }
 }
 
 /** True when running inside monday rather than opened directly. */
