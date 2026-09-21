@@ -106,7 +106,7 @@ scripts/
   build.js             emits a deployable dist/
 ```
 
-**114 tests**, all offline — no network, no account, no monday dependency.
+**121 tests**, all offline — no network, no account, no monday dependency.
 One runtime dependency (`monday-sdk-js`, pinned to 0.5.9 for the same reason as
 the schema auditor: 1.0.0-beta has removed `api()`).
 
@@ -116,17 +116,37 @@ Driven in headless Chromium on 20 Sep 2026. The demo account reports 1 stopped,
 1 overdue, 1 switched off and 3 running; the stopped Slack notifier sorts to the
 top; no console errors; no horizontal overflow at 375 px; dark mode renders.
 
-### The timestamp trap
+### The timestamp trap — and what the real API turned out to do
 
-`created_at`'s exact format is **UNVERIFIED** — the docs were unreachable, and
-there is a community thread specifically about that field's format, which is not
-a thread that exists for a plain ISO string. Guessing wrong would not throw; it
-would scale every interval by a thousand and make the engine report confident
-nonsense. So `parseActivityTimestamp` normalises **by magnitude**: seconds,
-milliseconds, microseconds, nanoseconds and ISO strings all resolve to the same
-instant, and anything unusable returns null rather than a wrong number. Entries
-with unreadable timestamps are counted and surfaced in the UI, so a parsing
-problem and a quiet account never look the same.
+**VERIFIED against a live monday developer account on 21 Sep 2026.**
+
+monday returns `created_at` as a 17-digit value like `17899565625638124`. That is
+**100-nanosecond ticks** — 10⁻⁷ seconds, ten thousand times a millisecond. It is
+not a factor of 1000 away from seconds, milliseconds, microseconds or
+nanoseconds.
+
+The first implementation normalised by stepping in factors of 1000, which
+overshot the window and returned **null for every real entry**. The app would
+have reported an empty account. That is the safe direction — it refused rather
+than inventing a date — and it is still useless.
+
+Stepping by ten fixes it, and a one-decade-wide target window keeps the result
+unambiguous: seconds, milliseconds, microseconds, 100-nanosecond ticks,
+nanoseconds and ISO strings all resolve to the same instant, while anything
+unusable still returns null. Entries with unreadable timestamps are counted and
+surfaced in the UI, so a parsing problem and a quiet account never look the same.
+
+The real response is pinned as `fixtures/real-api-response.json` and checked in
+CI, so this assumption cannot drift back into a guess.
+
+**Also confirmed from the same response:** ids and `user_id` arrive as strings,
+`entity` is `pulse` or `board`, and real event names include
+`update_column_value`, `update_board_name`, `board_workspace_id_changed`,
+`create_column` and `create_group` — now mapped to readable prose.
+
+**Still UNKNOWN:** whether an automation-performed action carries a different
+`user_id`. The captured account has only one actor, so there was nothing to
+compare. The app works either way.
 
 ## Knowing when to shut up
 

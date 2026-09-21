@@ -27,6 +27,13 @@ const KNOWN = {
   delete_group: 'removes a group',
   create_subitem: 'creates a subitem',
   change_name: 'renames an item',
+  // Seen in a live account on 21 Sep 2026.
+  update_column_value: 'changes a column',
+  update_board_name: 'renames the board',
+  board_workspace_id_changed: 'moves the board to another workspace',
+  create_board: 'creates a board',
+  archive_board: 'archives the board',
+  delete_board: 'deletes the board',
 };
 
 /**

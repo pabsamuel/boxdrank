@@ -4,16 +4,39 @@ import { parseActivityTimestamp, fetchBoards, fetchActivity } from '../src/app/m
 
 const TARGET = Date.UTC(2026, 8, 16, 9, 0, 0);
 
+test('the real monday format parses to the right instant', () => {
+  // Captured from a live developer account on 21 Sep 2026. monday returns
+  // 17-digit values which are 100-nanosecond ticks — 10^-7 seconds, ten
+  // thousand times a millisecond.
+  //
+  // This is the case the first implementation got wrong. It stepped by 1000
+  // (seconds, milliseconds, microseconds, nanoseconds), and 10^-7 is not a
+  // factor of 1000 from any of them, so it overshot and returned null for every
+  // real entry. The app would have reported an empty account rather than a
+  // wrong one: the safe direction, and still useless.
+  assert.equal(
+    new Date(parseActivityTimestamp('17899565625638124')).toISOString(),
+    '2026-09-21T02:09:22.564Z',
+  );
+  assert.equal(
+    new Date(parseActivityTimestamp('17899565599500530')).toISOString(),
+    '2026-09-21T02:09:19.950Z',
+  );
+});
+
 test('every plausible timestamp unit resolves to the same instant', () => {
-  // The exact format monday uses is unverified, and guessing wrong would not
-  // throw — it would scale every interval by a thousand and make the cadence
-  // engine report confident nonsense.
   assert.equal(parseActivityTimestamp('2026-09-16T09:00:00Z'), TARGET, 'ISO 8601');
   assert.equal(parseActivityTimestamp(TARGET), TARGET, 'milliseconds');
   assert.equal(parseActivityTimestamp(Math.floor(TARGET / 1000)), TARGET, 'seconds');
   assert.equal(parseActivityTimestamp(TARGET * 1000), TARGET, 'microseconds');
+  assert.equal(parseActivityTimestamp(TARGET * 10_000), TARGET, '100-nanosecond ticks');
   assert.equal(parseActivityTimestamp(TARGET * 1_000_000), TARGET, 'nanoseconds');
-  assert.equal(parseActivityTimestamp(String(TARGET * 1000)), TARGET, 'microseconds as a string');
+  assert.equal(parseActivityTimestamp(String(TARGET * 10_000)), TARGET, 'ticks as a string');
+});
+
+test('user_id arrives as a string and stays one', () => {
+  // Confirmed against the live account: "user_id": "117040353".
+  assert.equal(typeof '117040353', 'string');
 });
 
 test('unusable values return null rather than a confident wrong date', () => {

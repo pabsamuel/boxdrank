@@ -8,11 +8,15 @@
 import { singleLine } from '../core/sanitize.js';
 
 /**
- * Plausible range for a millisecond timestamp, used to decide what unit an
- * activity log is using. 1e11 ms is 1973; 1e13 ms is 2286. Anything a real
- * activity log contains falls inside.
+ * The window a millisecond timestamp must land in, used to decide what unit an
+ * activity log is using. 1e12 ms is Sep 2001; 1e13 ms is 2286.
+ *
+ * Deliberately exactly one decade wide. A wider window would make
+ * power-of-ten normalisation ambiguous — a value could land inside it at the
+ * wrong scale and be silently off by 10x. monday was founded in 2012, so
+ * nothing it returns predates the lower bound.
  */
-const MS_LOWER = 1e11;
+const MS_LOWER = 1e12;
 const MS_UPPER = 1e13;
 
 /**
@@ -24,13 +28,22 @@ const MS_UPPER = 1e13;
  * which is not a thread that exists for a plain ISO string. monday is known to
  * return microsecond-precision integers in some fields.
  *
- * Guessing wrong here would not throw. It would silently scale every interval
- * by a thousand, and the cadence engine would then report confident nonsense —
- * the precise failure this product exists to prevent. So instead of assuming a
- * format, this normalises by magnitude: divide until the number lands in a range
- * that is a real date. Seconds, milliseconds, microseconds and nanoseconds all
- * arrive at the same answer, and anything that cannot be made sense of returns
- * null rather than a wrong number.
+ * Guessing wrong here would not throw. It would silently rescale every interval,
+ * and the cadence engine would then report confident nonsense — the precise
+ * failure this product exists to prevent. So instead of assuming a format, this
+ * normalises by magnitude until the number lands in a range that is a real date.
+ *
+ * **Verified against a real account on 21 Sep 2026.** monday returns 17-digit
+ * values like `17899565625638124`, which are **100-nanosecond ticks** — 10^-7
+ * seconds, or ten thousand times a millisecond. That is not a factor of 1000
+ * away from any of the usual units, and the first version of this function
+ * stepped by 1000, so it overshot the window and returned null for every real
+ * entry. The app would have reported an empty account rather than a wrong one —
+ * the defensive direction, and still useless.
+ *
+ * Stepping by ten instead handles seconds, milliseconds, microseconds,
+ * 100-nanosecond ticks and nanoseconds alike, and anything that cannot be made
+ * sense of still returns null rather than a wrong number.
  *
  * @param {unknown} value
  * @returns {number|null} Epoch ms, or null if unusable.
@@ -48,12 +61,17 @@ export function parseActivityTimestamp(value) {
     // 2000 in Node, turning an obviously broken value into a confident date.
     if (!Number.isFinite(numeric) || numeric <= 0) return null;
 
+    // Stepping by ten, not by a thousand: monday's real unit is 10^-7 seconds,
+    // which no power of 1000 reaches from milliseconds.
     let candidate = numeric;
-    // Seconds scale up; micro- and nanoseconds scale down.
-    if (candidate < MS_LOWER) {
-      while (candidate < MS_LOWER) candidate *= 1000;
-    } else {
-      while (candidate >= MS_UPPER) candidate /= 1000;
+    let steps = 0;
+    while (candidate < MS_LOWER && steps < 30) {
+      candidate *= 10;
+      steps += 1;
+    }
+    while (candidate >= MS_UPPER && steps < 30) {
+      candidate /= 10;
+      steps += 1;
     }
     return candidate >= MS_LOWER && candidate < MS_UPPER ? Math.round(candidate) : null;
   }

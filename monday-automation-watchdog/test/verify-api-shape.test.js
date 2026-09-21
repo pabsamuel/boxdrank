@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { writeFileSync, rmSync } from 'node:fs';
+import { writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -55,4 +55,16 @@ test('--query prints something runnable', () => {
   const out = execFileSync('node', [script, '--query'], { encoding: 'utf8' });
   assert.match(out, /activity_logs/);
   assert.match(out, /created_at/);
+});
+
+test('the captured real response passes every check', () => {
+  // Pinned against real data rather than a guess. If an assumption in the
+  // adapter drifts, this fails rather than being discovered in production
+  // where a misread timestamp would silently corrupt every interval.
+  const real = JSON.parse(
+    readFileSync(new URL('../fixtures/real-api-response.json', import.meta.url), 'utf8'),
+  );
+  const out = run(real);
+  assert.ok(!out.includes('FAIL'), out);
+  assert.match(out, /2026-09-21T02:09:22\.564Z/);
 });
