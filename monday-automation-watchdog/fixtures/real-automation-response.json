@@ -1,0 +1,139 @@
+{
+  "data": {
+    "boards": [
+      {
+        "id": "5104569213",
+        "name": "Automation Actor Test",
+        "activity_logs": [
+          {
+            "id": "bc1b6f2b-da72-4bce-a82c-50caa8d3b392",
+            "event": "move_pulse_from_group",
+            "entity": "pulse",
+            "user_id": "-4",
+            "created_at": "17899591077861062"
+          },
+          {
+            "id": "cfc77837-ec6a-445a-bce4-376437c5200c",
+            "event": "update_column_value",
+            "entity": "pulse",
+            "user_id": "117040353",
+            "created_at": "17899591061903898"
+          },
+          {
+            "id": "dc9b7570-256c-4b3a-bed7-3cb9a0d4616a",
+            "event": "update_column_value",
+            "entity": "pulse",
+            "user_id": "117040353",
+            "created_at": "17899590906109338"
+          },
+          {
+            "id": "367ec159-db30-42bb-977b-62536790de09",
+            "event": "move_pulse_from_group",
+            "entity": "pulse",
+            "user_id": "-4",
+            "created_at": "17899590718958556"
+          },
+          {
+            "id": "56382f3c-8005-48e3-9ea4-409f03549384",
+            "event": "update_column_value",
+            "entity": "pulse",
+            "user_id": "117040353",
+            "created_at": "17899590703687334"
+          },
+          {
+            "id": "87e05ff9-3eb1-4cf6-a4c7-0f355ee54681",
+            "event": "move_pulse_from_group",
+            "entity": "pulse",
+            "user_id": "-4",
+            "created_at": "17899590544049900"
+          },
+          {
+            "id": "33127306-413c-476d-a044-57cae6c40527",
+            "event": "update_column_value",
+            "entity": "pulse",
+            "user_id": "117040353",
+            "created_at": "17899590527653422"
+          },
+          {
+            "id": "bcba5402-d41e-494b-b44c-70eae0165970",
+            "event": "create_column",
+            "entity": "board",
+            "user_id": "117040353",
+            "created_at": "17899588175257232"
+          },
+          {
+            "id": "23adacab-9a03-4ad5-847e-f4755846773e",
+            "event": "create_column",
+            "entity": "board",
+            "user_id": "117040353",
+            "created_at": "17899587950300682"
+          },
+          {
+            "id": "b1d9f1fa-5eff-4340-a78a-d23006b0342a",
+            "event": "create_column",
+            "entity": "board",
+            "user_id": "117040353",
+            "created_at": "17899587606245250"
+          },
+          {
+            "id": "d9929fa8-4a42-4fd4-bd1f-2dd5f0a294fc",
+            "event": "board_workspace_id_changed",
+            "entity": "board",
+            "user_id": "117040353",
+            "created_at": "17899587302086454"
+          },
+          {
+            "id": "9a96714c-9ed7-4239-9f1b-3c743b6f3d37",
+            "event": "update_board_name",
+            "entity": "board",
+            "user_id": "117040353",
+            "created_at": "17899587301788598"
+          },
+          {
+            "id": "63016b60-08c2-43dd-b982-5dc4dc7dfec4",
+            "event": "create_column",
+            "entity": "board",
+            "user_id": "117040353",
+            "created_at": "17899587301737342"
+          },
+          {
+            "id": "6f52ff41-269f-42c2-9c37-52124279387c",
+            "event": "create_column",
+            "entity": "board",
+            "user_id": "117040353",
+            "created_at": "17899587301684630"
+          },
+          {
+            "id": "397caf2d-cfa2-44a5-97a2-dde74f11406f",
+            "event": "create_column",
+            "entity": "board",
+            "user_id": "117040353",
+            "created_at": "17899587301631928"
+          },
+          {
+            "id": "308d8e35-efff-4d88-b383-db175fb3c16a",
+            "event": "create_column",
+            "entity": "board",
+            "user_id": "117040353",
+            "created_at": "17899587301576774"
+          },
+          {
+            "id": "7f331906-f545-49cf-958c-06b7aef5cf23",
+            "event": "create_group",
+            "entity": "board",
+            "user_id": "117040353",
+            "created_at": "17899587301520432"
+          },
+          {
+            "id": "7aaaeeca-5f2a-4651-8aae-679e37de9e51",
+            "event": "create_group",
+            "entity": "board",
+            "user_id": "117040353",
+            "created_at": "17899587301418220"
+          }
+        ]
+      }
+    ]
+  },
+  "_comment": "Captured from a live monday developer account on 21 Sep 2026, after creating one automation and firing it three times. THE finding: monday automations act under a NEGATIVE user_id (-4 here), which makes them trivially distinguishable from people. Also shows the automation's latency: roughly 1.5 seconds between the human's update_column_value and the automation's move_pulse_from_group."
+}

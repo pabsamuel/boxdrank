@@ -17,6 +17,7 @@
 
 import { describeEvent } from './event-labels.js';
 import { singleLine } from './sanitize.js';
+import { isSystemActor } from './actors.js';
 
 /**
  * Minimum firings before a pattern is worth watching at all.
@@ -45,7 +46,11 @@ function signatureOf(entry) {
  * one gets read at 8am by someone who has not thought about monday yet.
  */
 function labelFor(entry, actorNames, boardNames) {
-  const actor = actorNames?.get(entry.actor) ?? (entry.actor ? `Actor ${entry.actor}` : 'Something');
+  // A negative user_id is one of monday's own internal actors — verified: an
+  // automation writes its activity under one. "An automation" reads better in
+  // an alert at 8am than "Actor -4".
+  const named = actorNames?.get(entry.actor);
+  const actor = named ?? (isSystemActor(entry.actor) ? 'An automation' : entry.actor ? `Actor ${entry.actor}` : 'Something');
   const board = boardNames?.get(entry.boardId) ?? `board ${entry.boardId}`;
   // Every untrusted name passes through here, so flattening once covers the
   // text email, the HTML email and the DOM at the same time.

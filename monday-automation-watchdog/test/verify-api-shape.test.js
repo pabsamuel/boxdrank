@@ -68,3 +68,13 @@ test('the captured real response passes every check', () => {
   assert.ok(!out.includes('FAIL'), out);
   assert.match(out, /2026-09-21T02:09:22\.564Z/);
 });
+
+test('the captured automation response proves automations are distinguishable', () => {
+  const real = JSON.parse(
+    readFileSync(new URL('../fixtures/real-automation-response.json', import.meta.url), 'utf8'),
+  );
+  const out = run(real);
+  assert.ok(!out.includes('FAIL'), out);
+  assert.match(out, /OK {4}automations are distinguishable/);
+  assert.match(out, /-4 performed: move_pulse_from_group/);
+});

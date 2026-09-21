@@ -16,6 +16,7 @@ const KNOWN = {
   delete_pulse: 'deletes an item',
   archive_pulse: 'archives an item',
   move_pulse_into_group: 'moves an item between groups',
+  move_pulse_from_group: 'moves an item between groups',
   move_pulse_into_board: 'moves an item between boards',
   change_column_value: 'changes a column',
   update_column_value: 'changes a column',

@@ -97,6 +97,21 @@ if (readable.length > 0) {
 // Whether automations are distinguishable decides how precise the labels can
 // be. The app works either way, so this is information rather than a blocker.
 const actors = [...new Set(logs.map((l) => String(l.user_id)))];
+const system = actors.filter((a) => Number(a) < 0);
+
 console.log(`\ndistinct user_id values: ${actors.join(', ')}`);
-console.log('If an automation made any of these changes and its user_id differs from');
-console.log('your own, automations are distinguishable and labels can name them exactly.');
+// Deliberately not a check. A sample with no automation action in it says
+// nothing about whether the adapter's assumptions hold, and calling that FAIL
+// would train whoever runs this to ignore the word.
+console.log(
+  system.length > 0
+    ? `OK    automations are distinguishable  — ${system.join(', ')} — negative ids are monday's own actors`
+    : 'NOTE  no negative user_id in this sample; trigger an automation and re-run to confirm',
+);
+
+if (system.length > 0) {
+  for (const actor of system) {
+    const events = [...new Set(logs.filter((l) => String(l.user_id) === actor).map((l) => l.event))];
+    console.log(`  ${actor} performed: ${events.join(', ')}`);
+  }
+}

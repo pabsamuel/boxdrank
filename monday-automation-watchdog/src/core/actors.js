@@ -12,7 +12,30 @@
  * integration, or an installed app. All three are things that can quietly stop
  * working, and all three are worth watching, so the imprecise label "not a
  * human" happens to select exactly the right set.
+ *
+ * There is also a much stronger signal, confirmed against a live account:
+ * **monday's automations act under a negative `user_id`.** That needs no list of
+ * people at all, so automations are recognised even when the users query is
+ * unavailable — which is the path this module previously degraded into.
  */
+
+/**
+ * True for monday's internal, non-human actors.
+ *
+ * **Verified against a live account on 21 Sep 2026.** An automation firing on a
+ * board writes its activity under `user_id: "-4"`. Real people have large
+ * positive ids (`"117040353"` in that account), so the sign alone separates
+ * them, and no person can ever collide with a negative id.
+ *
+ * Treats *any* negative id as internal rather than matching `-4` exactly: the
+ * one value observed is certainly not the only one monday uses, and a new
+ * system actor appearing should be watched, not ignored.
+ */
+export function isSystemActor(actor) {
+  if (actor === null || actor === undefined) return false;
+  const numeric = Number(String(actor).trim());
+  return Number.isFinite(numeric) && numeric < 0;
+}
 
 /**
  * Splits the actors seen in a log into people and everything else.
@@ -32,18 +55,33 @@ export function classifyActors(entries, humanIds) {
       .filter((actor) => actor !== null),
   );
 
-  // With no human list there is nothing to subtract, and assuming every actor
-  // is an automation would silently start watching people's manual edits and
-  // alerting when someone goes on holiday. Watching everything is the honest
-  // fallback, and it is what the app did before this existed.
+  const systemActors = new Set([...seen].filter(isSystemActor));
+
+  // Without a list of people there is nothing to subtract, and assuming every
+  // actor is an automation would start watching people's manual edits and
+  // alerting when someone goes on holiday.
+  //
+  // But a negative id is proof on its own. So when the human list is missing
+  // and negative ids are present, those are still watched confidently — which
+  // is precisely the product's job, since monday's own automations are exactly
+  // what carries a negative id. Only when there is neither a human list nor a
+  // system actor is there genuinely nothing to go on, and then everything stays
+  // watched as before.
   if (humans.size === 0) {
-    return { automationActors: new Set(), humanActors: new Set(), unknown: true };
+    return {
+      automationActors: systemActors,
+      humanActors: new Set(),
+      unknown: systemActors.size === 0,
+    };
   }
 
-  const automationActors = new Set();
+  const automationActors = new Set(systemActors);
   const humanActors = new Set();
   for (const actor of seen) {
+    if (systemActors.has(actor)) continue;
     if (humans.has(actor)) humanActors.add(actor);
+    // Not a person and not negative: an installed app or integration. It can
+    // stop working just as quietly as an automation, so it is watched too.
     else automationActors.add(actor);
   }
 

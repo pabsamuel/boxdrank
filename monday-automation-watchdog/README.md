@@ -107,7 +107,7 @@ scripts/
   build.js             emits a deployable dist/
 ```
 
-**133 tests**, all offline — no network, no account, no monday dependency.
+**142 tests**, all offline — no network, no account, no monday dependency.
 One runtime dependency (`monday-sdk-js`, pinned to 0.5.9 for the same reason as
 the schema auditor: 1.0.0-beta has removed `api()`).
 
@@ -145,11 +145,30 @@ CI, so this assumption cannot drift back into a guess.
 `update_column_value`, `update_board_name`, `board_workspace_id_changed`,
 `create_column` and `create_group` — now mapped to readable prose.
 
-**Still UNKNOWN:** whether an automation-performed action carries a different
-`user_id`. The captured account has only one actor, so there was nothing to
-compare.
+### How to tell an automation from a person — **answered**
 
-### Finding the automations without asking anyone
+**VERIFIED on a live account, 21 Sep 2026.** One automation was created on a real
+board and fired three times. Every action it performed was written under
+**`user_id: "-4"`**, while the person who triggered it appeared as
+`"117040353"`.
+
+**monday's automations act under a negative `user_id`.** People have large
+positive ids, so the sign alone separates them and no person can ever collide.
+
+The captured response also shows the automation's latency: roughly **1.5 seconds**
+between the human's `update_column_value` and the automation's
+`move_pulse_from_group`. Useful to know — an automation's effect is not
+instantaneous, but it is far below any interval this app measures.
+
+Any negative id counts, not just `-4`: that is certainly not the only internal
+actor monday uses, and a new one appearing should be watched rather than ignored.
+
+This also closes the gap left by the users query. A negative id is proof on its
+own, so automations are recognised even when the account's people cannot be
+listed — which was previously the degraded path. Alerts say *"An automation moves
+an item between groups on Client Projects"* rather than *"Actor -4"*.
+
+### Finding the rest without asking anyone
 
 The alternative was a settings screen where someone ticks which actors are
 automations. That is worse in every direction: work before the app does anything

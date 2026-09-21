@@ -115,3 +115,23 @@ test('event names are rendered as prose, with a safe fallback', async () => {
   assert.equal(describeEvent(null), 'does something');
   assert.equal(describeEvent(''), 'does something');
 });
+
+test('a monday automation is labelled as one rather than as "Actor -4"', () => {
+  // Verified against a live account: automations write under a negative user_id.
+  // "An automation moves an item between groups on Client Projects" reads
+  // better at 8am than "Actor -4 ...".
+  const entries = Array.from({ length: 8 }, (_, i) => ({
+    boardId: 'b1', actor: '-4', event: 'move_pulse_from_group', entity: 'pulse', at: WED - i * HOUR,
+  }));
+  const [signal] = extractSignals(entries, { boardNames: new Map([['b1', 'Client Projects']]) });
+  assert.match(signal.label, /^An automation /);
+  assert.ok(!signal.label.includes('-4'));
+});
+
+test('an explicit actor name still wins over the generic automation label', () => {
+  const entries = Array.from({ length: 8 }, (_, i) => ({
+    boardId: 'b1', actor: '-4', event: 'create_update', entity: 'pulse', at: WED - i * HOUR,
+  }));
+  const [signal] = extractSignals(entries, { actorNames: new Map([['-4', 'Slack Notifier']]) });
+  assert.match(signal.label, /^Slack Notifier /);
+});
