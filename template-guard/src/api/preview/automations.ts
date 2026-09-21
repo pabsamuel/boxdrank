@@ -39,29 +39,74 @@ import type { AutomationSnapshot } from '../../snapshot/types.js';
  *
  * This is precisely why the flag defaults to off.
  */
+/**
+ * ✓ SIGNATURE VERIFIED 21 Sep 2026, by introspecting the dev schema.
+ *
+ * Every earlier version of this query was wrong, in almost every particular —
+ * the argument name, the page field, the active flag, and the configuration
+ * field, which does not exist at all. It was written from a documentation
+ * summary and never once ran. The schema declares:
+ *
+ *   board_automations(ids: [ID!], board_ids: [ID!], limit: Int, cursor: String): AutomationsPage!
+ *   AutomationsPage  { cursor: String, items: [BoardAutomation!], legacy_automations: JSON }
+ *   BoardAutomation  { id, user_id, active, title, description, created_at,
+ *                      updated_at, workflow_host_data: JSON,
+ *                      workflow_blocks: JSON, workflow_variables: JSON,
+ *                      importance, notice_message, template_reference_id }
+ *
+ * Two things follow that matter beyond fixing the call.
+ *
+ * **`configuration` was never real.** The recipe is three JSON fields —
+ * `workflow_blocks` above all — so automation diffing is genuinely structural,
+ * not the presence-counting fallback ADR-002 planned for. Kept as `unknown`
+ * and compared structurally, because JSON from a preview schema is exactly the
+ * shape that changes without notice.
+ *
+ * **`legacy_automations` exists next to `items`.** A separate bucket of
+ * automations from an older era, on the same page. If the documented "44
+ * became 39" case is partly legacy recipes that the modern list omits, this is
+ * where that shows up — so it is captured rather than ignored, and counted
+ * rather than trusted. ✱ Its shape is unverified; the account tested has none.
+ *
+ * **`board_ids` accepts at most one board.** No batching across boards, unlike
+ * BOARD_CONFIG_QUERY. That is a rate-limit fact for any future sweep.
+ */
 const BOARD_AUTOMATIONS_QUERY = `
-  query TemplateGuardBoardAutomations($boardId: ID!, $cursor: String) {
-    board_automations(board_id: $boardId, cursor: $cursor) {
-      automations {
+  query TemplateGuardBoardAutomations($boardIds: [ID!], $limit: Int, $cursor: String) {
+    board_automations(board_ids: $boardIds, limit: $limit, cursor: $cursor) {
+      cursor
+      legacy_automations
+      items {
         id
         title
-        is_active
-        configuration
-      }
-      pagination {
-        nextCursor
-        hasMore
+        active
+        template_reference_id
+        workflow_blocks
+        workflow_variables
+        workflow_host_data
       }
     }
   }
 `;
 
+/** One board's worth of automations per request; the field allows no more. */
+const AUTOMATIONS_PAGE_LIMIT = 100;
+
 const MAX_AUTOMATION_PAGES = 20;
 
 interface RawAutomationPage {
   board_automations?: {
-    automations?: { id: string; title: string; is_active?: boolean; configuration?: unknown }[];
-    pagination?: { nextCursor?: string | null; hasMore?: boolean };
+    cursor?: string | null;
+    legacy_automations?: unknown;
+    items?: {
+      id: string;
+      title?: string | null;
+      active?: boolean | null;
+      template_reference_id?: string | null;
+      workflow_blocks?: unknown;
+      workflow_variables?: unknown;
+      workflow_host_data?: unknown;
+    }[] | null;
   } | null;
 }
 
@@ -88,7 +133,7 @@ export async function readBoardAutomations(
     try {
       ({ data, errors } = await client.request<RawAutomationPage>(
         BOARD_AUTOMATIONS_QUERY,
-        { boardId, cursor },
+        { boardIds: [boardId], limit: AUTOMATIONS_PAGE_LIMIT, cursor },
         // The dev schema, not the pinned version. A live run on 21 Sep showed
         // this read failing while every stable query succeeded — preview
         // fields do not exist on a pinned version, which is precisely why
@@ -112,18 +157,40 @@ export async function readBoardAutomations(
       return null;
     }
 
-    for (const a of payload.automations ?? []) {
+    for (const a of payload.items ?? []) {
       collected.push({
         id: String(a.id),
-        title: a.title,
-        isActive: a.is_active ?? true,
-        configuration: a.configuration ?? null,
+        title: a.title ?? '(untitled automation)',
+        isActive: a.active ?? true,
+        // The recipe itself. Three fields rather than the single
+        // `configuration` we invented; kept separate because they change
+        // independently and a diff that says which one moved is worth more.
+        workflowBlocks: a.workflow_blocks ?? null,
+        workflowVariables: a.workflow_variables ?? null,
+        workflowHostData: a.workflow_host_data ?? null,
+        templateReferenceId: a.template_reference_id != null ? String(a.template_reference_id) : null,
         fromPreviewSchema: true,
       });
     }
 
-    if (!payload.pagination?.hasMore) return collected;
-    cursor = payload.pagination.nextCursor ?? null;
+    // A page carries `legacy_automations` alongside `items`. If any are
+    // present they are recorded once, loudly: an older bucket of recipes that
+    // the modern list omits is a plausible mechanism for the documented
+    // 44-became-39 case, and silently ignoring it would be this app doing the
+    // thing it exists to catch.
+    if (page === 0 && hasLegacyAutomations(payload.legacy_automations)) {
+      failures.push(
+        partial(
+          'preview_unavailable',
+          `board.${boardId}.automations.legacy`,
+          `This board has automations in monday's legacy format, which Template Guard does not yet read. They are NOT included in the comparison below.`,
+          { degradesDiff: false, cause: payload.legacy_automations },
+        ),
+      );
+    }
+
+    // There is no `hasMore`; an absent cursor is the end of the list.
+    cursor = payload.cursor ?? null;
     if (!cursor) return collected;
   }
 
@@ -136,6 +203,14 @@ export async function readBoardAutomations(
     ),
   );
   return collected;
+}
+
+/** ✱ Shape unverified — the tested account had none. Counted, never trusted. */
+function hasLegacyAutomations(value: unknown): boolean {
+  if (value == null) return false;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.keys(value as object).length > 0;
+  return true;
 }
 
 function previewFailure(boardId: string, cause: unknown): PartialFailure {

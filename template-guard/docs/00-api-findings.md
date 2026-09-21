@@ -13,7 +13,8 @@
 > | The column points where we say it does | ✓ |
 > | `isBoardReferencing` recognises `board_relation` | ✓ |
 > | `owners`/`subscribers` paginate with `limit`/`page` | ✗ → **✓ on re-run.** Those arguments do not exist. Fixed by folding both fields into the config query, which also removed a whole request per board. |
-> | `board_automations` readable | ✗ twice, then **diagnosed by introspection.** The field exists on `dev` and **nowhere on `2026-07`** — 96 root fields there, none about automations. Our argument list is wrong (`board_id` vs the declared `board_ids`); the signature probe settles it. ADR-030. |
+> | `board_automations` readable | ✗ twice, then **solved by introspection.** The field exists on `dev` and **nowhere on `2026-07`**. Its real signature showed every part of our query was wrong, including a `configuration` field that does not exist. Rewritten from the schema. ADR-030, ADR-031. |
+> | **Is the recipe body structured?** (`✱5`) | ✓ — it is three JSON fields, `workflow_blocks` above all. **Automation diffing is real, not presence-counting.** |
 >
 > **Re-run, same day: 6 verified, 1 failed.** The only open claim is the
 > preview automations read, which is behind a default-off flag that no paid

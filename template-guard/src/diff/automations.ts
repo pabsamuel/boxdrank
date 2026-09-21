@@ -11,10 +11,14 @@ import type { Finding } from './types.js';
  * silence here must never read as a clean bill of health, which is why
  * `diffAutomations` also reports whether it ran.
  *
- * The 44-became-39 case is a pure count-and-title comparison, so it works even
- * if `configuration` turns out to be an opaque string. Deeper comparison
- * (which trigger, which target board) is attempted only when `configuration`
- * is structured, and degrades cleanly when it is not.
+ * The 44-became-39 case is a pure count-and-title comparison, and works no
+ * matter what the recipe body looks like.
+ *
+ * ✓ 21 Sep 2026: the recipe body **is** structured JSON —
+ * `workflow_blocks`, `workflow_variables`, `workflow_host_data` — so the
+ * deeper comparison is real rather than the fallback ADR-002 planned for. It
+ * is still guarded, because preview-schema JSON can turn into something else
+ * without notice and a diff must never throw on the shape of its input.
  */
 
 export interface AutomationDiff {
@@ -29,10 +33,24 @@ function automationKey(a: AutomationSnapshot): string {
   return normalizeTitle(a.title);
 }
 
-/** True when `configuration` looks like something we can compare field-wise. */
+/** True when a recipe body is something we can compare field-wise. */
 export function isStructuredConfiguration(config: unknown): boolean {
   return config !== null && typeof config === 'object';
 }
+
+/**
+ * The parts of a recipe worth comparing, in the order a user cares about.
+ *
+ * `workflow_blocks` is the recipe itself — its trigger, its actions, and the
+ * board and column IDs they reference, which is exactly what duplication gets
+ * wrong. The other two are reported by name so a finding can say which part
+ * moved instead of "something differs".
+ */
+const RECIPE_PARTS = [
+  ['the recipe steps', (a: AutomationSnapshot) => a.workflowBlocks],
+  ['its variables', (a: AutomationSnapshot) => a.workflowVariables],
+  ['its connection settings', (a: AutomationSnapshot) => a.workflowHostData],
+] as const;
 
 export function diffAutomations(
   template: BoardSnapshot,
@@ -109,22 +127,27 @@ export function diffAutomations(
       });
     }
 
-    if (isStructuredConfiguration(t.configuration) && isStructuredConfiguration(match.configuration)) {
-      const before = JSON.stringify(t.configuration);
-      const after = JSON.stringify(match.configuration);
-      if (before !== after) {
+    const changedParts = RECIPE_PARTS.filter(([, read]) => {
+      const before = read(t);
+      const after = read(match);
+      if (!isStructuredConfiguration(before) || !isStructuredConfiguration(after)) return false;
+      return JSON.stringify(before) !== JSON.stringify(after);
+    }).map(([label]) => label);
+
+    {
+      if (changedParts.length > 0) {
         findings.push({
           id: `automation.altered.${match.id}`,
           severity: 'altered',
           kind: 'automation.altered',
           subject: { type: 'automation', id: match.id, title: match.title },
-          what: `The automation “${match.title}” is configured differently from the template.`,
+          what: `The automation “${match.title}” differs from the template in ${changedParts.join(' and ')}.`,
           whyItMatters:
             'Recipes that reference a specific board, column or person are copied literally. A difference here often means the recipe is still aimed at whatever the template pointed to.',
           howToFix:
             'Open the recipe on both boards and compare them step by step, paying particular attention to any board or person referenced inside it.',
           confidence: 'likely',
-          evidence: { templateAutomationId: t.id, copyAutomationId: match.id },
+          evidence: { templateAutomationId: t.id, copyAutomationId: match.id, changedParts },
         });
       }
     }

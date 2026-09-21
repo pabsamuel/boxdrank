@@ -9,7 +9,14 @@ import type { PartialFailure } from '../api/errors.js';
  * it does not belong in this type. See CLAUDE.md rule 4.
  */
 
-export const SNAPSHOT_SCHEMA_VERSION = 1;
+/**
+ * Bumped to 2 on 21 Sep 2026: `AutomationSnapshot.configuration` never existed
+ * on monday's schema and was replaced by the three real recipe fields
+ * (ADR-031). Any snapshot written before that is refused on read rather than
+ * coerced — a diff against a snapshot we cannot fully read would report
+ * artefacts of our own schema change as findings.
+ */
+export const SNAPSHOT_SCHEMA_VERSION = 2;
 
 export interface ColumnSnapshot {
   id: string;
@@ -51,13 +58,26 @@ export interface AutomationSnapshot {
   title: string;
   isActive: boolean;
   /**
-   * Whatever `board_automations` returns in `configuration`.
+   * The recipe graph. ✓ Structured JSON, verified 21 Sep 2026 — there is no
+   * `configuration` field, which is what we spent months assuming.
    *
-   * ✱ Shape UNVERIFIED. If it is a structured recipe graph we can diff it
-   * properly; if it is an opaque display string we can only count presence and
-   * absence. The diff engine handles both — see `diff/automations.ts`.
+   * Three fields rather than one because they change independently, and a
+   * finding that says *which* part moved is worth more than one that says
+   * something did. `unknown` rather than a shape, because this is preview
+   * schema: it may change without notice, and the diff compares it
+   * structurally rather than reading into it.
    */
-  configuration: unknown;
+  workflowBlocks: unknown;
+  workflowVariables: unknown;
+  workflowHostData: unknown;
+  /**
+   * Set when the automation came from a monday recipe template.
+   *
+   * Not used yet. Recorded because an automation that lost its template
+   * reference during duplication is a plausible shape for the documented
+   * "44 became 39", and this is the only place that fact would be visible.
+   */
+  templateReferenceId: string | null;
   /** Always true for now: everything here came from the preview schema. */
   fromPreviewSchema: boolean;
 }

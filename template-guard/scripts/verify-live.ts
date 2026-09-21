@@ -524,28 +524,35 @@ async function main(): Promise<void> {
         observed: `Read ${automations.length} automation(s).`,
       });
 
-      // The high-value unknown: is `configuration` a structured recipe graph
-      // we can diff properly, or an opaque display string we can only count?
+      // The high-value unknown: is the recipe body structured enough to diff
+      // field by field, or only countable?
       const sample = automations[0];
       if (!sample) {
         record({
           id: '✱5',
-          claim: 'The shape of `configuration` decides whether automation diffing is real or presence-counting.',
+          claim: 'The recipe body is structured JSON, so automation diffing is real rather than presence-counting.',
           status: 'SKIPPED',
           observed: 'This board has no automations to sample.',
-          action: 'Re-run against a board with automations on it.',
+          action: 'Re-run against a board with an automation on it.',
         });
       } else {
-        const config = sample.configuration;
-        const structured = config !== null && typeof config === 'object';
+        const structured =
+          sample.workflowBlocks !== null && typeof sample.workflowBlocks === 'object';
         record({
           id: '✱5',
-          claim: '`configuration` is a structured recipe graph, not an opaque display string.',
+          claim: '`workflow_blocks` is a structured recipe graph, not an opaque string.',
           status: structured ? 'VERIFIED' : 'FAILED',
-          observed: `typeof = ${typeof config}. Value: ${truncate(config)}`,
-          action: structured
-            ? 'Structured: field-level automation diffing is possible. src/diff/automations.ts can be sharpened.'
-            : 'Opaque: automation diffing degrades to presence/absence counting — which still catches 44→39, the documented case. No code change needed; the engine already handles both.',
+          observed: `"${sample.title}" (active: ${sample.isActive}${sample.templateReferenceId ? `, from template ${sample.templateReferenceId}` : ''}) — workflow_blocks typeof ${typeof sample.workflowBlocks}: ${truncate(sample.workflowBlocks)}`,
+          action:
+            'Opaque after all: automation diffing falls back to presence and title comparison, which still catches the documented 44→39 case.',
+        });
+
+        record({
+          id: '✱6',
+          claim: 'A recipe references boards and columns by id, which is what duplication gets wrong.',
+          status: 'SKIPPED',
+          observed: `Look at the workflow_blocks above: if the ids in it name THIS board, duplication rewrote them. If they name another board, that is a cross-board recipe — the kind monday drops silently. Full value: ${truncate(sample.workflowBlocks, 2000)}`,
+          action: 'A human reads this one. There is no assertion that can replace looking.',
         });
       }
     }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { diffBoards } from '../src/diff/diff.js';
+import { diffAutomations } from '../src/diff/automations.js';
 import { countBySeverity, type Finding } from '../src/diff/types.js';
 import { partial } from '../src/api/errors.js';
 import {
@@ -350,5 +351,61 @@ describe('severity accounting', () => {
     expect(counts.missing).toBe(2); // Kickoff Date + Handover
     expect(counts.altered).toBe(1); // the rename
     expect(counts.cosmetic).toBe(1); // the added column
+  });
+});
+
+describe('automation recipe comparison (verified structure, 21 Sep)', () => {
+  const base = { workflowVariables: { v: 1 }, workflowHostData: { h: 1 } };
+
+  function boards(templateAuto: ReturnType<typeof automation>[], copyAuto: ReturnType<typeof automation>[]) {
+    return [
+      { ...templateBoard, automations: templateAuto },
+      { ...cleanCopy, automations: copyAuto },
+    ] as const;
+  }
+
+  it('names which part of the recipe moved, not just that something did', () => {
+    const [t, c] = boards(
+      [automation({ id: 'a1', title: 'Notify owner', workflowBlocks: { board: '111' }, ...base })],
+      [automation({ id: 'b1', title: 'Notify owner', workflowBlocks: { board: '999' }, ...base })],
+    );
+
+    const { findings, ran } = diffAutomations(t, c);
+    expect(ran).toBe(true);
+    // "differs in the recipe steps" is actionable; "is configured
+    // differently" sends someone hunting through three JSON blobs.
+    expect(findings[0]!.what).toContain('the recipe steps');
+    expect(findings[0]!.what).not.toContain('its variables');
+  });
+
+  it('reports several parts when several moved', () => {
+    const [t, c] = boards(
+      [automation({ id: 'a1', title: 'Notify', workflowBlocks: { b: 1 }, workflowVariables: { v: 1 }, workflowHostData: { h: 1 } })],
+      [automation({ id: 'b1', title: 'Notify', workflowBlocks: { b: 2 }, workflowVariables: { v: 2 }, workflowHostData: { h: 1 } })],
+    );
+
+    const finding = diffAutomations(t, c).findings[0]!;
+    expect(finding.what).toContain('the recipe steps');
+    expect(finding.what).toContain('its variables');
+    expect(finding.evidence).toMatchObject({ changedParts: ['the recipe steps', 'its variables'] });
+  });
+
+  it('says nothing when the recipe is identical', () => {
+    const [t, c] = boards(
+      [automation({ id: 'a1', title: 'Notify', workflowBlocks: { b: 1 }, ...base })],
+      [automation({ id: 'b1', title: 'Notify', workflowBlocks: { b: 1 }, ...base })],
+    );
+    expect(diffAutomations(t, c).findings).toEqual([]);
+  });
+
+  it('stays quiet rather than throwing when a recipe body is not an object', () => {
+    // Preview-schema JSON can become anything without notice. A diff that
+    // throws on the shape of its input is worse than one that says less.
+    const [t, c] = boards(
+      [automation({ id: 'a1', title: 'Notify', workflowBlocks: 'opaque' as unknown })],
+      [automation({ id: 'b1', title: 'Notify', workflowBlocks: 'different' as unknown })],
+    );
+    expect(() => diffAutomations(t, c)).not.toThrow();
+    expect(diffAutomations(t, c).findings).toEqual([]);
   });
 });

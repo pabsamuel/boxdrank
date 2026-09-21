@@ -57,7 +57,10 @@ export function automation(
 ): AutomationSnapshot {
   return {
     isActive: true,
-    configuration: null,
+    workflowBlocks: null,
+    workflowVariables: null,
+    workflowHostData: null,
+    templateReferenceId: null,
     fromPreviewSchema: true,
     ...over,
   };

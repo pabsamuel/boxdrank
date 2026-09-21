@@ -860,3 +860,63 @@ cannot be batched across boards the way `BOARD_CONFIG_QUERY` batches ten. If
 the flag is ever switched on for a drift sweep, that is one request per board
 on top of the config read, and the pacing in ADR-022 and ADR-014 would need
 revisiting before it ships.
+
+## ADR-031 — `configuration` never existed
+**Date:** 2026-09-21 · **Status:** accepted
+Introspecting `board_automations` produced its exact signature, and it showed
+that **every part of our query was wrong**:
+
+| We sent | monday declares |
+|---|---|
+| `board_id: ID` | `board_ids: [ID!]` — *at most one board* |
+| — | `limit: Int` |
+| `automations { … }` | `items: [BoardAutomation!]` |
+| `is_active` | `active` |
+| **`configuration`** | **does not exist** |
+| `pagination { nextCursor hasMore }` | `cursor: String`, on the page |
+
+Written from a documentation summary and **never once executed**. Three live
+runs were needed to find that out, and the honest reading is that the first two
+failures were not bad luck: a query nothing had ever run was never going to be
+right by inspection.
+
+### The good news is bigger than the bug
+
+The recipe body is three JSON fields — `workflow_blocks`,
+`workflow_variables`, `workflow_host_data` — not an opaque display string.
+`✱5` asked whether automation diffing could be *real* or only presence
+counting. **It is real.** `workflow_blocks` holds the recipe's steps, which is
+where the board and column IDs a duplication rewrites actually live.
+
+So the diff now names which part moved — *"differs in the recipe steps"* rather
+than *"is configured differently"* — because the first is actionable and the
+second sends someone hunting through three JSON blobs. It still guards every
+read: preview-schema JSON can become something else without notice, and a diff
+that throws on the shape of its input is worse than one that says less.
+
+### Two fields worth having found
+
+**`legacy_automations`**, alongside `items` on the same page. An older bucket
+of recipes the modern list does not include. If the documented *44 became 39*
+is partly legacy automations that `items` omits, this is where it would show —
+so its presence is now reported as a visible partial failure rather than
+ignored. ✱ Shape unverified: the tested account has none, so it is counted,
+never trusted.
+
+**`template_reference_id`** on each automation. An automation created from a
+monday recipe template carries a reference to it. Not used yet, recorded
+because an automation that lost that reference during duplication is another
+plausible shape for the same documented failure.
+
+### Consequences
+
+`SNAPSHOT_SCHEMA_VERSION` goes to **2**. Any snapshot written under version 1
+is refused on read, not coerced — a diff against a snapshot we cannot fully
+read would report artefacts of our own schema change as findings, which is the
+false-positive class this product cannot afford.
+
+**`board_ids` takes at most one board.** Automations cannot be batched the way
+`BOARD_CONFIG_QUERY` batches ten. Switching the flag on for a drift sweep means
+one extra request per board on top of the config read, and the pacing in
+ADR-014 and ADR-022 must be revisited before that ships. Recorded now, while
+the reason is fresh.
