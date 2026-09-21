@@ -39,18 +39,64 @@ export function isStructuredConfiguration(config: unknown): boolean {
 }
 
 /**
- * The parts of a recipe worth comparing, in the order a user cares about.
+ * The parts of a recipe worth comparing, most load-bearing first.
  *
- * `workflow_blocks` is the recipe itself — its trigger, its actions, and the
- * board and column IDs they reference, which is exactly what duplication gets
- * wrong. The other two are reported by name so a finding can say which part
- * moved instead of "something differs".
+ * ✓ Corrected 21 Sep 2026 after reading a real recipe. I had these the wrong
+ * way round. `workflow_blocks` does **not** contain board or column IDs — it
+ * references them indirectly:
+ *
+ *     "inboundFieldsSourceConfig": {
+ *       "boardId":         { "workflowVariableKey": 1 },
+ *       "peopleColumnId":  { "workflowVariableKey": 15 }
+ *     }
+ *
+ * The variable *keys* are stable, so `workflow_blocks` is identical between a
+ * template and its copy even when the copy points at the wrong board. The
+ * actual IDs live in `workflow_variables`. Comparing blocks alone would have
+ * found nothing in exactly the case this product exists for.
  */
 const RECIPE_PARTS = [
-  ['the recipe steps', (a: AutomationSnapshot) => a.workflowBlocks],
-  ['its variables', (a: AutomationSnapshot) => a.workflowVariables],
+  ['the boards and columns it points at', (a: AutomationSnapshot) => a.workflowVariables],
+  ['its steps', (a: AutomationSnapshot) => a.workflowBlocks],
   ['its connection settings', (a: AutomationSnapshot) => a.workflowHostData],
 ] as const;
+
+/**
+ * Searches a recipe for a board ID, wherever monday chose to put it.
+ *
+ * Deliberately shape-agnostic: it walks the JSON and compares every string and
+ * number against the ID. That is not laziness — `workflow_variables`' internal
+ * structure is preview-schema data this codebase has not verified, and a
+ * scanner that knows too much about a shape it has not seen is a scanner that
+ * silently stops matching when the shape changes. Comparing values it already
+ * knows requires no such assumption.
+ *
+ * The cost is a possible false positive: some unrelated number that happens to
+ * equal a board ID. Board IDs are ten digits, so that is unlikely, and the
+ * finding it produces is graded `likely` rather than `certain`.
+ */
+export function recipeReferencesBoard(recipe: unknown, boardId: string): boolean {
+  const target = String(boardId);
+  const seen = new Set<unknown>();
+
+  const walk = (value: unknown): boolean => {
+    if (value == null) return false;
+    if (typeof value === 'string' || typeof value === 'number') return String(value) === target;
+    if (typeof value !== 'object') return false;
+    if (seen.has(value)) return false;
+    seen.add(value);
+
+    if (Array.isArray(value)) return value.some(walk);
+    return Object.values(value as Record<string, unknown>).some(walk);
+  };
+
+  return walk(recipe);
+}
+
+/** Everything a recipe carries, for scanning as one document. */
+function recipeOf(a: AutomationSnapshot): unknown[] {
+  return [a.workflowVariables, a.workflowBlocks, a.workflowHostData];
+}
 
 export function diffAutomations(
   template: BoardSnapshot,
@@ -124,6 +170,36 @@ export function diffAutomations(
         howToFix: 'Open this board’s automation centre and toggle the recipe back on.',
         confidence: 'certain',
         evidence: { copyAutomationId: match.id },
+      });
+    }
+
+    // The headline severity, extended to automations.
+    //
+    // A recipe on the copy that still names the *template's* board is the same
+    // failure as a mis-wired connect column, and it is just as invisible: the
+    // automation runs, reports success, and does its work on the wrong
+    // client's board. Checked before the field-by-field comparison because it
+    // outranks anything that comparison can find.
+    const pointsAtTemplate = recipeOf(match).some((part) =>
+      recipeReferencesBoard(part, template.boardId),
+    );
+    const templatePointsAtItself = recipeOf(t).some((part) =>
+      recipeReferencesBoard(part, template.boardId),
+    );
+
+    if (pointsAtTemplate && templatePointsAtItself && template.boardId !== copy.boardId) {
+      findings.push({
+        id: `automation.miswired.${match.id}`,
+        severity: 'miswired',
+        kind: 'automation.miswired',
+        subject: { type: 'automation', id: match.id, title: match.title },
+        what: `The automation “${match.title}” still refers to the template board (${template.boardId}), not to this one.`,
+        whyItMatters:
+          'On the template this recipe pointed at its own board. On this copy it still points at the template. It will run without erroring, report success, and do its work on the wrong board — which is the single hardest failure here to notice, because nothing looks broken.',
+        howToFix:
+          'Open this recipe in the board’s automation centre and re-select the board it should act on. Check every step: a recipe can name a board in more than one place.',
+        confidence: 'likely',
+        evidence: { copyAutomationId: match.id, templateBoardId: template.boardId },
       });
     }
 

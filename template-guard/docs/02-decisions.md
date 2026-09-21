@@ -920,3 +920,54 @@ false-positive class this product cannot afford.
 one extra request per board on top of the config read, and the pacing in
 ADR-014 and ADR-022 must be revisited before that ships. Recorded now, while
 the reason is fresh.
+
+## ADR-032 — Looking at one real recipe corrected the diff's priorities
+**Date:** 2026-09-21 · **Status:** accepted
+`✱6` was not an assertion. It printed a real recipe and said a human has to
+read it. Reading it found a design error that every passing test had missed.
+
+A recipe block does not contain board or column IDs:
+
+```json
+{ "title": "When item created",
+  "inboundFieldsSourceConfig": {
+    "boardId":        { "workflowVariableKey": 1 },
+    "peopleColumnId": { "workflowVariableKey": 15 } } }
+```
+
+It holds *variable keys*. The IDs live in `workflow_variables`. Those keys are
+stable, so **`workflow_blocks` is identical between a template and its copy
+even when the copy points at the wrong board** — and ADR-031 had ranked
+`workflow_blocks` as the load-bearing field and `workflow_variables` as "its
+variables", an afterthought.
+
+Comparing blocks first would have found nothing in precisely the case this
+product exists for. Every test passed, because the fixtures were built from the
+same wrong assumption as the code. Order corrected; the label is now *"the
+boards and columns it points at"*, which is what the field actually holds.
+
+### The headline severity now reaches automations
+
+A recipe on a copy that still names the **template's** board is the same
+failure as a mis-wired connect column, and just as invisible: it runs, reports
+success, and does its work on the wrong client's board. `automation.miswired`
+is now a finding at `miswired` severity.
+
+`recipeReferencesBoard()` is deliberately **shape-agnostic** — it walks the
+JSON and compares every string and number against the board ID. Not laziness:
+`workflow_variables`' internal structure is preview-schema data this codebase
+has not verified, and a scanner that knows too much about a shape it has not
+seen stops matching the moment that shape changes. Comparing values it already
+knows requires no such assumption, and it cannot be wrong about a structure it
+never reads.
+
+The cost is a possible false positive — an unrelated number equal to a board
+ID. Board IDs are ten digits, so it is unlikely, and the finding is graded
+`likely`, never `certain`. It also fires only when the template's recipe
+pointed at the template's *own* board: a recipe aimed at a genuinely shared
+board should survive duplication unchanged, and flagging that would be a false
+positive on a healthy copy. There is a test for each of those.
+
+**The general lesson:** a check whose action is "a human reads this" earned its
+place. No assertion in the suite could have caught this, because the assertions
+and the bug shared an assumption.

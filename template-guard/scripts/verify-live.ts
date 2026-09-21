@@ -549,10 +549,11 @@ async function main(): Promise<void> {
 
         record({
           id: '✱6',
-          claim: 'A recipe references boards and columns by id, which is what duplication gets wrong.',
+          claim: 'Board and column ids live in `workflow_variables`, not in `workflow_blocks`.',
           status: 'SKIPPED',
-          observed: `Look at the workflow_blocks above: if the ids in it name THIS board, duplication rewrote them. If they name another board, that is a cross-board recipe — the kind monday drops silently. Full value: ${truncate(sample.workflowBlocks, 2000)}`,
-          action: 'A human reads this one. There is no assertion that can replace looking.',
+          observed: `workflow_variables (where the board and column ids actually live): ${truncate(sample.workflowVariables, 2000)}`,
+          action:
+            'A human reads this one. Look for this board id inside the variables — that is what a duplicated copy fails to rewrite, and what automation.miswired scans for.',
         });
       }
     }

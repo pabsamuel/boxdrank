@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { diffBoards } from '../src/diff/diff.js';
-import { diffAutomations } from '../src/diff/automations.js';
+import { diffAutomations, recipeReferencesBoard } from '../src/diff/automations.js';
 import { countBySeverity, type Finding } from '../src/diff/types.js';
 import { partial } from '../src/api/errors.js';
 import {
@@ -372,10 +372,10 @@ describe('automation recipe comparison (verified structure, 21 Sep)', () => {
 
     const { findings, ran } = diffAutomations(t, c);
     expect(ran).toBe(true);
-    // "differs in the recipe steps" is actionable; "is configured
-    // differently" sends someone hunting through three JSON blobs.
-    expect(findings[0]!.what).toContain('the recipe steps');
-    expect(findings[0]!.what).not.toContain('its variables');
+    // "differs in its steps" is actionable; "is configured differently"
+    // sends someone hunting through three JSON blobs.
+    expect(findings[0]!.what).toContain('its steps');
+    expect(findings[0]!.what).not.toContain('the boards and columns');
   });
 
   it('reports several parts when several moved', () => {
@@ -385,9 +385,12 @@ describe('automation recipe comparison (verified structure, 21 Sep)', () => {
     );
 
     const finding = diffAutomations(t, c).findings[0]!;
-    expect(finding.what).toContain('the recipe steps');
-    expect(finding.what).toContain('its variables');
-    expect(finding.evidence).toMatchObject({ changedParts: ['the recipe steps', 'its variables'] });
+    // Variables first: they hold the board and column ids, which is the part
+    // a duplication actually gets wrong.
+    expect(finding.evidence).toMatchObject({
+      changedParts: ['the boards and columns it points at', 'its steps'],
+    });
+    expect(finding.what).toContain('the boards and columns it points at');
   });
 
   it('says nothing when the recipe is identical', () => {
@@ -406,6 +409,84 @@ describe('automation recipe comparison (verified structure, 21 Sep)', () => {
       [automation({ id: 'b1', title: 'Notify', workflowBlocks: 'different' as unknown })],
     );
     expect(() => diffAutomations(t, c)).not.toThrow();
+    expect(diffAutomations(t, c).findings).toEqual([]);
+  });
+});
+
+describe('a recipe still pointing at the template board', () => {
+  /** Shaped like a real one: blocks reference variables, variables hold ids. */
+  function recipe(boardId: string) {
+    return {
+      workflowBlocks: [
+        {
+          workflowNodeId: 1,
+          title: 'When item created',
+          inboundFieldsSourceConfig: { boardId: { workflowVariableKey: 1 } },
+        },
+      ],
+      workflowVariables: { 1: { kind: 'board', value: { boardId: Number(boardId) } } },
+    };
+  }
+
+  it('finds a board id wherever it sits in the JSON', () => {
+    expect(recipeReferencesBoard(recipe(TEMPLATE_BOARD_ID), TEMPLATE_BOARD_ID)).toBe(true);
+    expect(recipeReferencesBoard(recipe(TEMPLATE_BOARD_ID), COPY_BOARD_ID)).toBe(false);
+    // Numbers and strings both, because monday returns board ids as numbers.
+    expect(recipeReferencesBoard({ a: [{ b: TEMPLATE_BOARD_ID }] }, TEMPLATE_BOARD_ID)).toBe(true);
+  });
+
+  it('does not loop forever on a circular structure', () => {
+    const circular: Record<string, unknown> = { id: '1' };
+    circular.self = circular;
+    expect(() => recipeReferencesBoard(circular, TEMPLATE_BOARD_ID)).not.toThrow();
+  });
+
+  it('reports miswired — the same failure as a mis-wired connect column', () => {
+    const t = {
+      ...templateBoard,
+      automations: [automation({ id: 'a1', title: 'Notify', ...recipe(TEMPLATE_BOARD_ID) })],
+    };
+    const c = {
+      ...cleanCopy,
+      // Duplication left the recipe naming the template's board.
+      automations: [automation({ id: 'b1', title: 'Notify', ...recipe(TEMPLATE_BOARD_ID) })],
+    };
+
+    const finding = diffAutomations(t, c).findings.find((f) => f.severity === 'miswired');
+    expect(finding).toBeDefined();
+    expect(finding!.what).toContain(TEMPLATE_BOARD_ID);
+    // A guess, and labelled as one: an unrelated number could match.
+    expect(finding!.confidence).toBe('likely');
+  });
+
+  it('says nothing when the copy was re-pointed correctly', () => {
+    const t = {
+      ...templateBoard,
+      automations: [automation({ id: 'a1', title: 'Notify', ...recipe(TEMPLATE_BOARD_ID) })],
+    };
+    const c = {
+      ...cleanCopy,
+      automations: [automation({ id: 'b1', title: 'Notify', ...recipe(COPY_BOARD_ID) })],
+    };
+
+    const findings = diffAutomations(t, c).findings;
+    expect(findings.some((f) => f.severity === 'miswired')).toBe(false);
+    // It does still notice the variables changed, which is correct and lesser.
+    expect(findings[0]?.what).toContain('the boards and columns it points at');
+  });
+
+  it('does not cry miswired when the template never pointed at itself', () => {
+    // A recipe aimed at a genuinely shared board should survive duplication
+    // unchanged, and flagging that would be a false positive on a healthy copy.
+    const t = {
+      ...templateBoard,
+      automations: [automation({ id: 'a1', title: 'Notify', ...recipe(SHARED_CRM_BOARD_ID) })],
+    };
+    const c = {
+      ...cleanCopy,
+      automations: [automation({ id: 'b1', title: 'Notify', ...recipe(SHARED_CRM_BOARD_ID) })],
+    };
+
     expect(diffAutomations(t, c).findings).toEqual([]);
   });
 });

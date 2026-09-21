@@ -1,6 +1,6 @@
 # Status — how much of this is done
 
-**Updated:** 21 Sep 2026 · 234 tests passing · **first live API verification done** · typecheck clean · production build clean
+**Updated:** 21 Sep 2026 · 243 tests passing · **API verification complete: 8/8** · typecheck clean · production build clean
 
 Two numbers, because they are genuinely different and mixing them would be the
 kind of comfortable lie this project is supposed to be allergic to.
@@ -24,7 +24,7 @@ Every deliverable the spec named, plus the two the README listed as still to do.
 | API findings report + Path A/B recommendation | Done | `docs/00-api-findings.md` |
 | App skeleton, OAuth, board view, dashboard widget | Done | `src/server/`, `src/ui/` |
 | Snapshot + diff engine | Done | `src/snapshot/`, `src/diff/` |
-| Unit tests over fixtures — the four required cases | Done, 234 tests | `test/` |
+| Unit tests over fixtures — the four required cases | Done, 243 tests | `test/` |
 | Repair layer (auto where safe, manual checklist where not) | Done | `src/repair/` |
 | README | Done | `README.md` |
 | Project docs, decision log, prompts | Done | `docs/` |
@@ -60,7 +60,7 @@ What is left, and who can do it.
 
 | # | Blocker | Who | Effort |
 |---|---|---|---|
-| 1 | ~~Verify the `✱` claims~~ **Done 21 Sep — 6 verified, 1 failed.** The one that mattered is `boardIds` with **number** IDs (ADR-028), and the wasted per-board request is gone. `board_automations` was rewritten from its introspected signature — every part of the old query was wrong, and the recipe body turns out to be **structured JSON**, so automation diffing is real rather than presence-counting (ADR-031). One run left to confirm: `npm run verify:live -- --board 5104569213 --connect-board 5104569193 --automations`. | You | **1 minute** |
+| 1 | ~~Verify the `✱` claims~~ **DONE 21 Sep — 8 verified, 0 failed.** Four real bugs found, all fixed: the connect-column key (`boardIds`, number ids), a people query that had never worked, the preview schema header, and the entire `board_automations` signature. Plus one design error caught by reading a real recipe (ADR-032). | — | — |
 | 2 | **Gate #2 — defend the architecture.** monday rejects AI-vibe-coded apps. The answer key is written; you have to be able to give the answers cold. | You | An evening's reading |
 | 3 | **Gate #3 — run the Burp scan and remediate what it finds.** The standard findings are pre-empted (headers, CORS, rate limiting, body cap, non-root container) and tested. It does **not** go away on monday code — monday requires all domains to pass and documents no exemption — but the scanned surface becomes monday's infrastructure and `mapps code:push -s` scans at deploy time. | You, after deploying | Unknown until scanned |
 | 4 | ~~ADR-010 — pick the product shape~~ **Settled 20 Sep — ADR-025.** Ship the auditor and the monitoring; cut one-click repair from v1 so that "never writes to your boards" is a true listing claim. monday code removed the cost that made the backend a hard trade. | — | — |
