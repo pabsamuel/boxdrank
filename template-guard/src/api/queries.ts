@@ -74,6 +74,12 @@ export const BOARD_CONFIG_QUERY = `
         id
         name
       }
+      owners {
+        id
+      }
+      subscribers {
+        id
+      }
     }
   }
 `;
@@ -90,22 +96,28 @@ export const BOARD_CONFIG_QUERY = `
  * Legacy photo fields (`photo_original`, `photo_thumb`, `photo_thumb_small`,
  * `photo_tiny`, `photo_small`) are removed in 2026-10. We request none of them.
  */
-export const BOARD_PEOPLE_QUERY = `
-  query TemplateGuardBoardPeople($ids: [ID!]!, $limit: Int!, $page: Int!) {
-    boards(ids: $ids) {
-      id
-      owners(limit: $limit, page: $page) {
-        id
-        name
-      }
-      subscribers(limit: $limit, page: $page) {
-        id
-        name
-      }
-    }
-  }
-`;
-
+/**
+ * ✓ VERIFIED 21 Sep 2026, against a live account on API 2026-07.
+ *
+ * `Board.owners` and `Board.subscribers` take **no arguments**. An earlier
+ * version of this file paginated them with `limit` and `page`, which monday
+ * rejects outright — *"Unknown argument limit on field Board.owners"* — so
+ * every snapshot carried a failure for a read that could never have worked.
+ *
+ * Two things changed as a result. They are now selected inside
+ * `BOARD_CONFIG_QUERY`, removing an entire round trip per board: the sweep
+ * issues these across every board of every paying account, so a request that
+ * bought nothing was the most expensive kind of bug this codebase can have.
+ * And the 2026-07 user-pagination trap documented above turns out to apply to
+ * the top-level `users` query, not to these fields.
+ *
+ * **Residual risk, stated rather than assumed away:** with no pagination
+ * available, a board with a very large number of subscribers may be truncated
+ * by monday without saying so, and we have no way to detect it. Nothing in the
+ * diff currently reads these lists, so nothing is wrong today — but if a
+ * permissions comparison is ever built on them, that limitation is the first
+ * thing to re-check.
+ */
 export const USERS_PAGE_LIMIT = 200;
 
 /** Boards the installing user can reach, for the board picker. */

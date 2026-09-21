@@ -1,6 +1,6 @@
 # Status — how much of this is done
 
-**Updated:** 21 Sep 2026 · 234 tests passing · typecheck clean · production build clean
+**Updated:** 21 Sep 2026 · 234 tests passing · **first live API verification done** · typecheck clean · production build clean
 
 Two numbers, because they are genuinely different and mixing them would be the
 kind of comfortable lie this project is supposed to be allergic to.
@@ -60,7 +60,7 @@ What is left, and who can do it.
 
 | # | Blocker | Who | Effort |
 |---|---|---|---|
-| 1 | **Verify the five `✱` claims.** You have the account now. Start with `npm run verify:live -- --list-boards`: it finds a board that can actually answer the important claim, and prints the exact next command. Step-by-step: **`docs/09-first-hour.md`**. | You | **~20 minutes** |
+| 1 | ~~Verify the five `✱` claims~~ **Run 21 Sep — 5 verified, 2 failed, both fixed (ADR-028).** The one that mattered — which settings key holds linked board IDs — is `boardIds`, with **number** IDs. One re-run left to confirm the two fixes: `npm run verify:live -- --board 5104569213 --connect-board 5104569193 --automations`. | You | **2 minutes** |
 | 2 | **Gate #2 — defend the architecture.** monday rejects AI-vibe-coded apps. The answer key is written; you have to be able to give the answers cold. | You | An evening's reading |
 | 3 | **Gate #3 — run the Burp scan and remediate what it finds.** The standard findings are pre-empted (headers, CORS, rate limiting, body cap, non-root container) and tested. It does **not** go away on monday code — monday requires all domains to pass and documents no exemption — but the scanned surface becomes monday's infrastructure and `mapps code:push -s` scans at deploy time. | You, after deploying | Unknown until scanned |
 | 4 | ~~ADR-010 — pick the product shape~~ **Settled 20 Sep — ADR-025.** Ship the auditor and the monitoring; cut one-click repair from v1 so that "never writes to your boards" is a true listing claim. monday code removed the cost that made the backend a hard trade. | — | — |

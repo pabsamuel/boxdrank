@@ -24,13 +24,21 @@ export function isBoardReferencing(column: ColumnSnapshot): boolean {
 }
 
 /**
- * ✱ PARTIALLY UNVERIFIED — the settings key holding linked board IDs.
+ * ✓ VERIFIED 21 Sep 2026, against a live account on API 2026-07.
  *
- * In the `settings_str` era this was `boardIds`. The typed `settings` object
- * introduced in 2025-10 may spell it differently (`board_ids`, or nested under
- * `relation`). We read every plausible spelling rather than guessing one,
- * because guessing wrong here does not throw — it silently reports every board
- * as correctly wired, which is the single worst failure mode this app has.
+ * A `board_relation` column's typed `settings` reads exactly:
+ *
+ *     {"boardIds":[5104569193]}
+ *
+ * So the key is `boardIds`, and **the IDs come back as numbers, not strings** —
+ * which `readIdArray` already coerces, and which would have been an easy thing
+ * to get wrong in a way that produced no error at all.
+ *
+ * The other spellings below are kept rather than pruned. They cost one loop
+ * iteration each, they are the difference between "works on every account" and
+ * "worked on the one account we tested", and the failure they guard against is
+ * the worst this app has: guessing wrong here does not throw, it silently
+ * reports every board as correctly wired.
  *
  * `linkedBoardIds` returning an empty array for a connect column is therefore
  * treated by the caller as suspicious, not as "no links".

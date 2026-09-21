@@ -36,11 +36,10 @@ function fakeClient(board: (typeof templateBoard) | null): MondayClient {
   return new MondayClient({
     token: 'test',
     sleep: noSleep,
-    fetchImpl: (async (_url: string, init: { body?: string }) => {
-      const body = JSON.parse(init.body ?? '{}') as { query: string };
-      if (body.query.includes('owners')) {
-        return jsonResponse({ data: { boards: [{ id: COPY_BOARD_ID, owners: [], subscribers: [] }] } });
-      }
+    fetchImpl: (async () => {
+      // One request per board now: owners and subscribers moved into the
+      // config query on 21 Sep, after a live run showed the separate people
+      // query could never have worked (ADR-028).
       if (!board) return jsonResponse({ data: { boards: [] } });
       return jsonResponse({
         data: {
@@ -70,6 +69,8 @@ function fakeClient(board: (typeof templateBoard) | null): MondayClient {
                 settings_str: JSON.stringify(v.settings),
               })),
               tags: board.tags,
+              owners: board.ownerIds.map((id) => ({ id })),
+              subscribers: board.subscriberIds.map((id) => ({ id })),
             },
           ],
         },

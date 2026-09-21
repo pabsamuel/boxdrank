@@ -28,13 +28,7 @@
 
 import { MondayClient } from '../src/api/client.js';
 import { MONDAY_API_VERSION } from '../src/api/version.js';
-import {
-  BOARD_CONFIG_QUERY,
-  BOARD_LIST_PAGE_LIMIT,
-  BOARD_LIST_QUERY,
-  BOARD_PEOPLE_QUERY,
-  USERS_PAGE_LIMIT,
-} from '../src/api/queries.js';
+import { BOARD_CONFIG_QUERY, BOARD_LIST_PAGE_LIMIT, BOARD_LIST_QUERY } from '../src/api/queries.js';
 import { readBoardAutomations } from '../src/api/preview/automations.js';
 import { parseSettings } from '../src/snapshot/capture.js';
 import { isBoardReferencing, linkedBoardIds } from '../src/diff/connect.js';
@@ -60,7 +54,9 @@ function record(r: CheckResult): void {
   console.log(`${mark} ${r.id}  ${r.status}`);
   console.log(`    claim:    ${r.claim}`);
   console.log(`    observed: ${r.observed}`);
-  if (r.action) console.log(`    action:   ${r.action}`);
+  // Only on a failure. Printing "here is how to fix it" under a ✓ made the
+  // first live run read as though a passing check still needed work.
+  if (r.action && r.status !== 'VERIFIED') console.log(`    action:   ${r.action}`);
   console.log();
 }
 
@@ -306,24 +302,21 @@ async function main(): Promise<void> {
     });
   }
 
-  // --- ✱3 — the users page cap, which fails silently -----------------------
+  // --- ✱3 — owners and subscribers, now inside the config query ------------
 
-  const people = await client.request<{
-    boards: { id: string; owners?: unknown[]; subscribers?: unknown[] }[] | null;
-  }>(BOARD_PEOPLE_QUERY, { ids: [boardId], limit: USERS_PAGE_LIMIT, page: 1 });
+  const rawBoard = board as { owners?: unknown[]; subscribers?: unknown[] };
+  const hasPeopleFields = 'owners' in rawBoard || 'subscribers' in rawBoard;
 
   record({
     id: '✱3',
-    claim: `BOARD_PEOPLE_QUERY paginates owners and subscribers at ${USERS_PAGE_LIMIT} per page (2026-07 caps users and fails silently).`,
-    status: people.errors.length === 0 ? 'VERIFIED' : 'FAILED',
-    observed:
-      people.errors.length === 0
-        ? `owners: ${people.data?.boards?.[0]?.owners?.length ?? 0}, subscribers: ${people.data?.boards?.[0]?.subscribers?.length ?? 0} on page 1.`
-        : people.errors.map((e) => e.message).join(' | '),
+    claim:
+      '`owners` and `subscribers` are selectable inside BOARD_CONFIG_QUERY with no arguments (they reject limit/page).',
+    status: hasPeopleFields ? 'VERIFIED' : 'FAILED',
+    observed: hasPeopleFields
+      ? `owners: ${rawBoard.owners?.length ?? 0}, subscribers: ${rawBoard.subscribers?.length ?? 0} — one request per board, not two.`
+      : 'The config query returned neither field.',
     action:
-      people.errors.length === 0
-        ? undefined
-        : 'The limit/page arguments on owners/subscribers are wrong for this API version.',
+      'The fields moved or need different selection. They are not read by the diff, so this degrades permissions data only.',
   });
 
   // --- ✱4 — the preview automations schema, opt-in -------------------------

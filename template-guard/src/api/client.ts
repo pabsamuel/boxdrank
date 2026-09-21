@@ -74,11 +74,20 @@ export class MondayClient {
   async request<T>(
     query: string,
     variables: Record<string, unknown> = {},
+    /**
+     * Overrides the pinned API version for this one call.
+     *
+     * Exists for exactly one caller: the preview adapter, which must ask for
+     * the dev schema. Keeping it a per-call argument rather than a second
+     * client means the pin stays the default everywhere else and the
+     * exception is visible at the call site. (ADR-028.)
+     */
+    apiVersion?: string,
   ): Promise<{ data: T | undefined; errors: GraphQLError[] }> {
     let attempt = 0;
 
     for (;;) {
-      const res = await this.send(query, variables);
+      const res = await this.send(query, variables, apiVersion);
 
       if (res.status === 429 || res.status >= 500) {
         if (attempt >= this.maxRetries) {
@@ -123,14 +132,18 @@ export class MondayClient {
     }
   }
 
-  private async send(query: string, variables: Record<string, unknown>): Promise<Response> {
+  private async send(
+    query: string,
+    variables: Record<string, unknown>,
+    apiVersion = this.apiVersion,
+  ): Promise<Response> {
     try {
       return await this.fetchImpl(this.endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: this.token,
-          'API-Version': this.apiVersion,
+          'API-Version': apiVersion,
         },
         body: JSON.stringify({ query, variables }),
       });

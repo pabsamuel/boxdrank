@@ -1,11 +1,6 @@
 import { MondayClient, type GraphQLError } from '../api/client.js';
 import { classifyGraphQLError, partial, type PartialFailure } from '../api/errors.js';
-import {
-  BOARD_BATCH_SIZE,
-  BOARD_CONFIG_QUERY,
-  BOARD_PEOPLE_QUERY,
-  USERS_PAGE_LIMIT,
-} from '../api/queries.js';
+import { BOARD_BATCH_SIZE, BOARD_CONFIG_QUERY } from '../api/queries.js';
 import { readBoardAutomations } from '../api/preview/automations.js';
 import {
   SNAPSHOT_SCHEMA_VERSION,
@@ -56,6 +51,8 @@ interface RawBoard {
       }[]
     | null;
   tags?: { id: string; name: string }[] | null;
+  owners?: { id: string | number }[] | null;
+  subscribers?: { id: string | number }[] | null;
 }
 
 /**
@@ -217,7 +214,6 @@ export async function captureBoards(
         );
       }
 
-      const people = await capturePeople(client, boardId, failures);
       const automations = opts.automationsPreviewEnabled
         ? await readBoardAutomations(client, boardId, failures)
         : null;
@@ -236,8 +232,8 @@ export async function captureBoards(
         groups: (raw.groups ?? []).map(toGroupSnapshot),
         views: (raw.views ?? []).map(toViewSnapshot),
         tags: raw.tags ?? [],
-        ownerIds: people.ownerIds,
-        subscriberIds: people.subscriberIds,
+        ownerIds: (raw.owners ?? []).map((u) => String(u.id)),
+        subscriberIds: (raw.subscribers ?? []).map((u) => String(u.id)),
         automations,
         capturedAt: now().toISOString(),
         failures,
@@ -248,55 +244,6 @@ export async function captureBoards(
   return out;
 }
 
-/**
- * Owners and subscribers, explicitly paginated.
- *
- * 2026-07 capped `users` at 200 per page and made over-reading fail silently.
- * We therefore walk pages until one comes back short, and if we hit the page
- * ceiling we record a failure rather than quietly returning a truncated list.
- */
-async function capturePeople(
-  client: MondayClient,
-  boardId: string,
-  failures: PartialFailure[],
-): Promise<{ ownerIds: string[]; subscriberIds: string[] }> {
-  const ownerIds: string[] = [];
-  const subscriberIds: string[] = [];
-  const MAX_PAGES = 25; // 5,000 people on one board is already pathological.
-
-  for (let page = 1; page <= MAX_PAGES; page += 1) {
-    const { data, errors } = await client.request<{
-      boards: { id: string; owners?: { id: string }[]; subscribers?: { id: string }[] }[] | null;
-    }>(BOARD_PEOPLE_QUERY, { ids: [boardId], limit: USERS_PAGE_LIMIT, page });
-
-    if (errors.length > 0) {
-      failures.push(...failuresFromGraphQL(errors, boardId));
-      break;
-    }
-
-    const board = data?.boards?.[0];
-    const owners = board?.owners ?? [];
-    const subscribers = board?.subscribers ?? [];
-    ownerIds.push(...owners.map((u) => String(u.id)));
-    subscriberIds.push(...subscribers.map((u) => String(u.id)));
-
-    const full = owners.length === USERS_PAGE_LIMIT || subscribers.length === USERS_PAGE_LIMIT;
-    if (!full) return { ownerIds, subscriberIds };
-
-    if (page === MAX_PAGES) {
-      failures.push(
-        partial(
-          'unexpected_shape',
-          `board.${boardId}.people`,
-          `This board has an unusually large number of owners or subscribers; Template Guard stopped reading after ${MAX_PAGES * USERS_PAGE_LIMIT}. Permissions comparison for this board may be incomplete.`,
-          { degradesDiff: false },
-        ),
-      );
-    }
-  }
-
-  return { ownerIds, subscriberIds };
-}
 
 export function emptySnapshot(
   boardId: string,

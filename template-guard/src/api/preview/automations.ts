@@ -25,6 +25,7 @@
 
 import type { GraphQLError, MondayClient } from '../client.js';
 import { partial, type PartialFailure } from '../errors.js';
+import { MONDAY_API_PREVIEW_VERSION } from '../version.js';
 import type { AutomationSnapshot } from '../../snapshot/types.js';
 
 /**
@@ -85,10 +86,15 @@ export async function readBoardAutomations(
     let errors: GraphQLError[];
 
     try {
-      ({ data, errors } = await client.request<RawAutomationPage>(BOARD_AUTOMATIONS_QUERY, {
-        boardId,
-        cursor,
-      }));
+      ({ data, errors } = await client.request<RawAutomationPage>(
+        BOARD_AUTOMATIONS_QUERY,
+        { boardId, cursor },
+        // The dev schema, not the pinned version. A live run on 21 Sep showed
+        // this read failing while every stable query succeeded — preview
+        // fields do not exist on a pinned version, which is precisely why
+        // they cannot be version-pinned and why this sits behind a flag.
+        MONDAY_API_PREVIEW_VERSION,
+      ));
     } catch (cause) {
       failures.push(previewFailure(boardId, cause));
       return null;

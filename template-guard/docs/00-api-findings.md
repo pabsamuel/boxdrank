@@ -1,3 +1,24 @@
+> ## ✓ Live verification — 21 September 2026
+>
+> Run by Samet against a real developer account on API version **2026-07**,
+> with `npm run verify:live`. **5 verified, 2 failed, 0 skipped.** Both
+> failures were real bugs in our code, not in the documentation — and one of
+> them had never been reachable at all. Details and fixes: **ADR-028**.
+>
+> | Claim | Result |
+> |---|---|
+> | `BOARD_CONFIG_QUERY` valid on 2026-07 | ✓ |
+> | Columns expose a typed `settings` object | ✓ — 8/8 columns |
+> | **Which settings key holds linked board IDs** | ✓ — `{"boardIds":[5104569193]}`, **numbers not strings** |
+> | The column points where we say it does | ✓ |
+> | `isBoardReferencing` recognises `board_relation` | ✓ |
+> | `owners`/`subscribers` paginate with `limit`/`page` | ✗ — those arguments do not exist. Fixed by folding both fields into the config query, which also removed a whole request per board. |
+> | `board_automations` readable | ✗ — we were sending the pinned version header instead of `dev`. Hypothesis fixed; awaiting a re-run. |
+>
+> The third row is the one that mattered. It was the single worst failure this
+> app could have — guess the key wrong and every board reports as correctly
+> wired, with no error anywhere — and it is now observed rather than believed.
+
 # Step 1 — monday.com API Findings Report
 
 **Date:** 2026-09-16

@@ -708,3 +708,79 @@ forward pointer saying what superseded it.
 is not finished when it is recorded. Documentation that contradicts the code is
 worse than no documentation, because it is trusted. The one place that matters
 most is the document written to be spoken aloud to a reviewer.
+
+## ADR-028 — The first live run: what it found
+**Date:** 2026-09-21 · **Status:** accepted
+Samet ran `npm run verify:live` against a real developer account on API
+2026-07. **5 verified, 2 failed.** Both failures were bugs in our code, and
+neither could have been found by reading documentation — which is the argument
+for the script existing.
+
+### The one that mattered: `boardIds`, and they are numbers
+
+```
+{"boardIds":[5104569193]}
+```
+
+The key is `boardIds`, our first guess. **The IDs come back as numbers, not
+strings** — `readIdArray` already coerced them, by luck rather than knowledge.
+Getting that wrong would not have thrown; it would have reported every board as
+correctly wired, silently, which is the worst failure this product can have.
+That claim is now observed.
+
+The other three spellings in `BOARD_ID_KEYS` stay. They cost one loop iteration
+and they are the difference between "works on every account" and "worked on the
+one account we tested".
+
+### `owners`/`subscribers` reject `limit` and `page`
+
+> *Unknown argument "limit" on field "Board.owners".*
+
+`BOARD_PEOPLE_QUERY` had **never worked**, on any board, ever. Every snapshot
+carried a partial failure for it, and the pagination loop around it ran for a
+read that always errored.
+
+Two things were wrong and only one was the query:
+
+1. The **2026-07 user-pagination trap** documented in `00-api-findings.md`
+   applies to the top-level `users` query, not to these fields. We applied a
+   real fact in the wrong place — a failure mode worth naming, because it looks
+   exactly like diligence.
+2. Nothing in the diff reads `ownerIds` or `subscriberIds`. So the app was
+   spending **an extra API round trip per board** — during a sweep, across
+   every board of every paying account — on data it never used, via a query
+   that could not succeed. Under CLAUDE.md rule 6 that is the most expensive
+   kind of bug available here.
+
+Fixed by selecting both fields inside `BOARD_CONFIG_QUERY` with no arguments.
+One request per board instead of two, the data preserved for a future
+permissions comparison, and `capturePeople` deleted.
+
+**Residual risk, recorded rather than assumed away:** with no pagination
+available, a board with very many subscribers may be truncated by monday
+without saying so, and we cannot detect it. Nothing reads these lists today, so
+nothing is wrong — but that is the first thing to re-check if anything ever
+does.
+
+### `board_automations` was asked on the wrong schema
+
+Every stable query succeeded; only the preview read failed. The adapter was
+sending `API-Version: 2026-07` — the pin — and preview fields do not exist on a
+pinned version. That is not a bug in monday; it is the mechanical reason the
+preview schema *cannot* be version-pinned, which is the entire premise of
+ADR-002 and of the flag.
+
+`MondayClient.request()` now takes an optional per-call version, and the
+preview adapter passes `dev`. A per-call argument rather than a second client,
+so the pin stays the default everywhere and the exception is visible at the
+call site.
+
+✱ **Still a hypothesis.** It is the one-line change that explains the
+observation, not a confirmed fix — the re-run decides. If it still fails, the
+product is unaffected: the flag is off by default and no paid tier depends on
+it.
+
+### One cosmetic fix
+
+The script printed `action:` under passing checks, so the first live run read
+as though a ✓ still needed work. It now prints only under a failure.
