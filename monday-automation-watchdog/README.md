@@ -107,7 +107,7 @@ scripts/
   build.js             emits a deployable dist/
 ```
 
-**142 tests**, all offline — no network, no account, no monday dependency.
+**144 tests**, all offline — no network, no account, no monday dependency.
 One runtime dependency (`monday-sdk-js`, pinned to 0.5.9 for the same reason as
 the schema auditor: 1.0.0-beta has removed `api()`).
 
@@ -248,6 +248,31 @@ One missed run plus slippage is tolerated before anything is called stale;
 `runCheck` records every run including failures, and a run log that cannot be
 written never takes down a check that otherwise worked — losing a history entry
 is survivable, losing an alert is not.
+
+## The known blind spot
+
+**All of monday's automations act under the same negative `user_id`.** On the
+account this was verified against, every automation writes as `-4`. That is
+enough to tell an automation from a person, and not enough to tell one
+automation from another.
+
+A signal is identified by `(board, actor, event, entity)`, so two automations on
+the same board that do the *same kind* of thing — both changing a column, say —
+collapse into one signal. **If one dies while the other keeps firing, the merged
+signal stays healthy and the death is invisible.** That is precisely the failure
+this product exists to catch, so it is tested rather than left to be discovered.
+
+What still works:
+
+- Automations that do **different** things stay separate, which covers most real
+  boards. A status router and a notifier do not look alike.
+- The **same recipe copied onto ten boards** stays ten signals, so each one
+  fails independently and is reported by name.
+
+The likely fix is the activity log's `data` field, which is already fetched and
+currently unused. If it carries a column id or an automation id, the signature
+can be refined and the blind spot closes. **Its contents are UNVERIFIED**, and
+nothing will be built on a guess about them.
 
 ## Muting without going blind
 

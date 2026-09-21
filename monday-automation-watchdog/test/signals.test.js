@@ -135,3 +135,46 @@ test('an explicit actor name still wins over the generic automation label', () =
   const [signal] = extractSignals(entries, { actorNames: new Map([['-4', 'Slack Notifier']]) });
   assert.match(signal.label, /^Slack Notifier /);
 });
+
+test('two automations doing the same kind of work on one board merge — a known blind spot', () => {
+  // KNOWN LIMITATION, tested so it cannot be forgotten.
+  //
+  // monday's automations all act under the same negative user_id (-4 on the
+  // account this was verified against), so the signature (board, actor, event,
+  // entity) cannot separate two automations that both change a column on the
+  // same board.
+  //
+  // The consequence is the exact failure this product exists to catch: if one
+  // of them dies while the other keeps firing, the merged signal stays healthy
+  // and the death is invisible.
+  //
+  // Automations that do DIFFERENT things are still separated, which covers most
+  // real boards — a status router and a notifier do not look alike.
+  const now = Date.UTC(2026, 8, 21, 6, 0, 0);
+  const at = (i) => now - i * HOUR;
+
+  const different = [];
+  for (let i = 0; i < 10; i += 1) {
+    different.push({ boardId: 'b1', actor: '-4', event: 'move_pulse_from_group', entity: 'pulse', at: at(i) });
+    different.push({ boardId: 'b1', actor: '-4', event: 'update_column_value', entity: 'pulse', at: at(i) });
+  }
+  assert.equal(extractSignals(different).length, 2, 'different actions stay apart');
+
+  const identical = Array.from({ length: 20 }, (_, i) => ({
+    boardId: 'b1', actor: '-4', event: 'update_column_value', entity: 'pulse', at: at(i),
+  }));
+  assert.equal(extractSignals(identical).length, 1, 'identical shapes merge — this is the blind spot');
+});
+
+test('the same automation on two boards stays two signals', () => {
+  // The other half of the same problem, and this half works: a recipe copied
+  // onto ten boards fails independently on each.
+  const now = Date.UTC(2026, 8, 21, 6, 0, 0);
+  const entries = [];
+  for (const boardId of ['b1', 'b2']) {
+    for (let i = 0; i < 10; i += 1) {
+      entries.push({ boardId, actor: '-4', event: 'update_column_value', entity: 'pulse', at: now - i * HOUR });
+    }
+  }
+  assert.equal(extractSignals(entries).length, 2);
+});
