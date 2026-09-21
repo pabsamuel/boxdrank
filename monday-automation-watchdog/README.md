@@ -101,13 +101,16 @@ src/app/
   index.html           single page, inline CSS, light and dark
 src/server/
   run-check.js         one scheduled check: read, judge, notify, remember
+  http-client.js       monday API from Node, where the browser SDK cannot go
+  file-storage.js      key/value on disk, for running outside monday
 scripts/
+  run-check.js         run one check from a command line
   make-fixtures.js     generates the demo account
   serve.js             node:http static server for the demo
   build.js             emits a deployable dist/
 ```
 
-**144 tests**, all offline — no network, no account, no monday dependency.
+**159 tests**, all offline — no network, no account, no monday dependency.
 One runtime dependency (`monday-sdk-js`, pinned to 0.5.9 for the same reason as
 the schema auditor: 1.0.0-beta has removed `api()`).
 
@@ -361,21 +364,49 @@ The same applies to `board_automations`, which appears to exist in monday's API
 reference. If it exposes activation state, that becomes a second, stronger
 signal. The engine does not require it.
 
+## Running it on a schedule, without waiting for an answer
+
+Whether monday itself can run a server-side job on a schedule is still
+**UNVERIFIED**, and that question could have blocked everything. It does not,
+because the check now runs from a command line against any host:
+
+```bash
+MONDAY_API_TOKEN=...  WATCHDOG_RECIPIENT=you@example.com  node scripts/run-check.js
+```
+
+Configuration is environment-only, never arguments, so a token cannot end up in
+a shell history or a process list. `.github/workflows/monday-watchdog-schedule.yml`
+runs exactly this on a cron — free, and it fits the $100 budget. If monday turns
+out to support scheduling, that becomes the fallback rather than the plan.
+
+Two things had to exist for this:
+
+- **`http-client.js`**, because `monday-sdk-js` cannot be used outside a browser:
+  0.5.9 attaches a `message` listener to `window` on construction, and its
+  seamless auth borrows a signed-in user's session, which a scheduled job does
+  not have. It exposes the same `api(query, options)` shape, so nothing above it
+  knows the difference.
+- **`file-storage.js`**, the same key/value interface `runCheck` already took.
+
+The endpoint defaults to the widely published `https://api.monday.com/v2` and is
+overridable by `MONDAY_API_URL` **precisely because that default is a guess** —
+a wrong one should cost an environment variable, not a patch.
+
+Five end-to-end tests drive the CLI against a stub monday server: a stopped
+automation produces the right email, a healthy account sends nothing, state
+persists so the same alert is not repeated, the human user is not reported as a
+broken automation, and missing configuration exits with a usage error.
+
 ## What is not built
 
-- **Nowhere to run.** `runCheck` is the whole scheduled job and it is tested,
-  but nothing schedules it and nothing sends real mail. It takes two injected
-  interfaces:
-
-  ```
-  storage: { get(key) -> Promise<any|null>, set(key, value) -> Promise<void> }
-  mailer:  { send({ to, subject, text, html }) -> Promise<void> }
-  ```
-
-  Wiring those to monday code's real storage and a mail provider is a contained
-  job in one file. They are injected rather than imported precisely because
-  monday code's APIs could not be verified from here, and writing them from
-  memory would have produced something that looks finished and does not run.
+- **No real mail provider.** The CLI prints the email instead of sending it, and
+  that is the default rather than an afterthought: the first thing to do with a
+  tool that emails an admin is watch what it would have said without it reaching
+  anyone. Choosing a provider on a guess would be the same mistake as writing an
+  API from memory.
+- **monday's own hosting is still unwired.** `runCheck` takes injected `storage`
+  and `mailer` interfaces, so if monday code turns out to offer both, it is two
+  small files rather than a rewrite.
 - No manifest or app configuration, for the same reason.
 - No OAuth flow. The UI uses seamless auth; a scheduled job runs without a user
   present and needs a stored token, which is the one place this app would hold a

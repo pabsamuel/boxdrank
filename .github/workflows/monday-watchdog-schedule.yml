@@ -1,0 +1,46 @@
+# Runs the automation watchdog on a schedule.
+#
+# Exists because whether monday itself can run a scheduled job is still
+# unanswered. A GitHub Actions schedule costs nothing, runs the same runCheck as
+# any other host would, and means the product is not blocked on that answer.
+# If monday turns out to support scheduling, this becomes the fallback rather
+# than the plan.
+#
+# Disabled by default: it is opt-in via workflow_dispatch until a real token is
+# configured, because a scheduled job that fails every morning trains people to
+# ignore it.
+name: monday watchdog
+
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: '0 6 * * *'   # 06:00 UTC daily — uncomment once MONDAY_API_TOKEN is set
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: monday-automation-watchdog
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+
+      # State has to survive between runs or every check looks like the first
+      # one and re-announces everything that is already known.
+      - name: Restore watchdog state
+        uses: actions/cache@v4
+        with:
+          path: monday-automation-watchdog/.watchdog-state
+          key: watchdog-state-${{ github.run_id }}
+          restore-keys: watchdog-state-
+
+      - name: Run the check
+        env:
+          MONDAY_API_TOKEN: ${{ secrets.MONDAY_API_TOKEN }}
+          WATCHDOG_RECIPIENT: ${{ secrets.WATCHDOG_RECIPIENT }}
+          WATCHDOG_ACCOUNT: default
+        run: node scripts/run-check.js
