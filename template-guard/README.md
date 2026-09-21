@@ -259,9 +259,15 @@ Every one of these is isolated behind a named function with a `✱` comment, and
 there is a script that checks all of them:
 
 ```bash
+MONDAY_API_TOKEN=... npm run verify:live -- --list-boards   # start here
 MONDAY_API_TOKEN=... npm run verify:live -- \
   --board <a board you own> --connect-board <linked board> --automations
 ```
+
+`--list-boards` marks the boards that can actually answer the claim that
+matters, and prints the exact command for the one it picks. Pointing the
+script at a board with no connect column produces SKIPPED, and a SKIPPED check
+is not a pass. Walkthrough: `docs/09-first-hour.md`.
 
 Read-only — no mutations, no item reads. It prints VERIFIED / FAILED / SKIPPED
 with the **observed shape** next to each claim, so a failure says what to

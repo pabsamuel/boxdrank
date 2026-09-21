@@ -11,11 +11,18 @@ Do this before deploying anything. It is the difference between shipping a
 product and shipping a guess.
 
 ```bash
-MONDAY_API_TOKEN=... npx tsx scripts/verify-live.ts \
+# First: find a board that can actually answer the important claim.
+MONDAY_API_TOKEN=... npm run verify:live -- --list-boards
+
+# Then the command it printed:
+MONDAY_API_TOKEN=... npm run verify:live -- \
   --board <a board you own> \
   --connect-board <the board a connect column should point at> \
   --automations
 ```
+
+New to the account? `docs/09-first-hour.md` walks the whole thing, including
+where the API token lives and what each result means.
 
 The script is read-only — no mutations, no item reads. It prints
 VERIFIED / FAILED / SKIPPED per claim **with the observed shape next to it**,

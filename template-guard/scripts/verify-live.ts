@@ -9,7 +9,13 @@
  * It is read-only. It issues no mutation, fetches no items, and prints no
  * board content beyond column titles and types. Point it at a board you own.
  *
+ *   MONDAY_API_TOKEN=... npx tsx scripts/verify-live.ts --list-boards
  *   MONDAY_API_TOKEN=... npx tsx scripts/verify-live.ts --board 1234567890
+ *
+ * Run `--list-boards` first. It prints every board with its id and says which
+ * ones are worth testing against — a run that reports SKIPPED has verified
+ * nothing, and the commonest reason for that is pointing at a board with no
+ * connect column.
  *
  * Add `--automations` to also exercise the preview schema, and
  * `--connect-board <id>` to name a board a connect column should point at.
@@ -22,7 +28,13 @@
 
 import { MondayClient } from '../src/api/client.js';
 import { MONDAY_API_VERSION } from '../src/api/version.js';
-import { BOARD_CONFIG_QUERY, BOARD_PEOPLE_QUERY, USERS_PAGE_LIMIT } from '../src/api/queries.js';
+import {
+  BOARD_CONFIG_QUERY,
+  BOARD_LIST_PAGE_LIMIT,
+  BOARD_LIST_QUERY,
+  BOARD_PEOPLE_QUERY,
+  USERS_PAGE_LIMIT,
+} from '../src/api/queries.js';
 import { readBoardAutomations } from '../src/api/preview/automations.js';
 import { parseSettings } from '../src/snapshot/capture.js';
 import { isBoardReferencing, linkedBoardIds } from '../src/diff/connect.js';
@@ -63,13 +75,98 @@ function truncate(value: unknown, max = 400): string {
   return text.length > max ? `${text.slice(0, max)}… (${text.length} chars)` : text;
 }
 
+/**
+ * Lists the boards this token can see and says which are worth testing with.
+ *
+ * The first run of this script usually ends in SKIPPED checks, because the
+ * board it was pointed at has no connect column — and a SKIPPED check is not
+ * a pass. Rather than explaining that in a README nobody reads at the right
+ * moment, this finds the right board and prints the exact next command.
+ */
+async function listBoards(client: MondayClient): Promise<void> {
+  const { data, errors } = await client.request<{
+    boards: { id: string; name: string; board_kind?: string }[] | null;
+  }>(BOARD_LIST_QUERY, { limit: BOARD_LIST_PAGE_LIMIT, page: 1 });
+
+  if (errors.length > 0 || !data?.boards) {
+    console.error('Could not list boards:', errors.map((e) => e.message).join(' | ') || 'no data');
+    process.exit(2);
+  }
+
+  const boards = data.boards;
+  console.log(`\n${boards.length} board(s) this token can see.\n`);
+
+  // One config read for all of them, batched, so this stays a cheap call even
+  // on an account with a hundred boards.
+  const ids = boards.map((b) => String(b.id));
+  const detail = new Map<string, { connects: string[]; columns: number }>();
+
+  for (let i = 0; i < ids.length; i += 10) {
+    const batch = ids.slice(i, i + 10);
+    const res = await client.request<{
+      boards: { id: string; columns?: { title: string; type: string }[] | null }[] | null;
+    }>(BOARD_CONFIG_QUERY, { ids: batch });
+
+    for (const board of res.data?.boards ?? []) {
+      const columns = board.columns ?? [];
+      detail.set(String(board.id), {
+        columns: columns.length,
+        connects: columns
+          .filter((c) => ['board_relation', 'mirror', 'dependency'].includes(c.type))
+          .map((c) => `${c.title} (${c.type})`),
+      });
+    }
+  }
+
+  const usable: string[] = [];
+  for (const board of boards) {
+    const id = String(board.id);
+    const info = detail.get(id);
+    const connects = info?.connects ?? [];
+    const mark = connects.length > 0 ? '★' : ' ';
+    if (connects.length > 0) usable.push(id);
+
+    console.log(`${mark} ${id}  ${board.name}`);
+    console.log(`     ${info?.columns ?? 0} columns${connects.length > 0 ? ` · connect: ${connects.join(', ')}` : ' · no connect column'}`);
+  }
+
+  console.log('\n★ = has a connect column, which is the claim that matters most.\n');
+
+  if (usable.length === 0) {
+    console.log(
+      'None of these can verify the important claim. Add a Connect Boards column to any\nboard, point it at another board, and run this again — that one column is what the\nwhole mis-wiring detector reads.',
+    );
+  } else {
+    console.log('Next:\n');
+    console.log(
+      `  MONDAY_API_TOKEN=... npx tsx scripts/verify-live.ts --board ${usable[0]} --automations`,
+    );
+    console.log(
+      '\nAdd --connect-board <id> with the board that column should point at, and the\nscript will also confirm it is pointing at the right one.',
+    );
+  }
+}
+
 async function main(): Promise<void> {
   const token = process.env.MONDAY_API_TOKEN;
   const boardId = arg('board');
+  const wantsList = process.argv.includes('--list-boards');
 
-  if (!token || !boardId) {
+  if (!token) {
     console.error(
-      'Usage: MONDAY_API_TOKEN=... npx tsx scripts/verify-live.ts --board <boardId> [--automations] [--connect-board <boardId>]',
+      'Set MONDAY_API_TOKEN. In monday: your avatar (bottom left) → Developers → My Access Tokens.\nAn account admin can also find one under Administration → Connections → API.',
+    );
+    process.exit(2);
+  }
+
+  if (wantsList) {
+    await listBoards(new MondayClient({ token }));
+    process.exit(0);
+  }
+
+  if (!boardId) {
+    console.error(
+      'Usage:\n  MONDAY_API_TOKEN=... npx tsx scripts/verify-live.ts --list-boards\n  MONDAY_API_TOKEN=... npx tsx scripts/verify-live.ts --board <boardId> [--automations] [--connect-board <boardId>]\n\nStart with --list-boards: it picks the right board for you.',
     );
     process.exit(2);
   }
