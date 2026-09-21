@@ -61,6 +61,9 @@ can safely push anywhere.
 | `DRIFT_SCHEDULER_ENABLED` | `true` once you have a paying account |
 | `MONDAY_PAID_PLAN_IDS` | Comma-separated plan ids from the console. **Leave empty and any subscription event grants Pro.** |
 | `FEATURE_AUTOMATIONS_PREVIEW` | `false` |
+| `FEATURE_ONE_CLICK_REPAIR` | `false` in v1 — ADR-025. Turning it on adds `boards:write` to the consent screen. |
+| `TEMPLATE_GUARD_PLATFORM` | `self-hosted` here, `monday-code` in Part 5 |
+| `DRIFT_CRON_SECRET` | Required on monday code; the cron route rejects a caller without it. |
 
 ### What the host must provide
 
@@ -101,9 +104,11 @@ against.
 | Dashboard Widget (item-less) | `https://YOUR-DOMAIN/?surface=widget` |
 
 **OAuth** — redirect URI `https://YOUR-DOMAIN/auth/callback`, scopes
-`boards:read`, `boards:write`, `account:read`, `me:read`. No item, update or
-file scopes. Not holding the permission is a stronger claim at review than
-promising not to use it.
+`boards:read`, `account:read`, `me:read`. **No write scope** — v1 ships with
+`FEATURE_ONE_CLICK_REPAIR` off (ADR-025), and `requiredScopes()` derives the
+list from that flag, so the console and the consent screen must match it. No
+item, update or file scopes either. Not holding a permission is a stronger
+claim at review than promising not to use it.
 
 **Billing webhook** — `https://YOUR-DOMAIN/webhooks/subscription`. monday
 verifies the URL with a challenge the endpoint echoes back. Every later event
@@ -139,8 +144,10 @@ Tick these honestly. An untested item is not a tick.
 ### Data handling
 
 - [x] Board IDs, column IDs and configuration only
-- [x] Enforced at the storage boundary by `assertNoItemData()`, in both
+- [x] Enforced at the storage boundary by `assertNoItemData()`, in all three
       storage implementations, before serialisation
+- [x] **No write scope requested at all** — v1 cannot write to a board
+      (ADR-025)
 - [x] No item, update or file scopes requested
 - [x] Stated plainly in the README and the listing
 - [x] Everything deleted on uninstall — a real delete, in one transaction

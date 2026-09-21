@@ -12,6 +12,10 @@ not good enough to build on unverified.
 > `SecureStorage` takes **no token** (app-scoped), `Storage` takes the
 > account's token (account-scoped). See **ADR-020**. Four *behavioural*
 > questions remain and need a deployment, not a terminal.
+>
+> **Superseded in part, ADR-025.** "Then decide ADR-010" below is done: the
+> decision was made the same day — ship the auditor and the monitoring, cut
+> one-click repair from v1. The rest of this document stands.
 
 **Verdict: it is real, it is the right target, and it is not free.** It
 resolves most of what made ADR-010 a genuine dilemma. It also invalidates

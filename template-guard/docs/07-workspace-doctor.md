@@ -4,6 +4,12 @@
 **Verdict: the clear holds, but it narrows — and the listing hands us two
 things worth more than the verdict.**
 
+> **Superseded in part, ADR-025.** The product-shape question this document
+> treats as open was settled on 20 Sep 2026 by **ADR-025**: ship the auditor
+> and the monitoring, cut one-click repair from v1. This file is kept as the
+> record of the reasoning at the time, not as a live recommendation.
+
+
 `docs/04-marketplace-scan.md` flagged this as *"the only genuinely adjacent
 listing, not yet opened — do this before committing."* Now opened.
 

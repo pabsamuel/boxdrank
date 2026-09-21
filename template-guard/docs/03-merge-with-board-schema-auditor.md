@@ -3,6 +3,12 @@
 **Written:** 2026-09-17, after the two threads were found to be the same product.
 **Status:** unresolved conflict. Read this before writing any more code here.
 
+> **Superseded in part, ADR-025.** The product-shape question this document
+> treats as open was settled on 20 Sep 2026 by **ADR-025**: ship the auditor
+> and the monitoring, cut one-click repair from v1. This file is kept as the
+> record of the reasoning at the time, not as a live recommendation.
+
+
 ## What happened
 
 Two sessions worked the same idea on the same repo on the same day and neither

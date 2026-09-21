@@ -219,6 +219,7 @@ export function BoardView() {
             <RepairPanel
               plan={repairPlan}
               canAutoRepair={repairGate.allowed}
+              featureAvailable={false}
               upsell={'upsell' in repairGate ? repairGate.upsell : undefined}
               onRepaired={compare}
             />

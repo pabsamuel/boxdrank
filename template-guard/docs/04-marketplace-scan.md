@@ -86,7 +86,7 @@ but it has to be answered before marketing spend, not after.
 - 10 admin conversations about column drift — load-bearing, and more so after
   Workspace Doctor: 23 installs in three months for a polished app in this
   exact space.
-- The product-shape decision, ADR-010.
+- ~~The product-shape decision, ADR-010.~~ **Settled 20 Sep — ADR-025.**
 
 ## Second measured data point on demand
 

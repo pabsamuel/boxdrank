@@ -30,8 +30,9 @@ erroring — and every one of those items is on the wrong board.
 2. **Diff a copy against it.** Findings grouped by severity: `miswired`,
    `missing`, `altered`, `cosmetic`. Every finding says what is wrong, *why it
    matters*, and how to fix it.
-3. **Repair.** One click where the API can do it safely; a precise, deep-linked
-   manual checklist where it cannot — with an explanation of why not.
+3. **Repair checklist.** A precise, deep-linked list of exactly what to change,
+   with an explanation of each item. Template Guard never makes the change for
+   you — v1 requests no write permission at all (ADR-025).
 4. **Drift monitoring** (paid). Re-check linked boards on a schedule and notify
    when a live board diverges from its template.
 
@@ -120,15 +121,23 @@ Features to create in the console:
 
 ### Required scopes
 
+Three. `requiredScopes()` derives them, so the consent screen can never ask for
+a permission this deployment is not configured to use.
+
 | Scope | Why |
 |---|---|
 | `boards:read` | Read board structure. The entire comparison is built from this. |
-| `boards:write` | Create a missing column or group, rename a column back — only on explicit confirmation. |
 | `account:read` | Account ID and slug, for deep links and per-account billing. |
-| `me:read` | Identify the installing user during OAuth. |
+| `me:read` | Identify the installing user at OAuth, and record their id so drift alerts have a recipient. |
 
-**No item, update, or file scopes are requested.** Not holding the permission is
-a stronger claim at security review than promising not to use it.
+**No write scope, and no item, update or file scopes.** `boards:write` is
+requested **only** when `FEATURE_ONE_CLICK_REPAIR` is on, and v1 ships with it
+off (ADR-025) — so Template Guard cannot write to a board, and could not read
+an item if it wanted to.
+
+Not holding a permission is a stronger claim at security review than promising
+not to use it, and this is the shortest version of that conversation the
+product can have.
 
 ## API version
 
@@ -211,7 +220,11 @@ that scales with colleagues who will never open the app.
 | Manual repair checklist | ✓ | ✓ |
 | Scheduled drift monitoring | — | ✓ |
 | Notifications | — | ✓ |
-| One-click repair | — | ✓ |
+
+**One-click repair is not in v1** and is not sold as if it were (ADR-025). The
+code exists and is switched off; what ships is the manual checklist, on every
+tier. Pro sells not having to remember to check — which is what it always
+sold, because the highest-severity finding was a manual checklist item anyway.
 
 Mis-wiring detection stays on the free tier on purpose. The acquisition story is
 someone running one comparison, discovering their client board has been writing
@@ -234,7 +247,9 @@ unverified, and these must be checked first:
    guessing wrong there does not throw — it reports every board as correctly
    wired, the single worst failure this app could have. — `src/diff/connect.ts`
 3. **The `defaults` argument on `create_column`** — needed to recreate a status
-   column with the template's labels. — `src/repair/execute.ts`
+   column with the template's labels. Not load-bearing in v1, since one-click
+   repair does not ship, but it blocks turning the flag on.
+   — `src/repair/execute.ts`
 4. **Deep-link URL shapes.** Not part of any documented API. They degrade to the
    board URL when unsure. — `src/repair/deeplinks.ts`
 5. **The OAuth endpoints and the session-token JWT claim shape.**
@@ -271,10 +286,12 @@ Things a marketplace reviewer will ask, answered up front:
   Enforced in code at the storage boundary, not just documented.
 - **Scopes.** Four, each with a one-line justification in the manifest. No item
   scopes requested.
-- **Writes.** Three mutations total (`create_column`, `create_group`,
-  `change_column_title`), each only after an explicit per-item confirmation that
-  shows exactly what will change. Nothing writes to a board the user did not
-  select.
+- **Writes.** None. v1 does not request `boards:write`, so there is no write it
+  could perform. `repair/execute.ts` contains three mutations
+  (`create_column`, `create_group`, `change_column_title`) behind
+  `FEATURE_ONE_CLICK_REPAIR`, which is off; the requested scopes are derived
+  from that flag, so the consent screen cannot ask for a permission this build
+  is not configured to use. (ADR-025.)
 - **Preview API.** One flag, default off, read-only, isolated to one file, and
   no paid feature depends on it.
 - **Rate limits.** Batched board reads, explicit user pagination, exponential

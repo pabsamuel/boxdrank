@@ -670,3 +670,41 @@ occurring inside its own scheduler.
   next run continues it.
 - **A checkpoint older than a day is abandoned.** Without that, one bad account
   list could freeze the queue forever while every run reported success.
+
+## ADR-027 — Making the docs and the UI stop contradicting ADR-025
+**Date:** 2026-09-21 · **Status:** accepted
+Settling ADR-010 made several things in the repository false. Two of them were
+worse than untidy.
+
+**The answer key was wrong.** `docs/05-architecture-walkthrough.md` exists for
+one purpose: so that a reviewer's questions get true answers. It still said
+"three mutations, all opt-in" and "the product shape is an open decision" —
+so the document whose whole job is to be correct under questioning would have
+produced a wrong answer to the most consequential question a reviewer asks. It
+now says: none, v1 requests no write scope, here is what the writes would have
+bought and why that was a bad trade.
+
+**The UI advertised something nobody can buy.** `RepairPanel` still rendered
+"One-click repair is a Pro feature", with a list of tickable checkboxes that
+could never apply anything. That is precisely the sentence ADR-025 called *a
+lie with a price tag on it*, sitting in the product rather than in a gate
+function. Three states now stay distinguishable, because collapsing the first
+two is the lie:
+
+- **not in this build** → no checkboxes, no upsell, and a plain statement that
+  Template Guard has no permission to write to your boards;
+- **available but plan-gated** → a real upsell for something real;
+- **available and allowed** → checkboxes and a button.
+
+Also corrected: the README scope table and pricing table, the deployment doc's
+console instructions, and the roadmap's "blocked on the owner".
+
+The dated research documents — 03, 04, 07, 08 — were **not** rewritten. Their
+reasoning was right when written, and editing them to match a later decision
+would destroy the record of how the decision was reached. Each carries a
+forward pointer saying what superseded it.
+
+**The general lesson, which is the reason this has an ADR at all:** a decision
+is not finished when it is recorded. Documentation that contradicts the code is
+worse than no documentation, because it is trusted. The one place that matters
+most is the document written to be spoken aloud to a reviewer.

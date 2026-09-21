@@ -14,16 +14,28 @@ import { api, ApiError } from '../api.js';
  * The manual checklist is not a consolation prize. For the highest-severity
  * finding we produce it is the *only* correct answer, so it gets equal
  * prominence and says plainly why each item is a human's job.
+ *
+ * **In v1 there are no automatic fixes at all** (ADR-025): the app requests no
+ * write permission. Three states have to stay distinguishable, because
+ * collapsing the first two is a lie:
+ *
+ *  - `featureAvailable: false` — nobody can do this, on any plan. Say so, and
+ *    do not render a checkbox for something that cannot happen.
+ *  - available but plan-gated — a real upsell, for something real.
+ *  - available and allowed — checkboxes and a button.
  */
 
 export function RepairPanel({
   plan,
   canAutoRepair,
+  featureAvailable = false,
   upsell,
   onRepaired,
 }: {
   plan: RepairPlan;
   canAutoRepair: boolean;
+  /** Whether one-click repair exists in this build at all. Off in v1. */
+  featureAvailable?: boolean;
   upsell?: string;
   onRepaired: () => void;
 }) {
@@ -71,22 +83,33 @@ export function RepairPanel({
       {plan.auto.length > 0 && (
         <section>
           <Text type={Text.types.TEXT1} weight={Text.weights.BOLD}>
-            Template Guard can fix these ({plan.auto.length})
+            {featureAvailable
+              ? `Template Guard can fix these (${plan.auto.length})`
+              : `Safe to fix by hand (${plan.auto.length})`}
           </Text>
           <Text type={Text.types.TEXT3} color={Text.colors.SECONDARY} style={{ display: 'block', margin: '4px 0 8px' }}>
-            Each line below is exactly what will change on this board. Nothing runs until you
-            press the button.
+            {featureAvailable
+              ? 'Each line below is exactly what will change on this board. Nothing runs until you press the button.'
+              : 'These are the changes that would restore this board. Template Guard does not make them for you — it does not have permission to write to your boards.'}
           </Text>
 
           <Flex direction={Flex.directions.COLUMN} gap={Flex.gaps.SMALL} align={Flex.align.STRETCH}>
             {plan.auto.map((a) => (
               <Flex key={a.findingId} gap={Flex.gaps.SMALL} align={Flex.align.START}>
-                <Checkbox
-                  checked={selected.has(a.findingId)}
-                  onChange={() => toggle(a.findingId)}
-                  disabled={!canAutoRepair || running}
-                  ariaLabel={a.preview}
-                />
+                {featureAvailable ? (
+                  <Checkbox
+                    checked={selected.has(a.findingId)}
+                    onChange={() => toggle(a.findingId)}
+                    disabled={!canAutoRepair || running}
+                    ariaLabel={a.preview}
+                  />
+                ) : (
+                  // No checkbox for an action that cannot happen. A ticked box
+                  // that never applies anything is the interface lying.
+                  <Text type={Text.types.TEXT2} aria-hidden>
+                    •
+                  </Text>
+                )}
                 <Flex direction={Flex.directions.COLUMN}>
                   <Text type={Text.types.TEXT2}>{a.preview}</Text>
                   <Text type={Text.types.TEXT3} color={Text.colors.SECONDARY}>
@@ -97,7 +120,16 @@ export function RepairPanel({
             ))}
           </Flex>
 
-          {canAutoRepair ? (
+          {!featureAvailable ? (
+            <div style={{ marginTop: 12 }}>
+              {/* Not an upsell. Nobody can buy this, on any plan. */}
+              <AttentionBox
+                type={AttentionBox.types.PRIMARY}
+                title="Template Guard never writes to your boards"
+                text="It asks monday only for permission to read them, so every change above is yours to make. Each item links straight to the right settings panel."
+              />
+            </div>
+          ) : canAutoRepair ? (
             <Button
               onClick={run}
               disabled={running || chosen.length === 0}

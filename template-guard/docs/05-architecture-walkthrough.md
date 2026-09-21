@@ -164,7 +164,7 @@ item, update, or file scopes — not holding the permission beats promising not
 to use it. Second, `assertNoItemData()` in `src/server/storage.ts` walks every
 snapshot before it is written and throws if it finds `items`, `items_page`,
 `column_values`, `updates` or `assets` anywhere in the graph. It runs on every
-save in both storage implementations, before serialisation.
+save in all three storage implementations, before serialisation.
 
 **Q: Tokens?**
 AES-256-GCM at rest, `TokenCipher`. GCM means a tampered ciphertext fails
@@ -181,19 +181,31 @@ new file implementing the same `Storage` interface. `test/storage.test.ts` runs
 the identical suite against both implementations so that claim stays true.
 
 **Q: Which writes does the app perform?**
-Three mutations, all opt-in per item after a confirmation that shows exactly
-what will change: `create_column`, `create_group`, `change_column_title`.
-Nothing writes to a board the user did not select. Notably, the *most severe*
-finding — a mis-wired connect column — is **not** auto-repairable: re-pointing
-a connect column can silently break existing links, so it is a deep-linked
-manual checklist item with an explanation (ADR-006, `MISWIRED_IS_MANUAL`).
+**None.** v1 does not request `boards:write`, so there is no write it could
+perform. Every repair is a deep-linked manual checklist item that tells the
+user exactly what to change.
 
-**Q: Why does the app write at all, given a read-only version would be an
-easier review?**
-That is an open decision, documented in ADR-010 and
-`docs/03-merge-with-board-schema-auditor.md`, with a recommendation to ship
-read-only first. Saying this out loud is better than defending a choice that
-has not actually been made.
+**Q: But there are mutations in the repository.**
+Yes — `create_column`, `create_group`, `change_column_title` in
+`repair/execute.ts`, tested and unreachable. One-click repair sits behind
+`FEATURE_ONE_CLICK_REPAIR`, which is off, and the requested scopes are derived
+from that flag rather than hard-coded, so the consent screen cannot ask for a
+permission the deployment is not configured to use. Deleting working code to
+express a release decision makes the decision expensive to revisit; switching
+it off makes the claim true today.
+
+**Q: Why ship without it?**
+Because of what the writes actually bought. `boards:write` plus three mutations
+buys: create a missing column, create a missing group, rename a column back.
+Three conveniences. It does **not** buy the highest-severity finding this
+product has — a mis-wired connect column is already a manual checklist item, by
+a separate line of reasoning (ADR-006): re-pointing a connect column with
+existing links is a data decision, not a repair.
+
+So the writes cost the strongest sentence available at this review — *"Template
+Guard never writes to your boards"* — and buy nothing that carries the product.
+That is a bad trade for a first submission and a reasonable one later. It is
+ADR-025, and it closed ADR-010.
 
 ---
 
@@ -341,7 +353,9 @@ them.
 - **"What is the weakest part?"** The matcher's pass 3 and pass 4 heuristics.
   They are guesses, they are labelled as guesses in the UI, and a rename versus
   a delete-plus-add is not decidable from outside monday. Second weakest: the
-  product shape is not settled (ADR-010).
+  app has never run against a live monday account or on monday code, so a
+  handful of behaviours are believed rather than observed — the list is in
+  `STATUS.md` and every one of them is isolated behind a named function.
 
 ---
 

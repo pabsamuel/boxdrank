@@ -20,7 +20,7 @@ done and is blocking on your answer. Copy-paste prompts for each phase are in
 | — | **`monday code` investigation** | can the backend run on monday's own infrastructure? | **done 2026-09-20** — yes. `docs/08-monday-code.md`, ADR-018. Five `✱` questions left, one hour with the CLI. |
 | 12 | **Port to monday code** | `MondayCodeStorage`, `Config` interface, `/mndy-cronjob` route, index-based sweep | **done 2026-09-20** — ADR-020. Built against the SDK's installed type definitions. Never run on the platform. |
 | 13 | **First platform deploy** | private app, watch `mapps code:logs` through one sweep | **the only way to close the four `✱` behaviours** |
-| — | **Product shape decision** | read-only auditor, or auditor + repair + monitoring | **blocked on the owner** — see ADR-010 |
+| — | **Product shape decision** | read-only auditor, or auditor + repair + monitoring | **settled 2026-09-20 — ADR-025.** Ship the auditor and the monitoring; cut one-click repair from v1 so "never writes to your boards" is true. |
 | 8 | Real storage | a real database behind the `Storage` interface | **done 2026-09-20** — SQLite, ADR-013. One suite runs against both implementations. |
 | — | **Gate #2 answer key** | architecture defence for a marketplace reviewer | **done 2026-09-20** — `docs/05-architecture-walkthrough.md`. Reading it is on the owner. |
 | 9 | Billing | signed subscription webhook → plan state; plan surface, no payment form | **done 2026-09-20** — ADR-016 |
@@ -69,5 +69,6 @@ your item data.* That sentence shortens security review.
 ## Monetization (build for it from phase 1, no UI yet)
 - Free: 1 template, manual diffs.
 - Paid $30–60/mo **per account**: unlimited templates, scheduled drift
-  monitoring, notifications, one-click repair.
+  monitoring and notifications. (One-click repair was cut from v1 by ADR-025;
+  it is not sold.)
 - No preview-schema feature is ever gated behind payment.
