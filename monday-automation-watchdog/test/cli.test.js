@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { execFile } from 'node:child_process';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, readdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -63,12 +63,24 @@ const withStub = async (lastFiredAgoMs, fn) => {
   }
 };
 
-const env = (url, dir) => ({
+/**
+ * The two opt-ins are set here and nowhere else.
+ *
+ * WATCHDOG_DRY_RUN, because printing the alert is now something the caller has
+ * to ask for; WATCHDOG_ALLOW_INSECURE_ENDPOINT, because the stub is a plain
+ * HTTP server on 127.0.0.1 and the client otherwise refuses to send a token
+ * anywhere that is not monday.com over https. Neither is set by the workflow,
+ * which is the point: the tests reach for the escape hatch, production cannot.
+ */
+const env = (url, dir, extra = {}) => ({
   ...process.env,
   MONDAY_API_TOKEN: 'test-token',
   WATCHDOG_RECIPIENT: 'admin@example.com',
   MONDAY_API_URL: url,
   WATCHDOG_STATE_DIR: dir,
+  WATCHDOG_DRY_RUN: '1',
+  WATCHDOG_ALLOW_INSECURE_ENDPOINT: '1',
+  ...extra,
 });
 
 test('the CLI detects a stopped automation and prints the email it would send', () =>
@@ -112,4 +124,89 @@ test('missing configuration exits with a usage error rather than running', async
       return true;
     },
   );
+});
+
+test('without the dry-run opt-in the check refuses to run at all', async () => {
+  // The header documented WATCHDOG_DRY_RUN as a gate; the variable appeared in
+  // that comment and nowhere else, so the alert body printed unconditionally.
+  // The scheduled workflow runs this with stdout going to a public Actions log.
+  await assert.rejects(
+    () =>
+      run('node', [script], {
+        env: {
+          ...process.env,
+          MONDAY_API_TOKEN: 'test-token',
+          WATCHDOG_RECIPIENT: 'admin@example.com',
+          WATCHDOG_DRY_RUN: '',
+        },
+      }),
+    (error) => {
+      assert.equal(error.code, 2);
+      assert.match(error.stderr, /No mail provider is configured/);
+      assert.ok(!error.stdout.includes('email that would be sent'), 'nothing may be printed');
+      return true;
+    },
+  );
+});
+
+test('the token is not sent to a local address without the explicit opt-in', () =>
+  withStub(12 * HOUR, async (url, dir) =>
+    assert.rejects(
+      () => run('node', [script], { env: env(url, dir, { WATCHDOG_ALLOW_INSECURE_ENDPOINT: '' }) }),
+      (error) => {
+        assert.match(error.stderr, /Refusing to send the monday API token/);
+        return true;
+      },
+    ),
+  ));
+
+/**
+ * A monday that quotes the Authorization header back inside a 200.
+ *
+ * Not a hypothetical: GraphQL reports errors in a 200, and a proxy, a wrong
+ * endpoint or a reflecting error page can all echo a request header. The
+ * original code refused to echo the body of a *failed* response, which did not
+ * cover this, and the token reached stderr and the run log on disk.
+ */
+function reflectingStub() {
+  return createServer((req, res) => {
+    req.on('data', () => {});
+    req.on('end', () => {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ errors: [{ message: `Bad token: ${req.headers.authorization}` }] }));
+    });
+  });
+}
+
+test('a server that echoes the token back puts it in no output and on no disk', async () => {
+  const server = reflectingStub();
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const dir = await mkdtemp(join(tmpdir(), 'watchdog-reflect-'));
+  const url = `http://127.0.0.1:${server.address().port}`;
+
+  try {
+    const token = 'test-token';
+    // assert.rejects cannot await its validator, and the disk check has to be
+    // awaited, so the error is caught by hand.
+    const failure = await run('node', [script], { env: env(url, dir) }).then(
+      (ok) => assert.fail(`the check should have failed, got: ${ok.stdout}`),
+      (error) => error,
+    );
+
+    assert.ok(!failure.stdout.includes(token), 'stdout must not carry the token');
+    assert.ok(!failure.stderr.includes(token), 'stderr must not carry the token');
+    assert.match(failure.stderr, /Check failed/);
+
+    // The run log is written on failure by design, so it is the channel that
+    // put the credential at rest.
+    const written = await readdir(dir);
+    assert.ok(written.length > 0, 'the run log should exist, or this proves nothing');
+    for (const name of written) {
+      const contents = await readFile(join(dir, name), 'utf8');
+      assert.ok(!contents.includes(token), `${name} must not carry the token`);
+    }
+  } finally {
+    server.close();
+    await rm(dir, { recursive: true, force: true });
+  }
 });

@@ -1,6 +1,6 @@
 # Progress — monday Automation Watchdog
 
-Updated 20 Sep 2026 (second pass). Percentages are counted from the checklist below, not
+Updated 21 Sep 2026 (third pass). Percentages are counted from the checklist below, not
 estimated. An item is done or it is not; half-done items are listed as not done
 with a note.
 
@@ -8,8 +8,8 @@ with a note.
 
 | | Done | Note |
 |---|---|---|
-| **Code that can be written from here** | **13 / 13 — 100%** | Verified against a live account |
-| **Distance to a product someone pays for** | **18 / 33 — 55%** | The remaining 45% is not code at all |
+| **Code that can be written from here** | **14 / 14 — 100%** | Verified against a live account |
+| **Distance to a product someone pays for** | **19 / 34 — 56%** | The remaining 44% is not code at all |
 
 **The second number went down while work was being done.** That is not an error.
 Muting, the run log and the staleness strip added three items to section 1 and
@@ -38,13 +38,22 @@ no amount of building fixes.
 - [x] Demo account, generated and drift-checked in CI
 - [x] Muting, designed so it expires and cannot become a blind spot
 - [x] Run log and staleness detection — the watchdog reporting on itself
-- [x] Two security reviews, four findings, all fixed with regression tests
+- [x] Three security reviews, seven findings, all fixed with regression tests
+- [x] Runnable on any host, so scheduling is no longer a blocker: an HTTP
+      client with a guarded endpoint, file-backed state, and a CLI that takes
+      the token from the environment only
 - [x] **Verified against a real monday account** (21 Sep 2026). Two live
       responses are committed as fixtures and checked in CI. The first found a
       real bug: `created_at` is 100-nanosecond ticks, which the parser was
       silently returning null for.
 
-**142 tests.** All offline, and two of them run against real captured responses.
+**168 tests.** All offline, and two of them run against real captured responses.
+
+The third review is the one worth remembering. It reported the token-handling
+path as clean, having tested it against a stub that behaves. Running the same
+CLI against a stub that quotes the `Authorization` header back put the token in
+stderr and in a file on disk. **A security review that only tests cooperative
+inputs proves nothing about the inputs that matter.**
 
 ## 2. Blocked on `developer.monday.com` being unreachable — 0/4
 
@@ -70,7 +79,7 @@ them. Estimated at one focused session once readable.
 - [x] Confirm automation actions reach the board activity log at all — **yes**,
       which was the more dangerous of the two questions
 
-## 4. Still a secret to solve — 0/2
+## 4. Still a secret to solve — 1/3
 
 The board view holds no credential; seamless auth handles it. A scheduled job
 runs with no user present and needs a stored token. **This is the first secret
@@ -79,6 +88,8 @@ review.
 
 - [ ] OAuth install flow for the scheduled job
 - [ ] Token storage that survives monday's security review
+- [x] The token cannot leave the process: the endpoint is validated before the
+      token is attached, and every response is scrubbed of it before parsing
 
 ## 5. Marketplace — 0/4
 
@@ -101,9 +112,9 @@ products had at this stage, and it is still not a person.
 
 ---
 
-## What the 40% is not
+## What the 56% is not
 
-It is not "40% of the work is done and 60% is more of the same". Section 1 is
+It is not "56% of the work is done and 44% is more of the same". Section 1 is
 nearly finished and is the part I can do. Sections 2 and 3 need a few pages of
 documentation and one account. Section 6 needs conversations with strangers, and
 no amount of code moves it.

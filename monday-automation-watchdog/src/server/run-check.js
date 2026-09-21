@@ -17,12 +17,16 @@
 
 import { fetchBoards, fetchActivity, fetchUsers } from '../app/monday-source.js';
 import { classifyActors } from '../core/actors.js';
+import { singleLine } from '../core/sanitize.js';
 import { watch, summarize } from '../core/watch.js';
 import { planNotifications } from '../core/alerts.js';
 import { renderEmail } from '../core/email.js';
 import { recordRun } from '../core/run-log.js';
 
 const DAY = 24 * 3600_000;
+
+/** Long enough to identify a failure, short enough that a log cannot be grown by one. */
+const MAX_LOGGED_ERROR_LENGTH = 300;
 
 /** How much history each run reads. Long enough for the engine to learn a rhythm. */
 export const HISTORY_DAYS = 60;
@@ -76,7 +80,17 @@ export async function runCheck({ monday, storage, mailer, accountId, recipient, 
       now,
     );
   } catch (error) {
-    await logRun({ watched: 0, silent: 0, sent: false, error: error?.message ?? String(error) });
+    // The message is upstream text -- a monday API error, or whatever a wrong
+    // endpoint returned. It is about to be written to a file that survives the
+    // run and is read back later, so it gets flattened and bounded like every
+    // other untrusted string in this project. The caller still gets the error
+    // unaltered; only the stored copy is trimmed.
+    await logRun({
+      watched: 0,
+      silent: 0,
+      sent: false,
+      error: singleLine(error?.message ?? String(error), MAX_LOGGED_ERROR_LENGTH),
+    });
     throw error;
   }
 

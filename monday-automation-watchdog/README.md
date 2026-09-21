@@ -312,9 +312,9 @@ mail. That is wrong for the real product and fine for a demo. Nothing else
 imports it, and the scheduled job already takes an injected store, so swapping in
 monday's account-scoped storage is a one-file change.
 
-### Two findings from a security review, both fixed
+### Five findings from three security reviews, all fixed
 
-A review on 20 Sep found two real problems, and both were failures of the
+The first review, on 20 Sep, found two problems, and both were failures of the
 product's own job rather than generic web bugs.
 
 **A board name could forge a section of the email.** The HTML body was escaped
@@ -336,6 +336,47 @@ long silence. Breakages now lead with the newest, reminders with the most
 overdue, the cap takes round-robin by board so one noisy board cannot crowd out
 the rest, and the overflow line names the boards it dropped instead of only
 counting them.
+
+### Three more, from the review of the first credential this project has held
+
+The board view holds no secret — seamless auth handles it. The scheduled runner
+does, and a review on 21 Sep found three ways it could lose one. All three came
+from the same root cause: a defence was written down and then not finished.
+
+**The alert body was published to a public log.** The CLI's header documented
+`WATCHDOG_DRY_RUN` as the gate that decided whether the alert was printed or
+sent. That variable appeared in the comment and nowhere else in the repository,
+so printing was unconditional — and the scheduled workflow runs the CLI with
+stdout going to a GitHub Actions log, on a repository that is public. Every run
+would have published board names, the full inventory of watched automations, and
+which ones were currently dead: a map of someone's internal workflow annotated
+with its weak points, and a way for anyone who can share a board into the
+account to force a string of their choosing into a public log. The gate is now
+real. Without the opt-in the check exits with "no mail provider is configured"
+rather than falling back to printing, the workflow deliberately does not set it,
+and the summary line it does print carries no account content.
+
+**The token could be sent to any host on earth.** `MONDAY_API_URL` went
+straight to `fetch`, with no scheme check and no host check, and the token was
+attached to the first request before any response was looked at. The README
+actively encourages overriding it, which made a one-line typo — or one line
+added to the workflow by anyone with push access — enough to hand a
+full-account credential to a stranger. The endpoint is now validated before the
+token is attached: https only, and `monday.com` or a `.monday.com` host,
+checked with the leading dot so `monday.com.attacker.example` does not pass. It
+fails closed at construction. Tests reach for an explicit opt-in; production
+cannot.
+
+**A reflected token reached stderr and the disk.** This one the review missed
+and reported as clean, because it tested against a stub that behaves. The client
+had always refused to echo the body of a *failed* response, precisely so a
+reflected token could not travel — but GraphQL reports errors inside a **200**,
+so that path was never covered. Running the real CLI against a server that
+quotes the `Authorization` header back put the token in stderr and in the run
+log on disk, where it persists. Responses are now scrubbed of the token as text
+before they are parsed, so it cannot come back through *any* field rather than
+only the ones read today, and a non-JSON 200 reports its size and content type
+instead of quoting the body Node's parse error would otherwise leak.
 
 ### The ordering that matters
 
@@ -390,20 +431,25 @@ Two things had to exist for this:
 
 The endpoint defaults to the widely published `https://api.monday.com/v2` and is
 overridable by `MONDAY_API_URL` **precisely because that default is a guess** —
-a wrong one should cost an environment variable, not a patch.
+a wrong one should cost an environment variable, not a patch. The override is
+constrained to https on a monday.com host, because the same flexibility was a
+way to hand the token to a stranger.
 
-Five end-to-end tests drive the CLI against a stub monday server: a stopped
+Eight end-to-end tests drive the CLI against a stub monday server: a stopped
 automation produces the right email, a healthy account sends nothing, state
 persists so the same alert is not repeated, the human user is not reported as a
-broken automation, and missing configuration exits with a usage error.
+broken automation, missing configuration exits with a usage error, the check
+refuses to run without the dry-run opt-in, the token is not sent to a local
+address without an explicit opt-in, and a server that echoes the token back
+leaves it in no output stream and on no disk.
 
 ## What is not built
 
-- **No real mail provider.** The CLI prints the email instead of sending it, and
-  that is the default rather than an afterthought: the first thing to do with a
-  tool that emails an admin is watch what it would have said without it reaching
-  anyone. Choosing a provider on a guess would be the same mistake as writing an
-  API from memory.
+- **No real mail provider.** The CLI can only print the alert, and printing now
+  has to be asked for with `WATCHDOG_DRY_RUN=1`. Without it the check exits
+  rather than quietly printing, because the output carries board names and
+  belongs nowhere public. Choosing a provider on a guess would be the same
+  mistake as writing an API from memory.
 - **monday's own hosting is still unwired.** `runCheck` takes injected `storage`
   and `mailer` interfaces, so if monday code turns out to offer both, it is two
   small files rather than a rewrite.

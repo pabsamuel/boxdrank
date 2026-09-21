@@ -38,6 +38,16 @@ jobs:
           key: watchdog-state-${{ github.run_id }}
           restore-keys: watchdog-state-
 
+      # WATCHDOG_DRY_RUN is deliberately not set here, so this step fails with
+      # "no mail provider is configured" until one exists.
+      #
+      # Setting it would make the step pass, and would print the alert body --
+      # board names, the automations being watched, which ones have stopped --
+      # into this workflow log. The repository is public, so that log is
+      # world-readable. A failing step that explains itself is better than a
+      # green one that publishes an account's internal workflow every morning.
+      #
+      # Only the summary counts are printed, which carry no account content.
       - name: Run the check
         env:
           MONDAY_API_TOKEN: ${{ secrets.MONDAY_API_TOKEN }}
