@@ -12,8 +12,12 @@
 > | **Which settings key holds linked board IDs** | ✓ — `{"boardIds":[5104569193]}`, **numbers not strings** |
 > | The column points where we say it does | ✓ |
 > | `isBoardReferencing` recognises `board_relation` | ✓ |
-> | `owners`/`subscribers` paginate with `limit`/`page` | ✗ — those arguments do not exist. Fixed by folding both fields into the config query, which also removed a whole request per board. |
-> | `board_automations` readable | ✗ — we were sending the pinned version header instead of `dev`. Hypothesis fixed; awaiting a re-run. |
+> | `owners`/`subscribers` paginate with `limit`/`page` | ✗ → **✓ on re-run.** Those arguments do not exist. Fixed by folding both fields into the config query, which also removed a whole request per board. |
+> | `board_automations` readable | ✗, **twice.** Two hypotheses have now failed — the pinned header, then `dev`. Stop guessing: `--probe-preview` asks the schema. |
+>
+> **Re-run, same day: 6 verified, 1 failed.** The only open claim is the
+> preview automations read, which is behind a default-off flag that no paid
+> tier depends on.
 >
 > The third row is the one that mattered. It was the single worst failure this
 > app could have — guess the key wrong and every board reports as correctly

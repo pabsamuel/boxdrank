@@ -775,12 +775,50 @@ preview adapter passes `dev`. A per-call argument rather than a second client,
 so the pin stays the default everywhere and the exception is visible at the
 call site.
 
-✱ **Still a hypothesis.** It is the one-line change that explains the
-observation, not a confirmed fix — the re-run decides. If it still fails, the
-product is unaffected: the flag is off by default and no paid tier depends on
-it.
+✱ **The hypothesis was wrong.** The re-run, with the `dev` header, failed
+identically. Recorded rather than quietly amended, because two failed guesses
+in a row is the signal hard rule 1 exists for.
+
+What the re-run also exposed: the script was printing only the failure's
+`message` — the sentence written for a *customer* — and never its `cause`,
+which holds the actual GraphQL error. Our own "fail loudly" design was failing
+loudly in the wrong language, and hid the one detail a developer needed through
+two whole runs. `PartialFailure` has carried `cause` since the beginning and
+nothing read it.
+
+Both fixed in ADR-029, which stops guessing and asks the schema instead.
 
 ### One cosmetic fix
 
 The script printed `action:` under passing checks, so the first live run read
 as though a ✓ still needed work. It now prints only under a failure.
+
+## ADR-029 — Two failed guesses is the signal to ask the schema
+**Date:** 2026-09-21 · **Status:** accepted
+`board_automations` has now failed twice against a live account: once sending
+the pinned `2026-07` header, once sending `dev`. Each fix was a reasonable
+hypothesis and each was wrong.
+
+Hard rule 1 says never invent monday API behaviour. A third guess would be
+exactly that, dressed as progress. So `--probe-preview` runs GraphQL
+introspection against **both** the pinned version and the dev schema and prints
+every root field matching `automat|recipe|workflow`. The difference between the
+two answers is the finding; if there is no such field under either, then
+automations are simply not readable by this token and the flag stays off — a
+case the product was built to handle from the start.
+
+### The diagnostic bug underneath
+
+Two live runs printed only the failure's `message`. That string is written for
+a *customer*: "Template Guard could not read this board's automations… the
+preview interface changed or was unavailable." True, unhelpful, and it hid the
+actual GraphQL error for two entire rounds.
+
+`PartialFailure` has had a `cause` field since the first commit and **nothing
+ever read it**. A codebase whose central claim is that it tells you what
+silently broke was, in its own tooling, reporting a shaped apology instead of
+the error. The script now prints `cause` first and falls back to `message`.
+
+The general shape is worth keeping: a user-facing message and a developer-facing
+cause are different artefacts, and a diagnostic tool that shows only the first
+is a tool that makes you re-run to learn nothing twice.

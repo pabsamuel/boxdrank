@@ -27,7 +27,7 @@
  */
 
 import { MondayClient } from '../src/api/client.js';
-import { MONDAY_API_VERSION } from '../src/api/version.js';
+import { MONDAY_API_PREVIEW_VERSION, MONDAY_API_VERSION } from '../src/api/version.js';
 import { BOARD_CONFIG_QUERY, BOARD_LIST_PAGE_LIMIT, BOARD_LIST_QUERY } from '../src/api/queries.js';
 import { readBoardAutomations } from '../src/api/preview/automations.js';
 import { parseSettings } from '../src/snapshot/capture.js';
@@ -63,6 +63,21 @@ function record(r: CheckResult): void {
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
   return i === -1 ? undefined : process.argv[i + 1];
+}
+
+/** Unwraps whatever a PartialFailure's `cause` turned out to be. */
+function describeCause(cause: unknown): string {
+  if (cause == null) return '';
+  if (Array.isArray(cause)) {
+    return cause
+      .map((e) => {
+        const err = e as { message?: string; extensions?: { code?: string } };
+        return err?.message ? `${err.message}${err.extensions?.code ? ` [${err.extensions.code}]` : ''}` : JSON.stringify(e);
+      })
+      .join(' | ');
+  }
+  if (cause instanceof Error) return cause.message;
+  return typeof cause === 'string' ? cause : JSON.stringify(cause);
 }
 
 function truncate(value: unknown, max = 400): string {
@@ -143,10 +158,58 @@ async function listBoards(client: MondayClient): Promise<void> {
   }
 }
 
+/**
+ * Asks monday's own schema which automation-related fields exist.
+ *
+ * Two hypotheses about ✱4 have now failed — the pinned version header, then
+ * the `dev` header. Hard rule 1 says stop guessing at this point: introspection
+ * turns "what should we try next" into "what is actually there".
+ *
+ * Runs against both the pinned version and the dev schema, because the
+ * difference between the two answers is itself the finding.
+ */
+async function probePreview(token: string): Promise<void> {
+  const INTROSPECT = `query { __schema { queryType { fields { name description } } } }`;
+
+  for (const version of [MONDAY_API_VERSION, MONDAY_API_PREVIEW_VERSION]) {
+    console.log(`\n── API-Version: ${version} ──`);
+    const client = new MondayClient({ token, apiVersion: version });
+
+    const { data, errors } = await client.request<{
+      __schema?: { queryType?: { fields?: { name: string; description?: string | null }[] } };
+    }>(INTROSPECT, {}, version);
+
+    if (errors.length > 0) {
+      console.log(`  introspection refused: ${errors.map((e) => e.message).join(' | ')}`);
+      continue;
+    }
+
+    const fields = data?.__schema?.queryType?.fields ?? [];
+    if (fields.length === 0) {
+      console.log('  introspection returned no root fields (it may be disabled).');
+      continue;
+    }
+
+    const matches = fields.filter((f) => /automat|recipe|workflow/i.test(f.name));
+    console.log(`  ${fields.length} root fields; ${matches.length} mention automation/recipe/workflow:`);
+    for (const f of matches) {
+      console.log(`    · ${f.name}${f.description ? ` — ${f.description.split('\n')[0]}` : ''}`);
+    }
+    if (matches.length === 0) {
+      console.log('    (none — this schema exposes no automation read at all)');
+    }
+  }
+
+  console.log(
+    '\nIf a field exists under one version and not the other, that is the answer.\nIf it exists nowhere, automations are not readable by this token and the\nfeature flag stays off — which the product is already built to handle.\n',
+  );
+}
+
 async function main(): Promise<void> {
   const token = process.env.MONDAY_API_TOKEN;
   const boardId = arg('board');
   const wantsList = process.argv.includes('--list-boards');
+  const wantsProbe = process.argv.includes('--probe-preview');
 
   if (!token) {
     console.error(
@@ -157,6 +220,11 @@ async function main(): Promise<void> {
 
   if (wantsList) {
     await listBoards(new MondayClient({ token }));
+    process.exit(0);
+  }
+
+  if (wantsProbe) {
+    await probePreview(token);
     process.exit(0);
   }
 
@@ -326,13 +394,24 @@ async function main(): Promise<void> {
     const automations = await readBoardAutomations(client, boardId, failures);
 
     if (automations === null) {
+      // The underlying GraphQL error, not our user-facing wrapper.
+      //
+      // The first two live runs printed only `message` — the sentence written
+      // for a customer — and so hid the one thing a developer needs. A
+      // PartialFailure carries `cause` precisely for this, and nothing was
+      // reading it. Fixed here rather than argued about.
+      const causes = failures
+        .map((f) => describeCause(f.cause))
+        .filter((c) => c.length > 0)
+        .join(' | ');
+
       record({
         id: '✱4',
         claim: '`board_automations` is readable on the dev (preview) schema.',
         status: 'FAILED',
-        observed: failures.map((f) => `${f.kind}: ${f.message}`).join(' | ') || 'Returned null with no recorded failure.',
+        observed: causes || failures.map((f) => `${f.kind}: ${f.message}`).join(' | ') || 'Returned null with no recorded failure.',
         action:
-          'The preview schema moved, or this token cannot reach it. The flag is default-off, so the product still works — but ADR-002 stays in force.',
+          'Run with --probe-preview to ask the schema itself which automation fields exist, instead of guessing again.',
       });
     } else {
       record({
