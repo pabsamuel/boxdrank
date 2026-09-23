@@ -175,3 +175,59 @@ review, and it answers questions `NEXT-GATE0.md` left open:
 
 Searches not run, and no longer worth running for this product: `board
 structure`, `governance`, `template`, `columns`.
+
+---
+
+## monday already emails about *some* deactivations — 23 Sep 2026
+
+Found while looking for outreach leads, which is the only reason it was found at
+all. It is the closest thing to a competitor this product has, and it is monday
+itself.
+
+**INDIRECT, not read directly.** `support.monday.com` sits behind Cloudflare and
+returned 403 to every fetch from here. What follows is from a search engine's
+summary of two support articles, "Why is my automation deactivated?" and "Why is
+my integration deactivated?", plus a community thread titled "Did you know about
+our deactivated automations email?". **This needs confirming in a browser before
+any decision rests on it**, and it is written down as unconfirmed rather than
+quietly treated as true.
+
+What the summary says:
+
+- monday sends a **deactivated automations email** in some cases
+- *"You will **not** receive a notification that informs you of this change when
+  certain automations are deactivated"*
+- *"Some deactivation scenarios do not send a notification. In those cases,
+  check the board's Automations page for inactive automation errors."*
+- Common causes of deactivation: revoked gmail/outlook tokens, a deleted column,
+  permission changes, deleted boards/groups/subitems, item limits, rate limits
+
+### Why this is not the Gate 0 moment
+
+The billable-hours product died because a competitor advertised the whole feature
+set. This is not that, and the difference is the entire premise of the watchdog:
+
+**monday tells you when an automation has been switched off. It never tells you
+when an automation is still switched on and quietly not firing.**
+
+Cadence detection covers both. A deactivated automation stops firing and shows up
+as silent; so does one that is still green, still enabled, and has not run in
+three weeks because its trigger condition stopped being met. The second case has
+no monday feature at all, and it is the one nobody notices — the person with 200+
+workflows in VALIDATION.md built their own workaround rather than rely on the
+email, which is itself evidence the email does not cover them.
+
+### What it does change
+
+The pitch cannot be "monday doesn't tell you when automations break", because
+partly it does. It has to be the narrower and truer one: **"switched on is not
+the same as working."**
+
+### Owed
+
+1. Open both support articles in a browser and read them directly. 403 here.
+2. Establish whether the deactivated-automations email is on by default, who
+   receives it, and whether it can be turned off.
+3. Decide whether detecting *deactivated* status is worth adding, or whether
+   cadence alone is the cleaner product. Adding it would overlap monday's own
+   feature; leaving it out keeps the wedge sharp.

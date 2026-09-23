@@ -12,18 +12,50 @@ it is the right order.
 
 ## Where the people already are
 
-**This is the unusual part, and the reason validation here is cheap.** Two public
-monday community threads exist specifically because people wanted this product:
+### Correction, 23 Sep 2026: the thread IDs recorded here were dead
 
-- **"Allow Automation Failure Notifications to be Sent by Email (Configurable
-  Notification Type)"** — community.monday.com t/115526
-- **"Automation Failure Notifications and Reporting"** — community.monday.com
-  t/96751
-- Related: **"Force-Stop/Restart Automation (In Progress or Failed)"** — t/77480
+Checked directly once the network policy allowed it. **Every `/t/<slug>/<id>`
+URL above returns 404** — community.monday.com has migrated and the old
+Discourse-style links are gone, including the two this file called "the unusual
+part, and the reason validation here is cheap". Search engines still index them,
+which is how they got written down and why they looked verified.
 
-Everyone who posted or upvoted in those threads has already told monday, in
-public, in their own words, that they want to be told when an automation breaks.
-They are pre-qualified and they are not strangers to the problem.
+They are listed below as titles rather than links, because the discussions
+almost certainly still exist under new URLs and the titles are what will find
+them. What is gone is the shortcut, not the people.
+
+- "Allow Automation Failure Notifications to be Sent by Email (Configurable
+  Notification Type)"
+- "Automation Failure Notifications and Reporting"
+- "monday notification when automations fail"
+- "Is there a way to be notified/alerted if an integration or automation is
+  deactivated or not working?"
+- "Get notification when an automation fails"
+- "how can i get notification when automation is disabled?"
+
+### The one live lead, and it is the best one found
+
+**FACT — fetched and read on 23 Sep 2026.** This URL resolves:
+
+`community.monday.com/feature-requests/post/ability-to-be-notified-when-a-workflow-fails-hy0zwI2QtAcckGT`
+
+The post, quoted:
+
+> Currently we have a pretty complex group of **200+ workflows** that are used to
+> run our Commercialization development process. […] When this fails, **I had to
+> create a group of automations and workflows to check to see if there was a
+> failure.** This currently has to be triggered to identify any issues and many
+> times, items are high priority. Would like to have a simple notification to the
+> workflow owner that an item has failed […] This is one of the first type of
+> application I have used that doesn't really give you a way to look at
+> errors/failures in an efficient way.
+
+This is the profile this file asks for and has never had. They did not say the
+problem is annoying — they **built a workaround for it**, which means they have
+already paid for it once in their own labour, and 200+ workflows is not a
+three-seat account. Message this person first.
+
+**Still UNKNOWN: what they would pay.** Nothing above is a number.
 
 **Do not pitch in the threads.** Posting a product link in a feature-request
 thread reads as spam and can follow you into the marketplace review. Read them,
