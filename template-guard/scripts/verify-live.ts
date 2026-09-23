@@ -99,6 +99,13 @@ function truncate(value: unknown, max = 400): string {
  * moment, this finds the right board and prints the exact next command.
  */
 async function listBoards(client: MondayClient): Promise<void> {
+  // The account slug, so every board prints as a link you can click rather
+  // than an id you have to go and find.
+  const who = await client.request<{ me?: { account?: { slug?: string } } }>(
+    `query { me { account { slug } } }`,
+  );
+  const slug = who.data?.me?.account?.slug ?? null;
+
   const { data, errors } = await client.request<{
     boards: { id: string; name: string; board_kind?: string }[] | null;
   }>(BOARD_LIST_QUERY, { limit: BOARD_LIST_PAGE_LIMIT, page: 1 });
@@ -143,6 +150,7 @@ async function listBoards(client: MondayClient): Promise<void> {
 
     console.log(`${mark} ${id}  ${board.name}`);
     console.log(`     ${info?.columns ?? 0} columns${connects.length > 0 ? ` · connect: ${connects.join(', ')}` : ' · no connect column'}`);
+    if (slug) console.log(`     https://${slug}.monday.com/boards/${id}`);
   }
 
   console.log('\n★ = has a connect column, which is the claim that matters most.\n');
