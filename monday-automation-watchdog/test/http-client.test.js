@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createHttpClient, DEFAULT_ENDPOINT, REDACTED } from '../src/server/http-client.js';
+import { createHttpClient, DEFAULT_ENDPOINT } from '../src/server/http-client.js';
+import { REDACTED } from '../src/server/redact.js';
 
 /** A 200 carrying a JSON object, the way a cooperative monday would answer. */
 const okResponse = (body) => ({

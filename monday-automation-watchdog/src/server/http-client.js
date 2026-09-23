@@ -10,12 +10,15 @@
  * the same `api(query, options)` shape the rest of the code already expects.
  * Nothing above this file knows which one it is talking to.
  *
- * This is the only file in the project that holds a credential, so it is the
- * only place that can defend one. Two of the three defences below exist because
- * a security review found the gap, not because they were designed in.
+ * Two of the three defences below exist because a security review found the
+ * gap, not because they were designed in. The third — scrubbing the token out
+ * of responses — exists because the review said that path was clean and it was
+ * not. Redaction is shared with the mailer in `redact.js`, since the runner
+ * holds two credentials and the same mistake was available twice.
  */
 
 import { singleLine } from '../core/sanitize.js';
+import { redact, REDACTED } from './redact.js';
 
 /**
  * monday's GraphQL endpoint.
@@ -26,9 +29,6 @@ import { singleLine } from '../core/sanitize.js';
  * and a wrong default should cost one environment variable rather than a patch.
  */
 export const DEFAULT_ENDPOINT = 'https://api.monday.com/v2';
-
-/** What replaces the token anywhere it would otherwise be written down. */
-export const REDACTED = '[monday API token redacted]';
 
 /**
  * Hosts the token may be sent to.
@@ -57,33 +57,6 @@ function assertSafeEndpoint(endpoint) {
   if (url.hostname !== 'monday.com' && !url.hostname.endsWith('.monday.com')) {
     throw new Error(`Refusing to send the monday API token to ${singleLine(url.hostname, 60)}.`);
   }
-}
-
-/**
- * Removes the token from text that is about to be logged, stored or parsed.
- *
- * The client already refused to echo the body of a failed response. That was
- * not enough: GraphQL reports errors in a **200**, so an error message is read
- * as data, handed upwards, printed to stderr and written into the run log. A
- * server that quotes the Authorization header back — a reflecting error page, a
- * proxy in front of the API, a wrong endpoint — therefore put the credential on
- * disk and into a public CI log. Verified by running the real CLI against a
- * stub that echoes the header; the token appeared in both.
- *
- * So the whole body is scrubbed before it is parsed, not just the fields that
- * happen to be read today. The replacement contains no quote or backslash, so
- * substituting it inside a JSON string literal leaves valid JSON.
- *
- * Tokens shorter than this are not redacted: a two-character needle would strip
- * unrelated text out of every response and corrupt it. Real monday tokens are
- * long, so nothing of value is exposed by the floor.
- */
-const MIN_REDACTABLE_LENGTH = 8;
-
-export function redactToken(text, token) {
-  if (typeof text !== 'string') return text;
-  if (typeof token !== 'string' || token.length < MIN_REDACTABLE_LENGTH) return text;
-  return text.split(token).join(REDACTED);
 }
 
 /**
@@ -136,7 +109,9 @@ export function createHttpClient({
         throw new Error(`monday API returned HTTP ${response.status}`);
       }
 
-      const body = redactToken(await response.text(), token);
+      // Scrubbed as text before parsing, so the token cannot come back through
+      // whichever field carries it rather than only the fields read today.
+      const body = redact(await response.text(), [token]);
 
       try {
         return JSON.parse(body);

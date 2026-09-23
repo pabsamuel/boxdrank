@@ -1,6 +1,6 @@
 # Progress — monday Automation Watchdog
 
-Updated 21 Sep 2026 (third pass). Percentages are counted from the checklist below, not
+Updated 23 Sep 2026 (fourth pass). Percentages are counted from the checklist below, not
 estimated. An item is done or it is not; half-done items are listed as not done
 with a note.
 
@@ -8,8 +8,8 @@ with a note.
 
 | | Done | Note |
 |---|---|---|
-| **Code that can be written from here** | **14 / 14 — 100%** | Verified against a live account |
-| **Distance to a product someone pays for** | **19 / 34 — 56%** | The remaining 44% is not code at all |
+| **Code that can be written from here** | **15 / 15 — 100%** | Verified against a live account |
+| **Distance to a product someone pays for** | **20 / 35 — 57%** | The remaining 43% is not code at all |
 
 **The second number went down while work was being done.** That is not an error.
 Muting, the run log and the staleness strip added three items to section 1 and
@@ -42,12 +42,16 @@ no amount of building fixes.
 - [x] Runnable on any host, so scheduling is no longer a blocker: an HTTP
       client with a guarded endpoint, file-backed state, and a CLI that takes
       the token from the environment only
+- [x] **Sends the alert for real**, over SMTP, so the product finally does its
+      one job. Any provider that speaks SMTP, chosen by connection string
+      rather than by code — the only mail option that did not need a vendor's
+      API reference this environment cannot reach
 - [x] **Verified against a real monday account** (21 Sep 2026). Two live
       responses are committed as fixtures and checked in CI. The first found a
       real bug: `created_at` is 100-nanosecond ticks, which the parser was
       silently returning null for.
 
-**168 tests.** All offline, and two of them run against real captured responses.
+**185 tests.** All offline, and two of them run against real captured responses.
 
 The third review is the one worth remembering. It reported the token-handling
 path as clean, having tested it against a stub that behaves. Running the same
@@ -80,6 +84,10 @@ them. Estimated at one focused session once readable.
       which was the more dangerous of the two questions
 
 ## 4. Still a secret to solve — 1/3
+
+The runner now holds **two** credentials, not one: the monday token and the SMTP
+password. Both are redacted from anything the process throws, by shared code
+rather than two copies of it, because the same mistake was available twice.
 
 The board view holds no credential; seamless auth handles it. A scheduled job
 runs with no user present and needs a stored token. **This is the first secret

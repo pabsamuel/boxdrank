@@ -435,21 +435,52 @@ a wrong one should cost an environment variable, not a patch. The override is
 constrained to https on a monday.com host, because the same flexibility was a
 way to hand the token to a stranger.
 
-Eight end-to-end tests drive the CLI against a stub monday server: a stopped
+### Sending, for real
+
+The runner now sends over SMTP rather than only printing. One adapter covers
+every transactional provider worth using, so the choice of provider is a
+connection string instead of a code change — and, more to the point, SMTP is the
+only option that did not require reading a vendor's API reference, which is
+exactly what this environment cannot do. Writing a provider's HTTP API from
+memory would repeat the mistake that left a wrong timestamp parser in this
+repository for two days.
+
+`SMTP_URL` is the second credential the runner holds, so it gets the defences
+the first one needed only after it had already leaked:
+
+- **Redaction is shared, not copied.** `redact.js` is used by both the API client
+  and the mailer. A mail library quotes the server's replies — and sometimes the
+  whole connection string — into its errors, and `runCheck` writes the message of
+  a failed run to disk. That is the exact path the monday token escaped through.
+  Every form of the password is redacted: the whole URL, the decoded password,
+  and the percent-encoded form, longest first so no fragment survives.
+- **TLS is required, not offered.** `smtps:` is implicit TLS; plain `smtp:` gets
+  mandatory STARTTLS and a TLS 1.2 floor, so a server that cannot encrypt fails
+  rather than quietly sending the password in clear.
+- **Headers cannot be forged.** Sender, recipient and subject are all checked for
+  line breaks. The subject is built from counts alone today, so nothing untrusted
+  reaches it — but this is the boundary where that stops being true the first
+  time someone puts a board name in a subject line.
+- **A dry run wins over a configured provider.** The failure worth avoiding is a
+  run meant to show you the alert that mails it to a customer instead.
+
+Three states, and no fourth: print (`WATCHDOG_DRY_RUN=1`), send (`SMTP_URL` and
+`WATCHDOG_FROM`), or exit with instructions. It never falls back to printing
+because sending was not set up — that fallback is what published the alert body.
+
+Ten end-to-end tests drive the CLI against a stub monday server: a stopped
 automation produces the right email, a healthy account sends nothing, state
 persists so the same alert is not repeated, the human user is not reported as a
 broken automation, missing configuration exits with a usage error, the check
 refuses to run without the dry-run opt-in, the token is not sent to a local
-address without an explicit opt-in, and a server that echoes the token back
-leaves it in no output stream and on no disk.
+address without an explicit opt-in, a server that echoes the token back leaves
+it in no output stream and on no disk, a misconfigured provider fails before any
+monday call is made, and a dry run does not send even with a provider
+configured.
 
 ## What is not built
 
-- **No real mail provider.** The CLI can only print the alert, and printing now
-  has to be asked for with `WATCHDOG_DRY_RUN=1`. Without it the check exits
-  rather than quietly printing, because the output carries board names and
-  belongs nowhere public. Choosing a provider on a guess would be the same
-  mistake as writing an API from memory.
+- ~~No real mail provider.~~ **Built.** See below.
 - **monday's own hosting is still unwired.** `runCheck` takes injected `storage`
   and `mailer` interfaces, so if monday code turns out to offer both, it is two
   small files rather than a rewrite.

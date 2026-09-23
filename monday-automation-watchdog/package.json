@@ -19,6 +19,7 @@
   "private": true,
   "dependencies": {
     "esbuild": "^0.25.12",
-    "monday-sdk-js": "^0.5.9"
+    "monday-sdk-js": "^0.5.9",
+    "nodemailer": "^10.0.10"
   }
 }

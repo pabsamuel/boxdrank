@@ -122,4 +122,43 @@ someone buys a fix for.
 - [ ] ≥2 name a number
 - [ ] 1 person prepays or commits
 
-Nothing below the first line has happened yet.
+## Reported, not yet recorded as evidence — 23 Sep 2026
+
+Samet reports that people have told him they would pay for this. That is his
+first-hand account and there is no reason to doubt it.
+
+It is written here as a report rather than ticked off above, because none of the
+boxes above can be checked from it yet. What it is missing is not proof of
+honesty — it is the content:
+
+| | |
+|---|---|
+| Who said it | UNKNOWN |
+| How many people | UNKNOWN |
+| What monday plan / seat count | UNKNOWN |
+| **What number they named** | **UNKNOWN** |
+| Monthly or one-off | UNKNOWN |
+| Said before or after seeing a demo | UNKNOWN |
+| Asked "would you use this" or "what would you pay" | UNKNOWN |
+
+Anyone can fill those in from memory in five minutes, and this file exists
+specifically so nobody fills them in from memory. The rule is Samet's own:
+never invent quotes or revenue figures, write UNKNOWN rather than guessing.
+
+**Why the number is the whole thing.** A yes with no price is the answer
+everybody gives, and it has predicted nothing twice in this repository already.
+Gate 0 on billable-hours had enthusiasm and no price, and died. What changes the
+project is a sentence of the shape *"I would pay $X a month for this"*, from a
+named person, about an account whose size is known — because the price decides
+whether this is a $4/month hygiene app of the kind that gets 23 installs, or
+something worth the remaining work.
+
+**One thing to check, and it is not about trust.** Was the question "would you
+use this?" or "what do you currently do when an automation dies, and what would
+you pay to stop it?" The first predicts nothing. Asked the first way, a yes is
+politeness; asked the second way, it is evidence. This matters even when the
+person answering is completely sincere.
+
+Fill the table in and these boxes get ticked the same minute.
+
+Nothing below the first line has happened yet that can be recorded.

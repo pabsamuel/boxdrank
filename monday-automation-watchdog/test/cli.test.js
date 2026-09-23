@@ -126,7 +126,7 @@ test('missing configuration exits with a usage error rather than running', async
   );
 });
 
-test('without the dry-run opt-in the check refuses to run at all', async () => {
+test('with neither a provider nor the dry-run opt-in the check refuses to run', async () => {
   // The header documented WATCHDOG_DRY_RUN as a gate; the variable appeared in
   // that comment and nowhere else, so the alert body printed unconditionally.
   // The scheduled workflow runs this with stdout going to a public Actions log.
@@ -142,7 +142,7 @@ test('without the dry-run opt-in the check refuses to run at all', async () => {
       }),
     (error) => {
       assert.equal(error.code, 2);
-      assert.match(error.stderr, /No mail provider is configured/);
+      assert.match(error.stderr, /Nothing is configured to deliver the alert/);
       assert.ok(!error.stdout.includes('email that would be sent'), 'nothing may be printed');
       return true;
     },
@@ -210,3 +210,41 @@ test('a server that echoes the token back puts it in no output and on no disk', 
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('a misconfigured mail provider fails before any monday call is made', async () => {
+  // Constructed up front on purpose: a bad connection string should cost a
+  // second, not a full pass over every board in the account.
+  await assert.rejects(
+    () =>
+      run('node', [script], {
+        env: {
+          ...process.env,
+          MONDAY_API_TOKEN: 'test-token',
+          WATCHDOG_RECIPIENT: 'admin@example.com',
+          WATCHDOG_DRY_RUN: '',
+          SMTP_URL: 'https://smtp.example.com',
+          WATCHDOG_FROM: 'watchdog@example.com',
+        },
+      }),
+    (error) => {
+      assert.equal(error.code, 2);
+      assert.match(error.stderr, /Mail is misconfigured/);
+      assert.match(error.stderr, /must be smtps/);
+      return true;
+    },
+  );
+});
+
+test('a dry run never sends, even with a provider configured', () =>
+  withStub(12 * HOUR, async (url, dir) => {
+    // The failure worth avoiding is a run meant to show you the alert that
+    // mails it to a customer instead. An unreachable SMTP host would make a
+    // real send fail loudly; this passes, which is the proof it never tried.
+    const { stdout } = await run('node', [script], {
+      env: env(url, dir, {
+        SMTP_URL: 'smtps://user:pppppppp@127.0.0.1:1',
+        WATCHDOG_FROM: 'watchdog@example.com',
+      }),
+    });
+    assert.match(stdout, /email that would be sent/);
+  }));
