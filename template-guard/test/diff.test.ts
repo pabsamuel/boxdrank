@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { diffBoards } from '../src/diff/diff.js';
-import { diffAutomations, recipeReferencesBoard } from '../src/diff/automations.js';
+import { canonicalJson, diffAutomations, normalizeRecipe, recipeReferencesBoard } from '../src/diff/automations.js';
 import { countBySeverity, type Finding } from '../src/diff/types.js';
 import { partial } from '../src/api/errors.js';
 import {
@@ -469,10 +469,10 @@ describe('a recipe still pointing at the template board', () => {
       automations: [automation({ id: 'b1', title: 'Notify', ...recipe(COPY_BOARD_ID) })],
     };
 
-    const findings = diffAutomations(t, c).findings;
-    expect(findings.some((f) => f.severity === 'miswired')).toBe(false);
-    // It does still notice the variables changed, which is correct and lesser.
-    expect(findings[0]?.what).toContain('the boards and columns it points at');
+    // Nothing at all, and that is the fix: a correctly re-pointed recipe is
+    // what a healthy duplication produces. Before `normalizeRecipe` this
+    // reported `altered`, which is a false alarm on a board that is fine.
+    expect(diffAutomations(t, c, new Map()).findings).toEqual([]);
   });
 
   it('does not cry miswired when the template never pointed at itself', () => {
@@ -488,5 +488,64 @@ describe('a recipe still pointing at the template board', () => {
     };
 
     expect(diffAutomations(t, c).findings).toEqual([]);
+  });
+});
+
+describe('canonicalJson — the false positive the first live run found', () => {
+  it('treats the same variables in a different array order as equal', () => {
+    // Verbatim shape from the first real duplication: monday returned the
+    // identical workflow variables as 1,14,16,15 on the template and
+    // 16,14,1,15 on the copy. JSON.stringify called a healthy board drifted.
+    const template = [
+      { workflowVariableKey: 1, state: 'active' },
+      { workflowVariableKey: 14, state: 'active' },
+      { workflowVariableKey: 16, state: 'active' },
+      { workflowVariableKey: 15, state: 'active' },
+    ];
+    const copy = [
+      { workflowVariableKey: 16, state: 'active' },
+      { workflowVariableKey: 14, state: 'active' },
+      { workflowVariableKey: 1, state: 'active' },
+      { workflowVariableKey: 15, state: 'active' },
+    ];
+
+    expect(JSON.stringify(template)).not.toBe(JSON.stringify(copy));
+    expect(canonicalJson(template)).toBe(canonicalJson(copy));
+  });
+
+  it('sorts numeric identities properly, not as strings', () => {
+    // "10" < "9" lexically. Padding the identity key keeps 9 before 10.
+    const a = [{ workflowVariableKey: 9 }, { workflowVariableKey: 10 }];
+    const b = [{ workflowVariableKey: 10 }, { workflowVariableKey: 9 }];
+    expect(canonicalJson(a)).toBe(canonicalJson(b));
+  });
+
+  it('is insensitive to object key order too', () => {
+    expect(canonicalJson({ a: 1, b: 2 })).toBe(canonicalJson({ b: 2, a: 1 }));
+  });
+
+  it('still separates genuinely different content', () => {
+    // The whole point: quieter, not blind.
+    expect(canonicalJson([{ id: 1, v: 'x' }])).not.toBe(canonicalJson([{ id: 1, v: 'y' }]));
+    expect(canonicalJson([{ id: 1 }])).not.toBe(canonicalJson([{ id: 1 }, { id: 2 }]));
+  });
+
+  it('handles arrays with no identity key', () => {
+    expect(canonicalJson([3, 1, 2])).toBe(canonicalJson([1, 2, 3]));
+  });
+});
+
+describe('normalizeRecipe — what a correct duplication looks like', () => {
+  it('substitutes the template board id and the matched column ids', () => {
+    const recipe = { boardId: 111, columnId: 'status_aaa', keep: 'me' };
+    const normalized = normalizeRecipe(recipe, '111', '222', new Map([['status_aaa', 'status_bbb']]));
+
+    // Numbers stay numbers, strings stay strings.
+    expect(normalized).toEqual({ boardId: 222, columnId: 'status_bbb', keep: 'me' });
+  });
+
+  it('leaves everything it does not know about alone', () => {
+    const recipe = { unrelated: 999, nested: [{ deep: 'value' }] };
+    expect(normalizeRecipe(recipe, '111', '222')).toEqual(recipe);
   });
 });

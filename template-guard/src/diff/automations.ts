@@ -33,6 +33,65 @@ function automationKey(a: AutomationSnapshot): string {
   return normalizeTitle(a.title);
 }
 
+/**
+ * Serialises a recipe so that two equivalent recipes produce the same string.
+ *
+ * ✓ The real cause of the first live false positive, 21 Sep 2026. A template
+ * and its fresh duplicate returned the *same* workflow variables in a
+ * different array order — keys `1, 14, 16, 15` against `16, 14, 1, 15` — and
+ * `JSON.stringify` is order-sensitive, so a perfectly healthy copy was
+ * reported as `altered`.
+ *
+ * Neither the board id nor the column ids were to blame; two rounds of fixing
+ * those left the finding in place. The lesson is general enough to write down:
+ * **JSON from an API has no guaranteed array or key order unless the API
+ * promises one**, and comparing it literally produces findings about
+ * serialisation rather than about the customer's board.
+ *
+ * So: object keys sorted, and arrays ordered by identity where the elements
+ * carry one (`workflowVariableKey`, `workflowNodeId`, `id`) and by their own
+ * canonical form otherwise. Sorting arrays is safe here because these are
+ * sets — a workflow's blocks reference each other explicitly through
+ * `nextWorkflowBlocksConfig` rather than by position.
+ */
+export function canonicalJson(value: unknown): string {
+  const canon = (v: unknown): unknown => {
+    if (v === null || typeof v !== 'object') return v;
+
+    if (Array.isArray(v)) {
+      const items = v.map(canon);
+      return [...items].sort((a, b) => {
+        const ka = identityOf(a);
+        const kb = identityOf(b);
+        if (ka !== null && kb !== null && ka !== kb) return ka < kb ? -1 : 1;
+        const sa = JSON.stringify(a) ?? '';
+        const sb = JSON.stringify(b) ?? '';
+        return sa < sb ? -1 : sa > sb ? 1 : 0;
+      });
+    }
+
+    return Object.fromEntries(
+      Object.entries(v as Record<string, unknown>)
+        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+        .map(([k, x]) => [k, canon(x)]),
+    );
+  };
+
+  return JSON.stringify(canon(value)) ?? '';
+}
+
+const IDENTITY_KEYS = ['workflowVariableKey', 'workflowNodeId', 'id', 'key'];
+
+function identityOf(value: unknown): string | null {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  for (const key of IDENTITY_KEYS) {
+    const found = record[key];
+    if (typeof found === 'string' || typeof found === 'number') return String(found).padStart(20, '0');
+  }
+  return null;
+}
+
 /** True when a recipe body is something we can compare field-wise. */
 export function isStructuredConfiguration(config: unknown): boolean {
   return config !== null && typeof config === 'object';
@@ -98,9 +157,64 @@ function recipeOf(a: AutomationSnapshot): unknown[] {
   return [a.workflowVariables, a.workflowBlocks, a.workflowHostData];
 }
 
+/**
+ * Rewrites a recipe as if it had been duplicated correctly.
+ *
+ * ✓ Learned from the first real duplication, 21 Sep 2026. monday **does**
+ * rewrite the board id inside a duplicated recipe's variables, so the
+ * variables of a healthy copy differ from the template's — and the first live
+ * run reported that as `altered`, on a copy that was completely fine.
+ *
+ * That is the false-positive class this product can least afford: a user who
+ * is told a healthy board has drifted stops reading the findings, and then
+ * misses the one that matters. So before comparing, the template's board id is
+ * replaced with the copy's. What remains different after that is real.
+ *
+ * Shape-agnostic for the same reason `recipeReferencesBoard` is: it substitutes
+ * values it already knows rather than navigating a structure it has not
+ * verified.
+ */
+export function normalizeRecipe(
+  value: unknown,
+  fromBoardId: string,
+  toBoardId: string,
+  /**
+   * Template column id → copy column id, from the matcher.
+   *
+   * ✓ Also learned from the first real duplication: a duplicated board gets
+   * **new column ids**, and a recipe names the columns it acts on. So a
+   * healthy copy's recipe differs from the template's in the column ids too,
+   * and substituting only the board id left the false positive in place.
+   *
+   * The matcher has already worked out which template column became which
+   * copy column — that is the hard problem this codebase solved first. Reusing
+   * its answer here costs nothing and is strictly better than any rule this
+   * file could invent.
+   */
+  columnIdMap: ReadonlyMap<string, string> = new Map(),
+): unknown {
+  const substitutions = new Map<string, string>([[String(fromBoardId), String(toBoardId)]]);
+  for (const [from, to] of columnIdMap) substitutions.set(String(from), String(to));
+
+  const walk = (v: unknown): unknown => {
+    if (typeof v === 'string') return substitutions.get(v) ?? v;
+    if (typeof v === 'number') {
+      const replacement = substitutions.get(String(v));
+      return replacement === undefined ? v : Number(replacement);
+    }
+    if (v === null || typeof v !== 'object') return v;
+    if (Array.isArray(v)) return v.map(walk);
+    return Object.fromEntries(Object.entries(v as Record<string, unknown>).map(([k, x]) => [k, walk(x)]));
+  };
+
+  return walk(value);
+}
+
 export function diffAutomations(
   template: BoardSnapshot,
   copy: BoardSnapshot,
+  /** Template column id → copy column id. See `normalizeRecipe`. */
+  columnIdMap: ReadonlyMap<string, string> = new Map(),
 ): AutomationDiff {
   if (template.automations === null || copy.automations === null) {
     return {
@@ -204,10 +318,13 @@ export function diffAutomations(
     }
 
     const changedParts = RECIPE_PARTS.filter(([, read]) => {
-      const before = read(t);
       const after = read(match);
+      // Compare against what a *correct* duplication would have produced, not
+      // against the template verbatim. monday rewrites the board id; that is
+      // the copy working, not the copy drifting.
+      const before = normalizeRecipe(read(t), template.boardId, copy.boardId, columnIdMap);
       if (!isStructuredConfiguration(before) || !isStructuredConfiguration(after)) return false;
-      return JSON.stringify(before) !== JSON.stringify(after);
+      return canonicalJson(before) !== canonicalJson(after);
     }).map(([label]) => label);
 
     {

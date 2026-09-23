@@ -21,6 +21,14 @@
 > is now observed. What remains unverified is the monday code platform, which
 > needs a deployment rather than a token.
 >
+> **23 Sep — the product itself ran against a real duplicate.** A real board,
+> a real `duplicate_board_with_structure` copy, the real pipeline. It found a
+> false positive in our own diff (array order read as drift — ADR-033), and
+> after the fix: clean copy → zero findings, copy with one column deleted →
+> exactly that one finding, `missing` and `certain`. Also confirmed on live
+> data: **`legacy_automations` is non-empty on a real account**, so there are
+> automations we do not read and now know it.
+>
 > **Re-run, same day: 6 verified, 1 failed.** The only open claim is the
 > preview automations read, which is behind a default-off flag that no paid
 > tier depends on.

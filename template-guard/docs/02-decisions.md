@@ -971,3 +971,75 @@ positive on a healthy copy. There is a test for each of those.
 **The general lesson:** a check whose action is "a human reads this" earned its
 place. No assertion in the suite could have caught this, because the assertions
 and the bug shared an assumption.
+
+## ADR-033 — The first real duplication, and the false positive it found
+**Date:** 2026-09-23 · **Status:** accepted
+The product ran end to end against real monday data for the first time: a real
+board, a real duplicate of it made with `duplicate_board_with_structure`, and
+the actual `captureBoards` → `diffBoards` → `buildRepairPlan` path.
+
+**It reported a healthy copy as drifted.** One `altered` finding, on a board
+monday had duplicated perfectly.
+
+Three rounds to find out why, and the first two were wrong in an instructive
+way:
+
+1. **The board id.** monday *does* rewrite the board id inside a duplicated
+   recipe's variables, so a healthy copy legitimately differs from its
+   template. `normalizeRecipe` now compares against what a correct duplication
+   would have produced rather than against the template verbatim. Real fix,
+   did not silence the finding.
+2. **The column ids.** A duplicated board gets new column ids, and a recipe
+   names the columns it acts on. The matcher already knows which template
+   column became which copy column — that is the hard problem this codebase
+   solved first — so `normalizeRecipe` takes its answer. Also a real fix, also
+   did not silence the finding.
+3. **Array order.** Printing the two variable blobs instead of guessing a
+   fourth time showed it immediately. The template returned keys
+   `1, 14, 16, 15`; the copy returned `16, 14, 1, 15`. *Identical content.*
+   `JSON.stringify` is order-sensitive, so the comparison was reporting
+   serialisation order as customer drift.
+
+**The general rule, worth more than the fix:** JSON from an API has no
+guaranteed array or key order unless the API promises one. Comparing it
+literally produces findings about serialisation rather than about the
+customer's board. `canonicalJson` sorts object keys, and orders arrays by
+identity where elements carry one (`workflowVariableKey`, `workflowNodeId`,
+`id`, `key`) and by their own canonical form otherwise. Sorting is safe for
+these because they are sets — workflow blocks reference each other explicitly
+through `nextWorkflowBlocksConfig` rather than by position.
+
+And the method lesson, which is the same one as ADR-029: two failed guesses
+means stop guessing and look at the data. It cost three rounds here and three
+rounds there.
+
+### Then: proving the engine was not simply blind
+
+With the fix in, the comparison returned **zero findings** — and the script's
+own output says that is the suspicious result, not the reassuring one. A
+faithful duplication and a blind matcher are indistinguishable from outside.
+
+So `scripts/make-test-drift.ts` deleted one column from the test copy, and the
+diff reported exactly that: `missing`, `certain`, with the right explanation
+and the right repair step. Clean copy → nothing. Broken copy → one correct
+finding. That is the first evidence the product works that does not come from
+a fixture we wrote ourselves.
+
+### Two developer scripts that write, and why they are separate files
+
+`make-test-duplicate.ts` and `make-test-drift.ts` are the only things in this
+repository that mutate a board. They are deliberately **not** in
+`verify-live.ts`, so that script's read-only guarantee stays literally true
+rather than mostly true. Hard rule 8 — *v1 never writes to a board* — is about
+the product: no `boards:write` scope, no mutation in `src/`. A utility a
+developer runs by hand against a throwaway test board does not weaken it.
+Pretending the files do not write would.
+
+### Still open, and now evidenced rather than speculated
+
+Both boards report **`legacy_automations` present**. The speculative capture
+added in ADR-031 fired on the first real account it met. Template Guard does
+not read that bucket, and says so as a visible partial failure. If the
+documented *44 became 39* is partly legacy recipes, this is the thread to
+pull — and it is now a fact about a real account rather than a note about a
+field name.

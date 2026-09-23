@@ -254,8 +254,13 @@ const TYPE_REF = `kind name ofType { kind name ofType { kind name ofType { kind 
  * a description sentence that says "filter by ids or board_ids" without
  * saying what either one is.
  */
-async function probeField(token: string, fieldName: string): Promise<void> {
-  const client = new MondayClient({ token, apiVersion: MONDAY_API_PREVIEW_VERSION });
+async function probeField(
+  token: string,
+  fieldName: string,
+  rootType = 'Query',
+  apiVersion: string = MONDAY_API_PREVIEW_VERSION,
+): Promise<void> {
+  const client = new MondayClient({ token, apiVersion });
 
   const { data, errors } = await client.request<{
     __type?: {
@@ -266,9 +271,9 @@ async function probeField(token: string, fieldName: string): Promise<void> {
       }[];
     };
   }>(
-    `query { __type(name: "Query") { fields { name args { name defaultValue type { ${TYPE_REF} } } type { ${TYPE_REF} } } } }`,
-    {},
-    MONDAY_API_PREVIEW_VERSION,
+    `query($root:String!){ __type(name: $root) { fields { name args { name defaultValue type { ${TYPE_REF} } } type { ${TYPE_REF} } } } }`,
+    { root: rootType },
+    apiVersion,
   );
 
   if (errors.length > 0) {
@@ -278,7 +283,7 @@ async function probeField(token: string, fieldName: string): Promise<void> {
 
   const field = (data?.__type?.fields ?? []).find((f) => f.name === fieldName);
   if (!field) {
-    console.log(`${fieldName} is not a root field on the dev schema after all.`);
+    console.log(`${fieldName} is not a field on ${rootType} under ${apiVersion}.`);
     return;
   }
 
@@ -295,7 +300,7 @@ async function probeField(token: string, fieldName: string): Promise<void> {
 
   const shape = await client.request<{
     __type?: { name: string; fields?: { name: string; type: TypeRef }[] };
-  }>(`query($n:String!){ __type(name:$n){ name fields { name type { ${TYPE_REF} } } } }`, { n: returnType }, MONDAY_API_PREVIEW_VERSION);
+  }>(`query($n:String!){ __type(name:$n){ name fields { name type { ${TYPE_REF} } } } }`, { n: returnType }, apiVersion);
 
   const fields = shape.data?.__type?.fields ?? [];
   if (fields.length > 0) {
@@ -308,7 +313,7 @@ async function probeField(token: string, fieldName: string): Promise<void> {
     if (nested && nested !== returnType) {
       const deep = await client.request<{
         __type?: { name: string; fields?: { name: string; type: TypeRef }[] };
-      }>(`query($n:String!){ __type(name:$n){ name fields { name type { ${TYPE_REF} } } } }`, { n: nested }, MONDAY_API_PREVIEW_VERSION);
+      }>(`query($n:String!){ __type(name:$n){ name fields { name type { ${TYPE_REF} } } } }`, { n: nested }, apiVersion);
 
       const deepFields = deep.data?.__type?.fields ?? [];
       if (deepFields.length > 0) {
@@ -388,11 +393,31 @@ async function compareBoards(
   }
   console.log();
 
+  const verbose = process.argv.includes('--verbose');
+
   for (const f of sortFindings(diff.findings)) {
     console.log(`  [${f.severity}] ${f.what}`);
     console.log(`      why: ${f.whyItMatters}`);
     console.log(`      fix: ${f.howToFix}`);
-    console.log(`      confidence: ${f.confidence}\n`);
+    console.log(`      confidence: ${f.confidence}`);
+    if (verbose) console.log(`      evidence: ${truncate(f.evidence, 4000)}`);
+    console.log();
+  }
+
+  if (verbose) {
+    // The recipes themselves, template first, normalised as a correct
+    // duplication would have rewritten them. Anything still different here is
+    // the finding — and anything the same is a false positive we have not
+    // eliminated yet.
+    for (const a of template.automations ?? []) {
+      console.log(`  template recipe "${a.title}"`);
+      console.log(`    variables: ${truncate(a.workflowVariables, 4000)}`);
+    }
+    for (const a of copy.automations ?? []) {
+      console.log(`  copy recipe "${a.title}"`);
+      console.log(`    variables: ${truncate(a.workflowVariables, 4000)}`);
+    }
+    console.log();
   }
 
   if (diff.findings.length === 0) {
@@ -426,6 +451,25 @@ async function main(): Promise<void> {
 
   if (wantsProbe) {
     await probePreview(token);
+    process.exit(0);
+  }
+
+  const probeMutation = arg('probe-mutation');
+  if (probeMutation) {
+    // The same discipline as the preview probe, pointed at a mutation: read
+    // the declared signature rather than guessing argument names.
+    await probeField(token, probeMutation, 'Mutation', MONDAY_API_VERSION);
+    const enumName = arg('probe-enum');
+    if (enumName) {
+      const client = new MondayClient({ token });
+      const res = await client.request<{ __type?: { enumValues?: { name: string }[] } }>(
+        `query($n:String!){ __type(name:$n){ enumValues { name } } }`,
+        { n: enumName },
+      );
+      console.log(
+        `  ${enumName}: ${(res.data?.__type?.enumValues ?? []).map((v) => v.name).join(', ') || res.errors.map((e) => e.message).join(' | ')}`,
+      );
+    }
     process.exit(0);
   }
 

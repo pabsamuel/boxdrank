@@ -1,6 +1,6 @@
 # Status — how much of this is done
 
-**Updated:** 21 Sep 2026 · 243 tests passing · **API verification complete: 8/8** · typecheck clean · production build clean
+**Updated:** 23 Sep 2026 · 250 tests passing · **API verified 8/8, and the product has now run against a real duplicate** · typecheck clean · production build clean
 
 Two numbers, because they are genuinely different and mixing them would be the
 kind of comfortable lie this project is supposed to be allergic to.
@@ -24,7 +24,7 @@ Every deliverable the spec named, plus the two the README listed as still to do.
 | API findings report + Path A/B recommendation | Done | `docs/00-api-findings.md` |
 | App skeleton, OAuth, board view, dashboard widget | Done | `src/server/`, `src/ui/` |
 | Snapshot + diff engine | Done | `src/snapshot/`, `src/diff/` |
-| Unit tests over fixtures — the four required cases | Done, 243 tests | `test/` |
+| Unit tests over fixtures — the four required cases | Done, 250 tests | `test/` |
 | Repair layer (auto where safe, manual checklist where not) | Done | `src/repair/` |
 | README | Done | `README.md` |
 | Project docs, decision log, prompts | Done | `docs/` |
@@ -80,9 +80,11 @@ not code.** `docs/09-first-hour.md` is the runbook: token, find the right
 board, run the verification, read the output. The one thing I need back is
 that output.
 
-**Next: run the product itself.** `--compare-to` runs the real pipeline —
-capture, diff, repair plan — against a real board and a real duplicate of it.
-Nothing has ever done that. See `docs/09-first-hour.md` step 3b.
+**Done 23 Sep: the product ran against a real duplicate.** It found a false
+positive in its own diff — array order read as drift (ADR-033) — and after the
+fix, a clean copy reports nothing and a copy with one column deleted reports
+exactly that. First evidence the engine works that does not come from a fixture
+we wrote ourselves.
 
 **Items 9 and 10 are done.** The five `✱` questions that blocked the port were
 answered by reading the SDK's type definitions out of the installed package,

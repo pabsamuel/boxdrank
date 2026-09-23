@@ -44,7 +44,11 @@ export function diffBoards(
   findings.push(...diffGroups(template, copy));
   findings.push(...diffViews(template, copy, opts.includeCosmetic ?? false));
 
-  const automations = diffAutomations(template, copy);
+  // The matcher already knows which template column became which copy column.
+  // The automation diff needs that to tell a correctly-rewritten recipe from a
+  // drifted one — see `normalizeRecipe`.
+  const columnIdMap = new Map(matches.map((m) => [m.template.id, m.copy.id]));
+  const automations = diffAutomations(template, copy, columnIdMap);
   findings.push(...automations.findings);
 
   return {
