@@ -23,10 +23,14 @@ import { redact, REDACTED } from './redact.js';
 /**
  * monday's GraphQL endpoint.
  *
- * **UNVERIFIED in this environment** — developer.monday.com is unreachable from
- * here, so this is the widely published address rather than one read from the
- * reference. Overridable by `MONDAY_API_URL` precisely because it is a guess,
- * and a wrong default should cost one environment variable rather than a patch.
+ * **Verified 23 Sep 2026** against `developer.monday.com/api-reference/docs/
+ * authentication`, which gives the request as `POST https://api.monday.com/v2`
+ * with `Authorization: <token>` — the raw token, no `Bearer` prefix — and
+ * `Content-Type: application/json`. That is exactly the shape below.
+ *
+ * It was a guess until then, marked as one, and the guess happened to be right.
+ * The override stays: an endpoint that moves should cost an environment
+ * variable rather than a patch, and monday runs per-region hosts.
  */
 export const DEFAULT_ENDPOINT = 'https://api.monday.com/v2';
 

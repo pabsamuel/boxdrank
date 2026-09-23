@@ -1,6 +1,6 @@
 # Progress — monday Automation Watchdog
 
-Updated 23 Sep 2026 (fourth pass). Percentages are counted from the checklist below, not
+Updated 23 Sep 2026 (fifth pass, after the network policy was opened). Percentages are counted from the checklist below, not
 estimated. An item is done or it is not; half-done items are listed as not done
 with a note.
 
@@ -8,8 +8,8 @@ with a note.
 
 | | Done | Note |
 |---|---|---|
-| **Code that can be written from here** | **15 / 15 — 100%** | Verified against a live account |
-| **Distance to a product someone pays for** | **20 / 35 — 57%** | The remaining 43% is not code at all |
+| **Code that can be written from here** | **16 / 16 — 100%** | Verified against a live account |
+| **Distance to a product someone pays for** | **23 / 35 — 66%** | The remaining 34% is mostly not code |
 
 **The second number went down while work was being done.** That is not an error.
 Muting, the run log and the staleness strip added three items to section 1 and
@@ -51,7 +51,7 @@ no amount of building fixes.
       real bug: `created_at` is 100-nanosecond ticks, which the parser was
       silently returning null for.
 
-**185 tests.** All offline, and two of them run against real captured responses.
+**192 tests.** All offline, and two of them run against real captured responses.
 
 The third review is the one worth remembering. It reported the token-handling
 path as clean, having tested it against a stub that behaves. Running the same
@@ -59,18 +59,28 @@ CLI against a stub that quotes the `Authorization` header back put the token in
 stderr and in a file on disk. **A security review that only tests cooperative
 inputs proves nothing about the inputs that matter.**
 
-## 2. Blocked on `developer.monday.com` being unreachable — 0/4
+## 2. Was blocked on `developer.monday.com` — 3/4
 
-None of this was written from memory, deliberately. Writing it from memory
-produces something that looks finished and does not run.
+Unblocked on 23 Sep when the environment's network policy was changed. Every
+answer was read from a live page and written up in `PLATFORM-FACTS.md` with the
+page named. None of it was written from memory, deliberately — the one time this
+project guessed at a monday format, the result looked finished and returned
+`null` for every real row.
 
-- [ ] App manifest and board-view feature configuration
-- [ ] OAuth scopes — the exact names, requesting the minimum
-- [ ] monday code storage API wired into `runCheck`'s `storage` interface
-- [ ] monday code scheduling wired to call `runCheck`
-
-**Unblocked by:** pasting those doc pages in, or an environment that can reach
-them. Estimated at one focused session once readable.
+- [x] ~~App manifest~~ — **there is no manifest.** The page 404s and nothing in
+      the navigation mentions one; apps are configured in the Developer Center
+      UI. Two days of blocked work whose premise was wrong, which is the sort of
+      thing only reading finds.
+- [x] OAuth scopes — `boards:read` and `users:read`, and nothing else. Authorize
+      and token URLs, the 10-minute code, and the token living until uninstall
+      are all recorded.
+- [x] monday code storage wired into `runCheck`'s `storage` interface —
+      `src/server/monday-storage.js`, which is the entire cost of moving off
+      disk because storage was injected from the start
+- [ ] monday code scheduling wired to call `runCheck` — the platform side is
+      answered (**cron jobs exist**: a POST route under `/mndy-cronjob/`, five
+      per region, created with `mapps scheduler:create`). What is left is the
+      app shell that hosts the route, which needs the app to exist first.
 
 ## 3. Needs a real monday account — 4/5
 
@@ -83,11 +93,16 @@ them. Estimated at one focused session once readable.
 - [x] Confirm automation actions reach the board activity log at all — **yes**,
       which was the more dangerous of the two questions
 
-## 4. Still a secret to solve — 1/3
+## 4. Still a secret to solve — 2/3
 
 The runner now holds **two** credentials, not one: the monday token and the SMTP
 password. Both are redacted from anything the process throws, by shared code
 rather than two copies of it, because the same mistake was available twice.
+
+Where they belong is no longer an open question. `SecureStorage` from
+`@mondaycom/apps-sdk` takes no token and is scoped to the app — that is where an
+account's access token goes. `SecretsManager` reads values set in the Developer
+Center UI, so `SMTP_URL` never enters the repository or a workflow file.
 
 The board view holds no credential; seamless auth handles it. A scheduled job
 runs with no user present and needs a stored token. **This is the first secret
@@ -95,7 +110,8 @@ any product in this repository has held**, and the main subject of its security
 review.
 
 - [ ] OAuth install flow for the scheduled job
-- [ ] Token storage that survives monday's security review
+- [x] Token storage that survives monday's security review — `SecureStorage`
+      and `SecretsManager`, both named APIs now rather than an open problem
 - [x] The token cannot leave the process: the endpoint is validated before the
       token is attached, and every response is scrubbed of it before parsing
 
@@ -120,9 +136,9 @@ products had at this stage, and it is still not a person.
 
 ---
 
-## What the 56% is not
+## What the 66% is not
 
-It is not "56% of the work is done and 44% is more of the same". Section 1 is
+It is not "66% of the work is done and 34% is more of the same". Section 1 is
 nearly finished and is the part I can do. Sections 2 and 3 need a few pages of
 documentation and one account. Section 6 needs conversations with strangers, and
 no amount of code moves it.
