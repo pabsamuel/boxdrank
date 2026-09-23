@@ -1,0 +1,92 @@
+{
+  "id": "generator",
+  "slug": "what-size-generator-do-i-need",
+  "nav_label": "Generator size",
+  "title": "What Size Generator Do I Need? (Wattage Calculator)",
+  "h1": "What size generator do I need?",
+  "meta_description": "Tick the appliances you want to run during an outage. Get the running watts, the starting surge, and the generator size that covers both.",
+  "engine": "generator",
+  "updated": "2026-09-15",
+  "intro": "Generator sizing goes wrong in one specific way: people add up running watts, buy that size, and then the fridge compressor kicks in and trips the generator. Motors draw two to three times their running wattage for the first second or two. Tick what you actually need during an outage and this adds both numbers the way a generator has to handle them.",
+  "cta": "Tick everything you want running at the same time",
+  "method_html": "<p>Two numbers matter, and a generator has to satisfy both:</p><ul><li><strong>Running watts</strong> — the steady draw once everything is on. This is the simple sum of every item you ticked.</li><li><strong>Starting watts (surge)</strong> — anything with a motor or compressor spikes on startup. The realistic worst case is everything running steadily while the single largest motor starts. So: total running watts, plus the biggest single startup delta, not the sum of all the deltas.</li></ul><p>On top of that, the calculator adds <strong>20% headroom</strong>. Running a generator at 100% of its rating continuously shortens its life, makes it loud, and leaves nothing for the appliance you forgot. Continuous load above roughly 80% is the line most manufacturers draw.</p><p>One thing this does not cover: if you want the generator to feed your house wiring rather than extension cords, you need a transfer switch and, in most places, an electrician and a permit. Backfeeding through a dryer outlet can energise the utility line outside. Size the generator here; hire out the connection.</p>",
+  "appliance_groups": [
+    {
+      "group": "Essentials",
+      "items": [
+        { "name": "Refrigerator / freezer", "running": 700, "starting": 2200, "default": true },
+        { "name": "Chest freezer", "running": 500, "starting": 1500 },
+        { "name": "Sump pump (1/2 hp)", "running": 1050, "starting": 2200 },
+        { "name": "Well pump (1/2 hp)", "running": 1000, "starting": 3000 },
+        { "name": "Furnace blower (1/2 hp)", "running": 800, "starting": 2350 },
+        { "name": "Gas water heater (ignition)", "running": 100, "starting": 100 },
+        { "name": "LED lights (10 fixtures)", "running": 100, "starting": 100, "default": true },
+        { "name": "Wi-Fi router + modem", "running": 30, "starting": 30, "default": true },
+        { "name": "Phone / laptop charging", "running": 150, "starting": 150, "default": true },
+        { "name": "CPAP machine", "running": 200, "starting": 200 },
+        { "name": "Security system", "running": 500, "starting": 500 }
+      ]
+    },
+    {
+      "group": "Heating & cooling",
+      "items": [
+        { "name": "Window AC (10,000 BTU)", "running": 1200, "starting": 3600 },
+        { "name": "Central AC (2 ton)", "running": 3500, "starting": 10000 },
+        { "name": "Portable space heater", "running": 1500, "starting": 1500 },
+        { "name": "Box / pedestal fan", "running": 100, "starting": 200 },
+        { "name": "Dehumidifier (50 pint)", "running": 600, "starting": 1600 }
+      ]
+    },
+    {
+      "group": "Kitchen",
+      "items": [
+        { "name": "Microwave (1000 W)", "running": 1000, "starting": 1000 },
+        { "name": "Coffee maker", "running": 1000, "starting": 1000 },
+        { "name": "Toaster", "running": 1200, "starting": 1200 },
+        { "name": "Electric kettle", "running": 1500, "starting": 1500 },
+        { "name": "Dishwasher (hot dry)", "running": 1500, "starting": 1800 },
+        { "name": "Electric range element", "running": 2100, "starting": 2100 }
+      ]
+    },
+    {
+      "group": "Laundry & garage",
+      "items": [
+        { "name": "Washing machine", "running": 1200, "starting": 2300 },
+        { "name": "Electric dryer", "running": 5400, "starting": 6800 },
+        { "name": "Gas dryer", "running": 700, "starting": 1800 },
+        { "name": "Garage door opener (1/2 hp)", "running": 875, "starting": 2350 },
+        { "name": "Air compressor (1 hp)", "running": 1600, "starting": 4500 },
+        { "name": "Electric water heater", "running": 4500, "starting": 4500 }
+      ]
+    },
+    {
+      "group": "Living",
+      "items": [
+        { "name": "TV (55 in LED)", "running": 150, "starting": 150 },
+        { "name": "Desktop computer + monitor", "running": 300, "starting": 300 },
+        { "name": "Well-lit home office", "running": 400, "starting": 400 },
+        { "name": "Electric blanket", "running": 200, "starting": 200 }
+      ]
+    }
+  ],
+  "chart": {
+    "title": "Typical generator size by what you want to run",
+    "columns": ["Scenario", "Running watts", "Surge watts", "Generator size"],
+    "rows": [
+      ["Fridge, lights, phones, router", "1,000 W", "2,600 W", "2,000-3,000 W inverter"],
+      ["Above + sump pump + furnace blower", "2,900 W", "5,100 W", "5,000-6,500 W"],
+      ["Above + window AC + microwave", "5,100 W", "8,700 W", "7,500 W"],
+      ["Most of the house, no central AC", "7,500 W", "11,000 W", "9,000-10,000 W"],
+      ["Whole house incl. central AC + well", "12,000 W", "20,000 W", "Standby 16-22 kW"]
+    ]
+  },
+  "faqs": [
+    { "q": "Can I just add up the watts on the labels?", "a": "Only for things without motors. A label on a fridge or a pump shows the running draw, not the inrush current when the compressor or motor starts, which is commonly 2-3x higher for a second or two. If you size to the label sum, the generator will trip the first time a compressor cycles on." },
+    { "q": "Do I need to add every appliance's surge together?", "a": "No, and doing so leads people to buy roughly twice the generator they need. Two motors starting in the same instant is rare and brief. The standard approach is total running watts plus the single largest starting surge." },
+    { "q": "Inverter generator or conventional?", "a": "Inverter generators produce cleaner power (low total harmonic distortion), which matters for laptops, TVs and anything with a control board, and they are far quieter and more fuel-efficient at partial load. Conventional open-frame generators cost less per watt and dominate above about 7,500 W. Under 4,000 W, inverter is usually the right answer." },
+    { "q": "What about running a generator into my house wiring?", "a": "That needs a transfer switch or an interlock kit installed at the panel, and in most jurisdictions a permit and an electrician. Plugging a generator into a dryer or range outlet to backfeed the panel can push voltage onto the utility line and injure line workers. It is also the reason most homeowner insurance policies would decline a related claim." },
+    { "q": "How much fuel will it use?", "a": "A rough planning number for a gasoline generator is 0.05 to 0.09 gallons per hour per 1,000 W of actual load. A 7,500 W unit at half load runs somewhere near 0.5 gal/hr, so roughly 12 gallons a day. Propane runs about 30-40% more volume for the same energy but stores indefinitely, which matters if the generator sits unused for years." },
+    { "q": "Does altitude or temperature change the size I need?", "a": "Altitude does. Naturally aspirated engines lose roughly 3% of output per 1,000 feet above sea level. At 5,000 feet a 7,500 W generator behaves like a 6,400 W one, so size up a step if you are in Denver or the mountain west." }
+  ],
+  "related": ["what-size-water-heater-do-i-need", "mini-split-sizing-calculator"]
+}

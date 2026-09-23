@@ -1,0 +1,66 @@
+{
+  "id": "minisplit",
+  "slug": "mini-split-sizing-calculator",
+  "nav_label": "Mini split BTU",
+  "title": "Mini Split Sizing Calculator (What BTU Do I Need?)",
+  "h1": "Mini split sizing calculator",
+  "meta_description": "Work out the BTU capacity a ductless mini split needs for your room, adjusted for climate zone, ceiling height, sun exposure and occupancy.",
+  "engine": "minisplit",
+  "updated": "2026-09-15",
+  "intro": "Almost every mini split sizing mistake is oversizing. A unit that is too big cools the room to setpoint fast, shuts off, and never runs long enough to pull humidity out of the air, so you get a room that is cold and clammy and a compressor that short-cycles itself to an early death. Inverter compressors tolerate this better than old single-stage units, but they still modulate best when they are correctly matched. This gets you a realistic number.",
+  "cta": "Describe the room",
+  "inputs": [
+    { "key": "area", "label": "Room floor area", "type": "number", "unit": "sq ft", "default": 400, "min": 50, "max": 3000, "step": 10 },
+    { "key": "ceiling", "label": "Ceiling height", "type": "number", "unit": "ft", "default": 8, "min": 7, "max": 20, "step": 0.5 },
+    { "key": "zone", "label": "Climate", "type": "select", "default": "4",
+      "options": [
+        { "value": "1", "label": "Hot & humid (FL, south TX, Gulf Coast)", "factor": 1.15 },
+        { "value": "2", "label": "Hot (AZ, southern CA, GA, SC)", "factor": 1.1 },
+        { "value": "3", "label": "Warm (NC, TN, northern CA, OK)", "factor": 1.05 },
+        { "value": "4", "label": "Mixed (VA, MO, KS, coastal OR/WA)", "factor": 1.0 },
+        { "value": "5", "label": "Cool (NY, MI, IL, CO, New England)", "factor": 0.95 },
+        { "value": "6", "label": "Cold (MN, WI, ME, MT)", "factor": 0.92 },
+        { "value": "7", "label": "Very cold (northern MN, ND, AK)", "factor": 0.9 }
+      ]
+    },
+    { "key": "sun", "label": "Sun exposure", "type": "select", "default": "normal",
+      "options": [
+        { "value": "shaded", "label": "Heavily shaded / north facing", "factor": 0.9 },
+        { "value": "normal", "label": "Average", "factor": 1.0 },
+        { "value": "sunny", "label": "Lots of sun / large west windows", "factor": 1.1 }
+      ]
+    },
+    { "key": "insulation", "label": "Insulation & windows", "type": "select", "default": "average",
+      "options": [
+        { "value": "good", "label": "Well insulated, modern double glazing", "factor": 0.9 },
+        { "value": "average", "label": "Average for the age of the house", "factor": 1.0 },
+        { "value": "poor", "label": "Poorly insulated, single glazing, drafty", "factor": 1.2 }
+      ]
+    },
+    { "key": "occupants", "label": "People usually in the room", "type": "number", "unit": "people", "default": 2, "min": 0, "max": 20, "step": 1 },
+    { "key": "kitchen", "label": "This room is a kitchen", "type": "checkbox", "default": false },
+    { "key": "attic", "label": "Directly under an uninsulated attic or roof", "type": "checkbox", "default": false }
+  ],
+  "method_html": "<p>The starting point is <strong>20 BTU per square foot</strong> of floor area, the rule of thumb that tracks a Manual J result reasonably well for a single conditioned room. Everything after that is an adjustment:</p><ul><li><strong>Ceiling height</strong> — the load is really about volume, so anything above 8 ft scales proportionally (a 10 ft ceiling multiplies by 10/8).</li><li><strong>Climate zone</strong> — 0.9x in the far north up to 1.15x on the Gulf Coast.</li><li><strong>Sun exposure</strong> — plus or minus 10%.</li><li><strong>Insulation and glazing</strong> — this is the biggest single swing, from 0.9x to 1.2x.</li><li><strong>Occupancy</strong> — each person past the first two adds about 600 BTU of body heat.</li><li><strong>Kitchen</strong> — cooking appliances add roughly 4,000 BTU.</li><li><strong>Under an unconditioned attic</strong> — adds about 10%.</li></ul><p>The result is then rounded to the nearest real product size (9k, 12k, 18k, 24k...) rather than up, because in this one application rounding up is the mistake. If your number lands between two sizes, take the smaller one unless the room has a genuine heat source the calculator does not know about.</p><p><strong>Where this stops being enough:</strong> multi-zone systems, whole-house replacement, or anything where you are spending five figures deserve a real Manual J load calculation from a contractor who measures your walls and windows. A rule of thumb is for scoping and for sanity-checking a quote, not for signing a contract.</p>",
+  "chart": {
+    "title": "Mini split size by room area (average conditions, 8 ft ceiling)",
+    "columns": ["Room area", "Capacity", "Typical use"],
+    "rows": [
+      ["150-250 sq ft", "6,000 BTU", "Bedroom, small office"],
+      ["250-400 sq ft", "9,000 BTU", "Large bedroom, garage bay"],
+      ["400-550 sq ft", "12,000 BTU", "Living room, studio apartment"],
+      ["550-750 sq ft", "15,000 BTU", "Large living room, open plan"],
+      ["750-1,000 sq ft", "18,000 BTU", "Open kitchen/living, small house"],
+      ["1,000-1,400 sq ft", "24,000 BTU", "Whole small home, large great room"],
+      ["1,400-1,800 sq ft", "30,000 BTU", "Multi-zone territory - get a Manual J"]
+    ]
+  },
+  "faqs": [
+    { "q": "Why is oversizing worse than undersizing?", "a": "An oversized unit satisfies the thermostat before it has run long enough to condense moisture out of the air. You end up at 72F and 65% relative humidity, which feels worse than 75F and 45%. It also short-cycles the compressor, which is where the wear happens. Undersizing means the unit runs longer on the hottest days and may not quite keep up in a heat wave, which is the less damaging failure." },
+    { "q": "Does the same BTU number cover heating?", "a": "Roughly, for mild climates. In cold climates the heating load usually exceeds the cooling load, and mini split heating capacity drops as outdoor temperature falls. If you are relying on it for heat below freezing, look at the manufacturer's capacity table at 5F or -13F, not the nameplate rating, and choose a hyper-heat / cold-climate model." },
+    { "q": "One big head or several small ones?", "a": "Heads only condition the room they are in. A single 24k head will not cool three bedrooms down a hallway no matter what the total square footage says. Count rooms with doors, not square feet: each one that needs conditioning needs its own head, which is what makes it a multi-zone system." },
+    { "q": "What does SEER2 actually change here?", "a": "Nothing about the size you need. SEER2 is efficiency, not capacity: it affects your electricity bill, not how many BTU the room requires. Size first, then choose efficiency within that size on the basis of how many hours a year you will run it." },
+    { "q": "Can I install a mini split myself?", "a": "DIY-specific kits with pre-charged line sets exist and are genuinely installable by a competent homeowner. Conventional systems need vacuum pumping, flare connections and refrigerant handling, which requires EPA 608 certification to purchase the refrigerant. Also check your local permit rules - condensate and electrical are usually inspected either way." }
+  ],
+  "related": ["what-size-air-purifier-do-i-need", "what-size-generator-do-i-need"]
+}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ calc.title }}{% endblock %}
+{% block description %}{{ calc.meta_description }}{% endblock %}
+{% block head %}
+<script type="application/ld+json">{{ schema | safe }}</script>
+{% endblock %}
+
+{% block content %}
+<article>
+  <div class="wrap">
+    <nav class="crumbs"><a href="/">Home</a> › <a href="/calculators/">Calculators</a> › <span>{{ calc.nav_label }}</span></nav>
+    <h1>{{ calc.h1 }}</h1>
+    <p class="lede">{{ calc.intro | safe }}</p>
+  </div>
+
+  <!-- Calculator: above the fold, no email gate, no scroll -->
+  <section class="calc-shell wrap" data-engine="{{ calc.engine }}">
+    <div class="calc-grid">
+      <form class="calc-inputs" id="calc-form" autocomplete="off">
+        <h2 class="calc-cta">{{ calc.cta }}</h2>
+        {{ inputs_html | safe }}
+      </form>
+      <aside class="calc-result" id="calc-result" aria-live="polite">
+        <p class="muted">Fill in the fields to see your result.</p>
+      </aside>
+    </div>
+  </section>
+
+  {% if site.adsense_client %}<div class="wrap ad-slot" data-slot="under-calc"></div>{% endif %}
+
+  <div class="wrap prose">
+    {% if calc.chart %}
+    <section id="chart">
+      <h2>{{ calc.chart.title }}</h2>
+      <div class="table-scroll">
+        <table class="chart">
+          <thead><tr>{% for c in calc.chart.columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+          <tbody>{% for row in calc.chart.rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+        </table>
+      </div>
+      <p class="muted small">Save or pin this chart — it is the reference people come back for.</p>
+    </section>
+    {% endif %}
+
+    <section id="method">
+      <h2>How this is calculated</h2>
+      {{ calc.method_html | safe }}
+    </section>
+
+    {% if site.adsense_client %}<div class="ad-slot" data-slot="mid-content"></div>{% endif %}
+
+    <section id="faq">
+      <h2>Common questions</h2>
+      <div class="faqs">
+      {% for f in calc.faqs %}
+        <details{% if loop.first %} open{% endif %}>
+          <summary>{{ f.q }}</summary>
+          <div class="faq-body"><p>{{ f.a }}</p></div>
+        </details>
+      {% endfor %}
+      </div>
+    </section>
+
+    {% if related %}
+    <section id="related">
+      <h2>Related calculators</h2>
+      <ul class="card-list">
+      {% for r in related %}<li><a class="card" href="/{{ r.slug }}/"><strong>{{ r.h1 }}</strong><span class="muted">{{ r.nav_label }}</span></a></li>{% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    <p class="updated muted small">Last reviewed {{ calc.updated }} by {{ site.author }}. <a href="/about/">Who writes this</a></p>
+  </div>
+</article>
+{% endblock %}
+
+{% block scripts %}<script src="/calc.js" defer></script>{% endblock %}
