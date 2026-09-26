@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { createHmac } from 'node:crypto';
+import { connect } from 'node:net';
 import {
   createAppHandler,
   createSetupHandler,
@@ -43,7 +44,7 @@ async function harness(overrides = {}) {
     config: { clientId: 'client-id-1', clientSecret: CLIENT_SECRET, baseUrl: 'https://watchdog.example' },
     secureStorage: memoryStore(),
     makeClient: () => ({
-      api: async () => ({ data: { me: { email: 'admin@acme.example', account: { id: 123 } } } }),
+      api: async () => ({ data: { me: { id: 1, email: 'admin@acme.example', account: { id: 123 } } } }),
     }),
     makeStorage: (token) => ({ token }),
     mailer: { async send() {} },
@@ -309,8 +310,16 @@ function sign(payload, secret = CLIENT_SECRET, alg = 'HS256') {
 const withDelete = (store) => Object.assign(store, { async delete(key) { store.data.delete(key); } });
 const uninstallBody = (accountId) => JSON.stringify({ type: 'uninstall', data: { account_id: accountId } });
 
+/** A monday client whose token has been revoked, as it is after a real uninstall. */
+const revoked = () => ({
+  api: async () => {
+    throw Object.assign(new Error('monday API returned HTTP 401'), { status: 401 });
+  },
+});
+
 test('a signed uninstall forgets the account: token, address and registry entry', withHarness({
   secureStorage: withDelete(installed('1', '2')),
+  makeClient: revoked,
 }, async (h) => {
   const res = await h.request(LIFECYCLE_PATH, {
     method: 'POST',
@@ -500,3 +509,214 @@ test('a storage failure on status keeps the account token out of the log', withH
   assert.equal(res.status, 502);
   assert.ok(!h.logs.join('\n').includes('token-for-1-long'));
 }));
+
+// ---- review findings, 26 Sep ------------------------------------------------
+
+test('a board-view session token cannot uninstall another account', withHarness({
+  secureStorage: withDelete(installed('1', '2')),
+  // Account 1's token is alive: it has not uninstalled anything.
+  makeClient: () => ({ api: async () => ({ data: { me: { id: 7 } } }) }),
+}, async (h) => {
+  // The reviewer's attack: account 2's user copies the session token their
+  // board view sends to /api/status, and names account 1 in the body.
+  const attackerSession = session(2);
+  const res = await h.request(LIFECYCLE_PATH, {
+    method: 'POST',
+    headers: { authorization: attackerSession },
+    body: uninstallBody(1),
+  });
+  assert.notEqual(res.status, 500);
+  assert.ok(h.deps.secureStorage.data.has(accountKey('1')), 'the victim is still installed');
+  assert.deepEqual(h.deps.secureStorage.data.get('accounts').ids, ['1', '2']);
+}));
+
+test('a signed uninstall for a live install changes nothing', withHarness({
+  secureStorage: withDelete(installed('1')),
+  makeClient: () => ({ api: async () => ({ data: { me: { id: 7 } } }) }),
+}, async (h) => {
+  const res = await h.request(LIFECYCLE_PATH, {
+    method: 'POST',
+    headers: { authorization: sign({ exp: 9_999_999_999 }) },
+    body: uninstallBody(1),
+  });
+  assert.equal(res.status, 200);
+  assert.ok(h.deps.secureStorage.data.has(accountKey('1')));
+}));
+
+test('an uninstall that cannot be confirmed keeps the record and asks to be retried', withHarness({
+  secureStorage: withDelete(installed('1')),
+  makeClient: () => ({ api: async () => { throw new Error('ECONNRESET'); } }),
+}, async (h) => {
+  const res = await h.request(LIFECYCLE_PATH, {
+    method: 'POST',
+    headers: { authorization: sign({ exp: 9_999_999_999 }) },
+    body: uninstallBody(1),
+  });
+  assert.equal(res.status, 503);
+  assert.ok(h.deps.secureStorage.data.has(accountKey('1')));
+}));
+
+test('calls to the cron route inside the window never touch secure storage', withHarness({
+  secureStorage: installed('1'),
+}, async (h) => {
+  await h.request(CRON_PATH, { method: 'POST' });
+  const store = h.deps.secureStorage;
+  let reads = 0;
+  const realGet = store.get.bind(store);
+  store.get = async (key) => {
+    reads += 1;
+    return realGet(key);
+  };
+  // A stranger's flood: before, each of these spent one of the app's seven
+  // secure-storage requests a second, and the real scheduler's call failed.
+  await Promise.all(Array.from({ length: 20 }, () => h.request(CRON_PATH, { method: 'POST' })));
+  assert.equal(reads, 0);
+}));
+
+test('an outsider can trigger at most one run per window, not one every 20 minutes', withHarness({
+  secureStorage: installed('1'),
+}, async (h) => {
+  await h.request(CRON_PATH, { method: 'POST' });
+  h.advance(20 * 60 * 1000);
+  await h.request(CRON_PATH, { method: 'POST' });
+  assert.equal(h.checks.length, 1);
+}));
+
+test('one unreadable account record costs that account, not every account after it', withHarness({
+  secureStorage: installed('1', '2', '3'),
+}, async (h) => {
+  const store = h.deps.secureStorage;
+  const realGet = store.get.bind(store);
+  store.get = async (key) => {
+    if (key === accountKey('2')) throw new Error('rate limited');
+    return realGet(key);
+  };
+  const res = await h.request(CRON_PATH, { method: 'POST' });
+  assert.deepEqual(await res.json(), { accounts: 3, ok: 2, failed: 1, missing: 0 });
+  assert.deepEqual(h.checks.map((c) => c.accountId), ['1', '3']);
+}));
+
+test('a run that stops before checking anyone releases the window', withHarness({
+  secureStorage: installed('1'),
+}, async (h) => {
+  const store = h.deps.secureStorage;
+  const realGet = store.get.bind(store);
+  let failRegistry = true;
+  store.get = async (key) => {
+    if (key === 'accounts' && failRegistry) throw new Error('rate limited');
+    return realGet(key);
+  };
+  const first = await h.request(CRON_PATH, { method: 'POST' });
+  assert.equal(first.status, 500);
+
+  // The scheduler's retry must run, not be turned away as "skipped".
+  failRegistry = false;
+  const retry = await h.request(CRON_PATH, { method: 'POST' });
+  assert.deepEqual(await retry.json(), { accounts: 1, ok: 1, failed: 0, missing: 0 });
+}));
+
+
+function rawRequest(port, line) {
+  return new Promise((resolve) => {
+    const socket = connect(port, '127.0.0.1', () => socket.write(`${line}\r\nHost: x\r\nConnection: close\r\n\r\n`));
+    let data = '';
+    socket.on('data', (chunk) => { data += chunk; });
+    socket.on('close', () => resolve(data));
+    socket.on('error', () => resolve(data));
+  });
+}
+
+test('a malformed request line cannot crash the server in setup mode', async () => {
+  const server = createServer(createSetupHandler(['SMTP_URL']));
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address();
+  try {
+    const reply = await rawRequest(port, 'GET // HTTP/1.1');
+    assert.match(reply, /^HTTP\/1\.1 503/);
+    // Still serving afterwards: the process did not die.
+    assert.equal((await fetch(`http://127.0.0.1:${port}/health`)).status, 503);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('a malformed request line gets a 404 from the configured server, not a 500', withHarness({}, async (h) => {
+  const port = Number(new URL((await h.request('/health')).url).port);
+  const reply = await rawRequest(port, 'GET // HTTP/1.1');
+  assert.match(reply, /^HTTP\/1\.1 404/);
+}));
+
+const identity = (id, isAdmin, email) => () => ({
+  api: async () => ({ data: { me: { id, is_admin: isAdmin, email, account: { id: 123 } } } }),
+});
+
+test('a second, non-admin user cannot take over an account\'s alerts', async () => {
+  const store = memoryStore();
+  const first = await harness({ secureStorage: store, makeClient: identity(1, false, 'owner@acme.example') });
+  await first.request('/oauth/callback?code=a&state=fixed-state-value-abc', { headers: { cookie } });
+  await first.close();
+
+  const member = await harness({ secureStorage: store, makeClient: identity(2, false, 'member@elsewhere.example') });
+  try {
+    const res = await member.request('/oauth/callback?code=b&state=fixed-state-value-abc', { headers: { cookie } });
+    assert.equal(res.status, 409);
+    assert.equal(store.data.get(accountKey('123')).recipient, 'owner@acme.example', 'alerts still go to the owner');
+  } finally {
+    await member.close();
+  }
+});
+
+test('the original installer can reinstall, and an admin can take over', async () => {
+  const store = memoryStore();
+  const run = async (client, code) => {
+    const h = await harness({ secureStorage: store, makeClient: client });
+    const res = await h.request(`/oauth/callback?code=${code}&state=fixed-state-value-abc`, { headers: { cookie } });
+    await h.close();
+    return res.status;
+  };
+  assert.equal(await run(identity(1, false, 'owner@acme.example'), 'a'), 200);
+  assert.equal(await run(identity(1, false, 'owner@acme.example'), 'b'), 200, 'same user');
+  assert.equal(await run(identity(9, true, 'admin@acme.example'), 'c'), 200, 'an admin, e.g. after the owner left');
+  assert.equal(store.data.get(accountKey('123')).recipient, 'admin@acme.example');
+});
+
+test('an installer monday returns no id for cannot replace anyone', async () => {
+  const store = memoryStore();
+  const run = async (client) => {
+    const h = await harness({ secureStorage: store, makeClient: client });
+    const res = await h.request('/oauth/callback?code=x&state=fixed-state-value-abc', { headers: { cookie } });
+    await h.close();
+    return res.status;
+  };
+  assert.equal(await run(identity(null, false, 'first@acme.example')), 200);
+  assert.equal(await run(identity(null, false, 'second@elsewhere.example')), 409, 'two missing ids are not the same person');
+  assert.equal(store.data.get(accountKey('123')).recipient, 'first@acme.example');
+});
+
+test('under a flood, the one real run still checks every account', async () => {
+  // Secure storage throttled as monday documents it: 7 requests a second. The
+  // limiter runs on a virtual clock that the server's own back-off advances,
+  // so a retry after the documented pause is seen by the limiter as later.
+  let virtual = 0;
+  let stamps = [];
+  const inner = installed('1', '2', '3', '4', '5');
+  const throttled = (fn) => async (...args) => {
+    stamps = stamps.filter((t) => virtual - t < 1000);
+    if (stamps.length >= 7) throw new Error('request limit exceeded');
+    stamps.push(virtual);
+    return fn(...args);
+  };
+  const store = { data: inner.data, get: throttled(inner.get.bind(inner)), set: throttled(inner.set.bind(inner)) };
+
+  const h = await harness({ secureStorage: store, sleep: async (ms) => { virtual += ms; } });
+  try {
+    const bodies = await Promise.all(
+      Array.from({ length: 40 }, async () => (await h.request(CRON_PATH, { method: 'POST' })).json()),
+    );
+    const ran = bodies.filter((b) => !b.skipped);
+    assert.equal(ran.length, 1, 'exactly one run');
+    assert.deepEqual(ran[0], { accounts: 5, ok: 5, failed: 0, missing: 0 });
+  } finally {
+    await h.close();
+  }
+});

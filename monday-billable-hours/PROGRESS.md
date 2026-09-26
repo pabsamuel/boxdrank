@@ -9,7 +9,7 @@ with a note.
 | | Done | Note |
 |---|---|---|
 | **Code that can be written from here** | **18 / 18 — 100%** | Verified against a live account |
-| **Distance to a product someone pays for** | **33 / 42 — 79%** | What is left is setup in monday, a real install, assets, and sales |
+| **Distance to a product someone pays for** | **34 / 43 — 79%** | What is left is setup in monday, a real install, assets, and sales |
 
 ---
 
@@ -53,7 +53,7 @@ with a note.
       real bug: `created_at` is 100-nanosecond ticks, which the parser was
       silently returning null for.
 
-**223 tests.** All offline, and two of them run against real captured responses.
+**236 tests.** All offline, and two of them run against real captured responses.
 
 The third review is the one worth remembering. It reported the token-handling
 path as clean, having tested it against a stub that behaves. Running the same
@@ -87,8 +87,10 @@ project guessed at a monday format, the result looked finished and returned
       do not say the route is private. Creating the job itself is one CLI
       command, in section 3.
 
-## 3. Needs a real monday account — 4/6
+## 3. Needs a real monday account — 5/7
 
+- [x] App created in the Developer Center (26 Sep, App ID 12249756): the four
+      read-only scopes saved, monday code enabled, legacy OAuth flow kept
 - [ ] Run the board view inside monday and confirm it loads
 - [ ] Complete one real install through the OAuth flow, create the cron job,
       and receive one real alert email
@@ -140,6 +142,7 @@ review.
 - [x] Marketplace search — the full public catalog (1,293 apps), not just the
       search box: no app monitors native automations. See `COMPETITORS.md`.
 - [ ] Ten admins asked what they do today when an automation dies silently
+      (1 of 10: Jean Foreman, messaged 26 Sep)
 - [ ] One person says they would pay a specific number
 - [ ] One person actually pays
 

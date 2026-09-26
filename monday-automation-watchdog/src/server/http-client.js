@@ -110,7 +110,10 @@ export function createHttpClient({
       // A non-2xx response carries no useful GraphQL body, and its text could
       // contain anything. The status is what the caller can act on.
       if (!response.ok) {
-        throw new Error(`monday API returned HTTP ${response.status}`);
+        // The status travels as a field, not only in the text, because callers
+        // decide on it: a 401 is how monday says a token is dead (verified live,
+        // 26 Sep 2026: `{"errors":[{"message":"Not authenticated",...}]}`).
+        throw Object.assign(new Error(`monday API returned HTTP ${response.status}`), { status: response.status });
       }
 
       // Scrubbed as text before parsing, so the token cannot come back through

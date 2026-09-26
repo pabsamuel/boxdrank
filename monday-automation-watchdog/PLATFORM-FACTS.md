@@ -269,6 +269,35 @@ will run monday's own scan.
 
 ---
 
+## OAuth 2.1 is coming; this app uses the legacy flow on purpose
+
+`apps/docs/migrating-to-the-new-oauth-flow`, read 26 Sep 2026.
+
+**FACT:** a per-version **New OAuth Flow** toggle in the Developer Center's OAuth
+& Permissions tab switches an app to OAuth 2.1: access tokens **expire**, a
+refresh token is issued, PKCE (`code_challenge`, S256) is **required** on the
+authorize request, and the token exchange moves to
+`POST https://auth.monday.com/oauth_ms/oauth/token` with a JSON body and
+`grant_type`. The same page describes a legacy-token migration endpoint that "is
+temporary and will be removed once the OAuth 2.1 migration is complete".
+
+**INFERENCE:** the legacy flow will be retired. No date is given — **UNKNOWN**.
+
+This app implements the **legacy** flow, which is what an app gets with the
+toggle off, and the toggle was left off when the app was created (26 Sep, App
+ID 12249756). **Do not turn it on** without the migration: the token URL,
+request body, PKCE and token expiry all change, and the uninstall check — which
+treats a token that still works as proof the app is still installed — depends on
+legacy tokens never expiring. Migrating is a recorded future item, not a
+blocker.
+
+**Also verified live on 26 Sep:** `POST https://api.monday.com/v2` with an
+invalid token answers **HTTP 401** with
+`{"errors":[{"message":"Not authenticated","extensions":{"code":"NOT_AUTHENTICATED"}}]}`.
+And `me` has `id: ID!` and `is_admin: Boolean` (`api-reference/reference/me`).
+
+---
+
 ## Still open
 
 1. **Does a cron invocation carry account context?** Still not stated. Built as

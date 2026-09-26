@@ -17,3 +17,6 @@ dist/
 test/
 docs/
 *.png
+
+# Written into the project by `mapps code:push -s`. A report, not code.
+security-scan-*.json

@@ -52,6 +52,10 @@ three-seat account. Message this person first.
 
 **Still UNKNOWN: what they would pay.** Nothing above is a number.
 
+**26 Sep 2026: messaged.** The author, Jean Foreman, was sent the first message
+from "The message" below as a private message, once, by Samet's ChatGPT agent.
+No reply yet.
+
 **Do not pitch in the threads.** Posting a product link in a feature-request
 thread reads as spam and can follow you into the marketplace review. Read them,
 note who is describing real pain with specifics, and message those people

@@ -500,10 +500,35 @@ the Live URL it needs is only created by promoting the first deploy.
 What monday says and where it says it is in `PLATFORM-FACTS.md`. The listing
 and privacy policy drafts are `LISTING.md` and `PRIVACY_POLICY.md`.
 
-**This server has not had an independent security review yet.** The runner code
-before it had three, and each found something the author had missed. An
-adversarial pass by the author on 26 Sep found three problems, each fixed with a
-test proven to fail on the code before the fix:
+**Independent review, 26 Sep: four findings, all fixed.** Each was reproduced
+from the reviewer's own proof script before fixing, and each fix has a test
+proven to fail on the code before it.
+
+- **High — any user of any account could uninstall another account.** The
+  board view's session token and monday's uninstall webhook are both signed
+  with the client secret, so a user could copy their own session token, post it
+  to the uninstall route naming someone else's account, and silently delete that
+  account's alerts. The webhook's claims are undocumented, so they cannot be
+  used to tell the two apart. Instead an uninstall is now confirmed with monday:
+  the stored token is tried, and the record is deleted only if monday answers
+  401 — verified live as what a dead token gets. A forged request against a live
+  install changes nothing; an unconfirmable one keeps the record and asks to be
+  retried.
+- **Medium — the public cron route let anyone stop every account's checks.**
+  Each unauthenticated call cost a secure-storage read, and twenty a second
+  exhausted the app-wide limit so the real scheduler's call failed. One failed
+  record read also ended the whole run with the window still claimed. Now an
+  in-process guard answers repeat calls without touching storage, reads retry
+  past the documented limit, a failed record costs only that account, a run that
+  checks nobody releases the window, and the window is 12 hours instead of 20
+  minutes — which caps an outsider at two runs a day instead of 72.
+- **Low — one malformed request killed the process in setup mode.** `GET //`
+  threw outside any `try`. Paths are now parsed without throwing.
+- **Low — any member could take over an account's alerts** by installing again.
+  Only the original installer or an account admin may now replace an install.
+
+Earlier, an adversarial pass by the author found three problems, each fixed with
+a test proven to fail on the code before the fix:
 
 - **Two installs landing together could lose one account from the registry**,
   and that account would never be checked again, silently. Registry writes are

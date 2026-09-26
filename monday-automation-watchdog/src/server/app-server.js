@@ -48,11 +48,14 @@ export const CRON_PATH = '/mndy-cronjob/check';
  *
  * The docs call a cron route "a public monday code endpoint" and do not say
  * whether anything but the scheduler can reach it. So this assumes anyone can,
- * and makes that harmless: a second call inside the window does nothing. Alert
- * state already stops repeated emails; this stops repeated API calls, which is
- * the other thing a stranger with a loop could spend.
+ * and makes that harmless: a second call inside the window does nothing.
+ *
+ * It was 20 minutes, which let a stranger trigger 72 full 60-day activity
+ * pulls a day against every customer's monday API budget, for a job that runs
+ * once a day. Twelve hours leaves room for one manual run while testing and
+ * caps an outsider at two.
  */
-export const CRON_MIN_INTERVAL_MS = 20 * 60 * 1000;
+export const CRON_MIN_INTERVAL_MS = 12 * 60 * 60 * 1000;
 
 /**
  * Where monday sends install and uninstall events. Registered by hand in the
@@ -147,6 +150,20 @@ const PAGE_HEADERS = {
   'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'",
   'Cache-Control': 'no-store',
 };
+
+/**
+ * The path of a request, or null if it is not a usable one.
+ *
+ * `new URL('//', base)` throws. In setup mode that happened outside any
+ * `try`, and one request line — `GET // HTTP/1.1` — killed the process.
+ */
+function parseRequestUrl(req) {
+  try {
+    return new URL(req.url, 'http://localhost');
+  } catch {
+    return null;
+  }
+}
 
 const escapeHtml = (text) =>
   String(text ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -272,12 +289,18 @@ export function createAppHandler({
    * someone else's account and receive that account's alerts.
    */
   async function identify(token) {
-    const response = await makeClient(token).api('query { me { email account { id } } }');
+    // FACT (`api-reference/reference/me`): `id: ID!`, `is_admin: Boolean`.
+    const response = await makeClient(token).api('query { me { id email is_admin account { id } } }');
     if (response?.errors?.length) throw new Error('monday refused the identity query');
     const me = response?.data?.me;
     const accountId = String(me?.account?.id ?? '');
     if (!/^\d+$/.test(accountId)) throw new Error('monday returned no usable account id');
-    return { accountId, email: typeof me?.email === 'string' ? me.email : null };
+    return {
+      accountId,
+      userId: me?.id === undefined || me?.id === null ? null : String(me.id),
+      isAdmin: me?.is_admin === true,
+      email: typeof me?.email === 'string' ? me.email : null,
+    };
   }
 
   /**
@@ -325,8 +348,30 @@ export function createAppHandler({
     let token;
     try {
       token = await exchangeCode(code);
-      const { accountId, email } = await identify(token);
-      await secureStorage.set(accountKey(accountId), { token, recipient: email, installedAt: now() });
+      const { accountId, userId, isAdmin, email } = await identify(token);
+
+      // Who may replace an existing install. Without this, any member of the
+      // account could run the install again and silently take the alerts: they
+      // would go to that member's address, run with that member's access — so
+      // boards they cannot see stop being watched — and the previous recipient
+      // would never be told. The original installer may reinstall; an admin
+      // may take over, which is what happens when the installer leaves.
+      const existing = await secureStorage.get(accountKey(accountId));
+      // A missing id never counts as "the same user": monday documents `id` as
+      // non-null, but if it ever came back empty, two empties would match.
+      const sameInstaller = userId !== null && existing?.installerId === userId;
+      if (existing?.token && !sameInstaller && !isAdmin) {
+        log(`install refused for account ${accountId}: already set up by another user`);
+        return page(
+          res,
+          409,
+          'Alerts are already set up for this account',
+          'Another user set up Automation Watchdog for this account. The person who set it up, or an account admin, can change it.',
+          clearCookie,
+        );
+      }
+
+      await secureStorage.set(accountKey(accountId), { token, recipient: email, installerId: userId, installedAt: now() });
       await register(accountId);
       log(`installed for account ${accountId}`);
       return page(
@@ -348,21 +393,83 @@ export function createAppHandler({
 
   // ---- scheduled check -----------------------------------------------------
 
+  /**
+   * Reads secure storage, retrying past its rate limit.
+   *
+   * FACT: 7 requests a second for the whole app. A throttled read is not "no
+   * value"; treating it as one is how an account silently drops out of a run.
+   */
+  async function readSecure(key) {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await secureStorage.get(key);
+      } catch (error) {
+        if (attempt >= 2) throw error;
+        await sleep(1100);
+      }
+    }
+  }
+
+  // In-process guard, checked before secure storage is touched at all.
+  // Without it every unauthenticated POST cost a secure-storage read, and a
+  // stranger sending twenty a second exhausted the app-wide limit so the real
+  // scheduler's call failed and no account was checked. The stored claim
+  // below still covers restarts and other instances.
+  let localClaimAt = -Infinity;
+  let running = null;
+
   async function scheduledCheck(res) {
-    const last = (await secureStorage.get(CRON_KEY))?.lastRunAt ?? 0;
-    if (now() - last < CRON_MIN_INTERVAL_MS) return json(res, 200, { skipped: true });
+    if (running || now() - localClaimAt < CRON_MIN_INTERVAL_MS) return json(res, 200, { skipped: true });
+    localClaimAt = now();
+    running = runScheduled().finally(() => {
+      running = null;
+    });
+    try {
+      return json(res, 200, await running);
+    } catch (error) {
+      log(`scheduled check stopped early: ${redact(error?.message ?? String(error), [clientSecret])}`);
+      return json(res, 500, { error: 'scheduled check stopped early' });
+    }
+  }
+
+  async function runScheduled() {
+    const previous = (await readSecure(CRON_KEY))?.lastRunAt ?? -Infinity;
+    if (now() - previous < CRON_MIN_INTERVAL_MS) {
+      // Mirror the stored claim rather than the time of this call, so the
+      // local guard lapses exactly when the stored one does.
+      localClaimAt = previous;
+      return { skipped: true };
+    }
     // Claimed before running rather than after, so two overlapping calls
     // cannot both get through while the first one is still working.
     await secureStorage.set(CRON_KEY, { lastRunAt: now() });
 
-    const ids = (await secureStorage.get(REGISTRY_KEY))?.ids ?? [];
+    let ids;
+    try {
+      ids = (await readSecure(REGISTRY_KEY))?.ids ?? [];
+    } catch (error) {
+      // Nothing was checked, so the window must not stay claimed: otherwise
+      // the scheduler's retry is turned away and the day is lost silently.
+      localClaimAt = -Infinity;
+      await secureStorage.set(CRON_KEY, { lastRunAt: previous }).catch(() => {});
+      throw error;
+    }
     const counts = { accounts: ids.length, ok: 0, failed: 0, missing: 0 };
 
     // One account at a time. monday allows 12 storage requests a second per
     // token and 7 a second for secure storage; a fan-out across every
     // installed account is how one busy account would starve all the others.
     for (const accountId of ids) {
-      const record = await secureStorage.get(accountKey(accountId));
+      let record;
+      try {
+        record = await readSecure(accountKey(accountId));
+      } catch (error) {
+        // Inside the loop, so one unreadable record costs one account, not
+        // every account after it.
+        counts.failed += 1;
+        log(`could not read account ${accountId}: ${redact(error?.message ?? String(error), [clientSecret])}`);
+        continue;
+      }
       if (!record?.token) {
         counts.missing += 1;
         continue;
@@ -385,7 +492,7 @@ export function createAppHandler({
     }
     // Counts only. No board names, no account names, no addresses: this goes
     // to whatever called the route, which may not be the scheduler.
-    return json(res, 200, counts);
+    return counts;
   }
 
   // ---- uninstall -----------------------------------------------------------
@@ -422,8 +529,35 @@ export function createAppHandler({
     // The body is not what the signature covers. If the signed claims name an
     // account, the body has to agree with them, so a captured request cannot be
     // replayed against a different account inside its lifetime.
-    if (claims.accountId !== undefined && String(claims.accountId) !== accountId) {
+    const claimed = claims.accountId ?? claims.dat?.account_id;
+    if (claimed !== undefined && String(claimed) !== accountId) {
       return json(res, 401, { error: 'unauthorized' });
+    }
+
+    // A valid signature does not prove this is monday's uninstall webhook:
+    // the board view's session token is signed with the same client secret,
+    // so any user of any account could sign a request here and name someone
+    // else's account in the body. The claims cannot be relied on to tell the
+    // two apart, because the webhook's claims are not documented.
+    //
+    // So the uninstall is confirmed with monday itself. Tokens are "valid
+    // until the user uninstalls your app" (FACT), and a dead token answers
+    // HTTP 401 (verified live). Only a record whose token monday has already
+    // revoked is deleted. A forged request against a live install changes
+    // nothing; a genuine one always passes.
+    const record = await secureStorage.get(accountKey(accountId));
+    if (record?.token) {
+      const state = await tokenState(record.token);
+      if (state === 'alive') {
+        log(`uninstall ignored for account ${accountId}: its token still works`);
+        return json(res, 200, { ok: true });
+      }
+      if (state === 'unknown') {
+        // Keep the record and ask to be sent this again. A dead token left
+        // behind only costs a failed check; a live one deleted costs the
+        // customer their alerts.
+        return json(res, 503, { error: 'could not confirm uninstall' });
+      }
     }
 
     await secureStorage.delete(accountKey(accountId));
@@ -433,6 +567,18 @@ export function createAppHandler({
     }
     log(`uninstalled for account ${accountId}`);
     return json(res, 200, { ok: true });
+  }
+
+  /** 'alive', 'dead' (monday says the token is not authenticated), or 'unknown'. */
+  async function tokenState(token) {
+    try {
+      const response = await makeClient(token).api('query { me { id } }');
+      if (response?.data?.me?.id !== undefined && response?.data?.me?.id !== null) return 'alive';
+      const codes = (response?.errors ?? []).map((e) => e?.extensions?.code);
+      return codes.includes('NOT_AUTHENTICATED') ? 'dead' : 'unknown';
+    } catch (error) {
+      return error?.status === 401 ? 'dead' : 'unknown';
+    }
   }
 
   // ---- board view status ---------------------------------------------------
@@ -484,7 +630,8 @@ export function createAppHandler({
 
   return async function handle(req, res) {
     try {
-      const url = new URL(req.url, 'http://localhost');
+      const url = parseRequestUrl(req);
+      if (!url) return json(res, 404, { error: 'not found' });
       const route = `${req.method} ${url.pathname}`;
 
       if (route === 'GET /health') return json(res, 200, { ok: true });
@@ -533,8 +680,8 @@ export function createAppHandler({
 export function createSetupHandler(missing, staticFiles = {}) {
   const names = [...missing];
   return function handle(req, res) {
-    const url = new URL(req.url, 'http://localhost');
-    const file = req.method === 'GET' ? staticFiles[url.pathname] : undefined;
+    const url = parseRequestUrl(req);
+    const file = url && req.method === 'GET' ? staticFiles[url.pathname] : undefined;
     if (file) {
       res.writeHead(200, { ...BASE_HEADERS, 'Content-Type': file.type, 'Cache-Control': 'no-cache' });
       return res.end(file.body);

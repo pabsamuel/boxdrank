@@ -21,6 +21,7 @@
  */
 
 import { spawn, spawnSync } from 'node:child_process';
+import { once } from 'node:events';
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 
@@ -115,8 +116,15 @@ try {
     check(cron.status === 503, 'scheduled route refuses to run before setup');
   }
 } finally {
+  // Wait for the server to actually exit. Calling process.exit() while its
+  // pipes were still closing crashed Node on Windows at shutdown
+  // ("Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)", src/win/async.c)
+  // after every check had already passed.
+  const exited = once(server, 'exit');
   server.kill();
+  await exited;
 }
 
 console.log(failures === 0 ? '\nReady for `mapps code:push -s`.' : `\n${failures} check(s) failed. Fix before pushing.`);
-process.exit(failures === 0 ? 0 : 1);
+// exitCode, not process.exit(): let pending handles close on their own.
+process.exitCode = failures === 0 ? 0 : 1;
