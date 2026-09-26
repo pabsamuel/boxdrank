@@ -75,6 +75,28 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Every heading takes the display face, wherever it sits. The site only uses
+   h1 and h3, and several live outside .hero/.card — without this they fall
+   back to the body sans and the pages stop matching each other. */
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  text-transform: uppercase;
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+h1 {
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  margin: 0 0 14px;
+}
+h3 {
+  font-size: 1.3rem;
+  margin: 0 0 10px;
+}
+
 a {
   color: var(--brand);
   text-decoration: none;
