@@ -6,9 +6,9 @@ agent could prepare is prepared; what remains needs your accounts.
 **Domain already owned:** `atesensoftware.com` (Cloudflare, Free plan).
 Target subdomains:
 
-| Piece | URL |
-| ----- | --- |
-| web   | `emotes.atesensoftware.com` |
+| Piece | URL                             |
+| ----- | ------------------------------- |
+| web   | `emotes.atesensoftware.com`     |
 | api   | `api-emotes.atesensoftware.com` |
 | CDN   | `cdn-emotes.atesensoftware.com` |
 
@@ -20,11 +20,11 @@ never commit them. Regenerate any time with
 
 ## 0 · Accounts to create (3 signups, all "Continue with GitHub")
 
-| # | Service | Why | Free tier enough? |
-|---|---------|-----|-------------------|
-| 1 | [railway.com](https://railway.com) | api + worker + Postgres + Redis | trial credit, then ~$5/mo |
-| 2 | [vercel.com](https://vercel.com) | Next.js web | yes (Hobby) |
-| 3 | [resend.com](https://resend.com) | magic-link login email — **login breaks without it** | yes (3k/mo) |
+| #   | Service                            | Why                                                  | Free tier enough?         |
+| --- | ---------------------------------- | ---------------------------------------------------- | ------------------------- |
+| 1   | [railway.com](https://railway.com) | api + worker + Postgres + Redis                      | trial credit, then ~$5/mo |
+| 2   | [vercel.com](https://vercel.com)   | Next.js web                                          | yes (Hobby)               |
+| 3   | [resend.com](https://resend.com)   | magic-link login email — **login breaks without it** | yes (3k/mo)               |
 
 Cloudflare R2 uses the account you already have — no new signup.
 
@@ -89,6 +89,7 @@ API_PORT=3001
 ## 3 · Vercel — web
 
 **Add New → Project** → same repo →
+
 - Root directory: `global-emotes/apps/web`
 - Framework: Next.js (auto)
 - Environment variables:
@@ -109,11 +110,11 @@ and put it in Railway as `RESEND_API_KEY`.
 
 `dash.cloudflare.com` → `atesensoftware.com` → **DNS**:
 
-| Type | Name | Value | Proxy |
-|------|------|-------|-------|
-| CNAME | `emotes` | `cname.vercel-dns.com` | DNS only |
-| CNAME | `api-emotes` | *(Railway's CNAME target)* | DNS only |
-| CNAME | `cdn-emotes` | *(R2 sets this automatically)* | Proxied |
+| Type  | Name         | Value                          | Proxy    |
+| ----- | ------------ | ------------------------------ | -------- |
+| CNAME | `emotes`     | `cname.vercel-dns.com`         | DNS only |
+| CNAME | `api-emotes` | _(Railway's CNAME target)_     | DNS only |
+| CNAME | `cdn-emotes` | _(R2 sets this automatically)_ | Proxied  |
 
 Plus the Resend DKIM/SPF records from step 4.
 
