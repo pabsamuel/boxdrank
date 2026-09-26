@@ -26,12 +26,12 @@ Phase 8 complete — all 9 phases delivered. Repository is feature-complete for 
 
 ## Blockers
 
-None for development. Launch requires owner inputs only: credentials (Twitch/Discord/Stripe/Telegram/email/S3), Apple+Google accounts, legal review of `docs/legal/*`, real-device compatibility pass. Full list: `OWNER_ACTIONS.md`.
+None for development. Launch requires owner inputs only: credentials (Twitch/Discord/Stripe/Telegram/email/S3), Apple+Google accounts, legal review of `docs/legal/*`, real-device compatibility pass. Full list: `OWNER_ACTIONS.md`; shortest ordered click-path: `DEPLOY_NOW.md`.
 
 ## Known gaps (honest, tracked in QA_TEST_PLAN.md)
 
-Malware-scan hook in pipeline (Stage 2) · Gradle wrapper commit for blocking Android CI. Closed post-Phase-8: Playwright e2e (5 browser tests), k6 load scripts, data-export job, Telegram export job.
+Malware-scan hook in pipeline (Stage 2). Closed post-Phase-8: Playwright e2e (5 browser tests), k6 load scripts, data-export job, Telegram export job, Gradle wrapper (8.11.1, committed; `android-apk.yml` builds via `./gradlew`).
 
 ## Next exact action
 
-Owner: work through `OWNER_ACTIONS.md`. Engineering: pick up "Known gaps" top-to-bottom, starting with Playwright e2e for the creator journey.
+Owner: walk `DEPLOY_NOW.md` (Railway + Vercel + Resend signups, R2 buckets, DNS on the already-owned `atesensoftware.com`). Engineering: only the Stage-2 malware-scan hook remains deferred; nothing blocks deploying.
