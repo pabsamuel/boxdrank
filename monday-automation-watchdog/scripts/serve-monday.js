@@ -86,14 +86,24 @@ if (missing.length > 0) {
   logger.warn(`setup incomplete, missing: ${missing.join(', ')}`);
   handler = createSetupHandler(missing, staticFiles);
 } else {
+  const mailer = createSmtpMailer({ url: config.smtpUrl, from: config.from });
+  // Checked once at boot, in the background, so a slow mail server cannot
+  // delay startup. /health reports the result as one word.
+  let mail = 'checking';
+  mailer.verify().then((result) => {
+    mail = result;
+    logger.info(`mail provider: ${result}`);
+  });
+
   handler = createAppHandler({
     config: { clientId: config.clientId, clientSecret: config.clientSecret, baseUrl: config.baseUrl },
     secureStorage: new SecureStorage(),
     makeClient: (token) => createHttpClient({ token }),
     makeStorage: (token) => createMondayStorage({ token }),
-    mailer: createSmtpMailer({ url: config.smtpUrl, from: config.from }),
+    mailer,
     runCheck,
     staticFiles,
+    mailStatus: () => mail,
     log: (message) => logger.info(message),
   });
 }

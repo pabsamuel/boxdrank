@@ -139,3 +139,15 @@ test('the transport is built once and reused across sends', async () => {
   await mailer.send({ to: 'a@b.com', text: 'y' });
   assert.equal(built, 1);
 });
+
+test('verify says whether the provider accepts the credentials, and never why', async () => {
+  const ok = createSmtpMailer({ url: URL_WITH_PASSWORD, from: 'a@b.com', transportFactory: () => ({ async verify() { return true; } }) });
+  assert.equal(await ok.verify(), 'verified');
+
+  const bad = createSmtpMailer({
+    url: URL_WITH_PASSWORD,
+    from: 'a@b.com',
+    transportFactory: () => ({ async verify() { throw new Error(`535 bad key in ${URL_WITH_PASSWORD}`); } }),
+  });
+  assert.equal(await bad.verify(), 'failed', 'a word, not the error that quotes the URL');
+});

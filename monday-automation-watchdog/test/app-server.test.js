@@ -720,3 +720,8 @@ test('under a flood, the one real run still checks every account', async () => {
     await h.close();
   }
 });
+
+test('health reports mail as one word and nothing more', withHarness({ mailStatus: () => 'failed' }, async (h) => {
+  const res = await h.request('/health');
+  assert.deepEqual(await res.json(), { ok: true, mail: 'failed' });
+}));

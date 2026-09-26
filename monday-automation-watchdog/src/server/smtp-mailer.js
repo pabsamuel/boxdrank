@@ -98,6 +98,25 @@ export function createSmtpMailer({ url, from, allowInsecure = false, transportFa
   };
 
   return {
+    /**
+     * Whether the provider accepts these credentials, without sending mail.
+     *
+     * Exists because the credentials are write-only once stored: nobody can
+     * read SMTP_URL back to check it, and a bad key would otherwise only show
+     * itself on the first real alert — the worst moment to find out. Returns a
+     * word, never the error text, which could quote the connection string.
+     */
+    async verify() {
+      try {
+        const mailer = await connect();
+        if (typeof mailer.verify !== 'function') return 'unchecked';
+        await mailer.verify();
+        return 'verified';
+      } catch {
+        return 'failed';
+      }
+    },
+
     async send(message) {
       const to = assertAddress('WATCHDOG_RECIPIENT', message?.to);
 

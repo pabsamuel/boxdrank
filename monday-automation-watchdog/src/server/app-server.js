@@ -227,6 +227,7 @@ export function createAppHandler({
   now = () => Date.now(),
   newState = () => randomBytes(32).toString('base64url'),
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  mailStatus = () => 'unchecked',
   log = () => {},
 }) {
   const { clientId, clientSecret, baseUrl } = config ?? {};
@@ -634,7 +635,11 @@ export function createAppHandler({
       if (!url) return json(res, 404, { error: 'not found' });
       const route = `${req.method} ${url.pathname}`;
 
-      if (route === 'GET /health') return json(res, 200, { ok: true });
+      if (route === 'GET /health') {
+        // A single word about mail, so a deploy can be checked from outside
+        // without anyone reading a secret back. No detail, no error text.
+        return json(res, 200, { ok: true, mail: mailStatus() });
+      }
       if (route === 'GET /oauth/start') return startInstall(res);
       if (route === 'GET /oauth/callback') return await finishInstall(req, res, url);
       if (route === `POST ${LIFECYCLE_PATH}`) return await lifecycle(req, res);
