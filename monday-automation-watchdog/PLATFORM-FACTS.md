@@ -349,7 +349,11 @@ with `if (!value)`, so `-r 0` still prompts. Pass all three, non-zero.
 Its "ERROR: Unknown error" means an HTTP status the CLI does not map — it maps
 404, 403, 400, 500 and 426 (`src/services/scheduler-service.utils.ts`), so a 401
 from an expired or regenerated token, or a 409/422, all print as "Unknown error".
-`--verbose` prints the underlying request. The first attempt with
+**Do not use `--verbose` where the output is shared.** `src/services/api-service.ts`
+injects the token as the `Authorization` header and then logs the whole axios
+response object in debug mode — and an axios response carries its request
+config, headers included. Diagnose with `mapps app:list` instead: if that
+fails too, the CLI's token is the problem, not the scheduler. The first attempt with
 `-r 3 -b 60 -t 300` failed this way on 26 Sep; the cause is UNKNOWN until a
 verbose run shows it. The CLI's own documented example is `-r 3 -b 10 -t 60`.
 
