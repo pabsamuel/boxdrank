@@ -1,0 +1,14 @@
+# Host artifacts must never enter the build context: pnpm's node_modules are
+# symlinks into a local store, so copying them in produces broken links and a
+# huge image. Everything is installed inside the image instead.
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/coverage
+**/test-results
+**/playwright-report
+**/*.tsbuildinfo
+.git
+apps/android
+apps/ios
