@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="container">
           <nav className="nav" aria-label="Main">
             <Link href="/" className="wordmark">
-              Global<span>Emotes</span>
+              {BRAND}
             </Link>
             <div className="nav-links">
               <Link href="/library">Library</Link>
