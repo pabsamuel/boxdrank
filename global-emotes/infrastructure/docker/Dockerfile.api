@@ -7,6 +7,8 @@ WORKDIR /repo
 FROM base AS deps
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+COPY apps/worker/package.json apps/worker/
 COPY packages ./packages
 RUN pnpm install --frozen-lockfile --filter @global-emotes/api...
 
@@ -17,4 +19,4 @@ COPY apps/api ./apps/api
 USER node
 EXPOSE 3001
 # tsx runs the TS sources directly (internal packages are consumed as source).
-CMD ["node_modules/.bin/tsx", "apps/api/src/index.ts"]
+CMD ["apps/api/node_modules/.bin/tsx", "apps/api/src/index.ts"]
