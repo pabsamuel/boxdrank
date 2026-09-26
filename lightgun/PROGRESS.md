@@ -65,6 +65,15 @@ behaviour only exists in a room we cannot see)
 - **`tools/synth-trace.js`**: generates traces with known noise and drift — used by the tests to prove
   the analyser recovers the truth, and usable as a CLI to see the tool's output before a real session.
 
+**iPhone / gyro mode** (added because the only phone available is an iPhone, and iOS cannot run WebXR)
+- Calibration is mode-aware: gyro mode fits only the rotation homography, and is graded by how well
+  that homography reproduces its own calibration points. Previously the 6DoF solver ran on four rays
+  sharing one origin, producing a meaningless model and a quality gate that rejected every attempt.
+- **Recoil trigger**: flick the phone like a pistol and it fires, with the shot resolved to the aim
+  from 160 ms before the flick began — the flick has already swung the muzzle by the time it is
+  detectable, so firing on the spike would land every shot high.
+- Gyro mode no longer raises a "tracking weak" alarm every frame for a mode that is weak by design.
+
 **Tests**
 - `npm test` — 20 synthetic-truth checks across distances, screen sizes, off-axis and tilted screens,
   wrong stated sizes, 3-vs-4 point, smoothing lag and jitter, degenerate rays. All passing.
@@ -72,6 +81,11 @@ behaviour only exists in a room we cannot see)
   stalls and calibration that we injected ourselves, at three noise levels. An analyser that reports
   confident nonsense is worse than none, since we will be trusting it with data from a room we cannot
   see. All passing.
+- `node tests/gesture.js` (part of `npm test`) — 15 checks on the recoil trigger: that a flick fires
+  once, that holding still or sweeping onto a target never fires, that a bouncing wrist does not
+  double-fire, and that the aim look-back recovers the pre-flick position. Caught two real bugs: a
+  cooldown initialised to 0 that swallowed every shot in the first 320 ms of a session, and a
+  wall-clock cooldown that disagreed with the sample-driven re-arm.
 - `npm run test:e2e` — 21 checks: headless Chromium runs the real display client while Node processes
   play virtual 6DoF phones through the real protocol, now including tracking loss, re-zero, the
   session report, a **pose-trace round trip through the real recorder and chunked transfer**, and

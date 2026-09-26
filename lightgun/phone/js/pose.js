@@ -125,8 +125,10 @@ export class PoseSource extends EventTarget {
     const handler = (ev) => {
       if (ev.alpha === null) return;
       const q = quatFromEuler(ev.alpha, ev.beta, ev.gamma, screenAngle());
-      this._publish([0, 0, 0], forwardOf(q), q,
-        ev.absolute === false ? TRACKING.LIMITED : TRACKING.TRACKING);
+      // Reported as TRACKING once data flows. This mode drifts by nature and
+      // says so at startup; raising a "tracking weak" alarm on every frame of
+      // a mode that is permanently weak is noise, not information.
+      this._publish([0, 0, 0], forwardOf(q), q, TRACKING.TRACKING);
     };
     this._doHandler = handler;
     const evName = 'ondeviceorientationabsolute' in window

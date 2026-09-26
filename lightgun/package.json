@@ -6,7 +6,7 @@
   "description": "Turn your phone into a light gun. Turn any TV into an arcade.",
   "scripts": {
     "start": "node server/server.js",
-    "test": "node tests/run.js && node tests/trace.js",
+    "test": "node tests/run.js && node tests/trace.js && node tests/gesture.js",
     "test:e2e": "node tests/e2e.js"
   },
   "dependencies": {

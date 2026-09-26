@@ -13,6 +13,7 @@ import {
 } from '../../shared/math.js';
 import { PoseSource, TRACKING } from './pose.js';
 import { Trace } from './trace.js';
+import { RecoilTrigger, AimHistory } from './gesture.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -24,6 +25,7 @@ const ui = {
   state: $('stateLabel'), track: $('trackPill'), instruction: $('instruction'),
   trigger: $('trigger'), triggerLabel: $('triggerLabel'),
   recal: $('recalBtn'), reload: $('reloadBtn'), diagBtn: $('diagBtn'), quit: $('quitBtn'),
+  gestureBtn: $('gestureBtn'),
   diag: $('diag'),
 };
 
@@ -34,6 +36,8 @@ $('roomCode').textContent = room || '----';
 const pose = new PoseSource();
 const net = new Net({ role: 'phone', room, name: 'gun' });
 const trace = new Trace();
+const recoil = new RecoilTrigger();
+const aimHistory = new AimHistory();
 
 const app = {
   screen: { widthM: 1.22, heightM: 0.685, aspectW: 16, aspectH: 9, diagInches: 55 },
@@ -55,6 +59,7 @@ const app = {
   tracking: TRACKING.NONE,
   trackingLosses: 0,
   calibAttempts: 0,
+  gestureFire: false,      // recoil-flick trigger, default on where there is no AR
   sentAim: 0,
   lastSentAt: 0,
 };
@@ -149,6 +154,7 @@ pose.on('pose', (p) => {
   const hit = aimFrom(p);
   if (!hit) return;
   app.lastAim = hit;
+  aimHistory.push(hit.x, hit.y, p.ts);
   // Send every pose frame: at ~60 Hz a JSON aim packet is ~80 bytes, which is
   // nothing on a LAN, and any decimation shows up directly as crosshair lag.
   net.send({
@@ -249,30 +255,49 @@ async function captureCalibPoint() {
 function finishCalibration() {
   const rays = app.calib.rays;
   const { widthM, heightM } = app.screen;
+  // Without camera tracking there is no position, so there is no plane to
+  // solve for — the rotation homography *is* the calibration, and running the
+  // 6DoF solver on four rays that all start at the origin would produce a
+  // meaningless model and a quality gate that rejects every attempt.
+  const rotationMode = app.useRotationOnly || pose.mode === 'rotation';
+
   try {
-    app.model = calibrate6dof(rays, widthM, heightM, { rect: app.calibRect });
     app.rotModel = calibrateRotation(rays.map((r) => r.d), app.calibRect);
+    app.model = rotationMode
+      ? null
+      : calibrate6dof(rays, widthM, heightM, { rect: app.calibRect });
   } catch (err) {
     net.send({ t: 'calibFail', reason: String(err && err.message) });
     showInstruction('CALIBRATION FAILED<br><small>try again</small>');
     return;
   }
-  const m = app.model;
+  if (rotationMode && !app.rotModel) {
+    net.send({ t: 'calibFail', reason: 'homography' });
+    showInstruction('CALIBRATION FAILED<br><small>aim at each corner more distinctly</small>');
+    setTimeout(() => beginCalibration(app.calib.points, { retry: true }), 1800);
+    return;
+  }
+
   app.calibAttempts++;
 
-  // Quality gate. One silent retry is cheap (about ten seconds) and far better
-  // than a player concluding the whole idea does not work.
-  const degraded = app.calib.rays.some((r) => r.tracking && r.tracking !== TRACKING.TRACKING);
-  if ((m.rmsErrorScreen > CALIB_ERROR_LIMIT || degraded) && app.calibAttempts < 2) {
+  // A residual either way, in the same unit, so the display and the session
+  // report do not have to care which mode produced it: how far the captured
+  // corners land from where they should once the calibration is applied.
+  const quality = rotationMode
+    ? rotationResidual(rays)
+    : { rmsErrorScreen: app.model.rmsErrorScreen, rmsErrorM: app.model.rmsErrorM };
+
+  const degraded = rays.some((r) => r.tracking && r.tracking !== TRACKING.TRACKING);
+  if ((quality.rmsErrorScreen > CALIB_ERROR_LIMIT || degraded) && app.calibAttempts < 2) {
     net.send({
       t: 'calibRejected',
-      rmsErrorScreen: m.rmsErrorScreen,
+      rmsErrorScreen: quality.rmsErrorScreen,
       reason: degraded ? 'tracking' : 'error',
       attempt: app.calibAttempts,
     });
     showInstruction(degraded
       ? 'TRACKING WAS SHAKY<br><small>let\'s try that again</small>'
-      : `THAT WAS A BIT OFF (${(m.rmsErrorScreen * 100).toFixed(1)}%)<br><small>let's try that again</small>`);
+      : `THAT WAS A BIT OFF (${(quality.rmsErrorScreen * 100).toFixed(1)}%)<br><small>let's try that again</small>`);
     haptic('penalty');
     setTimeout(() => beginCalibration(app.calib.points, { retry: true }), 1800);
     return;
@@ -285,15 +310,37 @@ function finishCalibration() {
   net.send({
     t: 'calibDone',
     attempts: app.calibAttempts,
-    accepted: m.rmsErrorScreen <= CALIB_ERROR_LIMIT,
-    rmsErrorM: m.rmsErrorM,
-    rmsErrorScreen: m.rmsErrorScreen,
-    scaleErrorW: m.scaleErrorW,
-    scaleErrorH: m.scaleErrorH,
-    distanceM: averageRange(m),
-    mode: pose.mode,
+    accepted: quality.rmsErrorScreen <= CALIB_ERROR_LIMIT,
+    rmsErrorM: quality.rmsErrorM ?? null,
+    rmsErrorScreen: quality.rmsErrorScreen,
+    scaleErrorW: app.model ? app.model.scaleErrorW : 0,
+    scaleErrorH: app.model ? app.model.scaleErrorH : 0,
+    distanceM: app.model ? averageRange(app.model) : null,
+    mode: rotationMode ? 'rotation' : pose.mode,
   });
   haptic('ready');
+}
+
+/**
+ * How well the rotation homography reproduces its own calibration points.
+ * Each captured direction should map back onto the marker it was aimed at;
+ * whatever it misses by is the calibration error, in screen widths.
+ */
+function rotationResidual(rays) {
+  const rect = app.calibRect;
+  const corners = rays.length === 3
+    ? [[rect.x0, rect.y0], [rect.x1, rect.y0], [rect.x0, rect.y1]]
+    : [[rect.x0, rect.y0], [rect.x1, rect.y0], [rect.x1, rect.y1], [rect.x0, rect.y1]];
+  let sum = 0;
+  let n = 0;
+  for (let i = 0; i < rays.length; i++) {
+    const hit = rotationAimToScreen(app.rotModel, rays[i].d);
+    if (!hit) continue;
+    const [tx, ty] = corners[i];
+    sum += (hit.x - tx) ** 2 + (hit.y - ty) ** 2;
+    n++;
+  }
+  return { rmsErrorScreen: n ? Math.sqrt(sum / n) : 1, rmsErrorM: null };
 }
 
 function averageRange(model) {
@@ -380,15 +427,17 @@ async function captureRezero() {
 
 /* ---------------------------------------------------------------- trigger */
 
-function fire() {
+function fire({ aimAt = null, source = 'tap' } = {}) {
   if (app.phase === 'calibrating') { captureCalibPoint(); return; }
   if (app.phase === 'rezero') { captureRezero(); return; }
   if (app.phase !== 'live') return;
   if (app.ammo <= 0) { haptic('empty'); net.send({ t: 'dryFire' }); return; }
-  const aim = app.lastAim;
+  // A recoil flick has already swung the muzzle off target by the time it is
+  // recognisable, so that path passes the aim from before the flick began.
+  const aim = aimAt || app.lastAim;
   app.shots++;
   if (app.ammo !== Infinity) app.ammo--;
-  trace.mark('fire', aim ? { x: aim.x, y: aim.y } : {});
+  trace.mark('fire', aim ? { x: aim.x, y: aim.y, source } : { source });
   // The shot carries its own coordinates rather than relying on the last aim
   // packet having arrived: that removes one source of "I hit it but it missed".
   net.send({
@@ -399,8 +448,24 @@ function fire() {
     ts: performance.now(),
     pts: pose.latest ? pose.latest.ts : performance.now(),
     seq: app.seq++,
+    source,
   });
   haptic('shot');
+}
+
+/* ------------------------------------------------------- recoil trigger */
+
+recoil.addEventListener('recoil', (e) => {
+  if (!app.gestureFire) return;
+  const past = aimHistory.at(e.detail.at, e.detail.lookbackMs);
+  fire({ aimAt: past, source: 'recoil' });
+});
+
+function setGestureFire(on) {
+  app.gestureFire = on;
+  ui.gestureBtn.textContent = on ? 'RECOIL: ON' : 'RECOIL: OFF';
+  ui.gestureBtn.classList.toggle('on', on);
+  if (on) recoil.start(); else recoil.stop();
 }
 
 // pointerdown, not click: click waits for the gesture to resolve and that wait
@@ -457,12 +522,29 @@ ui.startBtn.addEventListener('click', async () => {
 
 ui.fallbackBtn.addEventListener('click', async () => {
   try {
+    // iOS grants motion access only from inside a user gesture, and only for
+    // the permission actually asked for — so both are requested on this tap.
     await pose.startRotationOnly();
+    const motionOk = await RecoilTrigger.requestPermission();
     app.useRotationOnly = true;
     enterGunUi();
+    setGestureFire(motionOk);
+    if (!motionOk) {
+      showInstruction('MOTION ACCESS DENIED<br><small>tap trigger still works; reload to re-ask</small>');
+      setTimeout(() => showInstruction(null), 2600);
+    }
   } catch (err) {
     ui.hint.textContent = `Could not read motion sensors: ${err && err.message}`;
   }
+});
+
+ui.gestureBtn.addEventListener('click', async () => {
+  if (!app.gestureFire && RecoilTrigger.needsPermission() && !recoil.enabled) {
+    const ok = await RecoilTrigger.requestPermission();
+    if (!ok) return;
+  }
+  setGestureFire(!app.gestureFire);
+  haptic('tick');
 });
 
 pose.on('ended', () => {
@@ -475,6 +557,8 @@ pose.on('ended', () => {
 function enterGunUi() {
   ui.start.classList.add('hidden');
   ui.gun.classList.remove('hidden');
+  // No AR session to leave in gyro mode, so the button should not claim there is.
+  ui.quit.textContent = pose.mode === 'rotation' ? 'EXIT' : 'EXIT AR';
   net.send({ t: 'gunReady', mode: pose.mode });
   setState('READY');
 }
@@ -510,6 +594,8 @@ setInterval(() => {
     losses: app.trackingLosses,
     zero: app.zero,
     attempts: app.calibAttempts,
+    gesture: app.gestureFire,
+    recoilFires: recoil.fires,
   });
   app.sentAim = 0;
 
@@ -524,6 +610,7 @@ setInterval(() => {
       m ? `calib     rms ${(m.rmsErrorM * 1000).toFixed(1)} mm (${(m.rmsErrorScreen * 100).toFixed(2)}% of width)` : 'calib     none',
       m ? `range     ${averageRange(m).toFixed(2)} m   scaleErr ${(m.scaleErrorW * 100).toFixed(1)}%` : '',
       `smoothing ${app.smoothing ? 'on' : 'off'}   shots ${app.shots}`,
+      `recoil    ${app.gestureFire ? 'on' : 'off'}  spin ${recoil.spin.toFixed(0)}/${recoil.spinThreshold}  jerk ${recoil.jerk.toFixed(1)}/${recoil.jerkThreshold}  fired ${recoil.fires}`,
     ].filter(Boolean).join('\n');
   }
 }, 500);

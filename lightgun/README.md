@@ -36,10 +36,22 @@ to pull the phone's raw ARCore pose trace for offline analysis.
 **Requirements:** an **Android** phone with Google Play Services for AR (ARCore), Chrome, on the same
 network as the laptop. Phones without ARCore fall back to a rotation-only mode that works but drifts.
 
-> **iPhone will not work for the real thing.** Safari has no WebXR, and every iOS browser is Safari
-> underneath, so no web page on iOS can get camera tracking. An iPhone can run the rotation-only
-> fallback — useful as the comparison case, but it drifts and is not the product. The question this
-> prototype exists to answer needs an Android phone.
+### iPhone (gyro mode)
+
+iOS has no WebXR — Safari does not implement it and every iOS browser is Safari underneath — so an
+iPhone cannot do the camera-tracked 6DoF aiming. It runs **gyro mode** instead: the same four-point
+calibration, mapped through a rotation homography rather than a plane.
+
+- It is **exact while you stand still**, and drifts as you move or over time. Press **Z** on the
+  display to re-zero in two seconds; the report records how much correction it needed.
+- The **recoil trigger** is on by default: flick the phone like a pistol kicking and it fires. The
+  shot uses the aim from 160 ms *before* the flick, because the flick itself has already moved the
+  muzzle. Tap anywhere still works too, and the chip toggles the gesture off.
+- Measured contrast, from simulation: standing still, gyro mode is exact; step 0.9 m without
+  recalibrating and its error reaches **~50% of screen width** against **0.6%** for the ARCore path.
+
+So an iPhone is enough to play and to feel the mechanic — it is not enough to answer the technical
+question the prototype was built for. That still needs an Android phone with ARCore.
 
 **If the phone says it cannot connect:** the laptop is not reachable at the address in the QR code.
 On Windows that is almost always the firewall (allow Node.js on private networks) or a virtual

@@ -16,7 +16,7 @@
     <p class="room">Room <b id="roomCode">----</b></p>
     <div id="caps" class="caps"></div>
     <button id="startBtn" class="big primary">START GUN</button>
-    <button id="startFallbackBtn" class="big ghost">Use limited mode (no AR)</button>
+    <button id="startFallbackBtn" class="big ghost">START GUN (gyro mode)</button>
     <p class="hint" id="startHint">Hold the phone like a gun — screen towards you, camera towards the TV.</p>
   </section>
 
@@ -31,10 +31,12 @@
 
     <button id="trigger" class="trigger">
       <span id="triggerLabel">TRIGGER</span>
+      <small id="triggerHint">tap anywhere — or flick like a recoil</small>
     </button>
 
     <footer id="bottomBar">
       <button id="recalBtn" class="chip">RECALIBRATE</button>
+      <button id="gestureBtn" class="chip">RECOIL: OFF</button>
       <button id="reloadBtn" class="chip">RELOAD</button>
       <button id="diagBtn" class="chip">DEBUG</button>
       <button id="quitBtn" class="chip">EXIT AR</button>

@@ -142,7 +142,7 @@ button { font-family: inherit; font-weight: 700; border: 0; cursor: pointer; }
   position: absolute;
   left: 8px;
   right: 8px;
-  bottom: 68px;
+  bottom: 112px;   /* clear of the two rows of chips on a narrow phone */
   margin: 0;
   padding: 10px;
   border-radius: 10px;
@@ -150,4 +150,16 @@ button { font-family: inherit; font-weight: 700; border: 0; cursor: pointer; }
   color: #9ef7c6;
   font: 11px/1.45 ui-monospace, "SF Mono", Menlo, monospace;
   white-space: pre-wrap;
+}
+
+/* Recoil toggle: on is loud, because it changes how the gun behaves. */
+.chip.on { background: rgba(53, 208, 127, 0.24); color: var(--good); }
+
+.trigger small {
+  display: block;
+  margin-top: 10px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--dim);
+  font-weight: 600;
 }
