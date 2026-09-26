@@ -9,7 +9,7 @@ with a note.
 | | Done | Note |
 |---|---|---|
 | **Code that can be written from here** | **18 / 18 — 100%** | Verified against a live account |
-| **Distance to a product someone pays for** | **34 / 43 — 79%** | What is left is setup in monday, a real install, assets, and sales |
+| **Distance to a product someone pays for** | **35 / 44 — 80%** | What is left is setup in monday, a real install, assets, and sales |
 
 ---
 
@@ -87,10 +87,13 @@ project guessed at a monday format, the result looked finished and returned
       do not say the route is private. Creating the job itself is one CLI
       command, in section 3.
 
-## 3. Needs a real monday account — 5/7
+## 3. Needs a real monday account — 6/8
 
 - [x] App created in the Developer Center (26 Sep, App ID 12249756): the four
       read-only scopes saved, monday code enabled, legacy OAuth flow kept
+- [x] **Deployed to monday code** (26 Sep): v1 live, security scan 0 findings,
+      and the running server checked from outside — setup mode, board view
+      served
 - [ ] Run the board view inside monday and confirm it loads
 - [ ] Complete one real install through the OAuth flow, create the cron job,
       and receive one real alert email

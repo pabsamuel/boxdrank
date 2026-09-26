@@ -298,6 +298,30 @@ And `me` has `id: ID!` and `is_admin: Boolean` (`api-reference/reference/me`).
 
 ---
 
+## First real deploy — 26 Sep 2026
+
+**FACT**, from the CLI output and from requests made to the deployed app:
+
+- `mapps code:push -s -a 12249756` refused: "The latest app version is live.
+  Create a new draft version or use --force to override". The version had been
+  promoted before any code was pushed to it. `-f` pushed to the live version.
+- monday's dependency security scan: **0 findings**, both pushes.
+- The deployment URL has the form `https://<id>-service-<account>-<id>.eu.monday.app`.
+  The account is in the **EU** region.
+- The server booted in setup mode exactly as designed: `/health` answered 503
+  naming the five missing settings, `/view/` and `/view/main.js` answered 200.
+- monday code sits behind **Cloudflare and Google** (`server: cloudflare`,
+  `via: 1.1 google`). The edge **replaces the app's HSTS header** with
+  `max-age=15552000; includeSubDomains` (180 days). `nosniff` and
+  `no-referrer` pass through unchanged. The domain is monday's, so this is not
+  the app's to change; if a reviewer's HSTS check is run against `*.monday.app`,
+  the answer is that monday sets it.
+- `mapps code:env` takes the app as `-i`; `code:push` and `scheduler:create`
+  take it as `-a`. Without it the CLI asks, and on this account it offered a
+  different app first — which is how the first push landed on the wrong app.
+
+---
+
 ## Still open
 
 1. **Does a cron invocation carry account context?** Still not stated. Built as
