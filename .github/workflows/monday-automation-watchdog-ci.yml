@@ -27,6 +27,11 @@ jobs:
       - run: npm test
       - run: npm run build
 
+      # Does what monday code will do on `mapps code:push`: validates
+      # .mondaycoderc against the CLI's own schema, builds, and boots the server
+      # with no configuration, which is the state of the first deploy.
+      - run: npm run check:deploy
+
       # The demo fixture is generated. If the generator and the committed file
       # drift apart, the demo stops demonstrating what the tests claim it does.
       - run: npm run fixtures

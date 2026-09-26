@@ -8,12 +8,12 @@ with a note.
 
 | | Done | Note |
 |---|---|---|
-| **Code that can be written from here** | **17 / 17 — 100%** | Verified against a live account |
-| **Distance to a product someone pays for** | **31 / 41 — 76%** | What is left is setup in monday, a real install, assets, and sales |
+| **Code that can be written from here** | **18 / 18 — 100%** | Verified against a live account |
+| **Distance to a product someone pays for** | **33 / 42 — 79%** | What is left is setup in monday, a real install, assets, and sales |
 
 ---
 
-## 1. Code writable in this environment — 17/17
+## 1. Code writable in this environment — 18/18
 
 - [x] Cadence engine — late / silent / dormant / healthy, with false-alarm restraint
 - [x] Working-day awareness, so weekends do not produce alerts
@@ -41,12 +41,19 @@ with a note.
       token and address, a status endpoint so the board view can show when the
       last check ran, and a setup mode so the first deploy can boot before its
       Live URL exists. Every monday detail read from live docs on 26 Sep.
+- [x] **Deploy-ready**: `.mondaycoderc` pinned to Node 22 and validated against
+      the monday CLI's own schema, `.mappsignore` so the upload is
+      deterministic, and `npm run check:deploy` in CI booting the server in the
+      exact state of a first deploy. An adversarial pass found three server
+      bugs — a registry race that would silently drop an account, a session
+      token with no expiry accepted forever, a token that could reach a log —
+      all fixed with tests proven to fail before the fix.
 - [x] **Verified against a real monday account** (21 Sep 2026). Two live
       responses are committed as fixtures and checked in CI. The first found a
       real bug: `created_at` is 100-nanosecond ticks, which the parser was
       silently returning null for.
 
-**192 tests.** All offline, and two of them run against real captured responses.
+**223 tests.** All offline, and two of them run against real captured responses.
 
 The third review is the one worth remembering. It reported the token-handling
 path as clean, having tested it against a stub that behaves. Running the same
@@ -127,10 +134,11 @@ review.
 - [ ] Submitted
 - [ ] Approved
 
-## 6. Validation and sales — 1/5
+## 6. Validation and sales — 2/5
 
 - [x] Confirmed no competing automation-monitoring app surfaced in search
-- [ ] Marketplace search for `automation`, `monitor`, `alert`, `watchdog`
+- [x] Marketplace search — the full public catalog (1,293 apps), not just the
+      search box: no app monitors native automations. See `COMPETITORS.md`.
 - [ ] Ten admins asked what they do today when an automation dies silently
 - [ ] One person says they would pay a specific number
 - [ ] One person actually pays

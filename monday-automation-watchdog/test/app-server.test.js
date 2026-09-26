@@ -56,6 +56,7 @@ async function harness(overrides = {}) {
     },
     now: () => clock,
     newState: () => 'fixed-state-value-abc',
+    sleep: async () => {},
     log: (message) => logs.push(message),
     ...overrides,
   };
@@ -450,4 +451,52 @@ test('status needs a session token monday signed, and only ever reveals that acc
     const res = await h.request(STATUS_PATH, { headers: authorization ? { authorization } : {} });
     assert.equal(res.status, 401, String(authorization));
   }
+}));
+
+// ---- hardening -------------------------------------------------------------
+
+test('an install whose registry write is overwritten retries until it holds', withHarness({}, async (h) => {
+  // Simulates a concurrent install: the first write to the registry is
+  // clobbered by another account's write before it can be read back.
+  const store = h.deps.secureStorage;
+  const realSet = store.set.bind(store);
+  let clobbered = false;
+  store.set = async (key, value) => {
+    await realSet(key, value);
+    if (key === 'accounts' && !clobbered) {
+      clobbered = true;
+      await realSet('accounts', { ids: ['999'] });
+    }
+  };
+  const res = await h.request('/oauth/callback?code=c&state=fixed-state-value-abc', { headers: { cookie } });
+  assert.equal(res.status, 200);
+  assert.deepEqual(store.data.get('accounts').ids.sort(), ['123', '999'], 'neither account is lost');
+}));
+
+test('opening the board view re-registers an installed account the check had lost', withHarness({
+  secureStorage: memoryStore({
+    accounts: { ids: [] },
+    [accountKey('1')]: { token: 'token-for-1-long', recipient: 'a@x.example' },
+  }),
+  makeStorage: () => ({ async get() { return []; } }),
+}, async (h) => {
+  const res = await h.request(STATUS_PATH, { headers: { authorization: session(1) } });
+  assert.equal(res.status, 200);
+  assert.deepEqual(h.deps.secureStorage.data.get('accounts'), { ids: ['1'] });
+}));
+
+test('a session token with no expiry is refused by the status endpoint', withHarness({
+  secureStorage: installed('1'),
+}, async (h) => {
+  const forever = sign({ dat: { account_id: 1 } });
+  assert.equal((await h.request(STATUS_PATH, { headers: { authorization: forever } })).status, 401);
+}));
+
+test('a storage failure on status keeps the account token out of the log', withHarness({
+  secureStorage: installed('1'),
+  makeStorage: () => ({ async get() { throw new Error('storage said no to token-for-1-long'); } }),
+}, async (h) => {
+  const res = await h.request(STATUS_PATH, { headers: { authorization: session(1) } });
+  assert.equal(res.status, 502);
+  assert.ok(!h.logs.join('\n').includes('token-for-1-long'));
 }));

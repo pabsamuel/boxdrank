@@ -82,7 +82,7 @@ const HMAC_ALGORITHMS = { HS256: 'sha256', HS384: 'sha384', HS512: 'sha512' };
  * `none` and every public-key algorithm are refused outright: accepting either
  * with a shared secret is the classic way a JWT check gets bypassed.
  */
-export function verifyJwt(token, secret, nowSeconds) {
+export function verifyJwt(token, secret, nowSeconds, { requireExp = false } = {}) {
   const parts = String(token ?? '').replace(/^Bearer\s+/i, '').split('.');
   if (parts.length !== 3) return null;
   const [head, body, signature] = parts;
@@ -103,7 +103,8 @@ export function verifyJwt(token, secret, nowSeconds) {
   const given = Buffer.from(signature, 'base64url');
   if (given.length !== expected.length || !timingSafeEqual(given, expected)) return null;
 
-  if (payload.exp !== undefined && !(typeof payload.exp === 'number' && payload.exp > nowSeconds)) return null;
+  if (payload.exp === undefined) return requireExp ? null : payload;
+  if (!(typeof payload.exp === 'number' && payload.exp > nowSeconds)) return null;
   return payload;
 }
 
@@ -208,6 +209,7 @@ export function createAppHandler({
   fetchImpl = globalThis.fetch,
   now = () => Date.now(),
   newState = () => randomBytes(32).toString('base64url'),
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   log = () => {},
 }) {
   const { clientId, clientSecret, baseUrl } = config ?? {};
@@ -278,10 +280,27 @@ export function createAppHandler({
     return { accountId, email: typeof me?.email === 'string' ? me.email : null };
   }
 
+  /**
+   * Adds an account to the list the scheduled check walks.
+   *
+   * Read, modify, write — so two installs landing together can each read the
+   * old list and the second write erases the first. The account that loses is
+   * never checked again, and nothing says so: for this product, the worst
+   * possible failure. So the write is read back, and retried until it holds.
+   * The pause is monday's own limit — secure storage takes one write a second
+   * to the same key (FACT, `apps/docs/monday-code-javascript-sdk`).
+   */
   async function register(accountId) {
-    const current = (await secureStorage.get(REGISTRY_KEY))?.ids ?? [];
-    if (current.includes(accountId)) return;
-    await secureStorage.set(REGISTRY_KEY, { ids: [...current, accountId] });
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const current = (await secureStorage.get(REGISTRY_KEY))?.ids ?? [];
+      if (current.includes(accountId)) return true;
+      if (attempt > 0) await sleep(1100);
+      await secureStorage.set(REGISTRY_KEY, { ids: [...current, accountId] });
+    }
+    const final = (await secureStorage.get(REGISTRY_KEY))?.ids ?? [];
+    if (final.includes(accountId)) return true;
+    log(`account ${accountId} could not be added to the registry`);
+    return false;
   }
 
   async function finishInstall(req, res, url) {
@@ -434,15 +453,31 @@ export function createAppHandler({
    * number, and a string is refused here too.
    */
   async function status(req, res) {
-    const claims = verifyJwt(req.headers.authorization, clientSecret, Math.floor(now() / 1000));
+    // Session tokens are short-lived by design; one without an expiry would
+    // work forever if it ever leaked, so here an expiry is mandatory.
+    const claims = verifyJwt(req.headers.authorization, clientSecret, Math.floor(now() / 1000), { requireExp: true });
     const accountId = String(claims?.dat?.account_id ?? '');
     if (!claims || !/^\d+$/.test(accountId)) return json(res, 401, { error: 'unauthorized' });
 
     const record = await secureStorage.get(accountKey(accountId));
     if (!record?.token) return json(res, 200, { installed: false, runs: [] });
 
-    const runs = (await makeStorage(record.token).get(runLogKey(accountId))) ?? [];
-    return json(res, 200, { installed: true, runs: Array.isArray(runs) ? runs : [] });
+    // Self-healing: an installed account missing from the registry is one the
+    // scheduled check silently skips. Opening the board view puts it back.
+    const ids = (await secureStorage.get(REGISTRY_KEY))?.ids ?? [];
+    if (!ids.includes(accountId)) {
+      log(`account ${accountId} was installed but not registered; re-registering`);
+      await register(accountId);
+    }
+
+    try {
+      const runs = (await makeStorage(record.token).get(runLogKey(accountId))) ?? [];
+      return json(res, 200, { installed: true, runs: Array.isArray(runs) ? runs : [] });
+    } catch (error) {
+      // Scrubbed of this account's token, which the outer handler does not know.
+      log(`status failed for account ${accountId}: ${redact(error?.message ?? String(error), [record.token])}`);
+      return json(res, 502, { error: 'check history unavailable' });
+    }
   }
 
   // ---- routing -------------------------------------------------------------

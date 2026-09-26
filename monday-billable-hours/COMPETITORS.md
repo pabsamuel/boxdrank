@@ -251,3 +251,31 @@ That is **pull**: it answers when someone thinks to ask. The failure this produc
 exists for is that nobody thinks to ask. A watchdog is **push**. The MCP is not a
 competitor in that sense, but it lowers the bar for one, and it should be
 watched.
+
+---
+
+## Full catalog search — 26 Sep 2026
+
+**FACT.** Source: monday's public marketplace catalog,
+`https://cdn.monday.com/public_marketplace_apps` (1,293 apps), with installs from
+`monday-apps-ms.monday.com/apps_ms/public/app_analytics/app_installs` and
+ratings from `marketplace-ms.monday.com/marketplace_ms/public/analytics/app_ratings`
+— the same endpoints the marketplace page itself calls. Every app's name, short
+description, description and keywords were searched for automation monitoring,
+failure, deactivation, health, watchdog and alerting language.
+
+**No app monitors monday's own automations for going quiet or being
+deactivated.** Sixteen apps matched the patterns; the closest are:
+
+| App | Installs | What it is | Why it is not this |
+|---|---|---|---|
+| AI Workflow Builder | 47 | AI-built multi-step workflows | Lists *"Automations fail silently with no way to know what went wrong"* as the problem it answers — for its own workflows, not native automations |
+| HookFlow | 3 | Webhook buffer against rate limits | Prevents one cause of deactivation; does not watch for any |
+| Rewind Backups | 2,093 | Backups | Restores data after "automation errors"; does not detect them |
+
+The rest are phone integrations, notification senders and file tools that
+matched on wording alone.
+
+What this does and does not establish: the wedge is open in the catalog today.
+A developer with 47 installs independently wrote the same problem statement,
+which is a second, unrelated source for the pain.

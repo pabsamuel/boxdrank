@@ -501,7 +501,30 @@ What monday says and where it says it is in `PLATFORM-FACTS.md`. The listing
 and privacy policy drafts are `LISTING.md` and `PRIVACY_POLICY.md`.
 
 **This server has not had an independent security review yet.** The runner code
-before it had three, and each found something the author had missed.
+before it had three, and each found something the author had missed. An
+adversarial pass by the author on 26 Sep found three problems, each fixed with a
+test proven to fail on the code before the fix:
+
+- **Two installs landing together could lose one account from the registry**,
+  and that account would never be checked again, silently. Registry writes are
+  now read back and retried past monday's one-write-a-second limit, and opening
+  the board view re-registers an installed account that went missing.
+- **A session token with no expiry was accepted forever** by the status route.
+  An expiry is now mandatory there.
+- **A storage failure on the status route could log the account's token.** It
+  is now scrubbed there, where the token is known.
+
+### Deploy readiness
+
+`npm run check:deploy` does locally what monday code does on push, and runs in
+CI: it validates `.mondaycoderc` against the CLI's own schema (copied from
+`monday-apps-cli`), checks the pinned Node is one nodemailer 10 supports, builds
+the view, boots the server with no configuration — the state of the first
+deploy — and checks it serves the board view and names what is missing.
+
+`.mappsignore` exists because the CLI uses it instead of `.gitignore` when
+present, and otherwise takes the *first* `.gitignore` its `**/.gitignore` glob
+finds, which can be one inside a dependency.
 
 ## What is not built
 

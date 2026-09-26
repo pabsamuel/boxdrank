@@ -3,8 +3,8 @@
  * it. index.html already points at "./main.js", which is what esbuild writes
  * here, so the page is copied rather than rewritten.
  *
- * dist/ is what gets hosted — it is the entire app. There is no server
- * component, which is the point.
+ * The board view is the whole of dist/. On monday code, `npm start` runs this
+ * before starting the server, which serves these files under /view/.
  */
 
 import { build } from 'esbuild';

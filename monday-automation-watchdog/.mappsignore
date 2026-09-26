@@ -1,0 +1,19 @@
+# What `mapps code:push` leaves out of the upload.
+#
+# The CLI uses this file *instead of* .gitignore when it exists, and it finds
+# .gitignore with a `**/.gitignore` glob that takes the first match — which can
+# be one inside a dependency. This file makes the upload deterministic.
+# node_modules, .git, .env and local-secure-storage.db.json are always excluded
+# by the CLI itself (monday-apps-cli, src/services/files-service.ts).
+
+# Rebuilt by `npm start` on the server; uploading a stale copy would hide a
+# broken build.
+dist/
+
+# Local runs of the CLI runner. Board ids, actor ids, API error strings.
+.watchdog-state/
+
+# Not needed to run.
+test/
+docs/
+*.png
