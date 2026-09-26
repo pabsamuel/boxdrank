@@ -10,7 +10,6 @@ Target subdomains:
 | ----- | ------------------------------- |
 | web   | `emotes.atesensoftware.com`     |
 | api   | `api-emotes.atesensoftware.com` |
-| CDN   | `cdn-emotes.atesensoftware.com` |
 
 Secrets for step 2 were generated separately and handed over out-of-band —
 never commit them. Regenerate any time with
@@ -35,7 +34,10 @@ Cloudflare R2 uses the account you already have — no new signup.
 `dash.cloudflare.com` → **R2** → enable (asks for a card, $0 on free tier) → create 3 buckets:
 
 - `emote-originals` — private
-- `emote-processed` — private, then **Settings → Public access → connect domain** `cdn-emotes.atesensoftware.com`
+- `emote-processed` — **private**. Do not connect a public domain: the API serves
+  previews as short-lived signed URLs (`signedGetUrl`, 1h) from
+  `apps/api/src/routes/public.ts`, so a public bucket would expose every
+  processed emote permanently for no benefit.
 - `uploads-quarantine` — private, **lifecycle rule: delete after 7 days**
 
 Then **Manage R2 API Tokens → Create** (Object Read & Write). Save:
@@ -70,7 +72,6 @@ S3_SECRET_ACCESS_KEY=<r2 secret>
 S3_BUCKET_ORIGINALS=emote-originals
 S3_BUCKET_PROCESSED=emote-processed
 S3_BUCKET_QUARANTINE=uploads-quarantine
-ASSET_CDN_URL=https://cdn-emotes.atesensoftware.com
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=<resend key>
 EMAIL_FROM=no-reply@atesensoftware.com
@@ -106,15 +107,14 @@ API_PORT=3001
 records → add them in Cloudflare DNS → **Verify**. Then **API Keys → Create**
 and put it in Railway as `RESEND_API_KEY`.
 
-## 5 · Cloudflare DNS (one screen, 3 records)
+## 5 · Cloudflare DNS (one screen, 2 records)
 
 `dash.cloudflare.com` → `atesensoftware.com` → **DNS**:
 
-| Type  | Name         | Value                          | Proxy    |
-| ----- | ------------ | ------------------------------ | -------- |
-| CNAME | `emotes`     | `cname.vercel-dns.com`         | DNS only |
-| CNAME | `api-emotes` | _(Railway's CNAME target)_     | DNS only |
-| CNAME | `cdn-emotes` | _(R2 sets this automatically)_ | Proxied  |
+| Type  | Name         | Value                      | Proxy    |
+| ----- | ------------ | -------------------------- | -------- |
+| CNAME | `emotes`     | `cname.vercel-dns.com`     | DNS only |
+| CNAME | `api-emotes` | _(Railway's CNAME target)_ | DNS only |
 
 Plus the Resend DKIM/SPF records from step 4.
 
@@ -141,7 +141,7 @@ Then finish by hand, since these need a mailbox and a file:
 
 5. Log in → enter your email → magic link arrives (needs `RESEND_API_KEY`)
 6. Creator studio → create a pack → upload a PNG → it processes and the
-   thumbnail loads from the CDN domain
+   thumbnail loads (via a signed URL from the processed bucket)
 
 If all six pass, it's live. Full regression: `docs/QA_TEST_PLAN.md`.
 
