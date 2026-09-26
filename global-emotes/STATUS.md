@@ -32,6 +32,25 @@ None for development. Launch requires owner inputs only: credentials (Twitch/Dis
 
 Malware-scan hook in pipeline (Stage 2) — the only one left. Closed post-Phase-8: Playwright e2e (5 browser tests), k6 load scripts, data-export job, Telegram export job, Gradle wrapper (8.11.1, committed; `android-apk.yml` builds via `./gradlew`), post-deploy smoke script (`infrastructure/scripts/smoke.sh`).
 
+## Pre-deploy audit (before the first real deploy)
+
+Walked the whole `DEPLOY_NOW` path against the code. Two blockers found and
+fixed, both of which would have produced a deploy that looked healthy:
+
+- **Containers could not start.** Entrypoints ran `node_modules/.bin/tsx` from
+  the repo root, but pnpm links a workspace package's binaries under that
+  package. Fixed, plus a `.dockerignore` and full workspace manifests in the
+  deps stage.
+- **Sign-in email could never send.** The nodemailer transport carried no auth
+  and the config had no credential fields, so no hosted provider could be
+  reached and no owner-supplied value could have fixed it. Added
+  `SMTP_USER`/`SMTP_PASS`/`SMTP_SECURE` with tests.
+
+Checked and sound, no change needed: R2 works with the S3 adapter
+(`forcePathStyle` + env region/endpoint); `db:migrate` runs `tsx src/migrate.ts`
+(not drizzle-kit) and both `tsx` and the migrations ship in the image; the web's
+`BRAND_NAME`/`PUBLIC_API_URL` are mapped in `next.config.mjs`.
+
 ## Next exact action
 
 Owner: walk `DEPLOY_NOW.md` (Railway + Vercel + Resend signups, R2 buckets, DNS on the already-owned `atesensoftware.com`). Engineering: only the Stage-2 malware-scan hook remains deferred; nothing blocks deploying.
