@@ -346,6 +346,13 @@ seconds — whenever they are not passed, and the prompt dies with
 `ERR_USE_AFTER_CLOSE` when nothing is attached to the terminal. It tests them
 with `if (!value)`, so `-r 0` still prompts. Pass all three, non-zero.
 
+Its "ERROR: Unknown error" means an HTTP status the CLI does not map — it maps
+404, 403, 400, 500 and 426 (`src/services/scheduler-service.utils.ts`), so a 401
+from an expired or regenerated token, or a 409/422, all print as "Unknown error".
+`--verbose` prints the underlying request. The first attempt with
+`-r 3 -b 60 -t 300` failed this way on 26 Sep; the cause is UNKNOWN until a
+verbose run shows it. The CLI's own documented example is `-r 3 -b 10 -t 60`.
+
 ---
 
 ## Still open
