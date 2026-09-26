@@ -178,56 +178,76 @@ structure`, `governance`, `template`, `columns`.
 
 ---
 
-## monday already emails about *some* deactivations — 23 Sep 2026
+## monday's own deactivation notices — read directly, 26 Sep 2026
 
-Found while looking for outreach leads, which is the only reason it was found at
-all. It is the closest thing to a competitor this product has, and it is monday
-itself.
+**FACT.** Source: support.monday.com article 360010415679, "Why is my automation
+deactivated?", last modified 18 June 2026. It returns 403 to every fetch from
+this environment, so Samet opened it in his browser and pasted the full text.
+This replaces an earlier note built on a search engine's summary, which was
+labelled INDIRECT and is now superseded.
 
-**INDIRECT, not read directly.** `support.monday.com` sits behind Cloudflare and
-returned 403 to every fetch from here. What follows is from a search engine's
-summary of two support articles, "Why is my automation deactivated?" and "Why is
-my integration deactivated?", plus a community thread titled "Did you know about
-our deactivated automations email?". **This needs confirming in a browser before
-any decision rests on it**, and it is written down as unconfirmed rather than
-quietly treated as true.
+Eight ways an automation gets deactivated, and whether monday tells anyone:
 
-What the summary says:
+| Cause | Does monday notify? | Quoted |
+|---|---|---|
+| **The automation's owner was deactivated** | **No** | "You will not receive a notification stating that the automation was deactivated" |
+| **The creator lost permissions** — unsubscribed from the board, lost column access, made a viewer, or lost the right to create automations | **No** | "You will not receive a notification that informs you of this change" |
+| **Rate limit** — too many triggers per minute | **No notification described** | "that template will be disabled and you'll see an error message appear in the board's Automation page" |
+| **Account deactivated two weeks or more** | **No** — found on return | "the automation creator will see that their automation is Off" |
+| An assignee lost board or item access | Yes | "you will see a notification that will let you know that board permissions have changed" |
+| A target was deleted — group, column, subitem, board or workspace | Yes, **but only once the automation is next triggered** | "After the targeted … is deleted **and the automation is triggered**, you will receive a notification" |
+| Item limit reached | Yes | "you will receive a notification that informs you that your automation is no longer active" |
+| Automation loop | A warning at creation time only | — |
 
-- monday sends a **deactivated automations email** in some cases
-- *"You will **not** receive a notification that informs you of this change when
-  certain automations are deactivated"*
-- *"Some deactivation scenarios do not send a notification. In those cases,
-  check the board's Automations page for inactive automation errors."*
-- Common causes of deactivation: revoked gmail/outlook tokens, a deleted column,
-  permission changes, deleted boards/groups/subitems, item limits, rate limits
+And monday's own FAQ: *"Some deactivation scenarios do not send a
+notification. In those cases, check the board's Automations page for inactive
+automation errors."*
 
-### Why this is not the Gate 0 moment
+### What this means
 
-The billable-hours product died because a competitor advertised the whole feature
-set. This is not that, and the difference is the entire premise of the watchdog:
+**The earlier note got the direction wrong.** It worried monday partly covered
+this product. The article says the opposite for the causes that matter most.
 
-**monday tells you when an automation has been switched off. It never tells you
-when an automation is still switched on and quietly not firing.**
+- **The most ordinary event in any company — someone leaves and their account is
+  deactivated — kills every automation they owned, silently.** No notification.
+  The only trace is an error on each affected board's Automations page, which
+  someone has to think to open. monday offers a mitigation, a default owner under
+  "Keep automations running when users are deactivated", but it has to have been
+  configured before the person left.
+- Losing permissions and hitting a rate limit are also silent.
+- Even the cases that do notify only do so in-app. **The article never mentions
+  email.** The "deactivated automations email" came from a community thread whose
+  URL now 404s, and remains unconfirmed.
+- The workaround monday gives is "check the board's Automations page". With 200+
+  workflows — the live lead in VALIDATION.md — that is not a workaround, which is
+  why that person built their own checker.
 
-Cadence detection covers both. A deactivated automation stops firing and shows up
-as silent; so does one that is still green, still enabled, and has not run in
-three weeks because its trigger condition stopped being met. The second case has
-no monday feature at all, and it is the one nobody notices — the person with 200+
-workflows in VALIDATION.md built their own workaround rather than rely on the
-email, which is itself evidence the email does not cover them.
+### The pitch, corrected twice now
 
-### What it does change
+Not "monday doesn't tell you when automations break" — for three of eight causes
+it does. Not only "switched on is not the same as working" either. The true one:
 
-The pitch cannot be "monday doesn't tell you when automations break", because
-partly it does. It has to be the narrower and truer one: **"switched on is not
-the same as working."**
+> **When someone leaves, their automations die, and monday doesn't tell you.**
 
-### Owed
+It is concrete, it is quoted from monday's own documentation, and it happens in
+every company that has ever offboarded anyone.
 
-1. Open both support articles in a browser and read them directly. 403 here.
-2. Establish whether the deactivated-automations email is on by default, who
-   receives it, and whether it can be turned off.
-3. Decide whether detecting *deactivated* status is worth adding, or whether
-   cadence alone is the cleaner product. Adding it would overlap monday's own
-   feature; leaving it out keeps the wedge sharp.
+### Where cadence detection is blind, stated plainly
+
+An automation that fires rarely — once a month on a status change — never
+accumulates enough history for the cadence engine to call it silent. Those are
+exactly the ones whose deactivation nobody notices for longest. See the
+`board_automations` note in `PLATFORM-FACTS.md`: the API may be able to close this
+gap directly, and whether to use it is in `BACKLOG.md`, not built.
+
+### monday's MCP can now list inactive automations — on request
+
+`developer.monday.com/api-reference/docs/list-automations`, updated early
+September 2026, describes a Platform MCP tool returning each automation's
+`is_active` state. Anyone connecting an AI assistant to monday can now ask
+"which of my automations are off?"
+
+That is **pull**: it answers when someone thinks to ask. The failure this product
+exists for is that nobody thinks to ask. A watchdog is **push**. The MCP is not a
+competitor in that sense, but it lowers the bar for one, and it should be
+watched.

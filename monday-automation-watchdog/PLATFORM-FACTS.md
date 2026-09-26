@@ -166,6 +166,42 @@ alongside board column extension, board menu features, column view and item view
 
 ---
 
+## Automation status is in the API — probably only in preview
+
+`api-reference/docs/list-automations` and `api-reference/docs/manage-automations`,
+both "updated 20 days ago" as of 26 Sep 2026.
+
+**FACT:**
+
+- A Platform MCP tool, `list_automations`, returns each automation on a board
+  "with id, title, is_active, and configuration", paginated with a cursor
+- Its programmatic equivalent is **`board_automations`** on the monday API
+- *"Some legacy automations may not appear in the results."*
+- Its sibling, `manage_automations`, maps to `activate_live_workflow`,
+  `deactivate_live_workflow` and `delete_live_workflow` **"on the monday.com dev
+  (preview) API schema"**
+
+**INFERENCE:** `board_automations` is probably preview-only as well. The page
+does not say which schema it is on, but its sibling mutations are preview, and
+both pages appeared at the same time.
+
+**UNKNOWN:**
+
+- The GraphQL shape of `board_automations` — no reference page was found at the
+  obvious URLs, and it is not written here from its name
+- Whether it exposes the *reason* for deactivation, the error shown on the
+  board's Automations page, or only `is_active`
+- Which scope it requires
+
+This answers, in part, the oldest open question in this project: whether the API
+exposes automation status at all. It does, as of this month. It matters because
+it closes the one blind spot cadence detection has — automations that fire too
+rarely to have a cadence. Whether to use it is a scope decision, recorded in
+`BACKLOG.md`. A preview API is also exactly the kind of thing that changes under
+you, which is the argument for waiting.
+
+---
+
 ## Still open
 
 1. **Does a cron invocation carry account context?** If not, the app stores each
