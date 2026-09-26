@@ -5,27 +5,42 @@
 
 ## Current state
 
-**v0.1.0 — the pipeline is complete and runs end to end offline.** Ten stages,
-six provider adapters, five target adapters, 181 tests green on Python
-3.10/3.11/3.12, with and without ffmpeg. **It can run fully offline** —
-transcription, translation and voice cloning all have a local path. No real *provider* has been exercised
-against a real account yet — that is the next milestone and it needs an API key,
-which only the owner can supply.
+**v0.1.0 — complete, and now proven on real models.** Ten stages, seven provider
+adapters, five target adapters, 181 tests green on Python 3.10/3.11/3.12, with
+and without ffmpeg.
+
+The headline changed since the last entry: **you do not need an API key or a
+GPU.** Voice conversion (`local_vc`, FreeVC) ran a full order on a plain CPU at
+roughly 1.5 s per line, with zero timing error, and it sounds better than the
+cloning models it replaced because it keeps the original actor's performance
+instead of rebuilding it from text.
+
+Live and verified:
+
+* the **recording booth** at `voxswap/web/booth.html`, published at
+  <https://pabsamuel.github.io/boxdrank/voxswap/booth.html>
+* **GAME-DEMO** — a small game voiced by one actor, rebuilt in a customer's
+  voice, both casts in one playable page
+* consent by **signed declaration** for a customer's own voice; the spoken
+  phrase is still mandatory for anyone else's
 
 ## Next exact action
 
-Run one real order **on your own voice, on a game you own**, start to finish:
-`new` → `phrase` → `validate` → `run --only plan` → `dry_run_limit: 5` → full run.
+**Record yourself in the booth**, then run one real order on a game you own:
 
-Two routes, pick one:
+```bash
+cd voxswap
+python3 -m voxswap new ORD-001          # unzip the booth pack into it
+python3 -m voxswap validate ORD-001     # paperwork + files, spends nothing
+python3 -m voxswap run ORD-001 --only plan
+python3 -m voxswap run ORD-001
+```
 
-* **Hosted** — put an `ELEVENLABS_API_KEY` in `voxswap/.env` and go. Fastest to
-  a first result.
-* **Local** — follow `docs/11-RUNNING-LOCAL.md`. Free per order, needs a GPU and
-  an afternoon. Start with ASR (whisper.cpp server, no key, no downside), then
-  translation, then the voice.
+With `"voice": "local_vc"` and the FreeVC server running, that costs nothing and
+needs no account. `docs/11-RUNNING-LOCAL.md` has the install, including the four
+ways it fails on a clean machine.
 
-Either way: write down what broke. That list is the v0.2 backlog.
+Write down what broke. That list is the v0.2 backlog.
 
 ## What works, verified
 

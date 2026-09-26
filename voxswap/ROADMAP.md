@@ -7,18 +7,22 @@ next one until the current one has actually been used on a real order.
 
 ## Phase 6 — your first real order *(next)*
 
-The goal is not features. It is proving the whole chain works with real money
-and a real voice.
+The goal is not features. It is proving the whole chain works with a real voice
+on a real game.
 
-- [ ] Choose a voice provider and put the key in `voxswap/.env` (`docs/05-PROVIDERS.md`)
 - [ ] Install ffmpeg on the machine you will actually work on
-- [ ] Record 2–5 minutes of your own voice, properly (quiet room, varied delivery)
+- [ ] Record yourself in the booth — it checks each take and hands you a zip
+      shaped like an order folder
 - [ ] Pick a small game you own with loose `.wav` or `.ogg` voice files
-- [ ] Do the full workflow on yourself: `new` → `phrase` → `validate` →
-      `run --only plan` → `dry_run_limit: 5` → full run
+- [ ] Unzip the pack into `orders/ORD-001/`, add the game audio under `assets/`
+- [ ] `validate` → `run --only plan` → `dry_run_limit: 5` → full run
 - [ ] Install the result in the actual game and play it
 - [ ] Write down everything that was confusing, wrong or missing
 - [ ] Update `STATUS.md` and turn that list into Phase 7
+
+No API key is needed for any of this: `"voice": "local_vc"` runs on CPU. A key
+only buys you hosted cloning, which is a different trade — see
+`docs/05-PROVIDERS.md`.
 
 ## Phase 7 — prove the second title
 

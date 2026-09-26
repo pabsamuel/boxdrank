@@ -5,16 +5,47 @@ take real money until they are done.
 
 ---
 
-## Before the first real run
+## Tonight — 20 minutes, no accounts, no money
+
+Everything needed for this is already built and running.
+
+- [ ] **Record yourself in the booth**
+      → <https://pabsamuel.github.io/boxdrank/voxswap/booth.html>
+      Eleven screens, one line each. It checks every take as you go and hands
+      you a zip laid out like an order folder. No microphone? Every screen also
+      takes a file from your phone's voice recorder.
+- [ ] **Listen to the game demo** and decide whether the quality sells
+      → the `Station Four` page, switching the hero between both casts.
+      If the swapped voice does not convince you, it will not convince a
+      customer, and that is the thing to fix before anything else.
+- [ ] **Install ffmpeg** on the machine you will actually work on. Without it
+      VoxSwap still runs, but on its fallbacks.
+
+## This week — your first real order
+
+- [ ] **Pick a small game you own** with loose `.wav` or `.ogg` voice files.
+      Steam → Settings → Browse local files, then look for `Audio`, `Sound`,
+      `VO` or `Voice`. Avoid `.pak`, `.bnk` and `.bank` for the first one.
+- [ ] **Run it**: unzip your booth pack into `orders/ORD-001/`, drop the game's
+      audio under `assets/`, then `validate` → `run --only plan` → full run.
+      `docs/02-OPERATOR-RUNBOOK.md` is the page to have open.
+- [ ] **Install the result in the game and play it.** This is the only test
+      that counts.
+- [ ] **Write down every confusing or broken thing.** That list is the backlog.
+
+No API key is needed for any of that — `"voice": "local_vc"` runs on your CPU.
+
+## Only if you want hosted cloning
+
+The local path is free and needs no account. A key buys you hosted cloning,
+which clones from shorter samples and speaks more languages, at a per-character
+price that stops being viable on a long game. Decide after your first order,
+not before.
 
 - [ ] **Voice provider account + API key** → `voxswap/.env` as `ELEVENLABS_API_KEY`
-      (or set up a local model instead — `docs/05-PROVIDERS.md`)
 - [ ] **Translation key** if you sell other languages → `ANTHROPIC_API_KEY`, and
       `pip install anthropic`
 - [ ] **ASR key** if your customers will not send scripts → `OPENAI_API_KEY`
-- [ ] **Install ffmpeg** on the machine you will actually use
-- [ ] **Record your own voice properly** — 2–5 minutes, quiet room, varied
-      delivery. This is also your reference for what to ask customers for.
 
 ## Before the first paying customer
 
