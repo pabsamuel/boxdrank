@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Maskable: Android crops this to its own shape, so the background runs
+       edge to edge (no rounded corners of our own) and the mark stays inside
+       the 80% safe zone. -->
+  <rect width="512" height="512" fill="#08090d"/>
+  <g transform="translate(256 256) scale(0.7) translate(-256 -256)">
+    <path d="M256 96c-70 0-126 56-126 126v170c0 10 12 16 20 9l30-26c5-5 13-5 18 0l26 23c5 5 13 5 18 0l26-23c5-5 13-5 18 0l30 26c8 7 20 1 20-9V222c0-70-56-126-126-126z" fill="#8be9ff" opacity="0.92"/>
+    <circle cx="212" cy="222" r="20" fill="#08090d"/>
+    <circle cx="300" cy="222" r="20" fill="#08090d"/>
+    <path d="M196 300c30 26 90 26 120 0" stroke="#22e06a" stroke-width="16" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>
