@@ -1,31 +1,56 @@
-/* Design tokens — dark/light aware, replace-friendly wordmark styling. */
+/* =============================================================
+   Design tokens — "sticker sheet": ink + tangerine, die-cut
+   stickers, print texture. Shared by every page, so the bold
+   treatment is spent on the hero and stickers while tables,
+   forms and legal copy stay quiet.
+
+   Display face is a condensed grotesque that ships with
+   iOS/macOS; elsewhere it degrades through Oswald/Arial Narrow
+   to the system sans. No webfont is fetched, so nothing can
+   silently fail to load.
+   ============================================================= */
 :root {
-  --bg: #f7f7fb;
+  --bg: #dcdfe7;
+  --dot: rgb(20 17 24 / 0.1);
   --surface: #ffffff;
-  --surface-2: #eef0f6;
-  --text: #16161d;
-  --text-muted: #5c5f70;
-  --brand: #5b5bd6;
-  --brand-strong: #4747c2;
-  --accent: #e5484d;
-  --success: #2f9e68;
+  --surface-2: rgb(20 17 24 / 0.06);
+  --text: #141118;
+  --text-muted: #4c495a;
+  --ink: #141118;
+  --sticker: #ffffff;
+  --cut: #dcdce4;
+
+  --brand: #ff5a1f;
+  --brand-strong: #e04a12;
+  --accent: #ff3d7f;
+  --canary: #ffd400;
+  --cyan: #0fc2d0;
+  --success: #17a673;
   --warning: #b88700;
-  --border: #dcdfe8;
-  --radius: 10px;
-  --shadow: 0 1px 3px rgb(22 22 29 / 0.08), 0 4px 16px rgb(22 22 29 / 0.06);
+
+  --border: #c3c7d2;
+  --radius: 0px;
+  --radius-soft: 14px;
+  --shadow: 4px 4px 0 var(--ink);
+
+  --display: 'Avenir Next Condensed', 'Futura', 'Oswald', 'Arial Narrow', system-ui, sans-serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #101018;
-    --surface: #181822;
-    --surface-2: #20202e;
-    --text: #ececf2;
-    --text-muted: #9a9db0;
-    --brand: #7d7df0;
-    --brand-strong: #9b9bf5;
-    --border: #2c2c3c;
-    --shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+    --bg: #0d0b11;
+    --dot: rgb(255 255 255 / 0.075);
+    --surface: #17141f;
+    --surface-2: rgb(255 255 255 / 0.06);
+    --text: #f3f1f7;
+    --text-muted: #a9a4b8;
+    --ink: #f3f1f7;
+    --sticker: #fbfaf7;
+    --cut: #c9c6be;
+    --border: #2a2738;
+    --brand: #ff6a33;
+    --brand-strong: #ff855a;
   }
 }
 
@@ -42,9 +67,12 @@ body {
     'Segoe UI',
     Roboto,
     sans-serif;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--dot) 1.1px, transparent 1.2px);
+  background-size: 13px 13px;
   color: var(--text);
   line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
@@ -54,6 +82,10 @@ a {
 a:hover {
   text-decoration: underline;
 }
+:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 2px;
+}
 
 .container {
   max-width: 1040px;
@@ -61,22 +93,30 @@ a:hover {
   padding: 0 20px;
 }
 
+/* ---------- nav ---------- */
 .nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 0;
+  padding: 18px 0;
   gap: 16px;
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: 8px;
 }
 
 .wordmark {
+  font-family: var(--display);
   font-weight: 800;
-  font-size: 1.25rem;
-  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  font-size: 1.5rem;
+  letter-spacing: 0;
   color: var(--text);
 }
 .wordmark span {
   color: var(--brand);
+}
+.wordmark:hover {
+  text-decoration: none;
 }
 
 .nav-links {
@@ -84,57 +124,88 @@ a:hover {
   gap: 18px;
   align-items: center;
   flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+.nav-links a {
+  color: var(--text);
 }
 
+/* ---------- buttons: hard-edged, offset shadow ---------- */
 .btn {
   display: inline-block;
   background: var(--brand);
   color: #fff;
-  border: none;
+  border: 2px solid var(--ink);
   border-radius: var(--radius);
-  padding: 10px 18px;
-  font-size: 0.95rem;
-  font-weight: 600;
+  padding: 12px 20px;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   cursor: pointer;
+  box-shadow: var(--shadow);
+  transition:
+    transform 0.08s,
+    box-shadow 0.08s;
 }
 .btn:hover {
   background: var(--brand-strong);
   text-decoration: none;
 }
+.btn:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 var(--ink);
+}
 .btn.secondary {
-  background: var(--surface-2);
+  background: var(--surface);
   color: var(--text);
 }
 .btn.danger {
   background: var(--accent);
+  color: #fff;
 }
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
+/* ---------- cards: die-cut panels ---------- */
 .card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 2px solid var(--ink);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 22px;
   box-shadow: var(--shadow);
+}
+.card h3 {
+  font-family: var(--display);
+  text-transform: uppercase;
+  font-weight: 800;
+  font-size: 1.35rem;
+  line-height: 1.05;
+  margin: 0 0 10px;
 }
 
 .grid {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 .grid.cols-3 {
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
 
+/* ---------- forms stay calm ---------- */
 .input,
 select,
 textarea {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
+  padding: 11px 13px;
+  border: 2px solid var(--ink);
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
@@ -143,49 +214,169 @@ textarea {
 
 label {
   display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin: 12px 0 4px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 14px 0 5px;
   color: var(--text-muted);
 }
 
+/* ---------- hero ---------- */
 .hero {
-  padding: 72px 0 48px;
-  text-align: center;
+  padding: 56px 0 40px;
 }
 .hero h1 {
-  font-size: clamp(2rem, 5vw, 3.2rem);
-  letter-spacing: -0.03em;
-  margin: 0 0 16px;
+  font-family: var(--display);
+  text-transform: uppercase;
+  font-weight: 800;
+  font-size: clamp(2.6rem, 8vw, 5rem);
+  line-height: 0.92;
+  letter-spacing: -0.005em;
+  margin: 14px 0 18px;
+  text-wrap: balance;
+}
+.hero h1 em {
+  font-style: normal;
+  color: var(--brand);
 }
 .hero p {
   color: var(--text-muted);
-  font-size: 1.15rem;
-  max-width: 620px;
-  margin: 0 auto 28px;
+  font-size: 1.05rem;
+  max-width: 60ch;
+  margin: 0 0 26px;
+}
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
+/* ---------- eyebrow / badges ---------- */
 .badge {
   display: inline-block;
-  font-size: 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
   font-weight: 700;
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 7px 12px;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
 }
 .badge.ok {
-  background: color-mix(in srgb, var(--success) 15%, transparent);
-  color: var(--success);
+  background: var(--success);
+  color: #fff;
 }
 .badge.warn {
-  background: color-mix(in srgb, var(--warning) 15%, transparent);
-  color: var(--warning);
+  background: var(--canary);
+  color: var(--ink);
 }
 
+/* ---------- the sticker sheet ---------- */
+.stickers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+  gap: 12px;
+}
+.sticker {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  background: var(--sticker);
+  border-radius: 24%;
+  font-size: clamp(1.6rem, 4vw, 2rem);
+  line-height: 1;
+  transform: rotate(var(--r, 0deg));
+  box-shadow:
+    0 2px 0 var(--cut),
+    0 8px 16px -7px rgb(10 6 20 / 0.5);
+}
+
+.sheet {
+  border: 2px solid var(--ink);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+.sheet-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.sheet-head .t {
+  font-family: var(--display);
+  text-transform: uppercase;
+  font-weight: 800;
+  font-size: 1.15rem;
+}
+.sheet-head .rule {
+  flex: 1;
+  height: 2px;
+  background: var(--ink);
+  opacity: 0.18;
+}
+.sheet-head .n {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
+/* keyboard mock */
+.kb {
+  border: 2px solid var(--ink);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 12px;
+}
+.kb-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 11px;
+}
+.kb-pill {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: #fff;
+  background: linear-gradient(90deg, var(--brand), var(--accent));
+  border: 2px solid var(--ink);
+  padding: 6px 11px;
+}
+.kb-priv {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.split {
+  display: grid;
+  gap: 22px;
+  grid-template-columns: 1.15fr 0.85fr;
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- emote grid (pack pages, studio) ---------- */
 .emote-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
   gap: 12px;
 }
 .emote-cell {
@@ -193,18 +384,21 @@ label {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface-2);
-  border-radius: var(--radius);
+  background: var(--sticker);
+  border-radius: 22%;
   overflow: hidden;
+  box-shadow:
+    0 2px 0 var(--cut),
+    0 8px 16px -7px rgb(10 6 20 / 0.45);
 }
 .emote-cell img {
-  max-width: 80%;
-  max-height: 80%;
+  max-width: 78%;
+  max-height: 78%;
 }
 
 .muted {
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 0.92rem;
 }
 
 table {
@@ -214,15 +408,57 @@ table {
 th,
 td {
   text-align: left;
-  padding: 8px 10px;
+  padding: 9px 10px;
   border-bottom: 1px solid var(--border);
   font-size: 0.92rem;
+}
+th {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-muted);
 }
 
 footer {
   margin-top: 80px;
-  padding: 32px 0;
-  border-top: 1px solid var(--border);
+  padding: 28px 0;
+  border-top: 2px solid var(--ink);
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+  .sticker {
+    transform: none !important;
+  }
+}
+
+/* Narrow screens: give the nav links their own row instead of letting the
+   wordmark wrap mid-word. */
+@media (max-width: 620px) {
+  .nav {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px 0;
+  }
+  .wordmark {
+    font-size: 1.25rem;
+  }
+  .nav-links {
+    width: 100%;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 0.64rem;
+  }
+  .hero {
+    padding: 34px 0 30px;
+  }
 }
