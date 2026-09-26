@@ -322,6 +322,32 @@ And `me` has `id: ID!` and `is_admin: Boolean` (`api-reference/reference/me`).
 
 ---
 
+## Configured and live — 26 Sep 2026
+
+**FACT**, from requests made to `https://live1-service-36993937-ca48573e.eu.monday.app`
+after version 18296125 (v2) was promoted:
+
+- `/health` → `{"ok":true,"mail":"failed"}`: every setting present, mail
+  provider rejecting the stored credentials (the Brevo SMTP key was never
+  created — Brevo reported "SMTP key couldn't be added at this time").
+- `/oauth/start` → 302 to `auth.monday.com/oauth2/authorize` with the Live URL's
+  `/oauth/callback`, the four read scopes and a state.
+- **`POST /mndy-cronjob/check` from outside → 403 from monday's edge**
+  (`openresty`, not this server). monday code does not let the public reach
+  cron routes. The docs did not say so; the app was built assuming it could,
+  and its own guard stays as a second layer.
+- A live version is locked. Redirect URL, webhook and board view had to be set
+  on a new draft (v2), code pushed to it, and v2 promoted. The Live URL stayed
+  the same across the promotion.
+
+**`mapps scheduler:create`** (monday-apps-cli `src/commands/scheduler/create.ts`)
+prompts for `-r` max retries, `-b` minimum backoff and `-t` timeout — both in
+seconds — whenever they are not passed, and the prompt dies with
+`ERR_USE_AFTER_CLOSE` when nothing is attached to the terminal. It tests them
+with `if (!value)`, so `-r 0` still prompts. Pass all three, non-zero.
+
+---
+
 ## Still open
 
 1. **Does a cron invocation carry account context?** Still not stated. Built as
