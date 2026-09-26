@@ -478,19 +478,38 @@ it in no output stream and on no disk, a misconfigured provider fails before any
 monday call is made, and a dry run does not send even with a provider
 configured.
 
+## Running on monday code
+
+`scripts/serve-monday.js` is what monday code runs (`npm start`, which builds
+the board view first). It wires monday's SDK into `src/server/app-server.js`,
+which never imports it and is tested with fakes over real HTTP.
+
+| Route | What it does |
+|---|---|
+| `GET /oauth/start` → `GET /oauth/callback` | Install. Single-use state in an HttpOnly cookie; the code is exchanged server-side; the account id is asked of monday with the new token, never taken from the request; token and installer's email go to `SecureStorage` |
+| `POST /mndy-cronjob/check` | The scheduled check, every installed account in turn, one account's failure never stopping the next. A second call inside 20 minutes does nothing, since the docs do not say the route is private |
+| `POST /monday/lifecycle` | Uninstall. Verified against the **client secret** (HS256/384/512 only; `none` and public-key algorithms refused); deletes the token and address |
+| `GET /api/status` | The board view's check history, for the account named in the session token monday signed — and nothing else |
+| `GET /view/` | The board view, by exact path from an allowlist |
+
+Every response carries HSTS for a year, `nosniff` and `no-referrer`; the app's
+own pages forbid scripts and framing. Until every setting exists it runs in a
+setup mode that serves the board view and names the missing settings, because
+the Live URL it needs is only created by promoting the first deploy.
+
+What monday says and where it says it is in `PLATFORM-FACTS.md`. The listing
+and privacy policy drafts are `LISTING.md` and `PRIVACY_POLICY.md`.
+
+**This server has not had an independent security review yet.** The runner code
+before it had three, and each found something the author had missed.
+
 ## What is not built
 
-- ~~No real mail provider.~~ **Built.** See below.
-- **monday's own hosting is still unwired.** `runCheck` takes injected `storage`
-  and `mailer` interfaces, so if monday code turns out to offer both, it is two
-  small files rather than a rewrite.
-- No manifest or app configuration, for the same reason.
-- No OAuth flow. The UI uses seamless auth; a scheduled job runs without a user
-  present and needs a stored token, which is the one place this app would hold a
-  secret. That is the main new question for its security review.
-- **No validation.** Nobody has said they would pay for this. The evidence is
-  monday's own documentation and two community threads. That is better than the
-  last two products had at this stage, and it is still not a customer.
+- **A real install has not happened.** Everything in the table above is tested
+  offline against monday's documented shapes; none of it has met monday yet.
+- No manifest file. One exists as a format, but the board-view feature type name
+  was not found, and the Developer Center UI is documented where it is not.
+- Screenshots and an icon for the listing.
 
 ## Verification still owed
 

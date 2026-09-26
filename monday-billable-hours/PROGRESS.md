@@ -1,6 +1,6 @@
 # Progress — monday Automation Watchdog
 
-Updated 23 Sep 2026 (fifth pass, after the network policy was opened). Percentages are counted from the checklist below, not
+Updated 26 Sep 2026 (sixth pass: the app server is written). Percentages are counted from the checklist below, not
 estimated. An item is done or it is not; half-done items are listed as not done
 with a note.
 
@@ -8,12 +8,12 @@ with a note.
 
 | | Done | Note |
 |---|---|---|
-| **Code that can be written from here** | **16 / 16 — 100%** | Verified against a live account |
-| **Distance to a product someone pays for** | **23 / 35 — 66%** | The remaining 34% is mostly not code |
+| **Code that can be written from here** | **17 / 17 — 100%** | Verified against a live account |
+| **Distance to a product someone pays for** | **31 / 41 — 76%** | What is left is setup in monday, a real install, assets, and sales |
 
 ---
 
-## 1. Code writable in this environment — 13/13
+## 1. Code writable in this environment — 17/17
 
 - [x] Cadence engine — late / silent / dormant / healthy, with false-alarm restraint
 - [x] Working-day awareness, so weekends do not produce alerts
@@ -35,6 +35,12 @@ with a note.
       one job. Any provider that speaks SMTP, chosen by connection string
       rather than by code — the only mail option that did not need a vendor's
       API reference this environment cannot reach
+- [x] **The app server** (`src/server/app-server.js`): OAuth install with a
+      single-use state, the scheduled check as a monday code cron route,
+      uninstall webhooks verified against the client secret that delete the
+      token and address, a status endpoint so the board view can show when the
+      last check ran, and a setup mode so the first deploy can boot before its
+      Live URL exists. Every monday detail read from live docs on 26 Sep.
 - [x] **Verified against a real monday account** (21 Sep 2026). Two live
       responses are committed as fixtures and checked in CI. The first found a
       real bug: `created_at` is 100-nanosecond ticks, which the parser was
@@ -48,7 +54,7 @@ CLI against a stub that quotes the `Authorization` header back put the token in
 stderr and in a file on disk. **A security review that only tests cooperative
 inputs proves nothing about the inputs that matter.**
 
-## 2. Was blocked on `developer.monday.com` — 3/4
+## 2. Was blocked on `developer.monday.com` — 4/4
 
 Unblocked on 23 Sep when the environment's network policy was changed. Every
 answer was read from a live page and written up in `PLATFORM-FACTS.md` with the
@@ -56,24 +62,29 @@ page named. None of it was written from memory, deliberately — the one time th
 project guessed at a monday format, the result looked finished and returned
 `null` for every real row.
 
-- [x] ~~App manifest~~ — **there is no manifest.** The page 404s and nothing in
-      the navigation mentions one; apps are configured in the Developer Center
-      UI. Two days of blocked work whose premise was wrong, which is the sort of
-      thing only reading finds.
-- [x] OAuth scopes — `boards:read` and `users:read`, and nothing else. Authorize
-      and token URLs, the 10-minute code, and the token living until uninstall
-      are all recorded.
+- [x] App configuration — done in the Developer Center UI. *Corrected 26 Sep:*
+      a manifest format **does** exist (`app-manifest.yml`, in monday's own
+      sample app); the docs page for it 404s, which was wrongly read as "there
+      is no manifest". The board-view feature type name was not found, so no
+      manifest is written — the UI is documented, the type name would be a guess.
+- [x] OAuth scopes — **four, all read-only**: `boards:read`, `users:read`,
+      `me:read`, `account:read`. It said two until the `me` and `account`
+      reference pages were read: the token response has no account id, so the
+      app must ask who installed it, and those two queries need those scopes.
 - [x] monday code storage wired into `runCheck`'s `storage` interface —
       `src/server/monday-storage.js`, which is the entire cost of moving off
       disk because storage was injected from the start
-- [ ] monday code scheduling wired to call `runCheck` — the platform side is
-      answered (**cron jobs exist**: a POST route under `/mndy-cronjob/`, five
-      per region, created with `mapps scheduler:create`). What is left is the
-      app shell that hosts the route, which needs the app to exist first.
+- [x] monday code scheduling wired to call `runCheck` — `POST
+      /mndy-cronjob/check` runs every installed account in turn, isolates
+      failures, and ignores a second call inside 20 minutes, because the docs
+      do not say the route is private. Creating the job itself is one CLI
+      command, in section 3.
 
-## 3. Needs a real monday account — 4/5
+## 3. Needs a real monday account — 4/6
 
 - [ ] Run the board view inside monday and confirm it loads
+- [ ] Complete one real install through the OAuth flow, create the cron job,
+      and receive one real alert email
 - [x] Confirm `activity_logs` returns what the adapter expects
 - [x] **Confirm the `created_at` format** — it is 100-nanosecond ticks, and the
       parser was wrong until a live response proved it
@@ -82,7 +93,7 @@ project guessed at a monday format, the result looked finished and returned
 - [x] Confirm automation actions reach the board activity log at all — **yes**,
       which was the more dangerous of the two questions
 
-## 4. Still a secret to solve — 2/3
+## 4. Still a secret to solve — 4/4
 
 The runner now holds **two** credentials, not one: the monday token and the SMTP
 password. Both are redacted from anything the process throws, by shared code
@@ -98,16 +109,21 @@ runs with no user present and needs a stored token. **This is the first secret
 any product in this repository has held**, and the main subject of its security
 review.
 
-- [ ] OAuth install flow for the scheduled job
+- [x] OAuth install flow for the scheduled job — written and tested offline;
+      running it for real is the section 3 item above
+- [x] Uninstall deletes the stored token and the installer's email address
 - [x] Token storage that survives monday's security review — `SecureStorage`
       and `SecretsManager`, both named APIs now rather than an open problem
 - [x] The token cannot leave the process: the endpoint is validated before the
       token is attached, and every response is scrubbed of it before parsing
 
-## 5. Marketplace — 0/4
+## 5. Marketplace — 1/5
 
 - [ ] Burp scan passed, findings fixed
-- [ ] Listing copy, assets, privacy statement
+- [x] Listing copy and privacy policy drafted — `LISTING.md`,
+      `PRIVACY_POLICY.md`, each describing only what the code does; the
+      owner's name, support email, price and mail provider left as `[FILL IN]`
+- [ ] Screenshots from a real account, and an icon
 - [ ] Submitted
 - [ ] Approved
 

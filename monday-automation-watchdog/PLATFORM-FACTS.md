@@ -111,16 +111,23 @@ import { SecretsManager } from '@mondaycom/apps-sdk';
 Authorize parameters: `client_id` (required), `redirect_uri`, `scope`
 (space-separated), `state`, `app_version_id`, `force_install_if_needed`.
 
-### Scopes this app needs
+### Scopes this app needs — four, all read-only
 
-There are 21 scopes. The ones that matter here:
+There are 21 scopes. This section said two until 26 Sep, when the `me` and
+`account` reference pages were read:
 
-| Scope | What the docs say | Why |
-|---|---|---|
-| `boards:read` | Read a user's board data | `activity_logs` is nested under `boards`, so this is the one |
-| `users:read` | Read profile information of the account's users | to tell people apart from automations |
+| Scope | Why |
+|---|---|
+| `boards:read` | `activity_logs` is nested under `boards` |
+| `users:read` | to tell people apart from automations |
+| `me:read` | **FACT** (`api-reference/reference/me`): "Required scope: me:read". The token response carries no account id, so the app has to ask who installed it |
+| `account:read` | **FACT** (`api-reference/reference/account`): "Required scope: account:read", for `me { account { id } }` |
 
-**Nothing else.** No `boards:write`, no `account:read`. The app only reads.
+Nothing that writes. The token response, **FACT** from `apps/docs/oauth`, is
+`{"access_token", "token_type": "Bearer", "scope"}` — no account, no user, no
+refresh token. The account id is therefore asked of monday with the new token,
+and never taken from the browser: an id supplied by the request would let
+anyone attach their token to someone else's account.
 
 `notifications:write` — *"Send notifications on behalf of the user"* — is worth
 noting as a **delivery channel that is not email**. Not adopted: it would widen
@@ -151,18 +158,35 @@ days rather than quietly relied on.
 
 ---
 
-## There is no manifest file
+## ~~There is no manifest file~~ — corrected 26 Sep 2026: there is one
 
-`developer.monday.com/apps/docs/manifest` returns **404**, and no manifest page
-appears anywhere in the apps documentation navigation.
+The first reading got this wrong. `developer.monday.com/apps/docs/manifest`
+returns 404 and no manifest page is in the docs navigation — both still true —
+and from that this file concluded apps have no manifest.
 
-Apps are configured in the **Developer Center UI** — you add app features
-(`apps/docs/app-features`) there, and deploy with the `mapps` CLI. "Write the
-app manifest" was listed as blocked work for two days; the work does not exist.
-The premise was wrong, which is the sort of thing only reading finds.
+**FACT:** monday's own sample app, `github.com/mondaycom/welcome-apps`,
+`apps/quickstart-integrations-ts/app-manifest.yml`, has one:
 
-A **board view** is one of the listed feature types under the Boards scope,
-alongside board column extension, board menu features, column view and item view.
+```yaml
+version: '1.0.0'
+app:
+  name: My first integration app
+  features:
+    - type: AppFeatureIntegration
+      name: Hello Integration
+      build:
+        source: customUrl
+        suffix: "/monday"
+```
+
+**UNKNOWN:** the feature `type` for a board view. It is not in that sample and no
+reference page for the format was found, so this project does **not** write a
+manifest: it would mean guessing a type name. Everything the manifest would say
+is set in the Developer Center UI instead, which is documented.
+
+A 404 is evidence that a page is missing, not that the thing it would describe
+is missing. That is the lesson, and it is the same one the dead forum links
+taught the same day.
 
 ---
 
@@ -202,15 +226,57 @@ you, which is the argument for waiting.
 
 ---
 
+## Read on 26 Sep 2026 while building the server
+
+**Hosting — FACT unless marked:**
+
+- Node.js 18, 20 and 22 are supported runtimes (`apps/docs/monday-code-runtimes`)
+- The port comes from `process.env.PORT` — from monday's own sample app, which
+  does exactly that; the docs pages read did not state it
+- The **Live URL exists only once a version has been promoted to live**; before
+  that there is a per-version URL that changes with every version
+  (`apps/docs/manage-monday-code-in-the-developer-center`). The server
+  therefore boots in a setup mode without `WATCHDOG_BASE_URL`: the first deploy
+  cannot have it
+- Secrets are set in the Developer Center's monday code → Secrets tab, and
+  "you can't retrieve secrets after creation"
+
+**CLI — FACT (`apps/docs/command-line-interface-cli`):**
+
+| | |
+|---|---|
+| Install | `npm install -g @mondaycom/apps-cli` |
+| Authenticate | `mapps init -t <token>` |
+| Deploy | `mapps code:push`, with `-s` to run a dependency security scan |
+| Promote to live | `mapps app:promote -i <APP_VERSION_ID> -a <APP_ID>` |
+| Env / secrets | `mapps code:env` / `mapps code:secret`, `-m set -k KEY -v VALUE` |
+
+**Uninstall — FACT (`apps/docs/webhooks-1`):** lifecycle events go to one URL
+set in the Developer Center's Webhooks tab. The `uninstall` body carries
+`data.account_id`, and "each request has a JWT in the Authorization header …
+signed with the **Client Secret**" — not the Signing Secret, which is what
+signs integration requests (`apps/docs/authorization-header`). Two secrets for
+two flows; mixing them up would reject every real uninstall. The algorithm is
+not stated; HS256/384/512 are accepted and nothing else.
+
+**Dependency audit:** `npm audit` reports 8 moderate findings, all one
+advisory in `uuid` < 11.1.1 pulled in by `@mondaycom/apps-sdk` through Google
+Cloud libraries. The advisory concerns `v3`/`v5`/`v6` called with a `buf`
+argument; every caller in this tree uses `v4` only (checked by grep). Not
+overridden, because forcing a major version into monday's own SDK is a larger
+risk than an unreachable code path. Re-check at submission; `mapps code:push -s`
+will run monday's own scan.
+
+---
+
 ## Still open
 
-1. **Does a cron invocation carry account context?** If not, the app stores each
-   installing account's access token in `SecureStorage` at install time and the
-   job iterates them. That is the obvious design and it is an **INFERENCE**, not
-   something the page says.
+1. **Does a cron invocation carry account context?** Still not stated. Built as
+   if it does not: each account's token is stored in `SecureStorage` at install
+   and the job iterates them. That design works either way.
 2. **Does `activity_logs` need more than `boards:read`?** One page away.
-3. **What does the app do at install time** to capture and store the token —
-   the lifecycle hook, if there is one.
+3. ~~What does the app do at install time~~ — answered: the OAuth callback
+   stores the token; the `uninstall` webhook deletes it.
 
 None of these block the code that exists. All three are reading, not guessing,
 and reading is now possible.

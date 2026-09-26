@@ -4,7 +4,9 @@
  * Plain DOM, no framework: the smaller the dependency list, the smaller the
  * surface monday's security review has to scan.
  *
- * Read-only. One GraphQL query shape, no mutations, no storage.
+ * Read-only. One GraphQL query shape, no mutations, no storage. Its one call to
+ * this app's own server fetches the scheduled job's history for the signed-in
+ * account.
  */
 
 import { watch, summarize } from '../core/watch.js';
@@ -35,6 +37,7 @@ const state = {
   mutes: {},
   muteStoreFailed: false,
   runs: [],
+  installed: null,
   error: null,
   status: '',
 };
@@ -50,6 +53,23 @@ const state = {
  */
 function renderRunStatus() {
   const summary = summarizeRuns(state.runs, state.now);
+
+  if (state.installed === false) {
+    // Opened in a new tab: monday's authorization page is not one to put in
+    // an iframe, and the install has to happen as a top-level visit for its
+    // one-time state cookie to be sent back.
+    const strip = el('div', 'checks warn');
+    const link = el('a', null, 'Set up email alerts');
+    link.href = new URL('../oauth/start', window.location.href).toString();
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    strip.append(
+      el('strong', null, 'Email alerts are not set up for this account'),
+      el('span', null, 'This page only reports when you open it. Set up alerts so a stopped automation emails you. '),
+      link,
+    );
+    return strip;
+  }
 
   if (summary.neverRun) {
     const strip = el('div', 'checks warn');
@@ -303,9 +323,26 @@ async function loadFromMonday() {
   state.source = 'monday';
   state.now = now;
   state.mutes = pruneMutes(loadMutes(), now);
-  // The board view has no access to the scheduled job's run log yet, so it
-  // honestly reports that checks are not running rather than implying they are.
+  // The scheduled job's history lives server-side. It is asked for with the
+  // session token monday issues to this view, which the server verifies, so a
+  // view can only ever read its own account's history. If the server cannot be
+  // reached the view falls back to saying checks are not running — the one
+  // failure it must never hide.
   state.runs = [];
+  state.installed = null;
+  try {
+    const session = await monday.get('sessionToken');
+    const response = await fetch(new URL('../api/status', window.location.href), {
+      headers: { Authorization: session?.data ?? '' },
+    });
+    if (response.ok) {
+      const body = await response.json();
+      state.runs = Array.isArray(body?.runs) ? body.runs : [];
+      state.installed = body?.installed === true;
+    }
+  } catch {
+    // Left as "not running"; see above.
+  }
   state.unparsedTimestamps = unparsedTimestamps;
   state.results = watch(entries, now, { boardNames: new Map(boards.map((b) => [b.id, b.name])) });
   state.summary = summarize(state.results);
