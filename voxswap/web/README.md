@@ -8,6 +8,19 @@ It is one self-contained file on purpose. Open it from disk, serve it from
 anything, or hand it to a customer as an attachment — there is no build step and
 no server to run.
 
+## Sending it to a customer
+
+Nobody should have to type an order number, so the page never asks for one.
+Put it in the link instead and the customer never sees it:
+
+```
+https://pabsamuel.github.io/boxdrank/voxswap/booth.html?order=ORD-123
+```
+
+Without one the page makes its own — `VS-260926-K7QM`, date plus four
+characters chosen to survive being read aloud or copied off a screen (no 0/O,
+1/I/L) — and shows it once, on the last screen, as the reference to quote.
+
 ## What it does
 
 Eleven screens, one line each. After every take it decodes the audio and
