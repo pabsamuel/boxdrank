@@ -139,3 +139,81 @@ If all four pass, it's live. Full regression: `docs/QA_TEST_PLAN.md`.
   minimum: `docs/integrations/TWITCH.md`.
 - **Apple Developer ($99/yr)** — only for the iPhone keyboard. Nothing above
   needs it; the iPhone web keyboard works today.
+
+---
+
+# Phase 2 — providers (after the site is live)
+
+Until these exist, entitlements run on the **mock adapter + access codes**, which
+is enough to demo the whole flow. Real creators need Twitch at minimum.
+
+Every value below is read from the code, not guessed: the callback route is
+`${PUBLIC_API_URL}/v1/providers/<id>/callback` (`apps/api/src/routes/providers.ts`),
+the webhook route is `${PUBLIC_API_URL}/v1/webhooks/providers/<id>`
+(`apps/api/src/routes/webhooks.ts`), and the scopes come from each adapter's
+`metadata()` in `packages/provider-sdk/src/adapters/`.
+
+## Twitch — the launch wedge
+
+[dev.twitch.tv/console/apps](https://dev.twitch.tv/console/apps) → **Register Your Application**
+
+| Field              | Value                                                                |
+| ------------------ | -------------------------------------------------------------------- |
+| Name               | Global Emotes                                                        |
+| OAuth Redirect URL | `https://api-emotes.atesensoftware.com/v1/providers/twitch/callback` |
+| Category           | Application Integration                                              |
+
+Then **Manage → New Secret**. Into Railway:
+
+```
+TWITCH_CLIENT_ID=<client id>
+TWITCH_CLIENT_SECRET=<client secret>
+TWITCH_EVENTSUB_SECRET=<any fresh 32+ char random string>
+```
+
+Scopes are requested per role automatically — fans `user:read:subscriptions`,
+creators `channel:read:subscriptions`. Nothing to configure in the console.
+
+EventSub callback (the app registers subscriptions itself once the secret is set):
+`https://api-emotes.atesensoftware.com/v1/webhooks/providers/twitch`
+
+## Discord — role-based access
+
+[discord.com/developers/applications](https://discord.com/developers/applications) → **New Application**
+
+1. **OAuth2 → Redirects → Add**
+   `https://api-emotes.atesensoftware.com/v1/providers/discord/callback`
+2. **OAuth2** → copy **Client ID** and **Client Secret**.
+3. **Bot → Add Bot** → copy the token → under **Privileged Gateway Intents**
+   turn on **Server Members Intent** (role checks fail without it).
+
+```
+DISCORD_CLIENT_ID=<client id>
+DISCORD_CLIENT_SECRET=<client secret>
+DISCORD_BOT_TOKEN=<bot token>
+```
+
+Scopes per role: fans `identify guilds guilds.members.read`, creators
+`identify guilds`. Discord has no role-change webhook, so the adapter polls on
+login plus reconciliation sweeps — expected, documented in
+`docs/integrations/DISCORD.md`.
+
+## Stripe — only when you start charging
+
+Webhook endpoint: `https://api-emotes.atesensoftware.com/v1/webhooks/stripe`
+(events: subscriptions, invoices, checkout). Prices use `lookup_key`
+`fan_plus | creator_pro | creator_business` — SQL to insert the matching `prices`
+rows is in `docs/product/MONETIZATION.md`.
+
+```
+STRIPE_SECRET_KEY=<sk_...>
+STRIPE_WEBHOOK_SECRET=<whsec_...>
+STRIPE_PUBLISHABLE_KEY=<pk_...>
+```
+
+## Honest limits (do not promise these)
+
+- **YouTube** — the Channel Memberships API is allowlist-gated by Google; the
+  adapter ships disabled until approval. `docs/integrations/YOUTUBE.md`.
+- **Patreon / Kick** — flagged placeholders, no verified capability yet.
+- Full matrix: `docs/integrations/PROVIDER_CAPABILITY_MATRIX.md`.
