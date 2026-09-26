@@ -22,7 +22,7 @@ Phase 8 complete — all 9 phases delivered. Repository is feature-complete for 
 
 ## Test status
 
-`pnpm verify` → format check + typecheck (11 packages) + 104 Node-side tests + 5 Playwright browser e2e, all green (see `docs/QA_TEST_PLAN.md` for the suite map). Mobile suites (5 JVM + 2 XCTest) require Android SDK / Xcode.
+`pnpm verify` → format check + typecheck (11 packages) + 104 Node-side tests + 5 Playwright browser e2e, all green (see `docs/QA_TEST_PLAN.md` for the suite map). Mobile suites (5 JVM + 2 XCTest) require Android SDK / Xcode. Android APK CI green on main and publishing to the `android-latest` release; `setup-android` now pins `packages: ''` because current runner images dropped the obsolete `tools` SDK package.
 
 ## Blockers
 
@@ -30,7 +30,7 @@ None for development. Launch requires owner inputs only: credentials (Twitch/Dis
 
 ## Known gaps (honest, tracked in QA_TEST_PLAN.md)
 
-Malware-scan hook in pipeline (Stage 2). Closed post-Phase-8: Playwright e2e (5 browser tests), k6 load scripts, data-export job, Telegram export job, Gradle wrapper (8.11.1, committed; `android-apk.yml` builds via `./gradlew`).
+Malware-scan hook in pipeline (Stage 2) — the only one left. Closed post-Phase-8: Playwright e2e (5 browser tests), k6 load scripts, data-export job, Telegram export job, Gradle wrapper (8.11.1, committed; `android-apk.yml` builds via `./gradlew`), post-deploy smoke script (`infrastructure/scripts/smoke.sh`).
 
 ## Next exact action
 
