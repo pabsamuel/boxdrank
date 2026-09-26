@@ -56,6 +56,29 @@ three-seat account. Message this person first.
 from "The message" below as a private message, once, by Samet's ChatGPT agent.
 No reply yet.
 
+### A second contact, from a different app — 26 Sep 2026
+
+**FACT**, from the Gmail thread "Two questions from a solo monday app developer".
+Samet emailed **Patrick Fallon** (BotSquad, New Zealand; a monday consultant who
+keeps a database of 190+ monday apps) about a *different* app — one that moves
+selected updates between items — and asked whether $15/month is a price people
+pay. His reply, quoted:
+
+> "On the $15/month question — I think it really depends on the use case. Most
+> users have multiple seats in their account and may well be paying
+> significantly more than the three-seat minimum, in which case an extra $15
+> might not feel like a significant increase. It really just comes down to
+> whether the pain is real and the price is less painful than the problem."
+
+That is a view on pricing, **not** a commitment to pay, and it is about another
+product. It is recorded here because it is the first price anyone outside this
+repository has reacted to, and it applies to monday utilities generally.
+
+He offered to keep talking. A consultant sees many accounts, which makes him the
+best person yet to ask the Watchdog question. **A reply is drafted in Samet's
+Gmail, not sent**, asking whether he has seen automations stop silently in
+client accounts after their creator was deactivated, and how clients find out.
+
 **Do not pitch in the threads.** Posting a product link in a feature-request
 thread reads as spam and can follow you into the marketplace review. Read them,
 note who is describing real pain with specifics, and message those people
