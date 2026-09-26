@@ -147,7 +147,8 @@ review.
 - [x] Marketplace search — the full public catalog (1,293 apps), not just the
       search box: no app monitors native automations. See `COMPETITORS.md`.
 - [ ] Ten admins asked what they do today when an automation dies silently
-      (1 of 10: Jean Foreman, messaged 26 Sep)
+      (2 of 10, both 26 Sep: Jean Foreman by DM; Patrick Fallon, a monday
+      consultant, by email)
 - [ ] One person says they would pay a specific number
 - [ ] One person actually pays
 

@@ -75,9 +75,9 @@ product. It is recorded here because it is the first price anyone outside this
 repository has reacted to, and it applies to monday utilities generally.
 
 He offered to keep talking. A consultant sees many accounts, which makes him the
-best person yet to ask the Watchdog question. **A reply is drafted in Samet's
-Gmail, not sent**, asking whether he has seen automations stop silently in
-client accounts after their creator was deactivated, and how clients find out.
+best person yet to ask the Watchdog question. **Sent 26 Sep, 21:54 UTC**:
+whether he has seen automations stop silently in client accounts after their
+creator was deactivated, and how clients find out. No reply yet.
 
 **Do not pitch in the threads.** Posting a product link in a feature-request
 thread reads as spam and can follow you into the marketplace review. Read them,
