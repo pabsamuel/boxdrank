@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import { createHmac } from 'node:crypto';
 import { connect } from 'node:net';
 import {
+  maskEmail,
   createAppHandler,
   createSetupHandler,
   LIFECYCLE_PATH,
@@ -164,7 +165,8 @@ test('a completed install exchanges the code, asks monday who installed, and sto
 
   const body = await res.text();
   assert.ok(!body.includes(TOKEN), 'the token must never be shown');
-  assert.match(body, /admin@acme\.example/);
+  assert.match(body, /ad…@acme\.example/, 'the address is shown masked');
+  assert.ok(!body.includes('admin@acme.example'), 'never in full: the edge would rewrite it into a script-only link');
   assert.match(res.headers.get('set-cookie'), /Max-Age=0/, 'the state is single-use');
 }));
 
@@ -725,3 +727,11 @@ test('health reports mail as one word and nothing more', withHarness({ mailStatu
   const res = await h.request('/health');
   assert.deepEqual(await res.json(), { ok: true, mail: 'failed' });
 }));
+
+test('addresses are masked so the edge cannot rewrite them', () => {
+  assert.equal(maskEmail('sametatesen2@gmail.com'), 'sa…@gmail.com');
+  assert.equal(maskEmail('a@b.co'), 'a…@b.co');
+  assert.equal(maskEmail('<img src=x onerror=alert(1)>'), 'the address on your monday profile');
+  assert.equal(maskEmail('@nolocal.com'), 'the address on your monday profile');
+  assert.equal(maskEmail('trailing@'), 'the address on your monday profile');
+});

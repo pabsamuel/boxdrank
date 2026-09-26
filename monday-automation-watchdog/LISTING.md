@@ -81,5 +81,5 @@ not checked here; they are the owner's to read at submission.
 - The scheduled check is a monday code cron job at `/mndy-cronjob/check`.
 - Uninstall events are verified against the client secret and delete the stored
   token and email address.
-- The code is in `monday-automation-watchdog/` in this repository, with 236
+- The code is in `monday-automation-watchdog/` in this repository, with 239
   offline tests, three security reviews and their fixes recorded in the README.

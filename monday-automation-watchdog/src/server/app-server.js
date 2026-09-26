@@ -165,6 +165,24 @@ function parseRequestUrl(req) {
   }
 }
 
+/**
+ * An address shown partly, as `sa…@gmail.com`.
+ *
+ * monday code sits behind Cloudflare, whose email obfuscation rewrites any full
+ * address in a page into a link plus a decoding script (verified 26 Sep). This
+ * app's pages forbid scripts, so the installer saw "[email protected]" where
+ * their own address should be. The masked form passes the edge untouched —
+ * tested against the live app — and a confirmation page that someone might
+ * screenshot has no business printing a full address anyway.
+ */
+export function maskEmail(email) {
+  const text = String(email ?? '');
+  const at = text.lastIndexOf('@');
+  if (at < 1 || at === text.length - 1) return 'the address on your monday profile';
+  const local = text.slice(0, at);
+  return `${local.slice(0, Math.min(2, local.length))}…${text.slice(at)}`;
+}
+
 const escapeHtml = (text) =>
   String(text ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
@@ -380,7 +398,7 @@ export function createAppHandler({
         200,
         'Automation Watchdog is installed',
         email
-          ? `Alerts will go to ${email} when an automation that used to run regularly goes quiet.`
+          ? `Alerts will go to ${maskEmail(email)} when an automation that used to run regularly goes quiet.`
           : 'Alerts are set up. No email address was found for your user, so none will be sent until one is.',
         clearCookie,
       );

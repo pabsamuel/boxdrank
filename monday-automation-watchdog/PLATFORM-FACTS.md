@@ -359,6 +359,34 @@ verbose run shows it. The CLI's own documented example is `-r 3 -b 10 -t 60`.
 
 ---
 
+## First install on a real account — 26 Sep 2026
+
+**FACT**, from Samet's ChatGPT agent's report and requests made from here:
+
+- **The scheduler job exists** despite the CLI printing "Unknown error" when it
+  was created: `mapps scheduler:list` shows `watchdog-check`, `0 6 * * *`,
+  target `/check`, `retryConfig { maxRetries: 3, minBackoffDuration: 60 }`,
+  `timeout 300`. The error was on the CLI's side of a request that succeeded —
+  so after an "Unknown error", list before creating again.
+- **The OAuth install completed** on Samet's own account: the callback page
+  read "Automation Watchdog is installed".
+- **The board view loads inside monday**, added to a board from the Apps menu.
+  Its headline on Samet's test account read "4 automations have stopped". The
+  automations there were triggered by hand around 21 Sep and then left idle, so
+  that is the expected reading; whether each of the four is a true positive has
+  not been checked one by one.
+- **Cloudflare Email Address Obfuscation is on for `*.monday.app`.** Any full
+  address in an HTML response is rewritten to a `/cdn-cgi/l/email-protection`
+  link with a decoding script, which this app's CSP blocks — so the install
+  page showed "[email protected]". Verified by echoing an address through the
+  live error page. A masked `sa…@gmail.com` passes through untouched (also
+  verified live), and the page now shows that.
+- `/health` still reports `"mail":"failed"`. The Gmail app-password route
+  stopped at Google's password re-authentication, and on the wrong Google
+  account; it has to be done by Samet.
+
+---
+
 ## Still open
 
 1. **Does a cron invocation carry account context?** Still not stated. Built as

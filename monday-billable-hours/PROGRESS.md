@@ -9,7 +9,7 @@ with a note.
 | | Done | Note |
 |---|---|---|
 | **Code that can be written from here** | **18 / 18 — 100%** | Verified against a live account |
-| **Distance to a product someone pays for** | **35 / 44 — 80%** | What is left is setup in monday, a real install, assets, and sales |
+| **Distance to a product someone pays for** | **36 / 44 — 82%** | What is left is setup in monday, a real install, assets, and sales |
 
 ---
 
@@ -53,7 +53,7 @@ with a note.
       real bug: `created_at` is 100-nanosecond ticks, which the parser was
       silently returning null for.
 
-**236 tests.** All offline, and two of them run against real captured responses.
+**239 tests.** All offline, and two of them run against real captured responses.
 
 The third review is the one worth remembering. It reported the token-handling
 path as clean, having tested it against a stub that behaves. Running the same
@@ -87,16 +87,18 @@ project guessed at a monday format, the result looked finished and returned
       do not say the route is private. Creating the job itself is one CLI
       command, in section 3.
 
-## 3. Needs a real monday account — 6/8
+## 3. Needs a real monday account — 7/8
 
 - [x] App created in the Developer Center (26 Sep, App ID 12249756): the four
       read-only scopes saved, monday code enabled, legacy OAuth flow kept
 - [x] **Deployed to monday code** (26 Sep): v1 live, security scan 0 findings,
       and the running server checked from outside — setup mode, board view
       served
-- [ ] Run the board view inside monday and confirm it loads
+- [x] Run the board view inside monday and confirm it loads (26 Sep, on Samet's
+      test board)
 - [ ] Complete one real install through the OAuth flow, create the cron job,
-      and receive one real alert email
+      and receive one real alert email — install done and cron job created
+      (26 Sep); the email waits on a working mail credential
 - [x] Confirm `activity_logs` returns what the adapter expects
 - [x] **Confirm the `created_at` format** — it is 100-nanosecond ticks, and the
       parser was wrong until a live response proved it
