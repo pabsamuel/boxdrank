@@ -72,8 +72,11 @@ S3_SECRET_ACCESS_KEY=<r2 secret>
 S3_BUCKET_ORIGINALS=emote-originals
 S3_BUCKET_PROCESSED=emote-processed
 S3_BUCKET_QUARANTINE=uploads-quarantine
-EMAIL_PROVIDER=resend
-RESEND_API_KEY=<resend key>
+EMAIL_PROVIDER=smtp
+SMTP_HOST=smtp.resend.com
+SMTP_PORT=465
+SMTP_USER=resend
+SMTP_PASS=<your Resend API key, starting re_>
 EMAIL_FROM=no-reply@atesensoftware.com
 LOG_LEVEL=info
 API_PORT=3001
@@ -104,8 +107,20 @@ API_PORT=3001
 ## 4 · Resend — sending domain
 
 `resend.com` → **Domains → Add** `atesensoftware.com` → it prints DKIM/SPF
-records → add them in Cloudflare DNS → **Verify**. Then **API Keys → Create**
-and put it in Railway as `RESEND_API_KEY`.
+records → add them in Cloudflare DNS → **Verify**. Then **API Keys → Create**.
+
+The app talks to Resend over **SMTP**, not their HTTP API, so the key goes in
+as the SMTP password — username is the literal word `resend`:
+
+| Setting     | Value                                    |
+| ----------- | ---------------------------------------- |
+| `SMTP_HOST` | `smtp.resend.com`                        |
+| `SMTP_PORT` | `465` (implicit TLS; `587` also works)   |
+| `SMTP_USER` | `resend`                                 |
+| `SMTP_PASS` | your API key, including the `re_` prefix |
+
+Until the domain is verified, Resend only delivers to your own address — enough
+to test sign-in.
 
 ## 5 · Cloudflare DNS (one screen, 2 records)
 
@@ -139,7 +154,7 @@ deploy gate:
 
 Then finish by hand, since these need a mailbox and a file:
 
-5. Log in → enter your email → magic link arrives (needs `RESEND_API_KEY`)
+5. Log in → enter your email → magic link arrives (needs `SMTP_USER` + `SMTP_PASS`)
 6. Creator studio → create a pack → upload a PNG → it processes and the
    thumbnail loads (via a signed URL from the processed bucket)
 

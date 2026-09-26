@@ -18,6 +18,33 @@ export interface EmailSender {
   send(message: EmailMessage): Promise<void>;
 }
 
+export interface SmtpTransportOptions {
+  host: string;
+  port: number;
+  secure: boolean;
+  auth?: { user: string; pass: string };
+}
+
+/**
+ * Transport options for the configured relay. Pure and exported so the auth
+ * wiring is testable without standing up a mail server: every hosted provider
+ * requires credentials, and omitting them fails silently at send time — which
+ * means nobody can sign in.
+ */
+export function smtpTransportOptions(env: AppEnv): SmtpTransportOptions {
+  const options: SmtpTransportOptions = {
+    host: env.SMTP_HOST,
+    port: env.SMTP_PORT,
+    // Port 465 is implicit TLS; 587 and 25 open plaintext and upgrade via
+    // STARTTLS. An explicit SMTP_SECURE overrides the inference.
+    secure: env.SMTP_SECURE ?? env.SMTP_PORT === 465,
+  };
+  if (env.SMTP_USER) {
+    options.auth = { user: env.SMTP_USER, pass: env.SMTP_PASS };
+  }
+  return options;
+}
+
 export function createEmailSender(env: AppEnv): EmailSender {
   if (env.EMAIL_PROVIDER === 'console' || env.NODE_ENV === 'test') {
     return {
@@ -27,11 +54,7 @@ export function createEmailSender(env: AppEnv): EmailSender {
       },
     };
   }
-  const transport = nodemailer.createTransport({
-    host: env.SMTP_HOST,
-    port: env.SMTP_PORT,
-    secure: false,
-  });
+  const transport = nodemailer.createTransport(smtpTransportOptions(env));
   return {
     async send(message) {
       await transport.sendMail({ from: env.EMAIL_FROM, ...message });
