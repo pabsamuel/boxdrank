@@ -118,15 +118,32 @@ and put it in Railway as `RESEND_API_KEY`.
 
 Plus the Resend DKIM/SPF records from step 4.
 
-## 6 · Smoke test (2 minutes)
+## 6 · Smoke test (one command)
 
-1. `curl https://api-emotes.atesensoftware.com/v1/health` → `200`
-2. Open `https://emotes.atesensoftware.com` → marketing page renders
-3. Click login → enter your email → magic link arrives → you're in
-4. Creator studio → create a pack → upload a PNG → it processes and the
-   thumbnail appears from the CDN domain
+```sh
+cd global-emotes
+./infrastructure/scripts/smoke.sh \
+  https://api-emotes.atesensoftware.com \
+  https://emotes.atesensoftware.com
+```
 
-If all four pass, it's live. Full regression: `docs/QA_TEST_PLAN.md`.
+It checks four things and exits non-zero if any fail, so it also works as a
+deploy gate:
+
+1. `GET /v1/health` → 200 with `ok:true` (API up, and it's our service)
+2. `GET /v1/openapi.json` → 200 (routes registered, not just a proxy answering)
+3. `GET /v1/public/creators/<random>` → **404** — the query ran, so Postgres is
+   connected and migrated. A **500** here means the `pnpm db:migrate` step was
+   skipped; that is the most common deploy failure.
+4. `GET /` on the web app → 200
+
+Then finish by hand, since these need a mailbox and a file:
+
+5. Log in → enter your email → magic link arrives (needs `RESEND_API_KEY`)
+6. Creator studio → create a pack → upload a PNG → it processes and the
+   thumbnail loads from the CDN domain
+
+If all six pass, it's live. Full regression: `docs/QA_TEST_PLAN.md`.
 
 ---
 
