@@ -2,7 +2,7 @@
 
 **STATUS: billable-hours app STOPPED at Gate 0 (16 Sep). A second product,
 the Board Schema Auditor, was built on 17 Sep — see `../monday-schema-auditor/`
-and `IDEAS.md`. Its validation gates are still unmet.**
+and `IDEAS.md`.**
 Read `KILL-CHECKS.md` for the evidence. Read `DECISIONS.md` for the decision.
 
 The stop stands on the evidence gathered. `VERIFY.md` is the owner's own

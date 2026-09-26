@@ -219,13 +219,6 @@ sell to fewer, larger accounts. No pricing was visible. So the supported claim i
 
 Nobody has still said they would pay for it.
 
-Two things gate a submission, both outside this repository:
-
-1. `NEXT-GATE0.md` Q1 and Q2 — can the owner remediate a Burp finding, and is
-   there an honest answer to monday's AI-generated-code policy.
-2. Ten conversations with monday admins asking not *"is this useful?"* (everyone
-   says yes) but **"what do you currently do about column drift, and what would
-   you pay to stop doing it?"**
-
-If the honest answer is "nothing, we live with it," this repository is a
-20-hour lesson and that is a fine outcome.
+One thing gates a submission, outside this repository: `NEXT-GATE0.md` Q1 and
+Q2 — can the owner remediate a Burp finding, and is there an honest answer to
+monday's AI-generated-code policy.

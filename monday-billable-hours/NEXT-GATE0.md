@@ -59,7 +59,7 @@ the policy is aimed at, and no phrasing fixes it.
 Answer this honestly, in writing, before anything else. Getting rejected at phase
 four for this reason costs the whole build.
 
-### Q3 — Does the idea come from evidence or from a brainstorm?
+### Q3 — Does the idea come from evidence or from a brainstorm? *(research note, not a pass criterion)*
 
 An idea invented from training data carries zero demand evidence. The best
 source, per monday's own developer guidance: the **monday
@@ -74,8 +74,7 @@ brainstorm, because every line has votes attached.
 
 ## Passing this gate
 
-Pass = Q1 yes, Q2 answered honestly in the affirmative, Q3 produces ≥3 candidates
-with vote counts.
+Pass = Q1 yes, Q2 answered honestly in the affirmative.
 
 **Fail on Q1 or Q2 → the monday marketplace is closed for now.** Then the honest
 options are:
@@ -86,5 +85,3 @@ options are:
   but it ships and it earns, and you have shipped nothing.
 - **Fix Q1 first**, deliberately.
 - **Leave the platform.** Also a valid answer.
-
-Fail on Q3 only → you have a platform but no idea. Re-run Q3, don't lower the bar.

@@ -1,12 +1,7 @@
 # Validation — Automation Watchdog
 
-The one section of `PROGRESS.md` that no amount of building moves. Currently
-**1 / 5**.
-
-Both previous products in this repository reached finished code and died on this.
-Doing it after building was the mistake both times. It is being done now because
-the code is far enough along that the conversation can be concrete, not because
-it is the right order.
+Outreach leads, message drafts and what has been heard back. Section 6 of
+`PROGRESS.md` counts it: currently **1 / 5**.
 
 ---
 
@@ -176,14 +171,6 @@ honesty — it is the content:
 Anyone can fill those in from memory in five minutes, and this file exists
 specifically so nobody fills them in from memory. The rule is Samet's own:
 never invent quotes or revenue figures, write UNKNOWN rather than guessing.
-
-**Why the number is the whole thing.** A yes with no price is the answer
-everybody gives, and it has predicted nothing twice in this repository already.
-Gate 0 on billable-hours had enthusiasm and no price, and died. What changes the
-project is a sentence of the shape *"I would pay $X a month for this"*, from a
-named person, about an account whose size is known — because the price decides
-whether this is a $4/month hygiene app of the kind that gets 23 installs, or
-something worth the remaining work.
 
 **One thing to check, and it is not about trust.** Was the question "would you
 use this?" or "what do you currently do when an automation dies, and what would

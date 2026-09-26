@@ -313,3 +313,15 @@ than the previous two products had at this stage and is still not a person.
 holds no secret, but a scheduled job runs with no user present and needs a stored
 token. That is the first secret any product in this repository has held, and it
 is the main thing its security review will be about.
+
+## 2026-09-26 — The validation-first rule is removed
+
+**Decision (Samet):** "prove people want it before continuing" is no longer a
+working rule for Claude on this project, in any wording. Removed from
+`CLAUDE.md`, `README.md`, `PROGRESS.md`, `VALIDATION.md`, `NEXT-GATE0.md` and
+`../monday-schema-auditor/README.md`.
+
+**Kept:** every research result, lead, quote, competitor finding, validation
+note and past decision. They are data. Only the instruction to stop or wait on
+them is gone.
+

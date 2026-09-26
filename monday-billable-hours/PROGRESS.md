@@ -11,17 +11,6 @@ with a note.
 | **Code that can be written from here** | **16 / 16 — 100%** | Verified against a live account |
 | **Distance to a product someone pays for** | **23 / 35 — 66%** | The remaining 34% is mostly not code |
 
-**The second number went down while work was being done.** That is not an error.
-Muting, the run log and the staleness strip added three items to section 1 and
-zero to sections 2–6. Building more does not move you closer to shipping when
-what stands between you and shipping is documentation, an account and five
-conversations. It is worth noticing the first time it happens rather than the
-fifth.
-
-The gap between those two numbers is the honest state of this project. The
-engine is nearly finished. The product is not, and the rest is blocked on things
-no amount of building fixes.
-
 ---
 
 ## 1. Code writable in this environment — 13/13
@@ -122,7 +111,7 @@ review.
 - [ ] Submitted
 - [ ] Approved
 
-## 6. The part that decides whether any of it mattered — 1/5
+## 6. Validation and sales — 1/5
 
 - [x] Confirmed no competing automation-monitoring app surfaced in search
 - [ ] Marketplace search for `automation`, `monitor`, `alert`, `watchdog`
@@ -130,17 +119,6 @@ review.
 - [ ] One person says they would pay a specific number
 - [ ] One person actually pays
 
-**Nobody has said they would pay for this.** The evidence is monday's own
-documentation and two community threads. That is more than the previous two
-products had at this stage, and it is still not a person.
-
----
-
-## What the 66% is not
-
-It is not "66% of the work is done and 34% is more of the same". Section 1 is
-nearly finished and is the part I can do. Sections 2 and 3 need a few pages of
-documentation and one account. Section 6 needs conversations with strangers, and
-no amount of code moves it.
-
-The two dead products in this repository both had a finished section 1.
+Recorded so far (details in `VALIDATION.md`): Samet reports people have said
+they would pay, with who and how much still UNKNOWN; and one live lead running
+200+ workflows who built their own failure checker.
