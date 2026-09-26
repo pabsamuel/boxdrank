@@ -69,6 +69,7 @@
   .lede { color: var(--ink-2); margin: 0 0 20px; font-size: 14.5px; max-width: 52ch; }
 
   .fields { display: grid; gap: 14px; }
+  .fields .wide { grid-column: 1 / -1; }
   @media (min-width: 480px) { .fields { grid-template-columns: 1fr 1fr; } }
   label { display: block; font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 5px; }
   input, select { width: 100%; padding: 10px 12px; font: inherit; font-size: 15px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px; }
@@ -166,6 +167,9 @@
   .checklist li:last-child { border-bottom: 0; }
   .tick { font-family: "IBM Plex Mono", monospace; flex: none; width: 15px; }
   .tick.on { color: var(--good); } .tick.off { color: var(--ink-3); }
+  .ref { font-size: 13.5px; color: var(--ink-2); margin: 0 0 6px; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: baseline; }
+  .ref b { font-family: "IBM Plex Mono", monospace; font-weight: 500; color: var(--ink); letter-spacing: .02em; }
+  .ref small { flex-basis: 100%; font-size: 12px; color: var(--ink-3); }
   .fine { font-size: 13px; color: var(--ink-3); margin: 16px 0 0; }
 </style>
 
@@ -196,9 +200,10 @@
     tr: {
       hello: "Sesini kaydedelim", intake: "VoxSwap kayıt",
       lede: "On bir kısa ekran. Her birinde bir cümle okuyorsun, sayfa hemen kaydın yeterli olup olmadığını söylüyor — yani gürültülü oda burada yakalanıyor, oyun baştan yapıldıktan sonra değil.",
-      name: "Ad soyad", mail: "E-posta", order: "Sipariş no", langLabel: "Okuma dili",
+      name: "Ad soyad", mail: "E-posta", langLabel: "Okuma dili",
       namePh: "Samet Ateşen",
-      idHint: "Sipariş numaran yoksa varsayılanı bırak, sonradan değişir. Son ekrandaki düğmeye basana kadar bu sayfadan hiçbir şey gönderilmiyor.",
+      orderRef: "Referans numaran", orderRefNote: "Bir sorun olursa bu numarayı söylemen yeterli.",
+      idHint: "Son ekrandaki düğmeye basana kadar bu sayfadan hiçbir şey gönderilmiyor.",
       permission: "İzin", sayThis: "İzin formu",
       permLede: "Ses klonlamak izin ister. Aşağıdakilerin hepsini okuyup onayla — bu form pakete girecek ve siparişi hazırlayan kişide kalacak.",
       readExactly: "",
@@ -266,9 +271,10 @@
     en: {
       hello: "Let's record your voice", intake: "VoxSwap intake",
       lede: "Eleven short screens. You read one line on each, and the page tells you straight away whether the take is good enough — so a noisy room gets caught here, not after your game has been rebuilt.",
-      name: "Full name", mail: "Email", order: "Order ID", langLabel: "Reading language",
+      name: "Full name", mail: "Email", langLabel: "Reading language",
       namePh: "Ayse Demir",
-      idHint: "No order ID yet? Leave the default — whoever builds your order can rename it. Nothing is uploaded from this page unless you press the button on the last screen.",
+      orderRef: "Your reference", orderRefNote: "If anything goes wrong, quoting this is all it takes.",
+      idHint: "Nothing leaves this page until you press the button on the last screen.",
       permission: "Permission", sayThis: "Permission form",
       permLede: "Cloning a voice needs permission. Read these and tick each one — this form goes into the pack and stays with whoever builds your order.",
       readExactly: "",
@@ -355,12 +361,24 @@
     ]
   };
 
-  var MONTHS = {
-    tr: ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"],
-    en: ["January","February","March","April","May","June","July","August","September","October","November","December"]
-  };
-
-  var who = { name: "", mail: "", order: "ORD-001", lang: "tr" };
+  // Nobody should have to type an order number. Whoever builds the order can
+  // put it in the link (…/booth.html?order=ORD-123) and the customer never sees
+  // it; without one, the page makes one up that is unambiguous to read aloud or
+  // copy from a screen — no 0/O, 1/I/L.
+  function orderId() {
+    var given = "";
+    try { given = new URLSearchParams(location.search).get("order") || ""; } catch (err) { /* no URL API */ }
+    given = given.trim();
+    if (/^[A-Za-z0-9][A-Za-z0-9_-]{1,39}$/.test(given)) return given.toUpperCase();
+    var alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789", tail = "", bytes = new Uint8Array(4);
+    if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(bytes);
+    else for (var i = 0; i < 4; i++) bytes[i] = Math.floor(Math.random() * 256);
+    for (var j = 0; j < 4; j++) tail += alphabet[bytes[j] % alphabet.length];
+    var d = new Date();
+    return "VS-" + String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, "0") +
+           String(d.getDate()).padStart(2, "0") + "-" + tail;
+  }
+  var who = { name: "", mail: "", order: orderId(), lang: "tr" };
   var agreed = { ck1: false, ck2: false, ck3: false, ck4: false, signature: "" };
   var takes = {}, step = 0;
   var stream = null, actx = null, rec = null, recording = false, raf = 0, tick = 0, t0 = 0;
@@ -378,27 +396,9 @@
     var d = new Date();
     return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   }
-  // Mirrors consent.spoken_date: nobody says "two thousand twenty-six dash zero
-  // nine dash twenty", and everybody re-records after trying.
-  function spokenDate() {
-    var d = new Date();
-    return d.getDate() + " " + (MONTHS[who.lang] || MONTHS.en)[d.getMonth()] + " " + d.getFullYear();
-  }
   function slug(s) {
     return (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
       .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 32);
-  }
-  // Same sentence as consent.PHRASE_TEMPLATES. Name, date and order are the
-  // whole job — they prove this person was here today, for this order. The
-  // terms being agreed to live in the signed document, not in the recording.
-  function phraseText() {
-    var name = who.name || "…", order = who.order || "ORD-001";
-    if (who.lang === "tr") {
-      return "Ben " + name + ". Bugün " + spokenDate() + ". VoxSwap'e " + order +
-             " numaralı sipariş için sesimi kullanma izni veriyorum.";
-    }
-    return "I am " + name + ". Today is " + spokenDate() +
-           ". I give VoxSwap permission to use my voice for order " + order + ".";
   }
   function passages() { return SCRIPTS[who.lang] || SCRIPTS.en; }
   function stepCount() { return passages().length + 3; }
@@ -882,7 +882,6 @@
       var f = el("div", "fields");
       [["name", L.name, "text", L.namePh, "name"],
        ["mail", L.mail, "email", "ornek@mail.com", "email"],
-       ["order", L.order, "text", "ORD-001", "off"],
        ["lang", L.langLabel, "select", "", "off"]].forEach(function (spec) {
         var box = el("div"), lab = el("label", null, spec[1]);
         lab.setAttribute("for", "f_" + spec[0]);
@@ -915,6 +914,7 @@
         }
         input.id = "f_" + spec[0];
         box.appendChild(input);
+        if (spec[2] === "select") box.className = "wide";
         f.appendChild(box);
       });
       stage.appendChild(f);
@@ -993,6 +993,11 @@
         list.appendChild(li);
       });
       stage.appendChild(list);
+      var ref = el("p", "ref");
+      ref.appendChild(el("span", null, L.orderRef + " "));
+      ref.appendChild(el("b", null, who.order));
+      ref.appendChild(el("small", null, L.orderRefNote));
+      stage.appendChild(ref);
       var note = el("p", "hint");
       note.id = "buildNote";
       stage.appendChild(note);
@@ -1057,7 +1062,7 @@
     var L = t(), btn = $("next");
     btn.disabled = true;
     btn.textContent = L.packing;
-    var voiceId = slug(who.name) || "customer", order = who.order.trim() || "ORD-001";
+    var voiceId = slug(who.name) || "customer", order = who.order;
     var zip = new JSZip();
 
     zip.file("consent/C-1-signed.md",
