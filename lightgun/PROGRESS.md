@@ -74,6 +74,17 @@ behaviour only exists in a room we cannot see)
   detectable, so firing on the spike would land every shot high.
 - Gyro mode no longer raises a "tracking weak" alarm every frame for a mode that is weak by design.
 
+**Getting it to run at all** (every failed attempt so far died in setup, not in the game)
+- **`npm run doctor`**: one command that checks the wrong-branch case, missing dependencies,
+  certificate creation, port clashes, which network address the phone should dial, and the Windows
+  Firewall rule — then says which one is the problem. `npm start` runs it first and refuses to start
+  on a real fault instead of failing confusingly downstream.
+- **Hosted mode**: setting `PORT` switches the server to serve one port behind a platform's TLS.
+  That removes the self-signed certificate warning, the firewall rule and the LAN address guessing
+  in one go, and the display then points the QR at its own origin. `Dockerfile`, `railway.json`,
+  `render.yaml` and `/healthz` included; verified by reproducing the container's exact file layout
+  and running it, since no Docker daemon is available here to build the image.
+
 **Tests**
 - `npm test` — 20 synthetic-truth checks across distances, screen sizes, off-axis and tilted screens,
   wrong stated sizes, 3-vs-4 point, smoothing lag and jitter, degenerate rays. All passing.

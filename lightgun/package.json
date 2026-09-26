@@ -5,9 +5,10 @@
   "type": "module",
   "description": "Turn your phone into a light gun. Turn any TV into an arcade.",
   "scripts": {
-    "start": "node server/server.js",
+    "start": "node tools/doctor.js --brief && node server/server.js",
     "test": "node tests/run.js && node tests/trace.js && node tests/gesture.js",
-    "test:e2e": "node tests/e2e.js"
+    "test:e2e": "node tests/e2e.js",
+    "doctor": "node tools/doctor.js"
   },
   "dependencies": {
     "qrcode": "^1.5.4",

@@ -14,8 +14,15 @@ A browser on the TV, an Android phone in your hand, and a QR code between them.
 ```bash
 cd lightgun
 npm install
+npm run doctor     # says what is wrong before you hit it
 npm start
 ```
+
+`npm run doctor` checks the things that have actually broken setups: wrong git branch
+checked out, missing dependencies, whether the certificate can be created, whether
+port 8080 is taken by another project, which network address the phone should dial,
+and whether Windows Firewall has a rule. `npm start` runs it first and refuses to
+start on a real problem rather than failing confusingly later.
 
 Then:
 
@@ -57,6 +64,33 @@ question the prototype was built for. That still needs an Android phone with ARC
 On Windows that is almost always the firewall (allow Node.js on private networks) or a virtual
 adapter's address being chosen instead of your Wi-Fi's — the display has a dropdown to switch the QR
 to another address, and the server prints every candidate on startup.
+
+---
+
+## Deploying it
+
+The local setup needs the laptop and phone on one network, a self-signed certificate,
+and a firewall hole. Hosting removes all three — the platform terminates TLS, so the
+phone gets the secure context WebXR needs with no warning to tap through, and both
+devices just open the same URL.
+
+Set `PORT` and the server switches to hosted mode automatically. Any container host
+works; `Dockerfile`, `railway.json` and `render.yaml` are here, with `/healthz` for
+the platform's health check.
+
+```bash
+docker build -t lightgun .
+docker run -p 8080:8080 -e PORT=8080 lightgun
+```
+
+The trade is latency: aim packets go to the host and back instead of across the room.
+On a LAN the transport costs under 3 ms; over the internet expect tens of milliseconds,
+which the diagnostics overlay reports separately from render time so you can see exactly
+what it costs you. Run it locally for the lowest latency, host it when setup is the
+problem — which so far it always has been.
+
+Set `LG_PUBLIC_ORIGIN` only if your proxy rewrites the Host header; otherwise the
+display builds the phone URL from its own origin.
 
 ---
 

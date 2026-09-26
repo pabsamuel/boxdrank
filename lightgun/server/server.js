@@ -12,6 +12,19 @@ import QRCode from 'qrcode';
 import { ensureCert, lanAddress, localInterfaces } from './certs.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+// Hosting mode. A platform (Railway, Render, Fly, Heroku, a container behind
+// any reverse proxy) hands us one port and terminates TLS itself, so we serve
+// plain HTTP on that port and let the proxy be the secure context WebXR needs.
+// This is what removes every failure mode the LAN path has: no self-signed
+// certificate warning, no firewall rule, no guessing which network adapter the
+// phone can reach. The cost is that aim packets travel to the host and back
+// instead of across the room.
+const HOSTED = Boolean(process.env.PORT);
+const HOSTED_PORT = Number(process.env.PORT || 0);
+// Set when the public URL cannot be derived from the request (rare, but some
+// proxies rewrite Host); otherwise the display just uses its own origin.
+const PUBLIC_ORIGIN = process.env.LG_PUBLIC_ORIGIN || '';
 // Reassigned if the preferred port is already taken; the QR code and
 // /api/info both read these, so the phone always gets the real one.
 let HTTP_PORT = Number(process.env.LG_HTTP_PORT || 8080);
@@ -62,9 +75,17 @@ async function handle(req, res, secure) {
   if (p === '/display/') p = '/display/index.html';
   else if (p === '/phone/') p = '/phone/index.html';
 
+  if (p === '/healthz') {
+    res.writeHead(200, { 'content-type': 'text/plain' });
+    res.end('ok');
+    return;
+  }
+
   if (p === '/api/info') {
     res.writeHead(200, { 'content-type': TYPES['.json'], 'cache-control': 'no-store' });
     res.end(JSON.stringify({
+      hosted: HOSTED,
+      publicOrigin: PUBLIC_ORIGIN,
       lanIp: lanAddress(),
       // Every candidate, so the display can offer alternatives when the best
       // guess is not the adapter the phone can actually reach.
@@ -183,8 +204,8 @@ function attachWs(server) {
 
 /* ---------------------------------------------------------------- startup */
 
-const tls = await ensureCert();
-const HAS_TLS = Boolean(tls);
+const tls = HOSTED ? null : await ensureCert();
+const HAS_TLS = HOSTED ? true : Boolean(tls);   // hosted: the proxy provides it
 
 /**
  * Listen, stepping to the next port if something else already has this one.
@@ -215,13 +236,13 @@ function listenWithFallback(server, preferred, label, tries = 12) {
   });
 }
 
-const httpServer = http.createServer((req, res) => handle(req, res, false));
+const httpServer = http.createServer((req, res) => handle(req, res, HOSTED));
 const httpsServer = tls ? https.createServer(tls, (req, res) => handle(req, res, true)) : null;
 
 // Bind first, attach WebSockets second: a WebSocketServer bound to a socket
 // that then fails to listen turns a recoverable port clash into a crash.
 try {
-  HTTP_PORT = await listenWithFallback(httpServer, HTTP_PORT, 'http');
+  HTTP_PORT = await listenWithFallback(httpServer, HOSTED ? HOSTED_PORT : HTTP_PORT, 'http');
   if (httpsServer) HTTPS_PORT = await listenWithFallback(httpsServer, HTTPS_PORT, 'https');
 } catch (err) {
   console.error(`\n  could not start: ${err.message}`);
@@ -232,6 +253,10 @@ try {
 attachWs(httpServer);
 if (httpsServer) attachWs(httpsServer);
 
+if (HOSTED) {
+  console.log(`\n  lightgun listening on :${HTTP_PORT} (hosted mode — TLS terminated upstream)`);
+  console.log('  display and phone both use the public URL; no LAN setup needed.');
+} else {
 console.log(`\n  display   http://localhost:${HTTP_PORT}/`);
 if (httpsServer) {
   const all = localInterfaces();
@@ -254,4 +279,5 @@ if (httpsServer) {
 }
 if (HTTP_PORT !== Number(process.env.LG_HTTP_PORT || 8080)) {
   console.log(`\n  (open the display on ${HTTP_PORT}, not 8080 — 8080 was taken)`);
+}
 }

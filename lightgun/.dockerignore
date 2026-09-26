@@ -1,0 +1,5 @@
+node_modules
+server/.certs
+docs/*.png
+tests
+*.log

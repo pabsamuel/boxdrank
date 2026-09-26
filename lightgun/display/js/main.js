@@ -58,6 +58,20 @@ $('roomCode').textContent = state.room;
   try { info = await (await fetch('/api/info')).json(); } catch {}
 
   const secure = location.protocol === 'https:';
+
+  // Hosted: the phone opens the same origin this page came from. No LAN
+  // address to guess, no certificate to accept, no firewall rule — which is
+  // every failure the local path has.
+  if (info.hosted) {
+    const origin = info.publicOrigin || location.origin;
+    const joinUrl = `${origin}/phone?room=${state.room}`;
+    $('joinUrl').textContent = joinUrl;
+    $('qr').src = `/api/qr?url=${encodeURIComponent(joinUrl)}`;
+    $('tlsWarn').classList.add('hidden');
+    $('addrPicker').parentElement.classList.add('hidden');
+    return;
+  }
+
   const proto = info.https ? 'https' : 'http';
   const port = info.https ? info.httpsPort : info.httpPort;
 
