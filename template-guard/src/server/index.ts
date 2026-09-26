@@ -693,6 +693,23 @@ const isMain =
 if (isMain) {
   // Read from the process environment, because the thing that says which
   // config source to use cannot itself come from that config source.
+  //
+  // ✓ Learned on the first real deploy, 26 Sep 2026: monday code delivers
+  // `mapps code:env` values through the SDK's EnvironmentVariablesManager,
+  // which can copy them into process.env but is not guaranteed to have done so
+  // before this line runs. So if the variable is not already there, ask the
+  // manager to populate process.env and look again. Still stated, never
+  // sniffed — the variable has to exist; this only makes sure we can see it.
+  if (process.env.TEMPLATE_GUARD_PLATFORM === undefined) {
+    try {
+      const sdk = (await import('@mondaycom/apps-sdk')) as unknown as {
+        EnvironmentVariablesManager: new (opts?: { updateProcessEnv?: boolean }) => unknown;
+      };
+      new sdk.EnvironmentVariablesManager({ updateProcessEnv: true });
+    } catch {
+      // No SDK, or not on the platform: self-hosted, which is the default.
+    }
+  }
   const onMondayCode = process.env.TEMPLATE_GUARD_PLATFORM === 'monday-code';
   const platform = onMondayCode ? await openMondayCode() : null;
   const config: Config = platform?.config ?? new EnvConfig();
@@ -804,7 +821,9 @@ if (isMain) {
     console.log('[template-guard] drift sweeps are driven by the monday code scheduler');
   }
 
-  const port = Number(config.get('PORT') ?? 8302);
+  // monday code requires the container to listen on 8080 — the first deploy
+  // failed with exactly that message. Self-hosted keeps its own default.
+  const port = Number(config.get('PORT') ?? (onMondayCode ? 8080 : 8302));
   app.listen(port, () => console.log(`[template-guard] listening on :${port}`));
 }
 /* c8 ignore stop */

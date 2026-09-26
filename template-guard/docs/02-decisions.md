@@ -1043,3 +1043,39 @@ not read that bucket, and says so as a visible partial failure. If the
 documented *44 became 39* is partly legacy recipes, this is the thread to
 pull — and it is now a fact about a real account rather than a note about a
 field name.
+
+## ADR-034 — The first real deploy to monday code
+**Date:** 2026-09-26 · **Status:** in progress — blocked on three console values
+App **Template Guard**, id `12248804`, version `18291843`, created with
+`mapps app:create` and pushed with `mapps code:push -s`.
+
+What the platform taught us, in order:
+
+1. **`-z <region>` is refused for this app** ("Region parameter is not allowed
+   for this app"), and the CLI **exited 0 anyway**. A deploy tool that reports
+   success on a failed deploy is worth knowing about: this repo's scripts must
+   check the output, not the exit code.
+2. **The code built and ran on the platform first time.** It then stopped at
+   boot, and the log named the exact missing key —
+   *Missing required configuration "TOKEN_ENCRYPTION_KEY"*. Hard rule 5 doing
+   its job on real infrastructure: a misconfigured deploy that fails loudly and
+   says why, instead of one that starts and half-works.
+3. **The container must listen on 8080.** The default port is now 8080 when
+   `TEMPLATE_GUARD_PLATFORM=monday-code`, 8302 otherwise.
+4. **`mapps code:env` values reach the app through the SDK's
+   `EnvironmentVariablesManager`, not necessarily `process.env`.** The platform
+   switch itself was read from `process.env`, so the bootstrap now asks the
+   manager to populate `process.env` before deciding. The variable still has to
+   be set — this makes it visible, it does not guess it.
+
+Set by Claude on the platform: `TEMPLATE_GUARD_PLATFORM`, `PORT`,
+`DRIFT_SCHEDULER_ENABLED`, `FEATURE_AUTOMATIONS_PREVIEW=false`,
+`FEATURE_ONE_CLICK_REPAIR=false`, and generated secrets
+`TOKEN_ENCRYPTION_KEY` and `DRIFT_CRON_SECRET`.
+
+**Still needed, and only obtainable from the Developer Center:**
+`MONDAY_CLIENT_ID`, `MONDAY_CLIENT_SECRET`, `MONDAY_SIGNING_SECRET`. These are
+not requested in chat on purpose — one token has already been exposed there.
+`MONDAY_REDIRECT_URI` depends on the deployed URL, which exists only after a
+successful deploy; it is set to a placeholder until then and corrected
+immediately after.
