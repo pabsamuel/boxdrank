@@ -104,6 +104,11 @@ API_PORT=3001
   ```
 - Deploy → then **Settings → Domains** → add `emotes.atesensoftware.com`.
 
+`next.config.mjs` bakes `BRAND_NAME` and `PUBLIC_API_URL` into the bundle as
+`NEXT_PUBLIC_*` at **build** time, so changing either later does nothing until
+you redeploy. (`PUBLIC_WEB_URL` is unused by the web app — the API reads it, for
+CORS.)
+
 ## 4 · Resend — sending domain
 
 `resend.com` → **Domains → Add** `atesensoftware.com` → it prints DKIM/SPF
