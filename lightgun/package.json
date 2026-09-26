@@ -1,0 +1,18 @@
+{
+  "name": "lightgun",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Turn your phone into a light gun. Turn any TV into an arcade.",
+  "scripts": {
+    "start": "node tools/doctor.js --brief && node server/server.js",
+    "test": "node tests/run.js && node tests/trace.js && node tests/gesture.js",
+    "test:e2e": "node tests/e2e.js",
+    "doctor": "node tools/doctor.js"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "selfsigned": "^5.5.0",
+    "ws": "^8.18.0"
+  }
+}
