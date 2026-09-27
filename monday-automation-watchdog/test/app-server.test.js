@@ -842,3 +842,30 @@ test('a failed install does not redirect, so the reason stays on screen', withHa
   const res = await h.request('/oauth/callback?error=access_denied&state=fixed-state-value-abc', { headers: { cookie } });
   assert.ok(!(await res.text()).includes('http-equiv="refresh"'));
 }));
+
+// ---- installs started by monday, not by /oauth/start -------------------------
+
+test('an install from monday\'s own installation link, which carries no state, completes', withHarness({}, async (h) => {
+  // What the website's button and the marketplace produce: monday redirects to
+  // the callback with a code and nothing of ours. Refused on 27 Sep; must work.
+  const res = await h.request('/oauth/callback?code=code-from-monday');
+  assert.equal(res.status, 200);
+  assert.equal(h.tokenRequests.length, 1);
+  assert.equal(new URLSearchParams(h.tokenRequests[0].init.body).get('code'), 'code-from-monday');
+  assert.equal(h.deps.secureStorage.data.get(accountKey('123')).token, TOKEN);
+  assert.match(await res.text(), /Automation Watchdog is installed/);
+}));
+
+test('a state that comes back without its cookie is still refused', withHarness({}, async (h) => {
+  // Accepting a stateless callback must not become accepting any state.
+  for (const path of ['/oauth/callback?code=c&state=fixed-state-value-abc', '/oauth/callback?code=c&state=']) {
+    const res = await h.request(path);
+    assert.equal(res.status, 400, path);
+  }
+  assert.equal(h.tokenRequests.length, 0);
+}));
+
+test('starting an install asks monday to install the app first if it is not installed', withHarness({}, async (h) => {
+  const res = await h.request('/oauth/start');
+  assert.equal(new URL(res.headers.get('location')).searchParams.get('force_install_if_needed'), 'true');
+}));

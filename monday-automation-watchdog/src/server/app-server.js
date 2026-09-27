@@ -209,8 +209,9 @@ function page(res, status, title, message, extraHeaders = {}, returnTo = null) {
  * monday's review requires it: "If your app redirects users to a sign-in or
  * authorization page, you must redirect them back to monday upon completion"
  * (`apps/docs/product`, read 27 Sep 2026). FACT (`api-reference/reference/
- * account`): `account { slug }` is a `String!`. INFERENCE: an account lives at
- * `https://<slug>.monday.com` — the usual form, but not stated on that page.
+ * account`): `account { slug }` is a `String!`. FACT (`apps/docs/oauth`, read
+ * 28 Sep 2026): the slug is "the first part of the URL that comes before
+ * `.monday.com`", so the account lives at `https://<slug>.monday.com`.
  *
  * The slug is checked as a single DNS label, so a value from the API can never
  * turn this into a redirect to another site; anything else goes to monday.com.
@@ -292,6 +293,10 @@ export function createAppHandler({
     target.searchParams.set('redirect_uri', redirectUri);
     target.searchParams.set('scope', SCOPES.join(' '));
     target.searchParams.set('state', state);
+    // FACT (`apps/docs/oauth`): "automatically redirecting users to the app
+    // installation page if the app is not installed", then back to OAuth.
+    // Without it, authorizing an app that is not installed leaves it so.
+    target.searchParams.set('force_install_if_needed', 'true');
     res.writeHead(302, {
       ...BASE_HEADERS,
       'Cache-Control': 'no-store',
@@ -383,11 +388,26 @@ export function createAppHandler({
       return page(res, 400, 'Installation was not completed', `monday reported: ${denied.slice(0, 80)}`, clearCookie);
     }
 
-    // The state has to come back in the query *and* match the cookie set on
-    // this browser at the start. Without it, anyone could send a victim a
-    // callback link carrying the attacker's own code and bind the victim's
-    // browser session to an install they never started.
-    if (!sameSecret(url.searchParams.get('state'), readCookie(req, STATE_COOKIE))) {
+    // Two ways to arrive here.
+    //
+    // From /oauth/start, with a state that has to come back in the query and
+    // match the cookie set on this browser. A state that does not match is
+    // refused: that is a link started somewhere else, or replayed.
+    //
+    // From monday's own installation link — the Share tab's link, the website's
+    // button, the marketplace — which carries no state of ours. FACT
+    // (`apps/docs/oauth`, read 28 Sep 2026): the state is "the state parameter
+    // supplied in the previous step", and that link supplies none; its
+    // redirect defaults to "the live version's callback URL". Refusing it is
+    // what broke the first install from atesensoftware.com on 27 Sep.
+    //
+    // Accepting a callback with no state is safe here because nothing is
+    // bound to the browser: there is no session to fixate. The token, the
+    // account and the address alerts go to all come from monday's answer for
+    // the code itself, so a forged callback can only complete the forger's own
+    // install, into the forger's own account, alerting the forger.
+    const returnedState = url.searchParams.get('state');
+    if (returnedState !== null && !sameSecret(returnedState, readCookie(req, STATE_COOKIE))) {
       return page(res, 400, 'Installation was not completed', 'This link has expired or was not started here. Start the installation again.', clearCookie);
     }
 

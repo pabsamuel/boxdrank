@@ -486,7 +486,7 @@ which never imports it and is tested with fakes over real HTTP.
 
 | Route | What it does |
 |---|---|
-| `GET /oauth/start` → `GET /oauth/callback` | Install. Single-use state in an HttpOnly cookie; the code is exchanged server-side; the account id is asked of monday with the new token, never taken from the request; token and installer's email go to `SecureStorage` |
+| `GET /oauth/start` → `GET /oauth/callback` | Install. Single-use state in an HttpOnly cookie when started here; a callback from monday's own installation link carries no state and is accepted, since nothing is bound to the browser; the code is exchanged server-side; the account id is asked of monday with the new token, never taken from the request; token and installer's email go to `SecureStorage` |
 | `POST /mndy-cronjob/check` | The scheduled check, every installed account in turn, one account's failure never stopping the next. A second call inside 12 hours does nothing. With `WATCHDOG_BILLING=enforce`, accounts without a plan or trial are skipped |
 | `POST /monday/lifecycle` | Uninstall. Verified against the **client secret** (HS256/384/512 only; `none` and public-key algorithms refused); deletes the token and address |
 | `GET /api/status` | The board view's check history and plan state, for the account named in the session token monday signed — and nothing else |

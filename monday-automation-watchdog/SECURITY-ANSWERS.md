@@ -90,8 +90,14 @@ are constant strings with values passed as variables
   secret, HS256/384/512 only, with the expiry enforced —
   `src/server/app-server.js`, `verifyJwt`; session tokens must carry an expiry
   (`status`, `requireExp: true`).
-- The OAuth callback requires a single-use state that matches an `HttpOnly;
-  Secure; SameSite=Lax` cookie — `src/server/app-server.js`, `stateCookie`.
+- The OAuth callback refuses any state that does not match the single-use
+  `HttpOnly; Secure; SameSite=Lax` cookie set by `/oauth/start` —
+  `src/server/app-server.js`, `stateCookie` and `finishInstall`. A callback
+  with no state at all is accepted, because monday's own installation link
+  (Share tab, marketplace) sends none; this is safe because nothing is bound to
+  the browser — the token, account and recipient all come from monday's answer
+  for the code, so a forged callback can only complete the forger's own
+  install. Tested both ways in `test/app-server.test.js`.
 - Email addresses and subjects are rejected if they contain a line break
   (header injection) — `src/server/smtp-mailer.js`, `assertAddress`.
 - Board and automation names are escaped for HTML in emails
@@ -165,9 +171,15 @@ The app server sends a one-year HSTS header (`src/server/app-server.js`,
 `PLATFORM-FACTS.md` recorded and SSL Labs confirms. Outgoing SMTP requires TLS
 1.2 or later — `src/server/smtp-mailer.js`, the `tls.minVersion` settings.
 
-## Malware check — **OPEN**
+## Malware check
 
-Palo Alto URL filtering result for the Live URL is still to be run.
+Palo Alto Networks URL filtering (`urlfiltering.paloaltonetworks.com/query/`),
+28 Sep 2026:
+
+| Domain | Category | Risk |
+|---|---|---|
+| `live1-service-36993937-ca48573e.eu.monday.app` | Business-and-Economy | Low-Risk |
+| `atesensoftware.com` | Computer-and-Internet-Info; Newly-Registered-Domain | Low-Risk |
 
 ## Third-party domains
 
@@ -186,8 +198,8 @@ privacy policy.
 | Route | Protection |
 |---|---|
 | `GET /health` | Public by design; returns `ok` and two single words, no data |
-| `GET /oauth/start` | Public; starts OAuth with a fresh single-use state |
-| `GET /oauth/callback` | State must match the `HttpOnly` cookie; code exchanged with the client secret |
+| `GET /oauth/start` | Public; starts OAuth with a fresh single-use state and `force_install_if_needed` |
+| `GET /oauth/callback` | A state, if present, must match the `HttpOnly` cookie; code exchanged with the client secret; account and recipient taken from monday's answer for that code |
 | `POST /mndy-cronjob/check` | Reached only by monday code's scheduler — requests from outside get 403 at monday's edge (verified 26 Sep) — and a second run inside 12 hours does nothing |
 | `POST /monday/lifecycle` | JWT signed with the client secret |
 | `GET /api/status` | Session token JWT signed with the client secret, with an expiry; returns only that account's data |

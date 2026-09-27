@@ -100,7 +100,10 @@ short-lived, HttpOnly security cookie used during installation.
   log, an email or any response; error messages are scrubbed of it.
 - The app only ever sends the token to monday.com, over HTTPS; any other
   destination is refused before a request is made.
-- Install links are protected against forgery with a single-use state value.
+- Installs started from the app are protected against forgery with a
+  single-use state value. Every install, however it starts, is tied to the
+  account and user monday reports for that authorization, never to anything
+  in the request.
 - Uninstall notifications are accepted only with a valid signature from monday.
 
 ## Your choices

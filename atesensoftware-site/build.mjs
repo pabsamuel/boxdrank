@@ -38,7 +38,10 @@ const APPS = [
     // Public: it is in every install link. monday asks for it in
     // monday-app-association.json (`apps/docs/privacy-and-security`).
     clientId: '9fcd68cae356c7fed3eacf09a0f9df81',
-    installUrl: 'https://auth.monday.com/oauth2/authorize?client_id=9fcd68cae356c7fed3eacf09a0f9df81',
+    // FACT (`apps/docs/oauth`): with no redirect_uri, monday uses the live
+    // version's callback URL; force_install_if_needed installs the app first
+    // if it is not installed. Replace with the Share tab's link once shared.
+    installUrl: 'https://auth.monday.com/oauth2/authorize?client_id=9fcd68cae356c7fed3eacf09a0f9df81&force_install_if_needed=true',
     howToUrl: 'https://live1-service-36993937-ca48573e.eu.monday.app/view/how-to.html',
     icon: `${repo}monday-automation-watchdog/listing/app-icon-192.png`,
     privacy: `${repo}monday-automation-watchdog/PRIVACY_POLICY.md`,

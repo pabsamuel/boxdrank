@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { runCheck, stateKey } from '../src/server/run-check.js';
+import { runCheck, stateKey, runLogKey } from '../src/server/run-check.js';
 
 const HOUR = 3600_000;
 const NOW = Date.UTC(2026, 8, 17, 11, 0, 0); // a Thursday
@@ -103,7 +103,31 @@ test('state is written only after the mail is accepted', async () => {
     }),
     /SMTP down/,
   );
-  assert.equal(storage.writes.length, 0, 'nothing persisted, so the next run retries');
+  assert.ok(
+    !storage.writes.some((write) => write.key === stateKey('acc1')),
+    'no alert state persisted, so the next run retries',
+  );
+});
+
+test('a failed send is recorded as a failed run, so the view does not say checks never ran', async () => {
+  // 27 Sep: the check ran, found stopped automations, and could not send. It
+  // left no run log, and the board view said "Scheduled checks are not running
+  // yet" — the one thing a watchdog must never say falsely.
+  const storage = fakeStorage();
+  // Worded as smtp-mailer.js words it, prefix included.
+  const failing = { async send() { throw new Error('Sending the alert failed: Invalid login: 535 5.7.8 Username and Password not accepted'); } };
+
+  await assert.rejects(() => runCheck({
+    monday: fakeMonday(NOW - 12 * HOUR), storage, mailer: failing,
+    accountId: 'acc1', recipient: 'a@b.c', now: NOW,
+  }));
+
+  const runs = storage.writes.filter((write) => write.key === runLogKey('acc1')).at(-1)?.value;
+  assert.equal(runs.length, 1);
+  assert.equal(runs[0].at, NOW);
+  assert.equal(runs[0].sent, false);
+  assert.equal(runs[0].silent, 1);
+  assert.equal(runs[0].error, 'The alert email could not be sent: Invalid login: 535 5.7.8 Username and Password not accepted');
 });
 
 test('after a failed send the next run still alerts', async () => {

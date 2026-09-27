@@ -9,7 +9,7 @@ with a note.
 | | Done | Note |
 |---|---|---|
 | **Code that can be written from here** | **18 / 18 — 100%** | Verified against a live account |
-| **Distance to a product someone pays for** | **55 / 67 — 82%** | Recounted 27 Sep against monday's real review checklist (the old 82% came from a five-item list and was wrong), then worked down the same day |
+| **Distance to a product someone pays for** | **56 / 64 — 88%** | Recounted 27 Sep against monday's real review checklist; customer-validation items removed by the owner 28 Sep |
 
 ---
 
@@ -134,7 +134,7 @@ review.
 - [x] The token cannot leave the process: the endpoint is validated before the
       token is attached, and every response is scrubbed of it before parsing
 
-## 5. Marketplace — 20/28
+## 5. Marketplace — 21/28
 
 *Rewritten 27 Sep.* This section had five items. monday's own review checklist,
 read on 27 Sep from `developer.monday.com/apps/docs/*.md` (app-listing-page,
@@ -194,6 +194,12 @@ Product and UI/UX
 - [x] Back to monday after authorizing (found on the product checklist while
       writing the security answers; the install page did not do it)
 - [ ] Uninstall and reinstall verified; two accounts sharing one email verified
+      — the first attempt (28 Sep) found two real bugs, both fixed with tests:
+      an install from monday's own link was refused for carrying no state,
+      and the app was never actually installed on the account (authorizing
+      is not installing; `force_install_if_needed` now asks monday to install
+      first). A failed alert email also left no run log, so the view said
+      checks had never run; fixed. To redo after the next deploy
 
 Privacy and security
 - [x] Tokens and the installer's address in monday `SecureStorage`; the OAuth
@@ -201,9 +207,9 @@ Privacy and security
 - [x] Written answers with evidence — `SECURITY-ANSWERS.md`, with the
       authorization-code screenshot in `listing/auth-code.png`; three answers
       wait on the items below
-- [ ] SSL Labs link showing HSTS, and a malware check, for every domain —
-      SSL Labs done 27 Sep: **A+** for both domains, HSTS present, TLS 1.2
-      and 1.3 only (`SECURITY-ANSWERS.md`); the malware check is still to run
+- [x] SSL Labs link showing HSTS, and a malware check, for every domain —
+      SSL Labs 27 Sep: **A+** for both, HSTS present, TLS 1.2 and 1.3 only;
+      Palo Alto URL filtering 28 Sep: both **Low-Risk** (`SECURITY-ANSWERS.md`)
 - [ ] monday's Burp scan passed (monday runs it during review)
 
 Submission
@@ -211,16 +217,18 @@ Submission
 - [ ] Payoneer account and vendor registration
 - [ ] Approved
 
-## 6. Validation and sales — 2/5
+## 6. Market check — 2/2
 
 - [x] Confirmed no competing automation-monitoring app surfaced in search
 - [x] Marketplace search — the full public catalog (1,293 apps), not just the
       search box: no app monitors native automations. See `COMPETITORS.md`.
-- [ ] Ten admins asked what they do today when an automation dies silently
-      (2 of 10, both 26 Sep: Jean Foreman by DM; Patrick Fallon, a monday
-      consultant, by email)
-- [ ] One person says they would pay a specific number
-- [ ] One person actually pays
+
+**Removed from the checklist by the owner on 28 Sep:** asking ten admins, one
+person naming a price, and one person paying. They were never a gate (that
+rule was removed on 27 Sep); now they are not counted either. What was
+learned stays in `VALIDATION.md`: 2 of 10 asked (Jean Foreman, Patrick
+Fallon), no price named, nobody has paid. Sales are measured after launch, in
+monday's own analytics.
 
 Recorded so far (details in `VALIDATION.md`): Samet reports people have said
 they would pay, with who and how much still UNKNOWN; and one live lead running

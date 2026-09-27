@@ -116,7 +116,27 @@ export async function runCheck({ monday, storage, mailer, accountId, recipient, 
   if (plan.shouldSend) {
     const email = renderEmail(plan);
     subject = email.subject;
-    await mailer.send({ to: recipient, subject: email.subject, text: email.text, html: email.html });
+    try {
+      await mailer.send({ to: recipient, subject: email.subject, text: email.text, html: email.html });
+    } catch (error) {
+      // Logged like a failed read, so the board view says the checks run and
+      // the email fails. Without this a check that found stopped automations
+      // but could not tell anyone left no trace, and the view reported that
+      // checks had never run — seen on 27 Sep, when the mail credential was
+      // wrong. The alert state is not saved, so the alert is sent next time.
+      await logRun({
+        watched: summary.watched,
+        silent: summary.counts.silent,
+        sent: false,
+        // The SMTP mailer has already scrubbed its credential from this text
+        // (smtp-mailer.js) and prefixes it; the prefix is not repeated.
+        error: singleLine(
+          `The alert email could not be sent: ${String(error?.message ?? error).replace(/^Sending the alert failed:\s*/, '')}`,
+          MAX_LOGGED_ERROR_LENGTH,
+        ),
+      });
+      throw error;
+    }
   }
 
   // Persisted after the send, never before. A storage write that succeeded while
