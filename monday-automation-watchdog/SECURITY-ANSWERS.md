@@ -100,14 +100,14 @@ are constant strings with values passed as variables
 - Malformed request paths are refused rather than parsed —
   `parseRequestUrl` in `src/server/app-server.js`.
 
-## Domain ownership — **OPEN until DNS is live**
+## Domain ownership
 
 The app itself is served only from monday code's own domain. The owner's domain
 is `atesensoftware.com` (registered at Namecheap). The support email is
 `support@atesensoftware.com`, and
 `https://atesensoftware.com/monday-app-association.json` lists the client id —
-built by `atesensoftware-site/build.mjs`. Open until the site is deployed and
-the DNS records point at it.
+built by `atesensoftware-site/build.mjs`. Live since 27 Sep 2026, served over
+HTTPS with the correct client id.
 
 ## Deleting data on uninstall
 
@@ -147,15 +147,23 @@ for the board view.
   view is served by the same monday code server under `/view/`, built with
   esbuild from plain JavaScript; no framework.
 
-## HTTPS, HSTS and TLS — **OPEN: SSL Labs link**
+## HTTPS, HSTS and TLS
 
-The certificate is monday code's. The server sends `Strict-Transport-Security:
-max-age=31536000; includeSubDomains` (`src/server/app-server.js`,
-`BASE_HEADERS`); monday's
-edge replaces it with a 180-day value (`PLATFORM-FACTS.md`), which still
-enables HSTS. Outgoing SMTP requires TLS 1.2 or later —
-`src/server/smtp-mailer.js`, the `tls.minVersion` settings. The SSL Labs report link is still to be run
-and pasted here.
+SSL Labs, run 27 Sep 2026 (not published to its boards):
+
+| Domain | Grade | HSTS | Protocols |
+|---|---|---|---|
+| `live1-service-36993937-ca48573e.eu.monday.app` (all four endpoints) | **A+** | present, 15,552,000 s (180 days) | TLS 1.2, TLS 1.3 |
+| `atesensoftware.com` | **A+** | present, 31,536,000 s (1 year) | TLS 1.2, TLS 1.3 |
+
+Links to give monday:
+`https://www.ssllabs.com/ssltest/analyze.html?d=live1-service-36993937-ca48573e.eu.monday.app&hideResults=on`
+and `https://www.ssllabs.com/ssltest/analyze.html?d=atesensoftware.com&hideResults=on`.
+
+The app server sends a one-year HSTS header (`src/server/app-server.js`,
+`BASE_HEADERS`); monday code's edge replaces it with 180 days, as
+`PLATFORM-FACTS.md` recorded and SSL Labs confirms. Outgoing SMTP requires TLS
+1.2 or later — `src/server/smtp-mailer.js`, the `tls.minVersion` settings.
 
 ## Malware check — **OPEN**
 

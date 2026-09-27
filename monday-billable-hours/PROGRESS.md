@@ -9,7 +9,7 @@ with a note.
 | | Done | Note |
 |---|---|---|
 | **Code that can be written from here** | **18 / 18 — 100%** | Verified against a live account |
-| **Distance to a product someone pays for** | **51 / 67 — 76%** | Recounted 27 Sep against monday's real review checklist (the old 82% came from a five-item list and was wrong), then 14 of its items done the same day |
+| **Distance to a product someone pays for** | **54 / 67 — 81%** | Recounted 27 Sep against monday's real review checklist (the old 82% came from a five-item list and was wrong), then worked down the same day |
 
 ---
 
@@ -98,7 +98,10 @@ project guessed at a monday format, the result looked finished and returned
       test board)
 - [ ] Complete one real install through the OAuth flow, create the cron job,
       and receive one real alert email — install done and cron job created
-      (26 Sep); the email waits on a working mail credential
+      (26 Sep); **mail verified on 27 Sep** (`/health` says `verified`), so
+      the first real email can go out at the next daily check, 09:00 Türkiye
+      time — if an automation is stopped then. Failed sends before today were
+      not recorded as delivered, so nothing was swallowed
 - [x] Confirm `activity_logs` returns what the adapter expects
 - [x] **Confirm the `created_at` format** — it is 100-nanosecond ticks, and the
       parser was wrong until a live response proved it
@@ -131,7 +134,7 @@ review.
 - [x] The token cannot leave the process: the endpoint is validated before the
       token is attached, and every response is scrubbed of it before parsing
 
-## 5. Marketplace — 16/28
+## 5. Marketplace — 19/28
 
 *Rewritten 27 Sep.* This section had five items. monday's own review checklist,
 read on 27 Sep from `developer.monday.com/apps/docs/*.md` (app-listing-page,
@@ -163,22 +166,22 @@ Documentation, support and money
 - [x] Subscription checked at runtime and enforced in code, with the payment
       prompt from the SDK — off until pricing exists (`WATCHDOG_BILLING`)
 - [ ] Support email on a domain the owner controls, and a website link —
-      `atesensoftware.com` (the owner's, at Namecheap) and
-      `support@atesensoftware.com`; the site is built in `atesensoftware-site/`,
-      waiting on Netlify and DNS
-- [ ] `monday-app-association.json` on that domain, and an install button on
-      the website — both built, same wait
+      `https://atesensoftware.com` is **live** (27 Sep, HTTPS, SSL Labs A+);
+      `support@atesensoftware.com` forwards to Gmail by Cloudflare Email
+      Routing, configured but not yet proven with one test message
+- [x] `monday-app-association.json` on that domain, and an install button on
+      the website — live, with the right client id
 - [x] How-to-use page, embeddable in monday, linked from the app —
       `/view/how-to.html`
 - [x] Demo link for the reviewers — the Live URL's `/view/` runs on the demo
       account outside monday
 
 Legal
-- [ ] Terms of Service, which must say whether users will be contacted —
-      page built at `/automation-watchdog/terms/`; entity name confirmed
-      (Samet Ateşen); waits on the site's HTTPS
-- [ ] Privacy policy public, under the same entity name — page built at
-      `/automation-watchdog/privacy/`; same wait
+- [x] Terms of Service, which must say whether users will be contacted —
+      live at `https://atesensoftware.com/automation-watchdog/terms/`, under
+      Samet Ateşen (confirmed 27 Sep)
+- [x] Privacy policy public, under the same entity name — live at
+      `https://atesensoftware.com/automation-watchdog/privacy/`
 
 Product and UI/UX
 - [x] Value-created event, once the results are on screen
@@ -196,7 +199,9 @@ Privacy and security
 - [x] Written answers with evidence — `SECURITY-ANSWERS.md`, with the
       authorization-code screenshot in `listing/auth-code.png`; three answers
       wait on the items below
-- [ ] SSL Labs link showing HSTS, and a malware check, for every domain
+- [ ] SSL Labs link showing HSTS, and a malware check, for every domain —
+      SSL Labs done 27 Sep: **A+** for both domains, HSTS present, TLS 1.2
+      and 1.3 only (`SECURITY-ANSWERS.md`); the malware check is still to run
 - [ ] monday's Burp scan passed (monday runs it during review)
 
 Submission
