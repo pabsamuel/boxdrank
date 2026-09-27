@@ -77,7 +77,39 @@ repository has reacted to, and it applies to monday utilities generally.
 He offered to keep talking. A consultant sees many accounts, which makes him the
 best person yet to ask the Watchdog question. **Sent 26 Sep, 21:54 UTC**:
 whether he has seen automations stop silently in client accounts after their
-creator was deactivated, and how clients find out. No reply yet.
+creator was deactivated, and how clients find out.
+
+**His answer, 27 Sep 2026 — FACT, quoted:**
+
+> "I think Monday has a (newish) feature I believe whereby if a user gets
+> deactivated you can have a default user account that ownership switches over
+> to. If users set that up then the automations don't get de-activated […]"
+>
+> "The big issue with automations in monday is that they are siloed in multiple
+> boards, search functionality in the automations centre is weak and it takes a
+> lot of automation recipes to do anything […] you often need to set up multiple
+> automations to fire in sequence like dominoes. All of this means it's
+> impossible to "see" all your automations in one place, hard to find the
+> automation you are looking for, and hard to understand how your monday system
+> works as a whole - even if you built every single automation yourself.
+> **This is a much bigger pain point in my opinion than automations breaking
+> when the owner gets deactivated.**"
+
+What this is and is not:
+
+- It is **negative evidence for the Watchdog's lead pitch**, from the most
+  informed person asked so far. The offboarding case has a native fix — the
+  default-owner setting, which monday's own help article also describes — and
+  he ranks it below a different problem.
+- It is **one person**, a consultant who builds systems for clients, not an
+  admin whose automation died. His view of what hurts is the builder's view.
+- It does **not** address the other silent causes the Watchdog catches:
+  permission changes, rate limits, or an automation that is switched on and
+  simply stops firing. Nobody has been asked about those directly.
+- It names a problem people might pay to fix: **seeing every automation across
+  every board in one place**. The Watchdog already builds a partial version of
+  that list, from activity, as a by-product; `board_automations` (preview API,
+  see PLATFORM-FACTS.md) would give titles and on/off state for all of them.
 
 **Do not pitch in the threads.** Posting a product link in a feature-request
 thread reads as spam and can follow you into the marketplace review. Read them,

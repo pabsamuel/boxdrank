@@ -279,3 +279,12 @@ matched on wording alone.
 What this does and does not establish: the wedge is open in the catalog today.
 A developer with 47 installs independently wrote the same problem statement,
 which is a second, unrelated source for the pain.
+
+### The default-owner setting, confirmed by a practitioner — 27 Sep 2026
+
+Patrick Fallon (BotSquad) independently named the same mitigation monday's help
+article describes: a default user that inherits automation ownership when the
+owner is deactivated, so the automations keep running. It is opt-in — it helps
+only accounts that set it up before the person leaves — but it means the
+offboarding case, the Watchdog's sharpest pitch, has a native answer.
+
