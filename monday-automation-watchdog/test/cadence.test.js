@@ -160,6 +160,8 @@ test('formatDuration stays readable at every scale', () => {
   assert.equal(formatDuration(1 * HOUR), '1 hr');
   assert.equal(formatDuration(30 * HOUR), '1.3 days');
   assert.equal(formatDuration(45 * DAY), '45 days');
+  assert.equal(formatDuration(DAY), '1 day');
+  assert.equal(formatDuration(1.02 * DAY), '1 day');
 });
 
 test('a short history keeps all seven days so the clock never freezes', () => {

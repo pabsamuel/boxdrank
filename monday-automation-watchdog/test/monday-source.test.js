@@ -152,3 +152,18 @@ test('a user name that could forge email structure is flattened', async () => {
   const [user] = await fetchUsers(monday);
   assert.equal(/[\r\n]/.test(user.name), false);
 });
+
+test('the activity query does not ask for the data field, where item names and values would be', async () => {
+  const queries = [];
+  const monday = {
+    async api(graphql) {
+      queries.push(graphql);
+      return { data: { boards: [{ activity_logs: [] }] } };
+    },
+  };
+  await fetchActivity(monday, ['1'], 0, 1000);
+  assert.equal(queries.length, 1);
+  const selection = queries[0].slice(queries[0].indexOf('activity_logs'));
+  assert.doesNotMatch(selection, /\bdata\b/);
+  assert.match(selection, /\bevent\b/);
+});

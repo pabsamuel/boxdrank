@@ -16,6 +16,7 @@ import {
   CRON_PATH,
   CRON_MIN_INTERVAL_MS,
   accountKey,
+  accountUrl,
 } from '../src/server/app-server.js';
 
 const CLIENT_SECRET = 'client-secret-value-123';
@@ -216,7 +217,7 @@ test('the scheduled check runs every installed account with its own token', with
 }, async (h) => {
   const res = await h.request(CRON_PATH, { method: 'POST' });
   assert.equal(res.status, 200);
-  assert.deepEqual(await res.json(), { accounts: 2, ok: 2, failed: 0, missing: 0 });
+  assert.deepEqual(await res.json(), { accounts: 2, ok: 2, failed: 0, missing: 0, unpaid: 0 });
 
   assert.deepEqual(h.checks.map((c) => [c.accountId, c.recipient, c.storage.token]), [
     ['1', '1@x.example', 'token-for-1-long'],
@@ -231,7 +232,7 @@ test('one account failing does not stop the next, and its token stays out of the
   },
 }, async (h) => {
   const res = await h.request(CRON_PATH, { method: 'POST' });
-  assert.deepEqual(await res.json(), { accounts: 2, ok: 1, failed: 1, missing: 0 });
+  assert.deepEqual(await res.json(), { accounts: 2, ok: 1, failed: 1, missing: 0, unpaid: 0 });
   assert.ok(!h.logs.join('\n').includes('token-for-1-long'));
 }));
 
@@ -444,7 +445,7 @@ test('the board view gets its own account\'s check history', withHarness({
 }, async (h) => {
   const res = await h.request(STATUS_PATH, { headers: { authorization: session(1) } });
   assert.equal(res.status, 200);
-  assert.deepEqual(await res.json(), { installed: true, runs: [{ at: 5, watched: 3, silent: 0, sent: false }] });
+  assert.deepEqual(await res.json(), { installed: true, plan: 'not-required', runs: [{ at: 5, watched: 3, silent: 0, sent: false }] });
 }));
 
 test('an account that never installed is told so, which is what shows the setup link', withHarness({
@@ -594,7 +595,7 @@ test('one unreadable account record costs that account, not every account after 
     return realGet(key);
   };
   const res = await h.request(CRON_PATH, { method: 'POST' });
-  assert.deepEqual(await res.json(), { accounts: 3, ok: 2, failed: 1, missing: 0 });
+  assert.deepEqual(await res.json(), { accounts: 3, ok: 2, failed: 1, missing: 0, unpaid: 0 });
   assert.deepEqual(h.checks.map((c) => c.accountId), ['1', '3']);
 }));
 
@@ -614,7 +615,7 @@ test('a run that stops before checking anyone releases the window', withHarness(
   // The scheduler's retry must run, not be turned away as "skipped".
   failRegistry = false;
   const retry = await h.request(CRON_PATH, { method: 'POST' });
-  assert.deepEqual(await retry.json(), { accounts: 1, ok: 1, failed: 0, missing: 0 });
+  assert.deepEqual(await retry.json(), { accounts: 1, ok: 1, failed: 0, missing: 0, unpaid: 0 });
 }));
 
 
@@ -717,7 +718,7 @@ test('under a flood, the one real run still checks every account', async () => {
     );
     const ran = bodies.filter((b) => !b.skipped);
     assert.equal(ran.length, 1, 'exactly one run');
-    assert.deepEqual(ran[0], { accounts: 5, ok: 5, failed: 0, missing: 0 });
+    assert.deepEqual(ran[0], { accounts: 5, ok: 5, failed: 0, missing: 0, unpaid: 0 });
   } finally {
     await h.close();
   }
@@ -725,7 +726,7 @@ test('under a flood, the one real run still checks every account', async () => {
 
 test('health reports mail as one word and nothing more', withHarness({ mailStatus: () => 'failed' }, async (h) => {
   const res = await h.request('/health');
-  assert.deepEqual(await res.json(), { ok: true, mail: 'failed' });
+  assert.deepEqual(await res.json(), { ok: true, mail: 'failed', billing: 'off' });
 }));
 
 test('addresses are masked so the edge cannot rewrite them', () => {
@@ -735,3 +736,109 @@ test('addresses are masked so the edge cannot rewrite them', () => {
   assert.equal(maskEmail('@nolocal.com'), 'the address on your monday profile');
   assert.equal(maskEmail('trailing@'), 'the address on your monday profile');
 });
+
+// ---- billing ---------------------------------------------------------------
+
+/** An API fake that answers the billing query per account, by token. */
+const billingClient = (plans, queries = []) => (token) => ({
+  async api(query) {
+    queries.push({ token, query });
+    const plan = plans[token];
+    if (plan instanceof Error) throw plan;
+    return { data: { app_subscription: plan } };
+  },
+});
+
+const enforcing = { clientId: 'client-id-1', clientSecret: CLIENT_SECRET, baseUrl: 'https://watchdog.example', billing: 'enforce' };
+
+test('with billing enforced, an account without a plan is not checked or emailed', withHarness({
+  config: enforcing,
+  secureStorage: installed('1', '2', '3'),
+  makeClient: billingClient({
+    'token-for-1-long': [{ plan_id: 'pro', is_trial: false, days_left: 20 }],
+    'token-for-2-long': [],
+    // A failing billing query must not cost a paying account its alert.
+    'token-for-3-long': new Error('monday API returned HTTP 500'),
+  }),
+}, async (h) => {
+  const res = await h.request(CRON_PATH, { method: 'POST' });
+  assert.deepEqual(await res.json(), { accounts: 3, ok: 2, failed: 0, missing: 0, unpaid: 1 });
+  assert.deepEqual(h.checks.map((c) => c.accountId), ['1', '3']);
+}));
+
+test('a trial counts as a plan', withHarness({
+  config: enforcing,
+  secureStorage: installed('1'),
+  makeClient: billingClient({ 'token-for-1-long': [{ plan_id: 'pro', is_trial: true, days_left: 9 }] }),
+}, async (h) => {
+  const res = await h.request(CRON_PATH, { method: 'POST' });
+  assert.deepEqual(await res.json(), { accounts: 1, ok: 1, failed: 0, missing: 0, unpaid: 0 });
+}));
+
+test('a billing answer with GraphQL errors is unknown, not unpaid', withHarness({
+  config: enforcing,
+  secureStorage: installed('1'),
+  makeClient: () => ({ api: async () => ({ errors: [{ message: 'nope' }], data: { app_subscription: [] } }) }),
+}, async (h) => {
+  const res = await h.request(CRON_PATH, { method: 'POST' });
+  assert.deepEqual(await res.json(), { accounts: 1, ok: 1, failed: 0, missing: 0, unpaid: 0 });
+}));
+
+test('with billing off, nobody is asked for a plan', async () => {
+  const queries = [];
+  const h = await harness({
+    secureStorage: installed('1'),
+    makeClient: billingClient({ 'token-for-1-long': [] }, queries),
+  });
+  try {
+    const res = await h.request(CRON_PATH, { method: 'POST' });
+    assert.deepEqual(await res.json(), { accounts: 1, ok: 1, failed: 0, missing: 0, unpaid: 0 });
+    assert.equal(queries.length, 0);
+  } finally {
+    await h.close();
+  }
+});
+
+test('the board view is told when its account has no plan', withHarness({
+  config: enforcing,
+  secureStorage: installed('1'),
+  makeClient: billingClient({ 'token-for-1-long': [] }),
+  makeStorage: () => ({ get: async () => [] }),
+}, async (h) => {
+  const res = await h.request(STATUS_PATH, { headers: { authorization: session(1) } });
+  assert.deepEqual(await res.json(), { installed: true, plan: 'none', runs: [] });
+}));
+
+test('health says whether billing is enforced, as one word', withHarness({ config: enforcing }, async (h) => {
+  const res = await h.request('/health');
+  assert.deepEqual(await res.json(), { ok: true, mail: 'unchecked', billing: 'enforce' });
+}));
+
+// ---- back to monday after install -----------------------------------------
+
+test('a completed install sends the installer back to their monday account', withHarness({
+  makeClient: () => ({
+    api: async () => ({ data: { me: { id: 1, email: 'admin@acme.example', account: { id: 123, slug: 'acme' } } } }),
+  }),
+}, async (h) => {
+  const res = await h.request('/oauth/callback?code=real-code&state=fixed-state-value-abc', { headers: { cookie } });
+  assert.equal(res.status, 200);
+  const body = await res.text();
+  assert.match(body, /<meta http-equiv="refresh" content="6;url=https:\/\/acme\.monday\.com\/">/);
+  assert.match(body, /<a href="https:\/\/acme\.monday\.com\/">Back to monday<\/a>/);
+  // Still no script: the refresh is markup, which the page's CSP allows.
+  assert.ok(!/<script/i.test(body));
+}));
+
+test('a slug that is not a plain name cannot redirect anywhere but monday.com', () => {
+  assert.equal(accountUrl('acme-team'), 'https://acme-team.monday.com/');
+  assert.equal(accountUrl('ACME'), 'https://acme.monday.com/');
+  for (const hostile of ['evil.com/x', 'a.b', 'x@evil.com', '-lead', 'trail-', '', 'a b', '"><script>', null, undefined, 7]) {
+    assert.equal(accountUrl(hostile), 'https://monday.com/', String(hostile));
+  }
+});
+
+test('a failed install does not redirect, so the reason stays on screen', withHarness({}, async (h) => {
+  const res = await h.request('/oauth/callback?error=access_denied&state=fixed-state-value-abc', { headers: { cookie } });
+  assert.ok(!(await res.text()).includes('http-equiv="refresh"'));
+}));

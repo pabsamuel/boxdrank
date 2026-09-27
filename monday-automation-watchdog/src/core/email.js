@@ -71,8 +71,8 @@ export function renderEmail(plan) {
   }
 
   lines.push(
-    'monday does not notify anyone when an automation is deactivated or starts',
-    'failing. If one of these matters, check it in the board\'s Automations centre.',
+    'monday switches automations off in some situations without notifying anyone.',
+    'If one of these matters, check it in the board\'s Automations centre.',
   );
 
   const text = `${subject}\n\n${lines.join('\n')}`;
@@ -104,7 +104,7 @@ export function renderEmail(plan) {
     (plan.mutedCount > 0
       ? `<p style="color:#676879;font-size:13px;margin-top:18px">${plan.mutedCount} other ${plan.mutedCount === 1 ? 'automation is' : 'automations are'} muted and not listed above.</p>`
       : '') +
-    `<p style="color:#676879;font-size:13px;margin-top:22px">monday does not notify anyone when an automation is deactivated or starts failing. ` +
+    `<p style="color:#676879;font-size:13px;margin-top:22px">monday switches automations off in some situations without notifying anyone. ` +
     `If one of these matters, check it in the board's Automations centre.</p></div>`;
 
   return { subject, text, html };

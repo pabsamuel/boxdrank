@@ -31,6 +31,13 @@
         --silent: #ff6b7f; --late: #f0ad4e; --dormant: #9aa0b5;
         --healthy: #4ade80; --unknown: #9aa0b5;
       }
+      /* monday's "black" (night) theme. */
+      :root[data-theme='black'] {
+        --bg: #111111; --surface: #1c1c1c; --border: #333333;
+        --text: #eeeeee; --muted: #a8a8a8; --accent: #6c9fff;
+        --silent: #ff6b7f; --late: #f0ad4e; --dormant: #9a9a9a;
+        --healthy: #4ade80; --unknown: #9a9a9a;
+      }
 
       * { box-sizing: border-box; }
       body {
@@ -64,6 +71,7 @@
       .checks.ok { background: var(--surface); }
       .checks.warn { border-color: var(--late); }
       .checks.warn strong { color: var(--late); }
+      .checks button.link { align-self: flex-start; font-size: 13.5px; margin-top: 4px; }
 
       .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 18px; }
       .tile { padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
@@ -105,6 +113,26 @@
         font-size: 13.5px; margin-bottom: 16px;
       }
       .error { padding: 16px; border: 1px solid var(--silent); border-radius: 10px; color: var(--silent); }
+
+      .header-links { font-size: 13px; margin: 0 0 6px; }
+      .header-links a { color: var(--accent); }
+      .welcome {
+        padding: 18px 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface);
+      }
+      .welcome h2 { font-size: 19px; margin: 0 0 6px; }
+      .welcome p { margin: 0 0 10px; }
+      .steps { margin: 0 0 14px; padding-left: 20px; }
+      .steps li { margin-bottom: 6px; }
+      .shot {
+        display: block; width: 100%; height: auto; margin: 4px 0 12px;
+        border: 1px solid var(--border); border-radius: 8px;
+      }
+      button.primary {
+        margin-top: 6px; padding: 9px 16px; border: none; border-radius: 6px; cursor: pointer;
+        background: var(--accent); color: #fff; font: inherit; font-weight: 600;
+      }
+      button.primary:hover { filter: brightness(1.08); }
+      .tile, .pill { cursor: help; }
       .error p { margin: 6px 0 0; color: var(--text); font-size: 14px; word-break: break-word; white-space: pre-line; }
     </style>
   </head>
@@ -112,8 +140,11 @@
     <div class="wrap">
       <h1>Automation Watchdog</h1>
       <p class="sub">
-        monday deactivates automations when something they reference is deleted, and sends no notification.
+        monday switches automations off in several situations, some of them without telling anyone.
         This notices when one that used to run regularly has gone quiet.
+      </p>
+      <p class="header-links">
+        <a href="./how-to.html" target="_blank" rel="noopener noreferrer">How it works</a>
       </p>
       <p id="source-note"></p>
       <main id="app"><p class="status">Loading…</p></main>

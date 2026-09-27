@@ -186,13 +186,39 @@ export function maskEmail(email) {
 const escapeHtml = (text) =>
   String(text ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-function page(res, status, title, message, extraHeaders = {}) {
+function page(res, status, title, message, extraHeaders = {}, returnTo = null) {
   res.writeHead(status, { ...PAGE_HEADERS, ...extraHeaders });
+  // A meta refresh rather than a script: the page's CSP allows no scripts, and
+  // the confirmation above it stays readable for the few seconds before it.
+  const back = returnTo
+    ? `<meta http-equiv="refresh" content="6;url=${escapeHtml(returnTo)}">`
+    : '';
+  const link = returnTo
+    ? `<p><a href="${escapeHtml(returnTo)}">Back to monday</a> — you will be taken there in a few seconds.</p>`
+    : '';
   res.end(
-    `<!doctype html><meta charset="utf-8"><title>${escapeHtml(title)}</title>` +
+    `<!doctype html><meta charset="utf-8">${back}<title>${escapeHtml(title)}</title>` +
       `<body style="font-family:system-ui,sans-serif;max-width:32rem;margin:4rem auto;padding:0 1rem">` +
-      `<h1 style="font-size:1.25rem">${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p></body>`,
+      `<h1 style="font-size:1.25rem">${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p>${link}</body>`,
   );
+}
+
+/**
+ * Where to send the installer back to once the install is complete.
+ *
+ * monday's review requires it: "If your app redirects users to a sign-in or
+ * authorization page, you must redirect them back to monday upon completion"
+ * (`apps/docs/product`, read 27 Sep 2026). FACT (`api-reference/reference/
+ * account`): `account { slug }` is a `String!`. INFERENCE: an account lives at
+ * `https://<slug>.monday.com` — the usual form, but not stated on that page.
+ *
+ * The slug is checked as a single DNS label, so a value from the API can never
+ * turn this into a redirect to another site; anything else goes to monday.com.
+ */
+export function accountUrl(slug) {
+  return typeof slug === 'string' && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(slug)
+    ? `https://${slug.toLowerCase()}.monday.com/`
+    : 'https://monday.com/';
 }
 
 function json(res, status, body) {
@@ -221,9 +247,11 @@ const stateCookie = (value, maxAge) =>
 
 /**
  * @param {object} deps
- * @param {{clientId: string, clientSecret: string, baseUrl: string}} deps.config
+ * @param {{clientId: string, clientSecret: string, baseUrl: string, billing?: 'enforce'|'off'}} deps.config
  *   `baseUrl` is the app's public https origin; the redirect URI is derived
- *   from it and must match one registered in the Developer Center.
+ *   from it and must match one registered in the Developer Center. `billing`
+ *   decides whether an account needs a plan to be sent alerts; see
+ *   `subscriptionState`.
  * @param {{get: Function, set: Function, delete: Function}} deps.secureStorage
  *   App-scoped. Holds each account's token and the account registry.
  * @param {(token: string) => {api: Function}} deps.makeClient
@@ -250,6 +278,7 @@ export function createAppHandler({
 }) {
   const { clientId, clientSecret, baseUrl } = config ?? {};
   if (!clientId || !clientSecret) throw new Error('The monday client id and secret are required.');
+  const enforceBilling = config.billing === 'enforce';
   const origin = new URL(baseUrl);
   if (origin.protocol !== 'https:') throw new Error('The app base URL must be https.');
   const redirectUri = new URL('/oauth/callback', origin).toString();
@@ -309,7 +338,7 @@ export function createAppHandler({
    */
   async function identify(token) {
     // FACT (`api-reference/reference/me`): `id: ID!`, `is_admin: Boolean`.
-    const response = await makeClient(token).api('query { me { id email is_admin account { id } } }');
+    const response = await makeClient(token).api('query { me { id email is_admin account { id slug } } }');
     if (response?.errors?.length) throw new Error('monday refused the identity query');
     const me = response?.data?.me;
     const accountId = String(me?.account?.id ?? '');
@@ -319,6 +348,7 @@ export function createAppHandler({
       userId: me?.id === undefined || me?.id === null ? null : String(me.id),
       isAdmin: me?.is_admin === true,
       email: typeof me?.email === 'string' ? me.email : null,
+      slug: me?.account?.slug ?? null,
     };
   }
 
@@ -367,7 +397,7 @@ export function createAppHandler({
     let token;
     try {
       token = await exchangeCode(code);
-      const { accountId, userId, isAdmin, email } = await identify(token);
+      const { accountId, userId, isAdmin, email, slug } = await identify(token);
 
       // Who may replace an existing install. Without this, any member of the
       // account could run the install again and silently take the alerts: they
@@ -401,6 +431,7 @@ export function createAppHandler({
           ? `Alerts will go to ${maskEmail(email)} when an automation that used to run regularly goes quiet.`
           : 'Alerts are set up. No email address was found for your user, so none will be sent until one is.',
         clearCookie,
+        accountUrl(slug),
       );
     } catch (error) {
       // Status and nothing else. Whatever went wrong, the message may carry
@@ -451,6 +482,35 @@ export function createAppHandler({
     }
   }
 
+  /**
+   * Whether an account has a plan for this app: 'active', 'none' or 'unknown'.
+   *
+   * FACT (`apps/docs/implementing-monetization`, read 27 Sep 2026): "monday.com
+   * does not automatically restrict access when a subscription expires or
+   * changes. You are responsible for enforcing plan entitlements". The board
+   * view is blocked by monday itself once a trial ends (`plans-and-pricing`);
+   * the emails are not, so this is where they are gated.
+   *
+   * FACT (`api-reference/reference/app-subscription`): `app_subscription`
+   * "returns an array containing the current app and account subscription
+   * details based on the token used". An empty array is read as no plan.
+   * What it returns for an app that has never been monetized is UNKNOWN, which
+   * is why gating is off unless the server is started with billing enforced.
+   *
+   * 'unknown' covers errors. The caller lets those through: a paying account
+   * losing an alert to a failed billing query is the worse mistake.
+   */
+  async function subscriptionState(token) {
+    try {
+      const response = await makeClient(token).api('query { app_subscription { plan_id is_trial days_left } }');
+      const subscriptions = response?.data?.app_subscription;
+      if (response?.errors?.length || !Array.isArray(subscriptions)) return 'unknown';
+      return subscriptions.length > 0 ? 'active' : 'none';
+    } catch {
+      return 'unknown';
+    }
+  }
+
   async function runScheduled() {
     const previous = (await readSecure(CRON_KEY))?.lastRunAt ?? -Infinity;
     if (now() - previous < CRON_MIN_INTERVAL_MS) {
@@ -473,7 +533,7 @@ export function createAppHandler({
       await secureStorage.set(CRON_KEY, { lastRunAt: previous }).catch(() => {});
       throw error;
     }
-    const counts = { accounts: ids.length, ok: 0, failed: 0, missing: 0 };
+    const counts = { accounts: ids.length, ok: 0, failed: 0, missing: 0, unpaid: 0 };
 
     // One account at a time. monday allows 12 storage requests a second per
     // token and 7 a second for secure storage; a fan-out across every
@@ -491,6 +551,10 @@ export function createAppHandler({
       }
       if (!record?.token) {
         counts.missing += 1;
+        continue;
+      }
+      if (enforceBilling && (await subscriptionState(record.token)) === 'none') {
+        counts.unpaid += 1;
         continue;
       }
       try {
@@ -626,6 +690,9 @@ export function createAppHandler({
 
     const record = await secureStorage.get(accountKey(accountId));
     if (!record?.token) return json(res, 200, { installed: false, runs: [] });
+    // Asked here as well as in the scheduled check, so the view can say why
+    // no email is coming instead of reporting the checks as stopped.
+    const plan = enforceBilling ? await subscriptionState(record.token) : 'not-required';
 
     // Self-healing: an installed account missing from the registry is one the
     // scheduled check silently skips. Opening the board view puts it back.
@@ -637,7 +704,7 @@ export function createAppHandler({
 
     try {
       const runs = (await makeStorage(record.token).get(runLogKey(accountId))) ?? [];
-      return json(res, 200, { installed: true, runs: Array.isArray(runs) ? runs : [] });
+      return json(res, 200, { installed: true, plan, runs: Array.isArray(runs) ? runs : [] });
     } catch (error) {
       // Scrubbed of this account's token, which the outer handler does not know.
       log(`status failed for account ${accountId}: ${redact(error?.message ?? String(error), [record.token])}`);
@@ -656,7 +723,7 @@ export function createAppHandler({
       if (route === 'GET /health') {
         // A single word about mail, so a deploy can be checked from outside
         // without anyone reading a secret back. No detail, no error text.
-        return json(res, 200, { ok: true, mail: mailStatus() });
+        return json(res, 200, { ok: true, mail: mailStatus(), billing: enforceBilling ? 'enforce' : 'off' });
       }
       if (route === 'GET /oauth/start') return startInstall(res);
       if (route === 'GET /oauth/callback') return await finishInstall(req, res, url);

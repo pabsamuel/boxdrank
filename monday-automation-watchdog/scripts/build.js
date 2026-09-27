@@ -26,8 +26,13 @@ const result = await build({
 });
 
 await copyFile(`${root}src/app/index.html`, `${root}dist/index.html`);
+await copyFile(`${root}src/app/how-to.html`, `${root}dist/how-to.html`);
+await mkdir(new URL('../dist/assets/', import.meta.url), { recursive: true });
+for (const image of ['board-view.png', 'alert-email.png']) {
+  await copyFile(`${root}src/app/assets/${image}`, `${root}dist/assets/${image}`);
+}
 
 const bytes = Object.values(result.metafile.outputs)[0].bytes;
 console.log(`dist/main.js   ${(bytes / 1024).toFixed(1)} kB`);
-console.log('dist/index.html');
+console.log('dist/index.html, dist/how-to.html, dist/assets/');
 console.log('\ndist/ is the whole app — host it and point the monday board view at it.');

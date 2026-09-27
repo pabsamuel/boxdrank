@@ -259,5 +259,6 @@ export function formatDuration(ms) {
     return `${hours < 10 ? hours.toFixed(1).replace(/\.0$/, '') : Math.round(hours)} hr`;
   }
   const days = ms / DAY;
-  return `${days < 10 ? days.toFixed(1).replace(/\.0$/, '') : Math.round(days)} days`;
+  const shown = days < 10 ? days.toFixed(1).replace(/\.0$/, '') : String(Math.round(days));
+  return `${shown} ${shown === '1' ? 'day' : 'days'}`;
 }

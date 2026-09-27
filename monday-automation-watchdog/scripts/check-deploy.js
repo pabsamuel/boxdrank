@@ -55,6 +55,7 @@ check(!pkg.devDependencies || Object.keys(pkg.devDependencies).length === 0, 'no
 const ignore = await read('.mappsignore');
 check(/^dist\/$/m.test(ignore), '.mappsignore excludes dist/, so a stale build is never uploaded');
 check(!/^src\/?$/m.test(ignore) && !/^scripts\/?$/m.test(ignore), '.mappsignore keeps src/ and scripts/');
+check(/^listing\/$/m.test(ignore), '.mappsignore excludes listing/, the marketplace images the server never serves');
 
 // ---- 4: boot ---------------------------------------------------------------
 
@@ -111,6 +112,14 @@ try {
     check(view.status === 200 && html.includes('main.js'), 'board view is served in setup mode');
     const script = await fetch(`${base}/view/main.js`);
     check(script.status === 200 && (await script.text()).length > 1000, 'board view script is built and served');
+    const howTo = await fetch(`${base}/view/how-to.html`);
+    check(howTo.status === 200 && (await howTo.text()).includes('How to use Automation Watchdog'), 'how-to-use page is served');
+    for (const image of ['board-view.png', 'alert-email.png']) {
+      const response = await fetch(`${base}/view/assets/${image}`);
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      // The PNG signature, so an HTML error page cannot pass for an image.
+      check(response.status === 200 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47, `${image} is served`);
+    }
 
     const cron = await fetch(`${base}/mndy-cronjob/check`, { method: 'POST' });
     check(cron.status === 503, 'scheduled route refuses to run before setup');

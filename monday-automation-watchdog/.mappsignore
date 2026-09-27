@@ -13,10 +13,16 @@ dist/
 # Local runs of the CLI runner. Board ids, actor ids, API error strings.
 .watchdog-state/
 
-# Not needed to run.
+# Not needed to run. listing/ holds the marketplace images, made by
+# scripts/make-assets.js and uploaded to the listing by hand.
 test/
 docs/
-*.png
+listing/
 
-# Written into the project by `mapps code:push -s`. A report, not code.
-security-scan-*.json
+# Patterns with wildcards do nothing here. FACT (monday-apps-cli,
+# src/services/files-service.ts, alignPatternsForArchive, read 27 Sep 2026):
+# each line is kept only if `fs.existsSync(directory + line)` is true, so
+# `*.png` or `security-scan-*.json` names no real path and is dropped. Only
+# literal paths that exist work. The security scan report that
+# `mapps code:push -s` writes is therefore uploaded; it holds scan findings,
+# not secrets.

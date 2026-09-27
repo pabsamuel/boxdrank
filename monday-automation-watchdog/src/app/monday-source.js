@@ -98,6 +98,12 @@ const BOARDS_QUERY = `
  * `id event entity data user_id created_at`, nested inside `boards`, with
  * `from`, `to`, `limit` and `page` arguments.
  *
+ * **`data` is deliberately not requested.** Nothing here uses it, and it is
+ * where an activity entry would carry item names and column values (INFERENCE:
+ * never captured, see docs/AGENT-TASK-3-data-field.md). Not asking for it is
+ * what makes "does not read item names or column values" in the privacy
+ * policy true, rather than true only of what the code happens to keep.
+ *
  * **Deliberately does not use `users { activity_logs }`** — monday's own
  * documentation marks user-scoped logs preview-only and explicitly not stable.
  */
@@ -108,7 +114,6 @@ const ACTIVITY_QUERY = `
         id
         event
         entity
-        data
         user_id
         created_at
       }

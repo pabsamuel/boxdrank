@@ -19,12 +19,31 @@ import { fetchBoards, fetchActivity, looksLikeMondayContext } from './monday-sou
 /** How far back to read activity. Long enough for the engine to learn a rhythm. */
 const HISTORY_DAYS = 60;
 
+/** Set once the welcome page has been dismissed in this browser. */
+const WELCOME_KEY = 'watchdog:welcomed:v1';
+
 const STATUS_COPY = {
-  silent: { label: 'Stopped', tone: 'silent' },
-  late: { label: 'Overdue', tone: 'late' },
-  dormant: { label: 'Switched off', tone: 'dormant' },
-  healthy: { label: 'Running', tone: 'healthy' },
-  insufficient_history: { label: 'Not enough history', tone: 'unknown' },
+  silent: {
+    label: 'Stopped',
+    tone: 'silent',
+    hint: 'Used to act on a regular rhythm and has now been quiet far longer than its normal gap.',
+  },
+  late: {
+    label: 'Overdue',
+    tone: 'late',
+    hint: 'Past its usual gap, but not yet long enough to call it stopped.',
+  },
+  dormant: {
+    label: 'Switched off',
+    tone: 'dormant',
+    hint: 'Quiet for over a month. Treated as retired on purpose rather than broken.',
+  },
+  healthy: { label: 'Running', tone: 'healthy', hint: 'Acting on its normal rhythm.' },
+  insufficient_history: {
+    label: 'Not enough history',
+    tone: 'unknown',
+    hint: 'Has not acted often enough yet to learn what normal looks like.',
+  },
 };
 
 const state = {
@@ -38,9 +57,42 @@ const state = {
   muteStoreFailed: false,
   runs: [],
   installed: null,
+  plan: null,
+  viewOnly: false,
+  sdk: null,
+  valueReported: false,
+  welcome: !hasSeenWelcome(),
   error: null,
   status: '',
 };
+
+function hasSeenWelcome() {
+  try {
+    return window.localStorage.getItem(WELCOME_KEY) !== null;
+  } catch {
+    // Storage blocked: showing the welcome page every time is the lesser harm.
+    return false;
+  }
+}
+
+function dismissWelcome() {
+  try {
+    window.localStorage.setItem(WELCOME_KEY, String(Date.now()));
+  } catch {
+    // Remembered for this page view only.
+  }
+  state.welcome = false;
+  render();
+}
+
+/**
+ * monday's own theme, so the view matches the page around it.
+ * FACT (`apps/docs/mondayget`, read 27 Sep 2026): context `theme` is "light",
+ * "dark" or "black". Anything else leaves the operating system's preference.
+ */
+function applyTheme(theme) {
+  if (['light', 'dark', 'black'].includes(theme)) document.documentElement.dataset.theme = theme;
+}
 
 /**
  * The strip that says whether the watchdog itself is working.
@@ -53,6 +105,26 @@ const state = {
  */
 function renderRunStatus() {
   const summary = summarizeRuns(state.runs, state.now);
+
+  if (state.plan === 'none') {
+    // Before "checks not running": that is what the stopped checks would look
+    // like, and the honest reason is the plan, not a fault.
+    const strip = el('div', 'checks warn');
+    strip.append(
+      el('strong', null, 'Email alerts are paused: this account has no active plan'),
+      el('span', null, 'This page still works. Choose a plan to have stopped automations emailed to you again. '),
+    );
+    if (state.sdk) {
+      const choose = el('button', 'link', 'Choose a plan');
+      // FACT (`apps/docs/mondayexecute`): opens monday's plan selection page;
+      // it only works for live marketplace apps.
+      choose.addEventListener('click', () => {
+        state.sdk.execute('openPlanSelection', { isInPlanSelection: true }).catch(() => {});
+      });
+      strip.append(choose);
+    }
+    return strip;
+  }
 
   if (state.installed === false) {
     // Opened in a new tab: monday's authorization page is not one to put in
@@ -137,6 +209,7 @@ function renderSummary() {
   const wrap = el('div', 'summary');
   for (const status of ['silent', 'late', 'dormant', 'healthy']) {
     const tile = el('div', `tile ${STATUS_COPY[status].tone}`);
+    tile.title = STATUS_COPY[status].hint;
     tile.append(
       el('div', 'tile-value', String(state.summary.counts[status] ?? 0)),
       el('div', 'tile-label', STATUS_COPY[status].label),
@@ -180,7 +253,9 @@ function renderRow(result) {
   const row = el('section', `row ${copy.tone}${muted ? ' muted' : ''}`);
 
   const head = el('header', 'row-head');
-  head.append(el('span', `pill ${copy.tone}`, copy.label));
+  const pill = el('span', `pill ${copy.tone}`, copy.label);
+  if (copy.hint) pill.title = copy.hint;
+  head.append(pill);
   head.append(el('h3', null, result.label));
   row.append(head);
 
@@ -195,9 +270,78 @@ function renderRow(result) {
   return row;
 }
 
+/**
+ * Shown once, before the main page, as monday's review asks of board views:
+ * a welcome, first-time instructions with a screenshot, and what to know first.
+ */
+function renderWelcome() {
+  const box = el('section', 'welcome');
+  box.append(el('h2', null, 'Welcome to Automation Watchdog'));
+  box.append(
+    el(
+      'p',
+      null,
+      'monday switches automations off in several situations, some of them without telling anyone. This view learns how often each automation normally acts and shows you the ones that have gone quiet.',
+    ),
+  );
+
+  const steps = el('ol', 'steps');
+  for (const text of [
+    'Leave this view on any board. It reads the last 60 days of activity on every board you can see. It never changes anything.',
+    'Each automation that repeats gets a status: Running, Overdue, Stopped or Switched off. Hover a status to see what it means.',
+    'Click "Set up email alerts" once. A daily check then emails you when an automation stops, so you do not need to keep this page open.',
+  ]) {
+    steps.append(el('li', null, text));
+  }
+  box.append(steps);
+
+  const shot = el('img', 'shot');
+  shot.src = new URL('./assets/board-view.png', window.location.href).toString();
+  shot.alt = 'The board view: a red banner saying one automation has stopped, status counts, and one row per automation.';
+  shot.width = 1260;
+  shot.height = 868;
+  box.append(shot);
+
+  box.append(
+    el(
+      'p',
+      'meta',
+      'Good to know: an automation needs a few weeks of history before it can be judged, and one that acts less than about weekly cannot be watched.',
+    ),
+  );
+
+  const go = el('button', 'primary', 'Show my automations');
+  go.addEventListener('click', dismissWelcome);
+  box.append(go);
+  return box;
+}
+
 function render() {
   const app = $('app');
   app.replaceChildren();
+
+  if (state.viewOnly) {
+    // FACT (`apps/docs/product`): "viewers can't access the API, so your app
+    // should display a relevant message".
+    const box = el('div', 'checks warn');
+    box.append(
+      el('strong', null, 'As a viewer, you can\'t use Automation Watchdog'),
+      el(
+        'span',
+        null,
+        'It reads board activity through monday\'s API, which viewer accounts cannot use. Ask an admin or a member of this account to open this view.',
+      ),
+    );
+    app.append(box);
+    return;
+  }
+
+  // After the viewer check: a welcome promising automations a viewer then
+  // cannot see would be worse than no welcome.
+  if (state.welcome) {
+    app.append(renderWelcome());
+    return;
+  }
 
   $('source-note').textContent =
     state.source === 'monday'
@@ -247,7 +391,7 @@ function render() {
 
   const context = [
     alarmCount > 0
-      ? 'monday does not send an alert when this happens. That is why this exists.'
+      ? 'monday does not always tell anyone when an automation stops. That is why this exists.'
       : `${state.summary.watched} recurring patterns watched.`,
   ];
   if (mutedCount > 0) context.push(`${mutedCount} muted.`);
@@ -278,6 +422,20 @@ function render() {
   const list = el('div', 'rows');
   for (const result of state.results) list.append(renderRow(result));
   app.append(list);
+  reportValueCreated();
+}
+
+/**
+ * Tells monday the user has seen what this view exists for: the verdict on
+ * every automation. Once per load, when it is first on screen — not while the
+ * welcome page is still covering it. FACT (`apps/docs/mondayexecute`):
+ * `valueCreatedForUser` takes no parameters; monday's guide recommends
+ * reporting it every time the value is delivered, not only the first time.
+ */
+function reportValueCreated() {
+  if (state.source !== 'monday' || state.valueReported || !state.sdk) return;
+  state.valueReported = true;
+  state.sdk.execute('valueCreatedForUser').catch(() => {});
 }
 
 async function loadDemo() {
@@ -297,6 +455,19 @@ async function loadDemo() {
 async function loadFromMonday() {
   const { default: mondaySdk } = await import('monday-sdk-js');
   const monday = mondaySdk();
+  state.sdk = monday;
+
+  // FACT (`apps/docs/mondayget`): the context carries `theme` and
+  // `user.isViewOnly`. A context that fails to load is not fatal; the API
+  // calls below report their own errors.
+  const context = (await monday.get('context').catch(() => null))?.data ?? {};
+  applyTheme(context.theme);
+  monday.listen('context', (event) => applyTheme(event?.data?.theme));
+  if (context.user?.isViewOnly === true) {
+    state.source = 'monday';
+    state.viewOnly = true;
+    return;
+  }
 
   state.status = 'Finding boards…';
   render();
@@ -339,6 +510,7 @@ async function loadFromMonday() {
       const body = await response.json();
       state.runs = Array.isArray(body?.runs) ? body.runs : [];
       state.installed = body?.installed === true;
+      state.plan = typeof body?.plan === 'string' ? body.plan : null;
     }
   } catch {
     // Left as "not running"; see above.

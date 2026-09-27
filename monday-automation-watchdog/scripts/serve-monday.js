@@ -18,6 +18,10 @@
  *
  *   Environment (`mapps code:env -m set -k KEY -v VALUE`)
  *     WATCHDOG_BASE_URL     the app's public https URL on monday code
+ *     WATCHDOG_BILLING      optional. `enforce` sends alerts only to accounts
+ *                           with a plan (monday's monetization). Anything else,
+ *                           or unset, sends to every installed account — right
+ *                           until the app has pricing, wrong after approval.
  *     PORT                  set by monday code; its own sample app reads it.
  *                           Defaults to 8080 for a local run.
  *
@@ -58,13 +62,19 @@ function env(name) {
 
 async function loadView() {
   // Built by `npm run build`, which `npm start` runs first. Served by exact
-  // path only: three entries, no directory listing, nothing to traverse.
+  // path only: a fixed list, no directory listing, nothing to traverse.
   const dist = new URL('../dist/', import.meta.url);
   const html = await readFile(new URL('index.html', dist));
+  const page = { type: 'text/html; charset=utf-8' };
+  const png = { type: 'image/png' };
   return {
-    '/view/': { type: 'text/html; charset=utf-8', body: html },
-    '/view/index.html': { type: 'text/html; charset=utf-8', body: html },
+    '/view/': { ...page, body: html },
+    '/view/index.html': { ...page, body: html },
     '/view/main.js': { type: 'text/javascript; charset=utf-8', body: await readFile(new URL('main.js', dist)) },
+    // The how-to-use page monday's review asks for, embeddable in monday.
+    '/view/how-to.html': { ...page, body: await readFile(new URL('how-to.html', dist)) },
+    '/view/assets/board-view.png': { ...png, body: await readFile(new URL('assets/board-view.png', dist)) },
+    '/view/assets/alert-email.png': { ...png, body: await readFile(new URL('assets/alert-email.png', dist)) },
   };
 }
 
@@ -96,7 +106,12 @@ if (missing.length > 0) {
   });
 
   handler = createAppHandler({
-    config: { clientId: config.clientId, clientSecret: config.clientSecret, baseUrl: config.baseUrl },
+    config: {
+      clientId: config.clientId,
+      clientSecret: config.clientSecret,
+      baseUrl: config.baseUrl,
+      billing: process.env.WATCHDOG_BILLING === 'enforce' ? 'enforce' : 'off',
+    },
     secureStorage: new SecureStorage(),
     makeClient: (token) => createHttpClient({ token }),
     makeStorage: (token) => createMondayStorage({ token }),
