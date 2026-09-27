@@ -111,6 +111,11 @@ What this is and is not:
   that list, from activity, as a by-product; `board_automations` (preview API,
   see PLATFORM-FACTS.md) would give titles and on/off state for all of them.
 
+**Sent 27 Sep, 23:43 Türkiye time** (Samet, from Gmail): the follow-up asking
+whether his clients would pay for one searchable view of every automation
+across every board, showing which are switched off or have gone quiet, and
+roughly what would feel fair per month. No reply yet.
+
 **Do not pitch in the threads.** Posting a product link in a feature-request
 thread reads as spam and can follow you into the marketplace review. Read them,
 note who is describing real pain with specifics, and message those people

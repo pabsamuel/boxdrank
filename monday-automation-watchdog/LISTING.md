@@ -96,16 +96,45 @@ boards and automations are invented. None of it is a customer's data.
 | Field | Value |
 |---|---|
 | Full contact name | Samet Ateşen |
-| Company / entity name | Samet Ateşen — the recommendation while no company exists; the website shows "Samet Ateşen (Atesen Software)". [FILL IN: the owner confirms or changes it in `atesensoftware-site/build.mjs`] |
+| Company / entity name | **Samet Ateşen** — confirmed by the owner on 27 Sep. No company exists; "Atesen Software" is the brand the website shows beside it. |
 
 ## Pricing — monday's monetization is required for new apps
 
-[FILL IN: the owner's decision.] Proposal, not evidence: one feature-based
-("Standard") plan with a 14-day trial, $15 a month or $144 a year ($12 a month).
-The only outside input is Patrick Fallon's remark that an extra $15 is unlikely
-to feel significant to accounts paying for several seats. Plan ids are sent to
-the backend as `plan_id`; the code does not depend on any particular id — any
-active plan or trial enables alerts.
+**Decided 27 Sep** (the owner asked for the best starting price rather than
+choosing one): **seat-based, $1 per seat per month, "Optimized" mode, 14-day
+trial.** A starting point to revise with data, not a number anyone has
+agreed to pay.
+
+Why, and what it rests on:
+
+- **Seat-based.** FACT, monday's developer pricing report (Untapped Pricing for
+  monday, Feb 2024, linked from `apps/docs/plans-and-pricing`): "Use seat-based
+  pricing if your app targets a very specific customer need by doing just one
+  thing really well rather than having a large feature set." That is this app.
+  It also scales with the problem: bigger accounts run more automations.
+- **$1 a seat.** FACT (`submit-your-plans-and-pricing`): the seat price "must be
+  a non-negative integer", in USD, so the choices are $1 or $2. FACT
+  (`COMPETITORS.md`): the nearest admin app, Workspace Doctor, charges $2 a
+  month up to 3 seats, $4 up to 5 and $8 up to 10, yearly, with a free tier —
+  about $0.70–0.80 a seat. FACT (the report): small accounts are the price-
+  sensitive ones — "if a business is on a five-seat plan, paying $10 per month
+  for an app can add up to about 20% percent of your monthly subscription".
+  $2 a seat would be 2.5× the nearest comparable app with no reviews to justify
+  it; $1 keeps a 3-seat account at $3 a month and a 50-seat one around $50
+  before monday's volume discounts. INFERENCE: easier to raise later, with
+  reviews, than to win back installs lost to a high first price.
+- **Optimized mode.** FACT (`plans-and-pricing`): monday applies progressively
+  lower per-seat prices to larger accounts itself, so a 500-seat account is not
+  asked for $500.
+- **14-day trial.** FACT: "All seat-based apps must include a trial"; 14 days is
+  monday's default. No free bucket for now: every installed account costs a
+  daily check, and a free tier teaches "free".
+- Patrick Fallon's remark that an extra $15 is unlikely to feel significant to
+  multi-seat accounts is consistent with this, and is one opinion about another
+  app.
+
+Plan ids are sent to the backend as `plan_id`; the code does not depend on any
+particular id — any active plan or trial enables alerts.
 
 Once pricing is approved, set `WATCHDOG_BILLING=enforce` (`mapps code:env`) so
 that accounts without a plan stop receiving alerts. Until then leave it unset:

@@ -157,8 +157,9 @@ Listing
 - [ ] Video, 120 seconds or less, 50 MB or less
 
 Documentation, support and money
-- [ ] Pricing chosen and submitted as a pricing version — new apps must be
-      monetized by monday; payouts go through Payoneer. Proposal in `LISTING.md`
+- [ ] Pricing chosen and submitted as a pricing version — **chosen 27 Sep**:
+      seat-based, $1 a seat a month, Optimized, 14-day trial (reasons in
+      `LISTING.md`); not yet submitted in the Developer Center
 - [x] Subscription checked at runtime and enforced in code, with the payment
       prompt from the SDK — off until pricing exists (`WATCHDOG_BILLING`)
 - [ ] Support email on a domain the owner controls, and a website link —
@@ -174,8 +175,8 @@ Documentation, support and money
 
 Legal
 - [ ] Terms of Service, which must say whether users will be contacted —
-      page built at `/automation-watchdog/terms/`; waits on the site going live
-      and the owner confirming the entity name
+      page built at `/automation-watchdog/terms/`; entity name confirmed
+      (Samet Ateşen); waits on the site's HTTPS
 - [ ] Privacy policy public, under the same entity name — page built at
       `/automation-watchdog/privacy/`; same wait
 

@@ -20,8 +20,8 @@ const out = `${here}public/`;
 
 /**
  * The owner's decisions. `entity` must be the same name given as the company /
- * entity on monday's submission form (`apps/docs/legal`). "Samet Ateşen" is
- * the recommendation while no company exists; change it here and rebuild.
+ * entity on monday's submission form (`apps/docs/legal`). "Samet Ateşen",
+ * confirmed by the owner on 27 Sep 2026; no company exists.
  */
 const SITE = {
   brand: 'Atesen Software',
