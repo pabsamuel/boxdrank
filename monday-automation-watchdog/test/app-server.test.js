@@ -181,7 +181,10 @@ test('a failed token exchange stores nothing and logs no secret', withHarness({
   fetchImpl: async () => ({ ok: false, status: 400, json: async () => ({}) }),
 }, async (h) => {
   const res = await h.request('/oauth/callback?code=secret-code-value&state=fixed-state-value-abc', { headers: { cookie } });
-  assert.equal(res.status, 502);
+  // A 4xx from the token endpoint is a stale or reused code: said as a 400,
+  // because monday code's edge hides the body of a 5xx.
+  assert.equal(res.status, 400);
+  assert.match(await res.text(), /expired or was already used/);
   assert.equal(h.deps.secureStorage.data.size, 0);
   const logged = h.logs.join('\n');
   assert.ok(!logged.includes(CLIENT_SECRET));
@@ -868,4 +871,12 @@ test('a state that comes back without its cookie is still refused', withHarness(
 test('starting an install asks monday to install the app first if it is not installed', withHarness({}, async (h) => {
   const res = await h.request('/oauth/start');
   assert.equal(new URL(res.headers.get('location')).searchParams.get('force_install_if_needed'), 'true');
+}));
+
+test('a token endpoint that is down is still reported as a gateway failure', withHarness({
+  fetchImpl: async () => ({ ok: false, status: 503, json: async () => ({}) }),
+}, async (h) => {
+  const res = await h.request('/oauth/callback?code=c');
+  assert.equal(res.status, 502);
+  assert.equal(h.deps.secureStorage.data.size, 0);
 }));

@@ -321,7 +321,9 @@ export function createAppHandler({
       }).toString(),
       redirect: 'error',
     });
-    if (!response.ok) throw new Error(`token endpoint returned HTTP ${response.status}`);
+    if (!response.ok) {
+      throw Object.assign(new Error(`token endpoint returned HTTP ${response.status}`), { tokenStatus: response.status });
+    }
     let body;
     try {
       body = await response.json();
@@ -457,6 +459,20 @@ export function createAppHandler({
       // Status and nothing else. Whatever went wrong, the message may carry
       // the code, the secret or the token, and it is about to be logged.
       log(`install failed: ${redact(error?.message ?? String(error), [token, clientSecret, code])}`);
+      // monday refusing the code (4xx) means the link was stale — codes last
+      // ten minutes (FACT, `apps/docs/oauth`) — or already used by a reload.
+      // Said as a 400 with a way to start again: monday code's edge replaces
+      // the body of a 5xx with its own bare "error code: 502" (seen live on
+      // 28 Sep), so a 5xx here would leave the user with no explanation.
+      if (error?.tokenStatus >= 400 && error?.tokenStatus < 500) {
+        return page(
+          res,
+          400,
+          'Installation was not completed',
+          'This installation link has expired or was already used. Start the installation again from monday or from the app.',
+          clearCookie,
+        );
+      }
       return page(res, 502, 'Installation was not completed', 'monday could not be reached to finish the installation. Please try again.', clearCookie);
     }
   }
