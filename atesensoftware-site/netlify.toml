@@ -1,0 +1,7 @@
+# Netlify reads this from the base directory, which the site's settings must
+# set to `atesensoftware-site` (docs: build/configure-builds/file-based-
+# configuration). Paths here are relative to that base directory.
+[build]
+  # public/ is committed, built by `node atesensoftware-site/build.mjs`.
+  publish = "public/"
+  command = "echo 'No build: public/ is committed.'"

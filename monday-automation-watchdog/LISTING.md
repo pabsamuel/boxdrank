@@ -85,17 +85,18 @@ boards and automations are invented. None of it is a customer's data.
 | How-to-use page (embeddable in monday) | `https://live1-service-36993937-ca48573e.eu.monday.app/view/how-to.html` — live after the next `mapps code:push` |
 | Demo link, for reviewers only | `https://live1-service-36993937-ca48573e.eu.monday.app/view/` — opened outside monday it runs on the demo account |
 | Installation link | from Developer Center → Share, once published (`https://auth.monday.com/oauth2/authorize?client_id=…`) |
-| Privacy policy | `PRIVACY_POLICY.md`, hosted publicly — [FILL IN: URL] |
-| Terms of service | `TERMS_OF_SERVICE.md`, hosted publicly — [FILL IN: URL] |
-| Website | [FILL IN: needs a domain the owner controls] |
-| Support email | [FILL IN: must be on the website's domain] |
+| Privacy policy | `https://atesensoftware.com/automation-watchdog/privacy/` — built from `PRIVACY_POLICY.md` by `atesensoftware-site/build.mjs` |
+| Terms of service | `https://atesensoftware.com/automation-watchdog/terms/` — built from `TERMS_OF_SERVICE.md` |
+| Website | `https://atesensoftware.com` (the owner's domain, registered at Namecheap until 8 Sep 2027, auto-renew on) |
+| Support email | `support@atesensoftware.com`, forwarded to the owner's Gmail |
+| Domain proof | `https://atesensoftware.com/monday-app-association.json` |
 
 ## Legal
 
 | Field | Value |
 |---|---|
 | Full contact name | Samet Ateşen |
-| Company / entity name | [FILL IN — the same name must appear in the privacy policy and terms] |
+| Company / entity name | Samet Ateşen — the recommendation while no company exists; the website shows "Samet Ateşen (Atesen Software)". [FILL IN: the owner confirms or changes it in `atesensoftware-site/build.mjs`] |
 
 ## Pricing — monday's monetization is required for new apps
 

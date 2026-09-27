@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automation Watchdog — Privacy Policy</title>
+<link rel="icon" href="/assets/icon-192.png">
+<style>
+  :root { --bg:#fff; --surface:#f5f6fa; --border:#dcdfea; --text:#1c1f3b; --muted:#5e6178; --accent:#0f7a6e; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14162b; --surface:#1d2040; --border:#32365a; --text:#eceef6; --muted:#a4a7bd; --accent:#3fcfbd; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+    font:16px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 32px 20px 64px; }
+  header.top { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:40px; }
+  header.top a.brand { font-weight:800; font-size:18px; color:var(--text); text-decoration:none; }
+  a { color: var(--accent); }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.5px; }
+  h2 { font-size: 21px; margin: 34px 0 10px; }
+  h3 { font-size: 17px; }
+  .lead { color: var(--muted); font-size: 18px; margin: 0 0 32px; }
+  .app { display:flex; gap:22px; padding:24px; border:1px solid var(--border); border-radius:14px; background:var(--surface); }
+  .app img { width:88px; height:88px; border-radius:18px; flex:none; }
+  .app h2 { margin: 0 0 4px; }
+  .app .for { color: var(--muted); font-size: 14px; margin: 0 0 10px; }
+  .app ul { margin: 0 0 16px; padding-left: 20px; }
+  .actions { display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; }
+  .button { display:inline-block; padding:10px 18px; border-radius:8px; background:var(--accent); color:#fff; font-weight:700; text-decoration:none; }
+  table { width:100%; border-collapse:collapse; margin: 8px 0 18px; font-size: 15px; }
+  th, td { text-align:left; vertical-align:top; padding:8px 10px; border-bottom:1px solid var(--border); }
+  th { color: var(--muted); font-size: 13px; }
+  code { font-size: 0.9em; background: var(--surface); padding: 1px 5px; border-radius: 4px; }
+  footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
+  @media (max-width: 560px) { .app { flex-direction: column; } h1 { font-size: 28px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top"><a class="brand" href="/">Atesen Software</a><a href="mailto:support@atesensoftware.com">support@atesensoftware.com</a></header>
+<h1>Automation Watchdog — Privacy Policy</h1>
+<p><em>Last updated: 27 September 2026</em></p>
+<p>Automation Watchdog (&quot;the app&quot;) is operated by <strong>Samet Ateşen (Atesen Software)</strong> (&quot;we&quot;). This policy explains what the app reads from a monday.com account that installs it, what it keeps, and what it sends.</p>
+<h2>What the app does</h2>
+<p>It watches the rhythm of automations on your boards — how often each one normally acts — and emails the person who installed it when an automation that used to act regularly goes quiet, and again when it starts working. It never changes anything in your account. Every permission it asks for is read-only.</p>
+<h2>Permissions requested</h2>
+<table><thead><tr><th>Permission</th><th>Used for</th></tr></thead><tbody><tr><td><code>boards:read</code></td><td>Reading board names and each board's activity log</td></tr><tr><td><code>users:read</code></td><td>Telling actions taken by people apart from actions taken by automations</td></tr><tr><td><code>me:read</code></td><td>Finding out who installed the app, so alerts go to them</td></tr><tr><td><code>account:read</code></td><td>Finding out which account the app was installed into</td></tr></tbody></table>
+<h2>What the app reads</h2>
+<ul><li>Board names and ids</li><li>Board activity log entries: the type of event, the item or entity type, the id of whoever or whatever performed it, and when</li><li>The list of the account's users (ids and names), only to tell actions by people apart from actions by automations; it is not stored</li><li>The installing user's email address and the account id</li><li>Whether the account has a plan for the app (plan id, whether it is a trial, days left), when monday's billing applies, to decide whether to send alerts; it is not stored</li></ul>
+<p>It does <strong>not</strong> read item names, column values, updates, files or documents: the activity log is requested without the field that would carry them.</p>
+<p>The board view reads the same activity <strong>in your browser</strong>, directly from monday.com, to show you the results. That reading does not pass through our server.</p>
+<h2>What the app stores, and where</h2>
+<p>Everything is stored on monday.com's own infrastructure (monday code), not on servers we run.</p>
+<table><thead><tr><th>What</th><th>Where</th><th>Kept until</th></tr></thead><tbody><tr><td>The account's access token, the installer's email address, the install time</td><td>monday code secure storage</td><td><strong>Deleted when the app is uninstalled</strong></td></tr><tr><td>Alert state: a key per watched automation made of the board id, performer id and event type, with timestamps of when it went quiet and when we last told you</td><td>monday storage, separated per account</td><td>See below</td></tr><tr><td>A log of recent checks: when each ran, how many automations were watched, how many had stopped, whether an email was sent, and a short error summary if the check failed</td><td>monday storage, separated per account</td><td>See below</td></tr></tbody></table>
+<p>Alert state and the check log contain <strong>ids and timestamps, not names, addresses or tokens</strong>. They cannot be deleted by us after an uninstall, because deleting them requires the account's access token and monday revokes that token at uninstall. Whether monday removes them on uninstall is not something we have been able to confirm.</p>
+<p>Mutes you set in the board view, and whether you have seen its welcome page, are stored <strong>in your browser only</strong>.</p>
+<h2>Logs</h2>
+<p>The app's server writes short operational log lines to monday code's logging: installs and uninstalls with the account id, whether the email provider answered at startup, and check failures with their error text, scrubbed of access tokens and secrets. That error text comes from monday.com or the email provider; a delivery error can include the address it could not deliver to. How long monday code keeps logs is set by monday.com.</p>
+<h2>What the app sends, and to whom</h2>
+<p>Alert emails go to the address of the user who installed the app. They name the board and describe the automation that stopped — for example, &quot;An automation moves an item between groups on Client Projects&quot;.</p>
+<h2>Third parties</h2>
+<table><thead><tr><th>Who</th><th>Why</th></tr></thead><tbody><tr><td>monday.com</td><td>The app runs on monday code, monday.com's hosting, and stores everything listed above there</td></tr><tr><td>Google (Gmail)</td><td>Delivers alert emails over SMTP; it processes each email only to deliver it</td></tr></tbody></table>
+<p>Nothing else leaves monday.com. There is no analytics, no tracking cookies, no advertising, and no data is sold or shared. The only cookie the app sets is a short-lived, HttpOnly security cookie used during installation.</p>
+<h2>Security</h2>
+<ul><li>The access token is kept in monday's secure storage and never written to a log, an email or any response; error messages are scrubbed of it.</li><li>The app only ever sends the token to monday.com, over HTTPS; any other destination is refused before a request is made.</li><li>Install links are protected against forgery with a single-use state value.</li><li>Uninstall notifications are accepted only with a valid signature from monday.</li></ul>
+<h2>Your choices</h2>
+<p>Uninstalling the app stops all checks and deletes the stored token and email address. For any question, or to ask what is held about your account, write to <strong><a href="mailto:support@atesensoftware.com">support@atesensoftware.com</a></strong>.</p>
+<footer>© 2026 Samet Ateşen · Atesen Software · <a href="mailto:support@atesensoftware.com">support@atesensoftware.com</a></footer>
+</div>
+</body>
+</html>

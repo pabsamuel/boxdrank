@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atesen Software</title>
+<link rel="icon" href="/assets/icon-192.png">
+<style>
+  :root { --bg:#fff; --surface:#f5f6fa; --border:#dcdfea; --text:#1c1f3b; --muted:#5e6178; --accent:#0f7a6e; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14162b; --surface:#1d2040; --border:#32365a; --text:#eceef6; --muted:#a4a7bd; --accent:#3fcfbd; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+    font:16px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 32px 20px 64px; }
+  header.top { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:40px; }
+  header.top a.brand { font-weight:800; font-size:18px; color:var(--text); text-decoration:none; }
+  a { color: var(--accent); }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.5px; }
+  h2 { font-size: 21px; margin: 34px 0 10px; }
+  h3 { font-size: 17px; }
+  .lead { color: var(--muted); font-size: 18px; margin: 0 0 32px; }
+  .app { display:flex; gap:22px; padding:24px; border:1px solid var(--border); border-radius:14px; background:var(--surface); }
+  .app img { width:88px; height:88px; border-radius:18px; flex:none; }
+  .app h2 { margin: 0 0 4px; }
+  .app .for { color: var(--muted); font-size: 14px; margin: 0 0 10px; }
+  .app ul { margin: 0 0 16px; padding-left: 20px; }
+  .actions { display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; }
+  .button { display:inline-block; padding:10px 18px; border-radius:8px; background:var(--accent); color:#fff; font-weight:700; text-decoration:none; }
+  table { width:100%; border-collapse:collapse; margin: 8px 0 18px; font-size: 15px; }
+  th, td { text-align:left; vertical-align:top; padding:8px 10px; border-bottom:1px solid var(--border); }
+  th { color: var(--muted); font-size: 13px; }
+  code { font-size: 0.9em; background: var(--surface); padding: 1px 5px; border-radius: 4px; }
+  footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
+  @media (max-width: 560px) { .app { flex-direction: column; } h1 { font-size: 28px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top"><a class="brand" href="/">Atesen Software</a><a href="mailto:support@atesensoftware.com">support@atesensoftware.com</a></header>
+
+<h1>Small, careful apps for the tools your team already uses.</h1>
+<p class="lead">Atesen Software is Samet Ateşen, an independent developer. Every app here does one job, asks for as little access as it can, and says plainly what it does with your data.</p>
+
+<section class="app">
+  <img src="/assets/automation-watchdog.png" alt="" width="88" height="88">
+  <div>
+    <h2>Automation Watchdog</h2>
+    <p class="for">for monday.com</p>
+    <p>Email alerts when a monday automation quietly stops.</p>
+    <ul><li>Learns how often each automation normally acts, across every board you can see</li><li>Emails you when one that used to run regularly goes quiet, and when it recovers</li><li>Read-only: it never changes a board, an item or an automation</li></ul>
+    <div class="actions">
+      <a class="button" href="https://auth.monday.com/oauth2/authorize?client_id=9fcd68cae356c7fed3eacf09a0f9df81">Install on monday.com</a>
+      <a href="https://live1-service-36993937-ca48573e.eu.monday.app/view/how-to.html">How it works</a>
+      <a href="/automation-watchdog/privacy/">Privacy</a>
+      <a href="/automation-watchdog/terms/">Terms</a>
+    </div>
+  </div>
+</section>
+<h2>Support</h2>
+<p>Write to <a href="mailto:support@atesensoftware.com">support@atesensoftware.com</a>. Questions about an app, your data, or billing all go to the same place.</p>
+<footer>© 2026 Samet Ateşen · Atesen Software · <a href="mailto:support@atesensoftware.com">support@atesensoftware.com</a></footer>
+</div>
+</body>
+</html>

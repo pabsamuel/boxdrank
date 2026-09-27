@@ -161,9 +161,12 @@ Documentation, support and money
       monetized by monday; payouts go through Payoneer. Proposal in `LISTING.md`
 - [x] Subscription checked at runtime and enforced in code, with the payment
       prompt from the SDK — off until pricing exists (`WATCHDOG_BILLING`)
-- [ ] Support email on a domain the owner controls, and a website link
+- [ ] Support email on a domain the owner controls, and a website link —
+      `atesensoftware.com` (the owner's, at Namecheap) and
+      `support@atesensoftware.com`; the site is built in `atesensoftware-site/`,
+      waiting on Netlify and DNS
 - [ ] `monday-app-association.json` on that domain, and an install button on
-      the website
+      the website — both built, same wait
 - [x] How-to-use page, embeddable in monday, linked from the app —
       `/view/how-to.html`
 - [x] Demo link for the reviewers — the Live URL's `/view/` runs on the demo
@@ -171,9 +174,10 @@ Documentation, support and money
 
 Legal
 - [ ] Terms of Service, which must say whether users will be contacted —
-      drafted in `TERMS_OF_SERVICE.md`; needs the entity name and a public URL
-- [ ] Privacy policy public, under the same entity name; full contact name and
-      entity name filled in
+      page built at `/automation-watchdog/terms/`; waits on the site going live
+      and the owner confirming the entity name
+- [ ] Privacy policy public, under the same entity name — page built at
+      `/automation-watchdog/privacy/`; same wait
 
 Product and UI/UX
 - [x] Value-created event, once the results are on screen

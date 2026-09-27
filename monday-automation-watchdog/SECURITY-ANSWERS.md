@@ -100,12 +100,14 @@ are constant strings with values passed as variables
 - Malformed request paths are refused rather than parsed —
   `parseRequestUrl` in `src/server/app-server.js`.
 
-## Domain ownership — **OPEN**
+## Domain ownership — **OPEN until DNS is live**
 
-The app itself is served only from monday code's own domain. monday also asks
-for a support email on the owner's domain and a
-`https://<domain>/monday-app-association.json` file containing the client id.
-Both wait on the owner buying a domain.
+The app itself is served only from monday code's own domain. The owner's domain
+is `atesensoftware.com` (registered at Namecheap). The support email is
+`support@atesensoftware.com`, and
+`https://atesensoftware.com/monday-app-association.json` lists the client id —
+built by `atesensoftware-site/build.mjs`. Open until the site is deployed and
+the DNS records point at it.
 
 ## Deleting data on uninstall
 
@@ -166,6 +168,7 @@ Palo Alto URL filtering result for the Live URL is still to be run.
 | `api.monday.com` | backend and board view | monday's API |
 | `auth.monday.com` | backend | OAuth |
 | `smtp.gmail.com` | backend | Sending alert emails |
+| `atesensoftware.com` | website only | The owner's site: support address, privacy policy, terms. The app never calls it |
 
 The board view loads nothing from any other host. All three are named in the
 privacy policy.
