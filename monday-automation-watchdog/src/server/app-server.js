@@ -19,6 +19,9 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { redact } from './redact.js';
 import { runLogKey } from './run-check.js';
+import { SIDEKICK_PATH, checkForSidekick, sidekickAnswer } from './sidekick.js';
+
+export { SIDEKICK_PATH };
 
 /** FACT (`apps/docs/oauth`). */
 export const AUTHORIZE_URL = 'https://auth.monday.com/oauth2/authorize';
@@ -248,7 +251,7 @@ const stateCookie = (value, maxAge) =>
 
 /**
  * @param {object} deps
- * @param {{clientId: string, clientSecret: string, baseUrl: string, billing?: 'enforce'|'off'}} deps.config
+ * @param {{clientId: string, clientSecret: string, baseUrl: string, billing?: 'enforce'|'off', signingSecret?: string}} deps.config
  *   `baseUrl` is the app's public https origin; the redirect URI is derived
  *   from it and must match one registered in the Developer Center. `billing`
  *   decides whether an account needs a plan to be sent alerts; see
@@ -280,6 +283,8 @@ export function createAppHandler({
   const { clientId, clientSecret, baseUrl } = config ?? {};
   if (!clientId || !clientSecret) throw new Error('The monday client id and secret are required.');
   const enforceBilling = config.billing === 'enforce';
+  // Optional: without it the Sidekick tool answers 503 and everything else works.
+  const signingSecret = config.signingSecret || null;
   const origin = new URL(baseUrl);
   if (origin.protocol !== 'https:') throw new Error('The app base URL must be https.');
   const redirectUri = new URL('/oauth/callback', origin).toString();
@@ -756,6 +761,86 @@ export function createAppHandler({
     }
   }
 
+  // ---- Sidekick tool ----------------------------------------------------------
+
+  /**
+   * The Run URL of the "Find stopped automations" action block, which the
+   * Sidekick tool feature exposes to monday's AI assistant.
+   *
+   * FACT (`apps/docs/authorization-header`, read 28 Sep 2026): the request
+   * carries a JWT "signed by your app's Signing Secret" — not the client secret
+   * — and "be sure to: Check that the aud field matches your integration app's
+   * endpoint. Verify the exp field". FACT (`integration-authorization`): it
+   * holds a `shortLivedToken`, "valid for five minutes", with the app's scopes.
+   * FACT (`workflows-actions`): the answer is `{ outputFields }` with a 200;
+   * anything else is retried for 30 minutes, so failures are answered as
+   * guidance with a 200 rather than as errors.
+   */
+  /**
+   * Whether a token was issued for this endpoint. The path must be the tool's,
+   * and the host this app's: its Live URL, or another URL of the same monday
+   * code service — a deploy also gets a version URL (`<id>-service-<app>…`,
+   * seen on 28 Sep), and which one monday calls is not documented.
+   */
+  function sidekickAudience(aud) {
+    let target;
+    try {
+      target = new URL(String(aud));
+    } catch {
+      return false;
+    }
+    if (target.protocol !== 'https:' || target.pathname.replace(/\/+$/, '') !== SIDEKICK_PATH) return false;
+    if (target.host === origin.host) return true;
+    const service = /-(service-\d+-[a-z0-9]+\.[a-z0-9]+\.monday\.app)$/.exec(origin.host)?.[1];
+    return Boolean(service) && target.host.endsWith(`-${service}`);
+  }
+
+  async function sidekickTool(req, res) {
+    if (!signingSecret) {
+      req.resume();
+      return json(res, 503, { error: 'not configured' });
+    }
+    const claims = verifyJwt(req.headers.authorization, signingSecret, Math.floor(now() / 1000), { requireExp: true });
+    const token = claims?.shortLivedToken;
+    if (!claims || !sidekickAudience(claims.aud) || typeof token !== 'string' || token === '') {
+      req.resume();
+      return json(res, 401, { error: 'unauthorized' });
+    }
+
+    let boardName = '';
+    try {
+      const body = JSON.parse((await readBody(req)) || '{}');
+      const fields = body?.payload?.inboundFieldValues ?? body?.payload?.inputFields ?? {};
+      if (typeof fields.board_name === 'string') boardName = fields.board_name.slice(0, 200);
+    } catch (error) {
+      return json(res, error?.status ?? 400, { error: 'bad request' });
+    }
+
+    const reply = (outputFields) => json(res, 200, { outputFields });
+    try {
+      if (enforceBilling && (await subscriptionState(token)) === 'none') {
+        return reply({
+          summary: 'Automation Watchdog needs an active plan for this account. An admin can choose one from the app\'s page in the monday.com marketplace.',
+          stopped_count: 0,
+          checked_boards: 0,
+        });
+      }
+      const at = now();
+      const check = await checkForSidekick({ monday: makeClient(token), boardName, now: at });
+      const answer = sidekickAnswer(check, at);
+      // Counts only; board and automation names stay out of the log.
+      log(`sidekick check for account ${String(claims.accountId ?? 'unknown')}: ${answer.stopped_count} stopped, ${answer.checked_boards} boards`);
+      return reply(answer);
+    } catch (error) {
+      log(`sidekick check failed: ${redact(error?.message ?? String(error), [token, signingSecret, clientSecret])}`);
+      return reply({
+        summary: 'Automation Watchdog could not read your boards just now. Try again in a minute; if it keeps failing, open the Automation Watchdog board view, which shows the error.',
+        stopped_count: 0,
+        checked_boards: 0,
+      });
+    }
+  }
+
   // ---- routing -------------------------------------------------------------
 
   return async function handle(req, res) {
@@ -767,11 +852,17 @@ export function createAppHandler({
       if (route === 'GET /health') {
         // A single word about mail, so a deploy can be checked from outside
         // without anyone reading a secret back. No detail, no error text.
-        return json(res, 200, { ok: true, mail: mailStatus(), billing: enforceBilling ? 'enforce' : 'off' });
+        return json(res, 200, {
+          ok: true,
+          mail: mailStatus(),
+          billing: enforceBilling ? 'enforce' : 'off',
+          sidekick: signingSecret ? 'on' : 'off',
+        });
       }
       if (route === 'GET /oauth/start') return startInstall(res);
       if (route === 'GET /oauth/callback') return await finishInstall(req, res, url);
       if (route === `POST ${LIFECYCLE_PATH}`) return await lifecycle(req, res);
+      if (route === `POST ${SIDEKICK_PATH}`) return await sidekickTool(req, res);
       if (route === `GET ${STATUS_PATH}`) return await status(req, res);
       if (route === `POST ${CRON_PATH}`) {
         req.resume();
@@ -787,7 +878,7 @@ export function createAppHandler({
       }
 
       const known =
-        ['/health', '/oauth/start', '/oauth/callback', CRON_PATH, LIFECYCLE_PATH, STATUS_PATH].includes(url.pathname) ||
+        ['/health', '/oauth/start', '/oauth/callback', CRON_PATH, LIFECYCLE_PATH, STATUS_PATH, SIDEKICK_PATH].includes(url.pathname) ||
         staticFiles[url.pathname];
       return json(res, known ? 405 : 404, { error: known ? 'method not allowed' : 'not found' });
     } catch (error) {

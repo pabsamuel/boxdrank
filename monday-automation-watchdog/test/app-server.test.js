@@ -734,7 +734,7 @@ test('under a flood, the one real run still checks every account', async () => {
 
 test('health reports mail as one word and nothing more', withHarness({ mailStatus: () => 'failed' }, async (h) => {
   const res = await h.request('/health');
-  assert.deepEqual(await res.json(), { ok: true, mail: 'failed', billing: 'off' });
+  assert.deepEqual(await res.json(), { ok: true, mail: 'failed', billing: 'off', sidekick: 'off' });
 }));
 
 test('addresses are masked so the edge cannot rewrite them', () => {
@@ -819,7 +819,7 @@ test('the board view is told when its account has no plan', withHarness({
 
 test('health says whether billing is enforced, as one word', withHarness({ config: enforcing }, async (h) => {
   const res = await h.request('/health');
-  assert.deepEqual(await res.json(), { ok: true, mail: 'unchecked', billing: 'enforce' });
+  assert.deepEqual(await res.json(), { ok: true, mail: 'unchecked', billing: 'enforce', sidekick: 'off' });
 }));
 
 // ---- back to monday after install -----------------------------------------
@@ -885,3 +885,98 @@ test('a token endpoint that is down is still reported as a gateway failure', wit
   assert.equal(res.status, 502);
   assert.equal(h.deps.secureStorage.data.size, 0);
 }));
+
+// ---- Sidekick tool -----------------------------------------------------------
+
+const SIGNING_SECRET = 'signing-secret-value-456';
+const SHORT_TOKEN = 'short-lived-token-abc123';
+const withSigning = { clientId: 'client-id-1', clientSecret: CLIENT_SECRET, baseUrl: 'https://watchdog.example', signingSecret: SIGNING_SECRET };
+const sidekickJwt = (overrides = {}, secret = SIGNING_SECRET) => sign({
+  accountId: 123,
+  userId: 7,
+  aud: 'https://watchdog.example/monday/sidekick/check',
+  exp: 9_999_999_999,
+  shortLivedToken: SHORT_TOKEN,
+  ...overrides,
+}, secret);
+const sidekickCall = (h, token, fields = {}) => h.request('/monday/sidekick/check', {
+  method: 'POST',
+  headers: { authorization: token, 'content-type': 'application/json' },
+  body: JSON.stringify({ payload: { blockKind: 'action', inboundFieldValues: fields } }),
+});
+const emptyAccount = (tokens) => (token) => ({
+  async api(graphql) {
+    tokens.push(token);
+    if (graphql.includes('users')) return { data: { users: [] } };
+    return { data: { boards: [] } };
+  },
+});
+
+test('the Sidekick tool is off, not open, without a signing secret', withHarness({}, async (h) => {
+  const res = await sidekickCall(h, sidekickJwt());
+  assert.equal(res.status, 503);
+}));
+
+test('the Sidekick tool refuses a token signed with the client secret, another audience, or no expiry', withHarness({
+  config: withSigning,
+}, async (h) => {
+  // The client secret signs session tokens; the Sidekick request must be the
+  // signing secret's, or any board view user could call the tool as anyone.
+  for (const token of [
+    sidekickJwt({}, CLIENT_SECRET),
+    sidekickJwt({ aud: 'https://elsewhere.example/monday/sidekick/check' }),
+    sidekickJwt({ exp: undefined }),
+    sidekickJwt({ exp: 1 }),
+    sidekickJwt({ shortLivedToken: '' }),
+  ]) {
+    const res = await sidekickCall(h, token);
+    assert.equal(res.status, 401);
+  }
+}));
+
+test('the Sidekick tool answers with output fields, reading with the short-lived token', async () => {
+  const tokens = [];
+  const h = await harness({ config: withSigning, makeClient: emptyAccount(tokens) });
+  try {
+    const res = await sidekickCall(h, sidekickJwt(), { board_name: '' });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.deepEqual(Object.keys(body.outputFields).sort(), ['checked_boards', 'stopped_count', 'summary']);
+    assert.match(body.outputFields.summary, /Automation Watchdog checked 0 boards/);
+    assert.ok(tokens.length > 0 && tokens.every((token) => token === SHORT_TOKEN));
+    assert.ok(!h.logs.join('\n').includes(SHORT_TOKEN));
+  } finally {
+    await h.close();
+  }
+});
+
+test('a failing Sidekick read is answered as guidance, not an error monday would retry', withHarness({
+  config: withSigning,
+  makeClient: () => ({ api: async () => { throw new Error(`HTTP 500 while holding ${SHORT_TOKEN}`); } }),
+}, async (h) => {
+  const res = await sidekickCall(h, sidekickJwt());
+  assert.equal(res.status, 200);
+  assert.match((await res.json()).outputFields.summary, /could not read your boards just now/);
+  assert.ok(!h.logs.join('\n').includes(SHORT_TOKEN), 'the short-lived token is scrubbed from the log');
+}));
+
+test('health says whether the Sidekick tool is on', withHarness({ config: withSigning }, async (h) => {
+  assert.equal((await (await h.request('/health')).json()).sidekick, 'on');
+}));
+
+test('a Sidekick token for another URL of this monday code service is accepted; another service is not', async () => {
+  const tokens = [];
+  const h = await harness({
+    config: { ...withSigning, baseUrl: 'https://live1-service-36993937-ca48573e.eu.monday.app' },
+    makeClient: emptyAccount(tokens),
+  });
+  try {
+    const at = (host) => sidekickJwt({ aud: `https://${host}/monday/sidekick/check` });
+    assert.equal((await sidekickCall(h, at('live1-service-36993937-ca48573e.eu.monday.app'))).status, 200);
+    assert.equal((await sidekickCall(h, at('e875f-service-36993937-ca48573e.eu.monday.app'))).status, 200);
+    assert.equal((await sidekickCall(h, at('live1-service-11111111-deadbeef.eu.monday.app'))).status, 401);
+    assert.equal((await sidekickCall(h, at('evil.example/x-service-36993937-ca48573e.eu.monday.app'))).status, 401);
+  } finally {
+    await h.close();
+  }
+});

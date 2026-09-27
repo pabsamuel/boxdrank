@@ -48,6 +48,12 @@ The board view reads the same activity **in your browser**, directly from
 monday.com, to show you the results. That reading does not pass through our
 server.
 
+When you ask monday's AI assistant, sidekick, which automations have stopped,
+the app reads the same activity at that moment with a token monday issues for
+that one request (valid for five minutes), answers with the names of stopped
+automations and their boards, and keeps nothing: the answer goes back to
+sidekick and is not stored by the app.
+
 ## What the app stores, and where
 
 Everything is stored on monday.com's own infrastructure (monday code), not on

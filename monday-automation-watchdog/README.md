@@ -489,6 +489,7 @@ which never imports it and is tested with fakes over real HTTP.
 | `GET /oauth/start` → `GET /oauth/callback` | Install. Single-use state in an HttpOnly cookie when started here; a callback from monday's own installation link carries no state and is accepted, since nothing is bound to the browser; the code is exchanged server-side; the account id is asked of monday with the new token, never taken from the request; token and installer's email go to `SecureStorage` |
 | `POST /mndy-cronjob/check` | The scheduled check, every installed account in turn, one account's failure never stopping the next. A second call inside 12 hours does nothing. With `WATCHDOG_BILLING=enforce`, accounts without a plan or trial are skipped |
 | `POST /monday/lifecycle` | Uninstall. Verified against the **client secret** (HS256/384/512 only; `none` and public-key algorithms refused); deletes the token and address |
+| `POST /monday/sidekick/check` | The Sidekick tool: monday's AI assistant asks which automations have stopped. Signing-secret JWT with an expiry and a matching `aud`; reads live with the request's short-lived token, within 8 seconds, and stores nothing |
 | `GET /api/status` | The board view's check history and plan state, for the account named in the session token monday signed — and nothing else |
 | `GET /view/`, `/view/how-to.html`, `/view/assets/*.png` | The board view, the how-to-use page and their two images, by exact path from an allowlist |
 

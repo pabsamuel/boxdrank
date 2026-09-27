@@ -15,6 +15,9 @@
  *     MONDAY_CLIENT_SECRET  Basic Information tab
  *     SMTP_URL              smtps://user:password@host:465
  *     WATCHDOG_FROM         the address alerts are sent from
+ *     MONDAY_SIGNING_SECRET optional; Basic Information tab. Verifies the
+ *                           Sidekick tool's requests. Without it only that
+ *                           tool is off.
  *
  *   Environment (`mapps code:env -m set -k KEY -v VALUE`)
  *     WATCHDOG_BASE_URL     the app's public https URL on monday code
@@ -81,12 +84,23 @@ async function loadView() {
 const logger = new Logger('automation-watchdog');
 const staticFiles = await loadView();
 
+/** A secret the app can run without: absent is not "missing". */
+async function optionalSecret(name) {
+  try {
+    const value = await secrets.get(name);
+    return typeof value === 'string' && value !== '' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 const config = {
   clientId: await secret('MONDAY_CLIENT_ID'),
   clientSecret: await secret('MONDAY_CLIENT_SECRET'),
   smtpUrl: await secret('SMTP_URL'),
   from: await secret('WATCHDOG_FROM'),
   baseUrl: env('WATCHDOG_BASE_URL'),
+  signingSecret: await optionalSecret('MONDAY_SIGNING_SECRET'),
 };
 
 let handler;
@@ -111,6 +125,7 @@ if (missing.length > 0) {
       clientSecret: config.clientSecret,
       baseUrl: config.baseUrl,
       billing: process.env.WATCHDOG_BILLING === 'enforce' ? 'enforce' : 'off',
+      signingSecret: config.signingSecret,
     },
     secureStorage: new SecureStorage(),
     makeClient: (token) => createHttpClient({ token }),

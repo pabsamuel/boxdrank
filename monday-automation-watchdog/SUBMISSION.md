@@ -22,10 +22,10 @@ computer (`listing/`).
 | 12 | App Short Description | Email alerts when a monday automation quietly stops |
 | 13 | App Long Description | The long description in `LISTING.md`, as plain text |
 | 14 | Keywords | automation, automations, automation monitoring, alerts, broken automation, workflow, notifications, admin, audit, reliability |
-| 15 | App Features | Board view |
-| 16 | Does your APP contain AI capabilities? | No |
+| 15 | App Features | Board view; Sidekick tool (with its "Find stopped automations" action block) |
+| 16 | Does your APP contain AI capabilities? | Yes — a Sidekick tool: monday's AI assistant can ask it which automations have stopped. The form warns (28 Sep): "monday.com is only accepting apps that include AI capabilities." |
 | 17 | Value Proposition and Use Cases | See below |
-| 18 | Feature Names | Automation Watchdog (board view) |
+| 18 | Feature Names | Automation Watchdog (board view); Automation Watchdog (Sidekick tool); Find stopped automations (action block) |
 | 19 | Categories | Productivity & efficiency; Reporting & analytics; Project management |
 | 20 | OAuth Scopes | See below |
 | 21 | Personal Data Use | See below |

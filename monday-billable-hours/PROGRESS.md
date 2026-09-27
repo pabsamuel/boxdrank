@@ -9,7 +9,7 @@ with a note.
 | | Done | Note |
 |---|---|---|
 | **Code that can be written from here** | **18 / 18 — 100%** | Verified against a live account |
-| **Distance to a product someone pays for** | **56 / 64 — 88%** | Recounted 27 Sep against monday's real review checklist; customer-validation items removed by the owner 28 Sep |
+| **Distance to a product someone pays for** | **58 / 68 — 85%** | Recounted 27 Sep against monday's real review checklist; customer-validation items removed by the owner 28 Sep; AI requirement added 28 Sep |
 
 ---
 
@@ -212,8 +212,21 @@ Privacy and security
       Palo Alto URL filtering 28 Sep: both **Low-Risk** (`SECURITY-ANSWERS.md`)
 - [ ] monday's Burp scan passed (monday runs it during review)
 
+AI capability — **required since at least 28 Sep** (FACT, the submission
+form: "monday.com is only accepting apps that include AI capabilities. If you
+proceed with submitting this form for an app that does not include AI
+capabilities, your submission will be rejected.")
+- [x] Sidekick tool built: `POST /monday/sidekick/check` answers "which of my
+      automations have stopped?" in words, for every board or one by name,
+      within 8 seconds, with the request's short-lived token (`sidekick.js`,
+      11 tests)
+- [ ] Sidekick tool and its action block created in the Developer Center, and
+      `MONDAY_SIGNING_SECRET` set
+- [ ] Asked in sidekick for real, on the owner's account
+
 Submission
-- [ ] Published from the Share tab and the submission form sent
+- [x] Published from the Share tab (28 Sep): `…/oauth2/authorize?client_id=…&response_type=install`
+- [ ] Submission form sent — filled and open, waiting on the AI capability
 - [ ] Payoneer account and vendor registration
 - [ ] Approved
 

@@ -45,6 +45,9 @@ run regularly goes quiet.
 - Lets you mute an alert you already know about — for a day, a week, 90 days
   or until it works again, never forever, so a mute cannot become a blind spot
 - Shows every watched automation with its normal rhythm and its state today
+- Works with sidekick, monday's AI assistant: ask "which of my automations
+  have stopped?" — for every board, or one board by name — and it answers with
+  the automations that went quiet and how long they have been quiet
 - Follows monday's light, dark and night themes
 
 **What it asks for**

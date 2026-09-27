@@ -135,7 +135,13 @@ tracking cookies.
 ## Authentication flow
 
 **OAuth**, for the scheduled check; **seamless authentication through the SDK**
-for the board view.
+for the board view; **the short-lived token in a signed JWT** for the Sidekick
+tool's action block.
+
+- *Is the JWT signed with the app's signing secret?* Yes. The Sidekick tool's
+  route verifies it with the signing secret (`MONDAY_SIGNING_SECRET`, a monday
+  code secret), requires an expiry, and checks `aud`; a token signed with the
+  client secret is refused (tested).
 
 - *Why OAuth rather than seamless authentication?* The daily check runs with no
   user present. Seamless authentication only exists while someone has the view
@@ -202,6 +208,7 @@ privacy policy.
 | `GET /oauth/callback` | A state, if present, must match the `HttpOnly` cookie; code exchanged with the client secret; account and recipient taken from monday's answer for that code |
 | `POST /mndy-cronjob/check` | Reached only by monday code's scheduler — requests from outside get 403 at monday's edge (verified 26 Sep) — and a second run inside 12 hours does nothing |
 | `POST /monday/lifecycle` | JWT signed with the client secret |
+| `POST /monday/sidekick/check` | The Sidekick tool's action block. JWT signed with the **signing secret**, expiry required, `aud` must be this path on this app's monday code service; reads with the request's short-lived token only, stores nothing, logs counts only — `sidekickTool`, `sidekickAudience` |
 | `GET /api/status` | Session token JWT signed with the client secret, with an expiry; returns only that account's data |
 | `GET /view/*` | Static files, exact paths only |
 

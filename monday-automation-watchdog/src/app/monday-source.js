@@ -200,15 +200,22 @@ export async function fetchBoards(monday, onProgress) {
  * quiet account and a parsing problem. A silently wrong timestamp would corrupt
  * every interval derived from it.
  *
- * @returns {Promise<{entries: object[], unparsedTimestamps: number}>}
+ * `shouldStop`, checked before each board, lets a caller with a deadline (the
+ * Sidekick tool, which must answer in seconds) stop early; `boardsRead` says
+ * how far it got, so a partial answer can say it is partial.
+ *
+ * @returns {Promise<{entries: object[], unparsedTimestamps: number, boardsRead: number}>}
  */
-export async function fetchActivity(monday, boardIds, fromMs, toMs, onProgress) {
+export async function fetchActivity(monday, boardIds, fromMs, toMs, onProgress, shouldStop) {
   const entries = [];
   let unparsedTimestamps = 0;
+  let boardsRead = 0;
   const from = new Date(fromMs).toISOString();
   const to = new Date(toMs).toISOString();
 
   for (const boardId of boardIds) {
+    if (shouldStop?.()) break;
+    boardsRead += 1;
     for (let page = 1; page <= MAX_ACTIVITY_PAGES; page += 1) {
       const data = await query(monday, ACTIVITY_QUERY, { boardId, from, to, limit: PAGE_SIZE, page });
       const logs = data?.boards?.[0]?.activity_logs ?? [];
@@ -233,7 +240,7 @@ export async function fetchActivity(monday, boardIds, fromMs, toMs, onProgress) 
     }
   }
 
-  return { entries, unparsedTimestamps };
+  return { entries, unparsedTimestamps, boardsRead };
 }
 
 /**
