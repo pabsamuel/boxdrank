@@ -390,26 +390,34 @@ export function createAppHandler({
       return page(res, 400, 'Installation was not completed', `monday reported: ${denied.slice(0, 80)}`, clearCookie);
     }
 
-    // Two ways to arrive here.
+    // Two ways to arrive here, told apart by the cookie, not by the query.
     //
-    // From /oauth/start, with a state that has to come back in the query and
-    // match the cookie set on this browser. A state that does not match is
-    // refused: that is a link started somewhere else, or replayed.
+    // From /oauth/start on this browser: the cookie is set, and the state that
+    // comes back has to match it. A mismatch is refused — a link started
+    // somewhere else, or replayed.
     //
-    // From monday's own installation link — the Share tab's link, the website's
-    // button, the marketplace — which carries no state of ours. FACT
-    // (`apps/docs/oauth`, read 28 Sep 2026): the state is "the state parameter
-    // supplied in the previous step", and that link supplies none; its
-    // redirect defaults to "the live version's callback URL". Refusing it is
-    // what broke the first install from atesensoftware.com on 27 Sep.
+    // From monday's own installation link — the Share tab's link
+    // (`…/oauth2/authorize?client_id=…&response_type=install`), the website's
+    // button, the marketplace. There is no cookie, because we never started
+    // it. Whatever state monday puts on that redirect is not ours to check:
+    // FACT (`apps/docs/oauth`): monday adds "the authorization code, scope,
+    // and state" to the redirect. Requiring the query to carry *no* state
+    // still refused the second install from the website on 28 Sep, so the
+    // query's state is not what decides this.
     //
-    // Accepting a callback with no state is safe here because nothing is
+    // Accepting a callback we did not start is safe here because nothing is
     // bound to the browser: there is no session to fixate. The token, the
     // account and the address alerts go to all come from monday's answer for
     // the code itself, so a forged callback can only complete the forger's own
     // install, into the forger's own account, alerting the forger.
     const returnedState = url.searchParams.get('state');
-    if (returnedState !== null && !sameSecret(returnedState, readCookie(req, STATE_COOKIE))) {
+    const cookieState = readCookie(req, STATE_COOKIE);
+    // Shapes only, never values: what monday actually sends is not documented.
+    log(
+      `install callback: state ${returnedState === null ? 'absent' : returnedState === '' ? 'empty' : 'present'}, ` +
+        `cookie ${cookieState ? 'present' : 'absent'}`,
+    );
+    if (cookieState && !sameSecret(returnedState, cookieState)) {
       return page(res, 400, 'Installation was not completed', 'This link has expired or was not started here. Start the installation again.', clearCookie);
     }
 

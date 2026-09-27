@@ -126,10 +126,15 @@ test('a callback whose state does not match the cookie is refused before any exc
   assert.equal(h.deps.secureStorage.data.size, 0);
 }));
 
-test('a callback with no state cookie at all is refused', withHarness({}, async (h) => {
-  const res = await h.request('/oauth/callback?code=c&state=fixed-state-value-abc');
-  assert.equal(res.status, 400);
-  assert.equal(h.tokenRequests.length, 0);
+test('a callback we did not start completes, whatever state monday put on it', withHarness({}, async (h) => {
+  // No cookie: monday started this (Share link, website, marketplace), and
+  // monday adds its own state to the redirect. 28 Sep: refusing that broke
+  // the install from the website twice.
+  const res = await h.request('/oauth/callback?code=c&state=something-monday-chose');
+  assert.equal(res.status, 200);
+  assert.equal(h.tokenRequests.length, 1);
+  assert.ok(h.logs.some((line) => line === 'install callback: state present, cookie absent'));
+  assert.ok(!h.logs.join('\n').includes('something-monday-chose'), 'shapes are logged, never values');
 }));
 
 test('a denied install says so, escaped, and stores nothing', withHarness({}, async (h) => {
@@ -859,10 +864,10 @@ test('an install from monday\'s own installation link, which carries no state, c
   assert.match(await res.text(), /Automation Watchdog is installed/);
 }));
 
-test('a state that comes back without its cookie is still refused', withHarness({}, async (h) => {
-  // Accepting a stateless callback must not become accepting any state.
-  for (const path of ['/oauth/callback?code=c&state=fixed-state-value-abc', '/oauth/callback?code=c&state=']) {
-    const res = await h.request(path);
+test('with our cookie present, a missing, empty or different state is refused', withHarness({}, async (h) => {
+  // Accepting installs monday started must not weaken the ones we started.
+  for (const path of ['/oauth/callback?code=c', '/oauth/callback?code=c&state=', '/oauth/callback?code=c&state=other']) {
+    const res = await h.request(path, { headers: { cookie } });
     assert.equal(res.status, 400, path);
   }
   assert.equal(h.tokenRequests.length, 0);

@@ -93,8 +93,8 @@ are constant strings with values passed as variables
 - The OAuth callback refuses any state that does not match the single-use
   `HttpOnly; Secure; SameSite=Lax` cookie set by `/oauth/start` —
   `src/server/app-server.js`, `stateCookie` and `finishInstall`. A callback
-  with no state at all is accepted, because monday's own installation link
-  (Share tab, marketplace) sends none; this is safe because nothing is bound to
+  arriving with no cookie of ours was started by monday's own installation
+  link (Share tab, marketplace) and is accepted whatever state monday adds; this is safe because nothing is bound to
   the browser — the token, account and recipient all come from monday's answer
   for the code, so a forged callback can only complete the forger's own
   install. Tested both ways in `test/app-server.test.js`.

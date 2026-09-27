@@ -9,7 +9,7 @@ computer (`listing/`).
 | # | Field | Answer |
 |---|---|---|
 | 1 | App Name | Automation Watchdog |
-| 2 | Entity | Individual (no company exists) |
+| 2 | Entity | Individual Developer (the form's options: Company, Individual Developer) |
 | 3 | Entity Name | Samet Ateşen |
 | 4 | Full name | Samet Ateşen |
 | 5 | Residential region | Türkiye (or the region list's entry containing it) |
@@ -25,7 +25,7 @@ computer (`listing/`).
 | 15 | App Features | Board view |
 | 16 | Does your APP contain AI capabilities? | No |
 | 17 | Value Proposition and Use Cases | See below |
-| 18 | Feature Names | The board view feature's name exactly as the Developer Center's Features tab shows it (read it there) |
+| 18 | Feature Names | Automation Watchdog (board view) |
 | 19 | Categories | Productivity & efficiency; Reporting & analytics; Project management |
 | 20 | OAuth Scopes | See below |
 | 21 | Personal Data Use | See below |
@@ -38,7 +38,7 @@ computer (`listing/`).
 | 28 | App card image | **OWNER** uploads `listing/app-card-592x348.png` |
 | 29 | Developer Icon | **OWNER** uploads `listing/developer-icon-192.png` |
 | 30 | App gallery video | **OWNER** uploads `listing/automation-watchdog.mp4` |
-| 31 | Installation Link | The link from the Share tab once the app is shared; until then `https://auth.monday.com/oauth2/authorize?client_id=9fcd68cae356c7fed3eacf09a0f9df81&force_install_if_needed=true` |
+| 31 | Installation Link | `https://auth.monday.com/oauth2/authorize?client_id=9fcd68cae356c7fed3eacf09a0f9df81&response_type=install` (the Share tab's link, shared 28 Sep) |
 | 32 | App ID | 12249756 |
 | 33 | How to use Link | https://live1-service-36993937-ca48573e.eu.monday.app/view/how-to.html |
 | 34 | Demo Link | https://live1-service-36993937-ca48573e.eu.monday.app/view/ — opened outside monday it runs the full board view on a demo account |
