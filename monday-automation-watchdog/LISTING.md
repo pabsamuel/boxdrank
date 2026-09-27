@@ -87,8 +87,8 @@ boards and automations are invented. None of it is a customer's data.
 | Installation link | from Developer Center → Share, once published (`https://auth.monday.com/oauth2/authorize?client_id=…`) |
 | Privacy policy | `https://atesensoftware.com/automation-watchdog/privacy/` — built from `PRIVACY_POLICY.md` by `atesensoftware-site/build.mjs` |
 | Terms of service | `https://atesensoftware.com/automation-watchdog/terms/` — built from `TERMS_OF_SERVICE.md` |
-| Website | `https://atesensoftware.com` (the owner's domain, registered at Namecheap until 8 Sep 2027, auto-renew on) |
-| Support email | `support@atesensoftware.com`, forwarded to the owner's Gmail |
+| Website | `https://atesensoftware.com` (the owner's domain: registered at Namecheap until 8 Sep 2027 with auto-renew, DNS at Cloudflare, site on Netlify) |
+| Support email | `support@atesensoftware.com`, forwarded to the owner's Gmail by Cloudflare Email Routing |
 | Domain proof | `https://atesensoftware.com/monday-app-association.json` |
 
 ## Legal

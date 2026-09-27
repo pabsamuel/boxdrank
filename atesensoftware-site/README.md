@@ -23,17 +23,26 @@ Netlify, importing this repository with **base directory**
 `atesensoftware-site`; `netlify.toml` there sets the publish directory. Security
 headers, including HSTS, are in `public/_headers`.
 
-## DNS — at Namecheap, the domain's registrar
+## DNS — at Cloudflare
 
-Values from Netlify's docs (`manage/domains/configure-domains/configure-external-dns`):
+The domain is registered at Namecheap, but its nameservers are Cloudflare's
+(`bonnie` and `agustin.ns.cloudflare.com`), so records live in Cloudflare.
+Set on 27 Sep 2026, values from Netlify's docs
+(`manage/domains/configure-domains/configure-external-dns`), both **DNS only**
+(not proxied), as Netlify must see the traffic to issue the certificate:
 
 | Type | Host | Value |
 |---|---|---|
 | A | `@` | `75.2.60.5` |
-| CNAME | `www` | the site's `*.netlify.app` name |
+| CNAME | `www` | `atesensoftware.netlify.app` |
 
-Only the parking-page records for `@` and `www` are replaced. Mail and
-verification records (MX, TXT) are left alone.
+Two older CNAMEs for `@` and `www` were removed. The MX, SPF, DKIM and DMARC
+records that Cloudflare Email Routing needs were left alone.
 
-`support@atesensoftware.com` is forwarded to the owner's Gmail with Namecheap's
-email forwarding.
+Netlify site: `atesensoftware.netlify.app`, primary domain `atesensoftware.com`,
+`www` redirecting to it.
+
+## Email
+
+`support@atesensoftware.com` → the owner's Gmail, by Cloudflare Email Routing
+(destination verified; catch-all off). It used to forward to a Proton address.
