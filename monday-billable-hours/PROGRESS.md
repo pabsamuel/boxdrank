@@ -1,6 +1,6 @@
 # Progress — monday Automation Watchdog
 
-Updated 26 Sep 2026 (sixth pass: the app server is written). Percentages are counted from the checklist below, not
+Updated 27 Sep 2026 (seventh pass: monday's real marketplace checklist). Percentages are counted from the checklist below, not
 estimated. An item is done or it is not; half-done items are listed as not done
 with a note.
 
@@ -9,7 +9,7 @@ with a note.
 | | Done | Note |
 |---|---|---|
 | **Code that can be written from here** | **18 / 18 — 100%** | Verified against a live account |
-| **Distance to a product someone pays for** | **37 / 66 — 56%** | Recounted 27 Sep against monday's real review checklist; the old 82% came from a five-item marketplace list |
+| **Distance to a product someone pays for** | **51 / 67 — 76%** | Recounted 27 Sep against monday's real review checklist (the old 82% came from a five-item list and was wrong), then 14 of its items done the same day |
 
 ---
 
@@ -131,13 +131,14 @@ review.
 - [x] The token cannot leave the process: the endpoint is validated before the
       token is attached, and every response is scrubbed of it before parsing
 
-## 5. Marketplace — 2/27
+## 5. Marketplace — 16/28
 
 *Rewritten 27 Sep.* This section had five items. monday's own review checklist,
 read on 27 Sep from `developer.monday.com/apps/docs/*.md` (app-listing-page,
 documentation-and-support, legal, product, uiux, privacy-and-security,
 submit-your-app, implementing-monetization), has far more. **The old 82% was
-counted against an incomplete list and was wrong.**
+counted against an incomplete list and was wrong.** Fourteen of them were done
+the same day; the code items go live with the next `mapps code:push`.
 
 **Risk, not a checklist item (FACT, quoted from submit-your-app):** "New apps
 built primarily using no-code platforms or AI-generated 'vibe code' are not
@@ -147,44 +148,49 @@ How monday decides what counts is UNKNOWN.
 Listing
 - [x] Listing copy and privacy policy drafted — `LISTING.md`,
       `PRIVACY_POLICY.md`, each describing only what the code does
-- [ ] Short description ≤60 characters, long description 200–2,500, up to 10
-      keywords, up to 3 categories from monday's list
-- [ ] App icon and developer icon, 192×192
-- [ ] App card image, 592×348
-- [ ] 3–5 gallery images, 1920×960
+- [x] Short description (51 characters), long description (about 1,600),
+      10 keywords, 3 categories — `LISTING.md`
+- [x] App icon and developer icon, 192×192 — `listing/` (the developer icon
+      is initials "SA"; redo if the entity name changes)
+- [x] App card image, 592×348
+- [x] 4 gallery images, 1920×960 — the real board view on the demo account
 - [ ] Video, 120 seconds or less, 50 MB or less
 
 Documentation, support and money
 - [ ] Pricing chosen and submitted as a pricing version — new apps must be
-      monetized by monday; payouts go through Payoneer
-- [ ] Subscription checked at runtime and enforced in code, with the payment
-      prompt from the SDK — monday does not restrict access itself
+      monetized by monday; payouts go through Payoneer. Proposal in `LISTING.md`
+- [x] Subscription checked at runtime and enforced in code, with the payment
+      prompt from the SDK — off until pricing exists (`WATCHDOG_BILLING`)
 - [ ] Support email on a domain the owner controls, and a website link
 - [ ] `monday-app-association.json` on that domain, and an install button on
       the website
-- [ ] How-to-use page, embeddable in an iframe on `*.monday.com`, linked from
-      the app
-- [ ] Demo link for the reviewers
+- [x] How-to-use page, embeddable in monday, linked from the app —
+      `/view/how-to.html`
+- [x] Demo link for the reviewers — the Live URL's `/view/` runs on the demo
+      account outside monday
 
 Legal
-- [ ] Terms of Service, which must say whether users will be contacted
+- [ ] Terms of Service, which must say whether users will be contacted —
+      drafted in `TERMS_OF_SERVICE.md`; needs the entity name and a public URL
 - [ ] Privacy policy public, under the same entity name; full contact name and
       entity name filled in
 
 Product and UI/UX
-- [ ] Value-created event (`monday.execute('valueCreatedForUser')`)
-- [ ] A clear message for viewers (`isViewOnly` in the session token)
-- [ ] Welcome page before the main view, with first-time instructions
-- [ ] Tooltips or hints
-- [ ] Light, dark and night mode supported
+- [x] Value-created event, once the results are on screen
+- [x] A clear message for viewers (`isViewOnly`), with no API call
+- [x] Welcome page before the main view, with a screenshot
+- [x] Tooltips on every status
+- [x] Light, dark and night mode, from monday's context
+- [x] Back to monday after authorizing (found on the product checklist while
+      writing the security answers; the install page did not do it)
 - [ ] Uninstall and reinstall verified; two accounts sharing one email verified
 
 Privacy and security
 - [x] Tokens and the installer's address in monday `SecureStorage`; the OAuth
       state cookie is `HttpOnly; Secure`
-- [ ] Written answers with evidence: secrets, scopes, logging, input
-      validation, a screenshot of the authorization code, third parties named
-      in the privacy policy
+- [x] Written answers with evidence — `SECURITY-ANSWERS.md`, with the
+      authorization-code screenshot in `listing/auth-code.png`; three answers
+      wait on the items below
 - [ ] SSL Labs link showing HSTS, and a malware check, for every domain
 - [ ] monday's Burp scan passed (monday runs it during review)
 

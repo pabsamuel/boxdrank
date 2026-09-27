@@ -219,8 +219,8 @@ STOPPED
   • Slack Notifier posts an update on Client Projects
     Normally every 3 hr, but nothing for 3 days of working time.
 
-monday does not notify anyone when an automation is deactivated or starts
-failing. If one of these matters, check it in the board's Automations centre.
+monday switches automations off in some situations without notifying anyone.
+If one of these matters, check it in the board's Automations centre.
 ```
 
 One hour later, with nothing changed: nothing is sent.
@@ -487,18 +487,55 @@ which never imports it and is tested with fakes over real HTTP.
 | Route | What it does |
 |---|---|
 | `GET /oauth/start` → `GET /oauth/callback` | Install. Single-use state in an HttpOnly cookie; the code is exchanged server-side; the account id is asked of monday with the new token, never taken from the request; token and installer's email go to `SecureStorage` |
-| `POST /mndy-cronjob/check` | The scheduled check, every installed account in turn, one account's failure never stopping the next. A second call inside 20 minutes does nothing, since the docs do not say the route is private |
+| `POST /mndy-cronjob/check` | The scheduled check, every installed account in turn, one account's failure never stopping the next. A second call inside 12 hours does nothing. With `WATCHDOG_BILLING=enforce`, accounts without a plan or trial are skipped |
 | `POST /monday/lifecycle` | Uninstall. Verified against the **client secret** (HS256/384/512 only; `none` and public-key algorithms refused); deletes the token and address |
-| `GET /api/status` | The board view's check history, for the account named in the session token monday signed — and nothing else |
-| `GET /view/` | The board view, by exact path from an allowlist |
+| `GET /api/status` | The board view's check history and plan state, for the account named in the session token monday signed — and nothing else |
+| `GET /view/`, `/view/how-to.html`, `/view/assets/*.png` | The board view, the how-to-use page and their two images, by exact path from an allowlist |
 
 Every response carries HSTS for a year, `nosniff` and `no-referrer`; the app's
 own pages forbid scripts and framing. Until every setting exists it runs in a
 setup mode that serves the board view and names the missing settings, because
 the Live URL it needs is only created by promoting the first deploy.
 
-What monday says and where it says it is in `PLATFORM-FACTS.md`. The listing
-and privacy policy drafts are `LISTING.md` and `PRIVACY_POLICY.md`.
+What monday says and where it says it is in `PLATFORM-FACTS.md`. The listing,
+privacy policy, terms and security-review answers are `LISTING.md`,
+`PRIVACY_POLICY.md`, `TERMS_OF_SERVICE.md` and `SECURITY-ANSWERS.md`.
+
+### What monday's marketplace review asks of the code (27 Sep)
+
+Read from monday's review checklist, not remembered. Each is in the code and,
+where it can be, tested:
+
+- **Billing.** New apps must be monetized by monday, and monday "does not
+  automatically restrict access" — the app must. The daily check asks
+  `app_subscription` per account and skips accounts with no plan or trial; the
+  board view shows why and opens monday's plan page (`openPlanSelection`).
+  Off until the app has pricing (`WATCHDOG_BILLING=enforce` turns it on),
+  because enforcing now would stop the owner's own alerts. A failed billing
+  query lets the alert through: losing a paying account's alert is worse.
+- **Viewers** get a message instead of an error (`user.isViewOnly` in the
+  context), and no API call is made.
+- **A welcome page** before the first view, with a screenshot, and **hints** on
+  every status.
+- **monday's light, dark and night themes**, from the context and kept in sync.
+- **The value-created event**, reported when the results are first on screen.
+- **Back to monday after authorizing**: the install's confirmation page returns
+  to `https://<slug>.monday.com/`, the slug checked as a single DNS label so it
+  cannot become an open redirect.
+- **A how-to-use page** served by the app itself, embeddable in monday.
+- **The activity query no longer asks for `data`**, the field that would carry
+  item names and column values. Nothing used it, and not asking is what makes
+  the privacy policy's "does not read item names or column values" true.
+
+Everything the board view does inside monday was checked in a real browser
+against a fake monday parent speaking the SDK's `postMessage` protocol:
+viewer message, all three themes, the paused-alerts strip, the plan button
+calling `openPlanSelection`, and `valueCreatedForUser` firing only once the
+results are on screen.
+
+`scripts/make-assets.js` renders the two in-app images and every listing image
+at monday's sizes from the real board view on the demo account, plus a
+screenshot of the authentication code cut from the source.
 
 **Independent review, 26 Sep: four findings, all fixed.** Each was reproduced
 from the reviewer's own proof script before fixing, and each fix has a test
@@ -549,19 +586,24 @@ deploy — and checks it serves the board view and names what is missing.
 
 `.mappsignore` exists because the CLI uses it instead of `.gitignore` when
 present, and otherwise takes the *first* `.gitignore` its `**/.gitignore` glob
-finds, which can be one inside a dependency.
+finds, which can be one inside a dependency. It only understands literal paths:
+the CLI keeps a line only if that exact path exists, so a wildcard such as
+`*.png` silently excludes nothing.
 
 ## What is not built
 
-- **A real install has not happened.** Everything in the table above is tested
-  offline against monday's documented shapes; none of it has met monday yet.
+- **No real alert email yet.** The app is deployed and installed on the owner's
+  account (26 Sep), and the daily job exists; the email waits on a working mail
+  credential.
 - No manifest file. One exists as a format, but the board-view feature type name
   was not found, and the Developer Center UI is documented where it is not.
-- Screenshots and an icon for the listing.
+- The listing video.
+- Anything that needs a domain: the website, the support address on it, and
+  `monday-app-association.json`.
 
 ## Verification still owed
 
 1. Does the API expose automation status or automation run logs?
-2. Does `activity_logs` distinguish automation-performed actions?
-3. Marketplace search for `automation`, `monitor`, `alert`, `watchdog` —
-   confirm nothing already does this.
+2. What `app_subscription` returns for an app that has never been monetized —
+   UNKNOWN, which is why billing enforcement is off by default.
+3. That `https://<slug>.monday.com/` is where an account lives — INFERENCE.

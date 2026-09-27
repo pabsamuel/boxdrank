@@ -1,12 +1,13 @@
 # Automation Watchdog — Privacy Policy
 
-_Last updated: 26 September 2026_
+_Last updated: 27 September 2026_
 
-> **Before publishing:** replace the two `[FILL IN]` values (the operator's
-> name or company, and a support email address) and the mail provider's name,
-> then host this file at a public URL — this file's GitHub URL works — and paste
-> that URL into the listing's privacy policy field. This draft describes what the
-> code in this repository actually does. If the app changes, change this too.
+> **Before publishing:** replace the `[FILL IN]` values (the operator's name or
+> company, and a support email address — monday requires the same entity name
+> here as in the terms of service, and a support email on a domain the operator
+> owns), then host this file at a public URL and paste that URL into the
+> listing's privacy policy field. This draft describes what the code in this
+> repository actually does. If the app changes, change this too.
 
 Automation Watchdog ("the app") is operated by **[FILL IN: name or company]**
 ("we"). This policy explains what the app reads from a monday.com account that
@@ -33,10 +34,19 @@ changes anything in your account. Every permission it asks for is read-only.
 - Board names and ids
 - Board activity log entries: the type of event, the item or entity type, the
   id of whoever or whatever performed it, and when
-- The list of the account's users, to separate people from automations
+- The list of the account's users (ids and names), only to tell actions by
+  people apart from actions by automations; it is not stored
 - The installing user's email address and the account id
+- Whether the account has a plan for the app (plan id, whether it is a trial,
+  days left), when monday's billing applies, to decide whether to send alerts;
+  it is not stored
 
-It does **not** read item names, column values, updates, files or documents.
+It does **not** read item names, column values, updates, files or documents:
+the activity log is requested without the field that would carry them.
+
+The board view reads the same activity **in your browser**, directly from
+monday.com, to show you the results. That reading does not pass through our
+server.
 
 ## What the app stores, and where
 
@@ -55,18 +65,34 @@ deleting them requires the account's access token and monday revokes that token
 at uninstall. Whether monday removes them on uninstall is not something we
 have been able to confirm.
 
-Mutes you set in the board view are stored **in your browser only**.
+Mutes you set in the board view, and whether you have seen its welcome page,
+are stored **in your browser only**.
+
+## Logs
+
+The app's server writes short operational log lines to monday code's logging:
+installs and uninstalls with the account id, whether the email provider
+answered at startup, and check failures with their error text, scrubbed of
+access tokens and secrets. That error text comes from monday.com or the email
+provider; a delivery error can include the address it could not deliver to.
+How long monday code keeps logs is set by monday.com.
 
 ## What the app sends, and to whom
 
 Alert emails go to the address of the user who installed the app. They name the
 board and describe the automation that stopped — for example, "An automation
-moves an item between groups on Client Projects". They are sent through our
-email delivery provider, **[FILL IN: provider name]**, which processes them only
-to deliver them.
+moves an item between groups on Client Projects".
 
-Nothing else leaves monday.com. There is no analytics, no tracking, no
-advertising, and no data is sold or shared.
+## Third parties
+
+| Who | Why |
+|---|---|
+| monday.com | The app runs on monday code, monday.com's hosting, and stores everything listed above there |
+| Google (Gmail) | Delivers alert emails over SMTP; it processes each email only to deliver it |
+
+Nothing else leaves monday.com. There is no analytics, no tracking cookies, no
+advertising, and no data is sold or shared. The only cookie the app sets is a
+short-lived, HttpOnly security cookie used during installation.
 
 ## Security
 
