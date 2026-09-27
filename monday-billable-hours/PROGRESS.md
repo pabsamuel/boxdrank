@@ -9,7 +9,7 @@ with a note.
 | | Done | Note |
 |---|---|---|
 | **Code that can be written from here** | **18 / 18 — 100%** | Verified against a live account |
-| **Distance to a product someone pays for** | **36 / 44 — 82%** | What is left is setup in monday, a real install, assets, and sales |
+| **Distance to a product someone pays for** | **37 / 66 — 56%** | Recounted 27 Sep against monday's real review checklist; the old 82% came from a five-item marketplace list |
 
 ---
 
@@ -131,14 +131,66 @@ review.
 - [x] The token cannot leave the process: the endpoint is validated before the
       token is attached, and every response is scrubbed of it before parsing
 
-## 5. Marketplace — 1/5
+## 5. Marketplace — 2/27
 
-- [ ] Burp scan passed, findings fixed
+*Rewritten 27 Sep.* This section had five items. monday's own review checklist,
+read on 27 Sep from `developer.monday.com/apps/docs/*.md` (app-listing-page,
+documentation-and-support, legal, product, uiux, privacy-and-security,
+submit-your-app, implementing-monetization), has far more. **The old 82% was
+counted against an incomplete list and was wrong.**
+
+**Risk, not a checklist item (FACT, quoted from submit-your-app):** "New apps
+built primarily using no-code platforms or AI-generated 'vibe code' are not
+eligible for marketplace approval." This app was written with an AI assistant.
+How monday decides what counts is UNKNOWN.
+
+Listing
 - [x] Listing copy and privacy policy drafted — `LISTING.md`,
-      `PRIVACY_POLICY.md`, each describing only what the code does; the
-      owner's name, support email, price and mail provider left as `[FILL IN]`
-- [ ] Screenshots from a real account, and an icon
-- [ ] Submitted
+      `PRIVACY_POLICY.md`, each describing only what the code does
+- [ ] Short description ≤60 characters, long description 200–2,500, up to 10
+      keywords, up to 3 categories from monday's list
+- [ ] App icon and developer icon, 192×192
+- [ ] App card image, 592×348
+- [ ] 3–5 gallery images, 1920×960
+- [ ] Video, 120 seconds or less, 50 MB or less
+
+Documentation, support and money
+- [ ] Pricing chosen and submitted as a pricing version — new apps must be
+      monetized by monday; payouts go through Payoneer
+- [ ] Subscription checked at runtime and enforced in code, with the payment
+      prompt from the SDK — monday does not restrict access itself
+- [ ] Support email on a domain the owner controls, and a website link
+- [ ] `monday-app-association.json` on that domain, and an install button on
+      the website
+- [ ] How-to-use page, embeddable in an iframe on `*.monday.com`, linked from
+      the app
+- [ ] Demo link for the reviewers
+
+Legal
+- [ ] Terms of Service, which must say whether users will be contacted
+- [ ] Privacy policy public, under the same entity name; full contact name and
+      entity name filled in
+
+Product and UI/UX
+- [ ] Value-created event (`monday.execute('valueCreatedForUser')`)
+- [ ] A clear message for viewers (`isViewOnly` in the session token)
+- [ ] Welcome page before the main view, with first-time instructions
+- [ ] Tooltips or hints
+- [ ] Light, dark and night mode supported
+- [ ] Uninstall and reinstall verified; two accounts sharing one email verified
+
+Privacy and security
+- [x] Tokens and the installer's address in monday `SecureStorage`; the OAuth
+      state cookie is `HttpOnly; Secure`
+- [ ] Written answers with evidence: secrets, scopes, logging, input
+      validation, a screenshot of the authorization code, third parties named
+      in the privacy policy
+- [ ] SSL Labs link showing HSTS, and a malware check, for every domain
+- [ ] monday's Burp scan passed (monday runs it during review)
+
+Submission
+- [ ] Published from the Share tab and the submission form sent
+- [ ] Payoneer account and vendor registration
 - [ ] Approved
 
 ## 6. Validation and sales — 2/5
