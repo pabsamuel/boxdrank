@@ -398,3 +398,24 @@ verbose run shows it. The CLI's own documented example is `-r 3 -b 10 -t 60`.
 
 None of these block the code that exists. All three are reading, not guessing,
 and reading is now possible.
+
+## Versions, secrets and sidekick — observed 28 Sep 2026
+
+- **`mapps code:push -a <app>` deploys to the latest version, which is a new
+  draft as soon as one exists.** With v18296125 live, a push went there; after
+  a draft (v18316508) was opened to add features, the same command deployed to
+  the draft, and the Live URL kept serving the old code until the draft was
+  promoted.
+- **Secrets are read when the server starts.** `MONDAY_SIGNING_SECRET`, added
+  after a deploy had booted, stayed unseen (`"sidekick":"off"`) until the next
+  deploy.
+- **Each deploy also gets its own URL** (`<id>-service-36993937-ca48573e.eu.monday.app`);
+  the Live URL (`live1-…`) follows whichever version is live.
+- **sidekick needs AI credits on the account.** On the owner's account it
+  would not open; monday's banner: "Hesabınızdaki yapay zeka özellikleri artık
+  çalışmıyor… daha fazla AI kredisi satın alın."
+- **The submission form (28 Sep)**: "Please note that, at this time,
+  monday.com is only accepting apps that include AI capabilities. If you
+  proceed with submitting this form for an app that does not include AI
+  capabilities, your submission will be rejected."
+

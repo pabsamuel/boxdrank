@@ -8,7 +8,7 @@ with a note.
 
 | | Done | Note |
 |---|---|---|
-| **Code that can be written from here** | **18 / 18 — 100%** | Verified against a live account |
+| **Code that can be written from here** | **59 / 68 — 87%** | Verified against a live account |
 | **Distance to a product someone pays for** | **58 / 68 — 85%** | Recounted 27 Sep against monday's real review checklist; customer-validation items removed by the owner 28 Sep; AI requirement added 28 Sep |
 
 ---
@@ -220,9 +220,12 @@ capabilities, your submission will be rejected.")
       automations have stopped?" in words, for every board or one by name,
       within 8 seconds, with the request's short-lived token (`sidekick.js`,
       11 tests)
-- [ ] Sidekick tool and its action block created in the Developer Center, and
-      `MONDAY_SIGNING_SECRET` set
-- [ ] Asked in sidekick for real, on the owner's account
+- [x] Sidekick tool and its action block created in the Developer Center,
+      `MONDAY_SIGNING_SECRET` set, version 18316508 promoted to live (28 Sep);
+      `/health` says `"sidekick":"on"` and an unsigned call gets 401
+- [ ] Seen working end to end — sidekick itself is blocked on the owner's
+      account (FACT: monday's banner says the account's AI credits are used
+      up); a free test through an ordinary board automation is next
 
 Submission
 - [x] Published from the Share tab (28 Sep): `…/oauth2/authorize?client_id=…&response_type=install`
