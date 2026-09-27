@@ -20,7 +20,10 @@ Automation Watchdog
 
 Email alerts when a monday automation quietly stops
 
-## Long description (200–2,500 characters)
+## Long description (about 1,600 characters)
+
+The checklist says 200–2,500 characters; the listing guidelines say 200–2,000.
+This fits both.
 
 Automations fail quietly. monday's help center lists eight ways an automation
 gets switched off, and for several of them it sends no notification: the
@@ -72,7 +75,7 @@ workflow, notifications, admin, audit, reliability
 | Developer icon | `listing/developer-icon-192.png` | 192×192 (initials "SA"; redo if the entity name changes) |
 | App card image | `listing/app-card-592x348.png` | 592×348 |
 | Gallery, 3–5 images | `listing/gallery-1-board-view.png` … `gallery-4-dark.png` | 1920×960 each |
-| Video, 120 s and 50 MB at most | not made yet | — |
+| Video — the listing guidelines ask for 30–60 s, HD, MP4, 50 MB at most | `listing/automation-watchdog.mp4`, made by `scripts/make-video.js` | 45 s, 1920×1080, H.264, about 9 MB |
 | Security review: authorization code screenshot | `listing/auth-code.png` | — |
 
 The screenshots are the real board view running on the demo account, whose

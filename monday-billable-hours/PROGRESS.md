@@ -9,7 +9,7 @@ with a note.
 | | Done | Note |
 |---|---|---|
 | **Code that can be written from here** | **18 / 18 — 100%** | Verified against a live account |
-| **Distance to a product someone pays for** | **54 / 67 — 81%** | Recounted 27 Sep against monday's real review checklist (the old 82% came from a five-item list and was wrong), then worked down the same day |
+| **Distance to a product someone pays for** | **55 / 67 — 82%** | Recounted 27 Sep against monday's real review checklist (the old 82% came from a five-item list and was wrong), then worked down the same day |
 
 ---
 
@@ -134,7 +134,7 @@ review.
 - [x] The token cannot leave the process: the endpoint is validated before the
       token is attached, and every response is scrubbed of it before parsing
 
-## 5. Marketplace — 19/28
+## 5. Marketplace — 20/28
 
 *Rewritten 27 Sep.* This section had five items. monday's own review checklist,
 read on 27 Sep from `developer.monday.com/apps/docs/*.md` (app-listing-page,
@@ -157,7 +157,9 @@ Listing
       is initials "SA"; redo if the entity name changes)
 - [x] App card image, 592×348
 - [x] 4 gallery images, 1920×960 — the real board view on the demo account
-- [ ] Video, 120 seconds or less, 50 MB or less
+- [x] Video — 45 s, 1920×1080 MP4, about 9 MB (`listing/automation-watchdog.mp4`,
+      `scripts/make-video.js`); the listing guidelines ask for 30–60 s, HD,
+      MP4, 50 MB at most
 
 Documentation, support and money
 - [ ] Pricing chosen and submitted as a pricing version — **chosen 27 Sep**:

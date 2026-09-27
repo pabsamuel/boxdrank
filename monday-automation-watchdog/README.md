@@ -536,6 +536,8 @@ results are on screen.
 `scripts/make-assets.js` renders the two in-app images and every listing image
 at monday's sizes from the real board view on the demo account, plus a
 screenshot of the authentication code cut from the source.
+`scripts/make-video.js` renders the 45-second listing video from the same
+screens with ffmpeg. Both share `scripts/asset-kit.js`.
 
 **Independent review, 26 Sep: four findings, all fixed.** Each was reproduced
 from the reviewer's own proof script before fixing, and each fix has a test
