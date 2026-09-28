@@ -8,7 +8,7 @@ with a note.
 
 | | Done | Note |
 |---|---|---|
-| **Code that can be written from here** | **60 / 68 — 88%** | Verified against a live account |
+| **Code that can be written from here** | **61 / 68 — 90%** | Verified against a live account |
 | **Distance to a product someone pays for** | **58 / 68 — 85%** | Recounted 27 Sep against monday's real review checklist; customer-validation items removed by the owner 28 Sep; AI requirement added 28 Sep |
 
 ---
@@ -232,7 +232,7 @@ capabilities, your submission will be rejected.")
 
 Submission
 - [x] Published from the Share tab (28 Sep): `…/oauth2/authorize?client_id=…&response_type=install`
-- [ ] Submission form sent — filled and open, waiting on the AI capability
+- [x] Submission form sent — **28 Sep 2026**; monday: "We received your monday apps marketplace submission. You will be contacted shortly to start the review process" (initial response promised within 72 business hours)
 - [ ] Payoneer account and vendor registration
 - [ ] Approved
 
