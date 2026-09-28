@@ -102,6 +102,12 @@ project guessed at a monday format, the result looked finished and returned
       the first real email can go out at the next daily check, 09:00 Türkiye
       time — if an automation is stopped then. Failed sends before today were
       not recorded as delivered, so nothing was swallowed
+      - 28 Sep, after the 09:00 check: no alert email in Gmail (searched
+        06:45 UTC, sent mail and all folders included). INFERENCE: nothing
+        was stopped. Automation Inventory, at 07:49 the same morning, showed
+        5 automations, 0 switched off, 0 with a warning from monday. Whether
+        the check itself ran is UNKNOWN from here; the board view's run strip
+        says "Last checked … ago" or "The last check failed: …".
 - [x] Confirm `activity_logs` returns what the adapter expects
 - [x] **Confirm the `created_at` format** — it is 100-nanosecond ticks, and the
       parser was wrong until a live response proved it
