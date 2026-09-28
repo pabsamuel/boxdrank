@@ -177,6 +177,7 @@ SSL Labs, run 27 Sep 2026 (not published to its boards):
 |---|---|---|---|
 | `live1-service-36993937-ca48573e.eu.monday.app` (all four endpoints) | **A+** | present, 15,552,000 s (180 days) | TLS 1.2, TLS 1.3 |
 | `atesensoftware.com` | **A+** | present, 31,536,000 s (1 year) | TLS 1.2, TLS 1.3 |
+| `atesensoftware.com` again, 28 Sep 2026, after the move from Netlify to Cloudflare (all four Cloudflare endpoints, IPv4 and IPv6) | **A+** | present, 31,536,000 s, now with `includeSubDomains` | TLS 1.2, TLS 1.3 |
 
 Links to give monday:
 `https://www.ssllabs.com/ssltest/analyze.html?d=live1-service-36993937-ca48573e.eu.monday.app&hideResults=on`
