@@ -143,7 +143,12 @@ token in a signed JWT** for the Sidekick tool's action block.
 
 - The server sends a one-year HSTS header (`src/server/app-server.js`,
   `BASE_HEADERS`). On Watchdog, monday code's edge replaced it with 180 days.
-- **PENDING:** SSL Labs on the Live URL, expected A+ as Watchdog's was.
+- SSL Labs on the Live URL, `live1-service-36993937-d7d03ea4.eu.monday.app`,
+  28 Sep 2026, not published to its boards:
+  - **A+** on all four endpoints (two IPv4, two IPv6);
+  - HSTS present, 15,552,000 s (180 days): monday code's edge replaces the
+    app's one-year header, as on Watchdog;
+  - TLS 1.2 and 1.3.
 - `atesensoftware.com` on Cloudflare, SSL Labs, 28 Sep 2026:
   - **A+** on all four endpoints (two IPv4, two IPv6);
   - HSTS `max-age=31536000; includeSubDomains`;

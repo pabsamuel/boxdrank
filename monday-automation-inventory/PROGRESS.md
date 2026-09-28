@@ -165,8 +165,9 @@ Order: Gate 0 decides whether the listing and the submission get done.
 - [ ] 26. `SECURITY-ANSWERS.md`.
       - Written 28 Sep.
       - Scope confirmed live, and the Live URL filled in, 28 Sep.
-      - Still PENDING: SSL Labs and Palo Alto on the Live URL, and the
-        client id in the association file.
+      - SSL Labs on the Live URL: A+ on all four endpoints, 28 Sep.
+      - Still PENDING: Palo Alto on the Live URL (`DEPLOY-PROMPTS.md` 7d),
+        and the client id in the association file.
       - The auth-code screenshot is done (`listing/auth-code.png`).
 
 ## Submission
