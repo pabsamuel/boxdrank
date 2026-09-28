@@ -1101,3 +1101,19 @@ Three defects that no test could have found, each now pinned by one:
 
 Resolves platform ✱2 ("does `search('template:')` return what the code
 expects?"): **no** — and neither did `get`, until the value was a string.
+
+## ADR-036 — A Sidekick tool, because the marketplace requires AI
+
+The submission form (28 Sep 2026) says monday only accepts apps with AI
+capabilities. Automation Watchdog and Automation Inventory met that with a
+Sidekick tool — an action block monday's AI assistant can call — and so does
+this app: `POST /monday/sidekick/compare` (`src/server/sidekick.ts`).
+
+Chosen over calling an LLM ourselves: no API key, no per-call cost, and no
+data leaves monday, so the privacy and "runs on monday code" claims stay true.
+The detector stays deterministic; sidekick only asks and relays.
+
+The request is verified with the **Signing Secret** (the view's sessionToken
+uses the Client Secret — ADR-035), `exp` and `aud` checked, and reads use the
+request's `shortLivedToken`. Features in the Developer Center: action block
+`compare-board-with-template` and Sidekick skill `template-guard-sidekick`.

@@ -72,7 +72,7 @@ third-party-server cost that made it a hard trade.
 ## Stack
 
 React · `monday-sdk-js` · `monday-ui-react-core` (Vibe) · TypeScript · Vitest.
-App surfaces: board view + item-less dashboard widget. Nothing else in v1.
+App surfaces: board view + item-less dashboard widget + a Sidekick tool (ADR-036). Nothing else in v1.
 
 ## Definition of done for any phase
 
