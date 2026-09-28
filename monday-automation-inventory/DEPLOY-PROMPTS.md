@@ -16,7 +16,7 @@ Samet adına monday Developer Center'da (profil resmi → Developers) yeni bir u
 
 KURALLAR: Şifre/2FA sorulursa dur ve sor. Hiçbir gizli değeri (Client Secret, Signing Secret, API token) açma, kopyalama, gösterme; "Regenerate"e basma. Ödeme yapma. Hiçbir formu ben söylemeden gönderme. Mevcut "Automation Watchdog" uygulamasına DOKUNMA.
 
-1) "Create app" ile yeni uygulama oluştur. Ad: Automation Inventory
+1) "Create app" ile yeni uygulama oluştur. Ad: Automation Inventory. Uygulama slug'ı (değiştirilemez): automation-inventory
 2) Genel ayarlar (Basic information): kısa açıklama "Every automation on every board, in one searchable list". App ID ve Client ID'yi rapora yaz (bunlar gizli değil). Client Secret ve Signing Secret alanlarını AÇMA.
 3) oAuth & İzinler (OAuth & Permissions):
    - "New OAuth Flow" anahtarı KAPALI kalsın; açıksa dokunma, rapora yaz.
@@ -32,7 +32,7 @@ After the report, Claude writes the App ID and Client ID into `README.md`.
 
 ## 2. First deploy (PowerShell)
 
-Replace `<APP_ID>` with the number from step 1.
+Automation Inventory's App ID is **12255778** (created 28 Sep 2026).
 
 ```
 cd C:\Users\sametatesen2\boxdrank
@@ -41,7 +41,7 @@ cd monday-automation-inventory
 npm install
 npm test
 npm run check:deploy
-mapps code:push -s -a <APP_ID>
+mapps code:push -s -a 12255778
 ```
 
 - If it says "The latest app version is live…", add `-f`.
@@ -68,12 +68,12 @@ RAPOR: promote edilen sürüm numarası, Live URL, deployment durumu.
    - Add the key `MONDAY_SIGNING_SECRET`.
    - The value is Genel ayarlar → Signing Secret, copied with your own hands.
    - Paste it nowhere else.
-2. PowerShell. Replace `<APP_ID>` and `<LIVE_URL>`:
+2. PowerShell. Replace `<LIVE_URL>`:
 
 ```
 cd C:\Users\sametatesen2\boxdrank\monday-automation-inventory
-mapps code:env -i <APP_ID> -m set -k APP_BASE_URL -v https://<LIVE_URL>
-mapps code:push -s -f -a <APP_ID>
+mapps code:env -i 12255778 -m set -k APP_BASE_URL -v https://<LIVE_URL>
+mapps code:push -s -f -a 12255778
 ```
 
 Then open `https://<LIVE_URL>/health` in the browser. It must read

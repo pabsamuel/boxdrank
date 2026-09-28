@@ -123,6 +123,15 @@ FACT, `apps/docs/authorization-header`, `integration-authorization`,
   account has none (28 Sep). The action block can still be tested by putting
   it in a normal board automation. On Watchdog it ran "Success" in 7 s.
 
+## Creating an app: FACT, 28 Sep 2026
+
+- The create-app form asks for an **app slug**: "Önemli: Uygulama slug'ı
+  değiştirilemez". monday prefixes it with the account's slug:
+  `sametatesen2s-team-company_automation-inventory`.
+- The Developer Center's app list is at `/apps/manage`; `/developers/apps`
+  is a 404. The reliable way in is profile picture → Geliştiriciler.
+- A new app starts with one version, v1, as a draft.
+
 ## Submission and marketplace
 
 - FACT (form, 28 Sep): only apps with AI capabilities are accepted.

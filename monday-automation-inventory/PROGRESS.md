@@ -1,6 +1,6 @@
 # Progress
 
-**19 / 30 done: 63%.** Recompute this line whenever a box changes, and put the
+**20 / 30 done: 67%.** Recompute this line whenever a box changes, and put the
 percentage at the end of every reply to Samet.
 
 Order: Gate 0 decides whether the listing and the submission get done.
@@ -29,8 +29,10 @@ Order: Gate 0 decides whether the listing and the submission get done.
 
 - [x] 6. Name: **Automation Inventory**. Price: **$1 per seat per month,
       14-day trial.** Both chosen 28 Sep at Samet's request (`DECISIONS.md`).
-- [ ] 7. App created in the Developer Center. App ID and client id recorded
-      in `README.md`. "New OAuth Flow" left off.
+- [x] 7. App created, 28 Sep (Claude-in-Chrome, no secret opened).
+      - App ID 12255778, client id `fb2b51f8128e2fbcc70e02843099902d`.
+      - Scope `boards:read` only; "New OAuth Flow" off; no redirect URL.
+      - v1 draft, version id 18319002.
 - [x] 8. Feature types: **Object** and **Board view**, both pointing at the
       same page.
       - FACT (`apps/docs/app-features`, `custom-objects`, read 28 Sep): an

@@ -40,8 +40,8 @@ document in this folder.
 | 28 | App card image | **OWNER** uploads `listing/app-card-592x348.png` |
 | 29 | Developer Icon | **OWNER** uploads `listing/developer-icon-192.png` |
 | 30 | App gallery video | **OWNER** uploads `listing/automation-inventory.mp4` |
-| 31 | Installation Link | PENDING: `https://auth.monday.com/oauth2/authorize?client_id=<CLIENT_ID>&response_type=install` |
-| 32 | App ID | PENDING |
+| 31 | Installation Link | `https://auth.monday.com/oauth2/authorize?client_id=fb2b51f8128e2fbcc70e02843099902d&response_type=install` (works once the app is shared, step 6) |
+| 32 | App ID | 12255778 |
 | 33 | How to use Link | PENDING: `https://<LIVE_URL>/view/how-to.html` |
 | 34 | Demo Link | PENDING: `https://<LIVE_URL>/view/`. Open it outside monday before submitting; Watchdog's was broken until 28 Sep |
 | 35 | Additional Comments | See below |

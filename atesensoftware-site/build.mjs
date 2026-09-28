@@ -62,12 +62,13 @@ const APPS = [
     slug: 'automation-inventory',
     name: 'Automation Inventory',
     platform: 'monday.com',
-    // Not created in the Developer Center yet (28 Sep 2026). Until it has a
-    // client id it gets its legal and pricing pages only: no card on the home
-    // page and no entry in monday-app-association.json.
-    clientId: null,
-    installUrl: null,
+    // Created 28 Sep 2026 (App ID 12255778). Not deployed or shared yet, so
+    // it is in monday-app-association.json (domain proof) but has no card on
+    // the home page until its install link works.
+    clientId: 'fb2b51f8128e2fbcc70e02843099902d',
+    installUrl: 'https://auth.monday.com/oauth2/authorize?client_id=fb2b51f8128e2fbcc70e02843099902d&response_type=install',
     howToUrl: null,
+    onHomePage: false,
     icon: `${repo}monday-automation-inventory/listing/app-icon-192.png`,
     privacy: `${repo}monday-automation-inventory/PRIVACY_POLICY.md`,
     terms: `${repo}monday-automation-inventory/TERMS_OF_SERVICE.md`,
@@ -82,8 +83,10 @@ const APPS = [
   },
 ];
 
-/** Apps that exist in monday's Developer Center, with an install link. */
-const LISTED = APPS.filter((app) => app.clientId);
+/** Apps that exist in monday's Developer Center: they prove the domain. */
+const REGISTERED = APPS.filter((app) => app.clientId);
+/** Apps whose install link works: they get a card on the home page. */
+const LISTED = REGISTERED.filter((app) => app.onHomePage !== false);
 
 // ---- Markdown, the subset the legal documents use --------------------------
 
@@ -263,7 +266,7 @@ for (const app of APPS) {
 // domain ownership with this file at https://<domain>/monday-app-association.json.
 await writeFile(
   `${out}monday-app-association.json`,
-  `${JSON.stringify({ apps: LISTED.map((app) => ({ clientID: app.clientId })) }, null, 2)}\n`,
+  `${JSON.stringify({ apps: REGISTERED.map((app) => ({ clientID: app.clientId })) }, null, 2)}\n`,
 );
 
 // Netlify reads `_headers` from the publish directory (docs: manage/routing/

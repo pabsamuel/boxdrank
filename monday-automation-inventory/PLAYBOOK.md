@@ -18,7 +18,11 @@ seen on 28 Sep:
 
 ## 1. Create the app (Samet, 5 min)
 
-1. Developer Center → create a new app with the chosen name.
+1. Developer Center (profile picture → Geliştiriciler) → create a new app with
+   the chosen name.
+   - The form also asks for an **app slug that can never be changed**. Decide
+     it before starting: the app's name in lower case with hyphens, for example
+     `automation-inventory`. monday prefixes it with the account slug.
 2. Write the **App ID** and the **Client ID** into `README.md`. Both are
    public.
 3. **Do not copy** the Client Secret or the Signing Secret anywhere except the

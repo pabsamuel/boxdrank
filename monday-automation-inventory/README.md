@@ -5,10 +5,11 @@ searchable place: on or off, with monday's warnings, older automations
 included. Monday's AI assistant can search it too, through a Sidekick tool.
 The idea is Patrick Fallon's; his words are in `SPEC.md`.
 
-**Status, 28 Sep 2026: Gate 0 passed (GO); built and tested, not yet deployed. 19 / 30 = 63%**
+**Status, 28 Sep 2026: Gate 0 passed (GO); app created (12255778); not yet deployed. 20 / 30 = 67%**
 (`PROGRESS.md`).
 - The code works in tests and in a browser inside a fake monday.
-- Name and price are decided. There is no App ID and no deploy yet.
+- Name and price are decided. The app exists in the Developer Center (App ID
+  12255778), with no deploy yet.
 - **Next:** creating the app and deploying it, with `DEPLOY-PROMPTS.md`.
 
 ## How it works
@@ -75,7 +76,9 @@ node scripts/make-listing-video.js   # listing video; needs Playwright and ffmpe
 | | |
 |---|---|
 | App name | Automation Inventory |
-| App ID | UNKNOWN |
-| Client ID | UNKNOWN |
+| App ID | 12255778 (created 28 Sep 2026) |
+| Client ID | `fb2b51f8128e2fbcc70e02843099902d` (public; it is in every install link) |
+| App slug in monday | `sametatesen2s-team-company_automation-inventory`, fixed at creation |
+| First version | v1, draft, version id 18319002 |
 | Live URL | UNKNOWN |
 | Slug on atesensoftware.com | `automation-inventory` |
