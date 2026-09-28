@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildInventory, searchInventory } from '../src/core/inventory.js';
+import { buildInventory, searchInventory, filterInventory, boardsIn } from '../src/core/inventory.js';
 import { parseLegacyAutomations, fetchAutomations, AUTOMATIONS_API_VERSION } from '../src/app/monday-source.js';
 
 const boards = [{ id: '101', name: 'Client Projects' }, { id: '102', name: 'Sales Pipeline' }];
@@ -79,4 +79,37 @@ test('fetchAutomations asks board by board with the 2026-10 API, pages, and keep
     ['99', 'Old one', null, '101', '', true],
     ['2', 'Untitled automation', false, '101', 'Needs attention', false],
   ]);
+});
+
+test('filters are exact states, and can narrow to one board', () => {
+  const { rows } = buildInventory([
+    automation({ id: '1', title: 'Office hours reminder', active: true }),
+    automation({ id: '2', title: 'Route leads', active: false, boardId: '102' }),
+    automation({ id: '3', title: 'Old mover', active: null, legacy: true }),
+    automation({ id: '4', title: 'Broken sync', notice: 'Owner lost access', boardId: '102' }),
+  ], boards);
+  const ids = (list) => list.map((row) => row.id).sort();
+  assert.deepEqual(ids(filterInventory(rows, { show: 'off' })), ['2']);
+  // The search's "off" also finds "Office"; the filter does not.
+  assert.deepEqual(ids(searchInventory(rows, 'off')), ['1', '2']);
+  assert.deepEqual(ids(filterInventory(rows, { show: 'notice' })), ['4']);
+  assert.deepEqual(ids(filterInventory(rows, { show: 'older' })), ['3']);
+  assert.deepEqual(ids(filterInventory(rows, { board: 'Sales Pipeline' })), ['2', '4']);
+  assert.deepEqual(ids(filterInventory(rows, { show: 'off', board: 'Client Projects' })), []);
+  assert.deepEqual(ids(filterInventory(rows)), ['1', '2', '3', '4']);
+  assert.deepEqual(boardsIn(rows), ['Client Projects', 'Sales Pipeline']);
+});
+
+test('fetchAutomations stops before the next board when told to, and says how far it got', async () => {
+  let calls = 0;
+  const monday = {
+    async api() {
+      calls += 1;
+      return { data: { board_automations: { cursor: null, items: [{ id: String(calls), title: `T${calls}`, active: true }], legacy_automations: null } } };
+    },
+  };
+  const result = await fetchAutomations(monday, ['1', '2', '3'], undefined, () => calls >= 2);
+  assert.equal(result.boardsRead, 2);
+  assert.equal(result.automations.length, 2);
+  assert.equal(result.failedBoards, 0);
 });

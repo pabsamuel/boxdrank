@@ -38,6 +38,32 @@ What is true either way:
 - The app shows the state and links to the board. Revisit when a stable
   version adds the mutation.
 
+## 28 Sep 2026: build first, gate the listing
+
+**Samet:** "zaten bi tane yaptık ya tecrübeliyiz monday app konusunda ordaki
+tecrübemizi kullanalım bunda da" (we already built one; use that experience
+here).
+
+Gate 0 was written to stop the project before any building. It now stops it
+before the listing and the submission instead:
+- The code was mostly Watchdog's: server, JWT checks, Sidekick plumbing,
+  theme and viewer handling, build and deploy checks, and the inventory
+  itself. It took hours, not days.
+- The expensive part is what is still ahead: legal pages, images, video,
+  security answers and a review cycle.
+
+This was decided before any Gate 0 result existed, so it is not a gate
+renegotiated after seeing its result.
+
+What was built (`PROGRESS.md` items 9–17):
+- **No OAuth, no stored token, no email, no cron.**
+  - The view reads with the user's own session.
+  - The Sidekick tool reads with the short-lived token of each request.
+  - Nothing is stored, so the privacy and security review has almost nothing
+    to ask about.
+- Filtering by creator was left out: it needs `users:read`, which is one more
+  scope to justify. It is in `BACKLOG.md`.
+
 ## Pending, for Samet
 
 - **Name**: at most 30 characters, no "monday".

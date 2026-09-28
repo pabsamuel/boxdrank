@@ -5,7 +5,8 @@
  * and "impossible to 'see' all your automations in one place".
  *
  * Pure functions over what monday returns (src/app/monday-source.js,
- * fetchAutomations), so ordering, counting and search are testable offline.
+ * fetchAutomations), so ordering, counting, filtering and search are testable
+ * offline. Carried over from Automation Watchdog, where it was built first.
  */
 
 import { singleLine } from './sanitize.js';
@@ -59,4 +60,34 @@ export function searchInventory(rows, text) {
     const haystack = fold(`${row.title} ${row.board} ${row.description} ${row.notice} ${row.active === false ? 'off' : row.active ? 'on active' : ''} ${row.legacy ? 'legacy older' : ''}`);
     return words.every((word) => haystack.includes(word));
   });
+}
+
+/** The state filters the view offers, in its order. */
+export const SHOW_OPTIONS = [
+  ['all', 'All'],
+  ['off', 'Switched off'],
+  ['notice', 'With a warning'],
+  ['older', 'Older type'],
+];
+
+/**
+ * Rows in one state and, optionally, on one board. States are exact, unlike
+ * the search's words: "off" in a search also finds "office".
+ *
+ * @param {object[]} rows
+ * @param {{show?: string, board?: string}} [filters]
+ */
+export function filterInventory(rows, { show = 'all', board = '' } = {}) {
+  return rows.filter((row) => {
+    if (board && row.board !== board) return false;
+    if (show === 'off') return row.active === false;
+    if (show === 'notice') return row.notice !== '';
+    if (show === 'older') return row.legacy;
+    return true;
+  });
+}
+
+/** The boards that have at least one automation, by name, for the board filter. */
+export function boardsIn(rows) {
+  return [...new Set(rows.map((row) => row.board))].sort((a, b) => a.localeCompare(b));
 }

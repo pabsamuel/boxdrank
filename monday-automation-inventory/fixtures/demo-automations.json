@@ -1,0 +1,100 @@
+{
+  "_comment": "Invented demo account: its boards and the automations on them. Titles follow monday's recipe style; ids, dates and the notice are made up. Nothing here is a customer's data.",
+  "boards": [
+    {
+      "id": "101",
+      "name": "Client Projects"
+    },
+    {
+      "id": "102",
+      "name": "Sales Pipeline"
+    },
+    {
+      "id": "103",
+      "name": "Q2 Campaign (archived work)"
+    }
+  ],
+  "automations": [
+    {
+      "id": "5001",
+      "title": "When status changes to Done, move item to group Completed",
+      "description": "Status Router",
+      "active": true,
+      "boardId": "101",
+      "createdAt": "2026-03-02T09:14:00Z",
+      "updatedAt": "2026-06-18T11:02:00Z",
+      "notice": ""
+    },
+    {
+      "id": "5002",
+      "title": "When an update is posted, notify #client-projects in Slack",
+      "description": "Slack Notifier",
+      "active": true,
+      "boardId": "101",
+      "createdAt": "2026-02-11T15:40:00Z",
+      "updatedAt": "2026-02-11T15:40:00Z",
+      "notice": "The Slack connection needs to be reconnected."
+    },
+    {
+      "id": "5003",
+      "title": "Every day at 9:00, create a digest item",
+      "description": "Daily Digest",
+      "active": true,
+      "boardId": "102",
+      "createdAt": "2026-01-20T08:00:00Z",
+      "updatedAt": "2026-05-04T10:30:00Z",
+      "notice": ""
+    },
+    {
+      "id": "5004",
+      "title": "When an invoice date arrives, set Reminder to Sent",
+      "description": "Invoice Reminder",
+      "active": true,
+      "boardId": "102",
+      "createdAt": "2026-04-07T13:12:00Z",
+      "updatedAt": "2026-04-07T13:12:00Z",
+      "notice": ""
+    },
+    {
+      "id": "5005",
+      "title": "When a campaign row changes, sync its budget column",
+      "description": "Campaign Sync",
+      "active": false,
+      "boardId": "103",
+      "createdAt": "2026-03-15T10:00:00Z",
+      "updatedAt": "2026-08-01T16:45:00Z",
+      "notice": ""
+    },
+    {
+      "id": "5006",
+      "title": "At the start of each quarter, create a rollup item",
+      "description": "Quarterly Rollup",
+      "active": true,
+      "boardId": "103",
+      "createdAt": "2026-01-02T07:00:00Z",
+      "updatedAt": "2026-01-02T07:00:00Z",
+      "notice": ""
+    },
+    {
+      "id": "5007",
+      "title": "When a deal is stuck for 7 days, notify the owner",
+      "description": "",
+      "active": false,
+      "boardId": "102",
+      "createdAt": "2026-07-22T12:05:00Z",
+      "updatedAt": "2026-07-22T12:05:00Z",
+      "notice": ""
+    },
+    {
+      "id": "7001",
+      "title": "When status changes to Approved, move item to group Ready",
+      "description": "",
+      "active": null,
+      "boardId": "103",
+      "createdAt": null,
+      "updatedAt": null,
+      "notice": "",
+      "legacy": true
+    }
+  ]
+}

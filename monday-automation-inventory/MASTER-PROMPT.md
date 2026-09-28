@@ -1,9 +1,9 @@
 # Master prompt
 
 **Samet için:** yeni projeyi açınca aşağıdaki çizginin altındaki her şeyi kopyala,
-ilk mesaj olarak yapıştır. Claude Code (repo bağlı) açarsan dosyaları kendisi okur.
-claude.ai Project açarsan bu klasördeki `.md` dosyalarını proje bilgisi olarak
-yükle, `seed/` klasörünü de zip'leyip ekle.
+ilk mesaj olarak yapıştır. En iyisi Claude Code (bu repo bağlı): dosyaları ve kodu
+kendisi okur, test çalıştırır. claude.ai Project açarsan bu klasördeki `.md`
+dosyalarını proje bilgisi olarak yükle; kod orada çalışmaz, sadece okunur.
 
 ---
 
@@ -19,12 +19,26 @@ Patrick Fallon, a monday consultant, on 27 Sep 2026. His exact words are in
 under monday's review. It is the source of almost everything reusable: server,
 Sidekick tool, board view, tests, listing, legal pages and submission answers.
 
+**The app is already built and tested** (28 Sep 2026), mostly from
+Watchdog's code:
+- a board view listing every automation;
+- a Sidekick tool;
+- a server;
+- 47 tests and 21 browser checks.
+
+It is **not deployed** and has no App ID yet. Do not rebuild what exists:
+read it, run `npm test`, and continue from `PROGRESS.md`.
+
 **Before doing anything, read these files in this order:**
 1. `CLAUDE.md`: the operating rules. They are not optional.
-2. `README.md`: current state and the next step.
+2. `README.md`: current state, how the code is laid out, the commands.
 3. `PROGRESS.md`: the checklist and the percentage.
 4. `DECISIONS.md`, `SPEC.md`, `PLATFORM-FACTS.md`, `LESSONS.md`.
-5. `REUSE.md` and `SUBMISSION-CHECKLIST.md`: read them when you reach those stages.
+5. `PLAYBOOK.md`: the proven path from creating the app to submitting it,
+   with exact commands, clicks and a prompt template. Follow it; do not
+   rediscover it.
+6. `GATE0.md`, `REUSE.md`, `SUBMISSION-CHECKLIST.md`: when you reach those
+   stages.
 
 If you cannot read the repository and have only uploaded files, say which files
 you are missing. Do not reconstruct them.
@@ -67,11 +81,18 @@ you are missing. Do not reconstruct them.
 - Test before claiming something works. Say plainly what was verified live and
   what was not.
 
-**First task: Gate 0 in `PROGRESS.md`.** These checks can kill the idea cheaply
-before anything is built:
-- Search the marketplace for apps that already do this.
-- Find out what monday's own account-level automations page does today.
-- Get the answer to the run-statistics query from the playground.
+**First task: two things at once.**
+1. **Gate 0** (`GATE0.md`), which needs Samet's hands:
+   - the run-statistics queries in the playground;
+   - a Claude-in-Chrome prompt for the competitor search;
+   - a look at monday's own automations page.
 
-Report the result bluntly. "Someone already does this well, stop" is an
-acceptable answer. If Gate 0 passes, build in the order `PROGRESS.md` lists.
+   Ask him for the results, and judge them bluntly. "Someone already does
+   this well, stop" is an acceptable answer. The gate decides whether the
+   listing and the submission get done.
+2. **Deploy** (`PLAYBOOK.md` steps 1–6). Walk him through creating the app,
+   the first push, the settings, the features and the live test, one step at
+   a time.
+
+This session cannot reach monday.com in a browser. Delegate browsing to his
+Claude-in-Chrome side panel with the prompt template in `PLAYBOOK.md`.

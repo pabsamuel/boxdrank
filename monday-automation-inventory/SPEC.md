@@ -27,8 +27,8 @@ His email names three pains. They set the order of the work:
 
 | # | Pain | What answers it | Stage |
 |---|---|---|---|
-| 1 | "impossible to see all your automations in one place" | One list across every board the user can see | MVP. The code exists in `seed/` |
-| 2 | "hard to find the automation you are looking for" | Search, plus filters: on/off, has a warning, older type, board, creator | MVP. Search exists; filters do not |
+| 1 | "impossible to see all your automations in one place" | One list across every board the user can see | MVP. Built 28 Sep (`src/app/main.js`) |
+| 2 | "hard to find the automation you are looking for" | Search, plus filters: on/off, has a warning, older type, board, creator | MVP. Search and filters built 28 Sep; creator filter in `BACKLOG.md` |
 | 3 | "hard to understand how your monday system works as a whole", the dominoes | Show which automations set off which others | After the MVP. Feasibility UNKNOWN, see below |
 
 ## MVP, the smallest thing worth submitting
@@ -36,11 +36,12 @@ His email names three pains. They set the order of the work:
 1. **All automations list.** Every automation on every board the signed-in
    user can see, including older ("legacy") ones and ones that have never run.
    Each row shows: title, board, on/off, monday's warning (`notice_message`)
-   and last changed. Ported from Watchdog; see `seed/`.
+   and last changed. Ported from Watchdog; built 28 Sep.
 2. **Search** that ignores accents and case, across title, board, description,
    warning and state. Ported.
-3. **Filters**: on/off, "has a warning", older type, board, and creator
-   (`user_id` → name). New.
+3. **Filters**: switched off, "has a warning", older type, and board. Built
+   28 Sep. Creator (`user_id` → name) is parked in `BACKLOG.md`: it needs
+   `users:read`.
 4. **Open on its board.** A link from each row to that board's automations
    page, so the user can switch it on or off there.
    - UNKNOWN: the URL of that page. Get it from Samet's browser; do not guess.
@@ -49,10 +50,12 @@ His email names three pains. They set the order of the work:
      that include AI capabilities. If you proceed with submitting this form
      for an app that does not include AI capabilities, your submission will be
      rejected."
-   - Proposed action block: "Find automations". Given a question such as
-     "which automations move items to Done?" or "which automations are off?",
-     it answers from the list. Watchdog's `/monday/sidekick/check` route is
-     the template.
+   - Action block "Find automations" at `POST /monday/sidekick/find`
+     (built 28 Sep):
+     - inputs `search` and `board_name`, both optional;
+     - outputs `summary`, `match_count`, `total_count`, `checked_boards`.
+     - It answers questions such as "which automations move items to Done?"
+       or "which automations are off?" from the list.
 6. **monday basics**: light, dark and night themes; a clear message for
    viewers; `valueCreatedForUser` once the list is shown; plan gating (see
    Pricing).
@@ -78,7 +81,7 @@ His email names three pains. They set the order of the work:
   5104569213): one of the board's two automations,
   `When Status changes to Bitir move item to Group Title` (id 186000595),
   came back only in `legacy_automations`. An account-wide query would have
-  missed it. That is why `seed/` asks board by board.
+  missed it. That is why `src/app/monday-source.js` asks board by board.
 
 **Switching on/off: FACT, not in any stable version.**
 - `2026-07`, `2026-10` and `2027-01` have no mutation that activates or
@@ -119,7 +122,7 @@ His email names three pains. They set the order of the work:
 - Legacy automations have only a title. Linking them would mean parsing the
   English sentence, which is fragile.
 
-## Architecture: INFERENCE, to be confirmed while building
+## Architecture: built this way on 28 Sep 2026
 
 - **Board view plus Sidekick tool, hosted on monday code.**
   - The view calls the API from the browser with seamless authentication, as
@@ -130,6 +133,8 @@ His email names three pains. They set the order of the work:
   - Nothing runs without a user present, so nothing needs a stored token.
   - That means almost no data to declare in the privacy review, and no
     uninstall clean-up. It is a much smaller app than Watchdog.
+  - Built and tested this way on 28 Sep. Not yet deployed, so nothing here
+    has run against a real account.
 - UNKNOWN: whether a board view is the best surface for an account-wide list.
   monday has other feature types (dashboard widget, workspace-level views and
   others). Read the current feature list in the Developer Center before
@@ -137,7 +142,7 @@ His email names three pains. They set the order of the work:
 - UNKNOWN: API cost for large accounts. There is one query per board, plus
   pages; an account with 500 boards means 500+ calls.
   - Measure on the biggest account available.
-  - Show progress, and let partial results render. The seed already counts
+  - Show progress, and let partial results render. The code already counts
     boards it could not read.
 
 ## Pricing: OWNER decides, UNKNOWN until then

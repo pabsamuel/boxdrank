@@ -70,10 +70,14 @@ FACT, `apps/docs/authorization-header`, `integration-authorization`,
 ## Submission and marketplace
 
 - FACT (form, 28 Sep): only apps with AI capabilities are accepted.
-- FACT (Watchdog, 28 Sep): the form froze on "AI capabilities: Yes" while the
-  Sidekick tool existed only on a draft version. After the version with the
-  tool was promoted to live, the submission went through. The cause is
-  UNKNOWN, so promote first, then fill in the form.
+- FACT (Watchdog, 27–28 Sep): the form froze twice when the Chrome agent
+  picked "AI capabilities: Yes", with the Sidekick tool already live (v3).
+  Samet then filled it in by hand and submitted it on 28 Sep. The cause is
+  UNKNOWN. Promote every feature first, then fill in the AI fields by hand.
+- FACT (Watchdog, 28 Sep): an automation block is not offered in the
+  automation builder unless its "Otomasyon Oluşturucu'da kullanılabilir hale
+  getir" switch is on. Only Workflow Builder was on in v3, and it took a new
+  version (v4) to fix.
 - Install/share link:
   `https://auth.monday.com/oauth2/authorize?client_id=<CLIENT_ID>&response_type=install`.
 - Domain proof: `https://atesensoftware.com/monday-app-association.json` lists
