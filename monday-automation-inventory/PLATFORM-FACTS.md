@@ -1,0 +1,90 @@
+# monday platform facts the new app needs
+
+Carried over from building Automation Watchdog (23–28 Sep 2026). Each fact
+names its source. The full record, with quotes, is
+`../monday-automation-watchdog/PLATFORM-FACTS.md`; read that file before
+relying on anything here that looks thin. Re-check anything older than a month.
+
+## API
+
+| Fact | Source |
+|---|---|
+| Endpoint `POST https://api.monday.com/v2`; `Authorization` takes the raw token, no `Bearer` | `api-reference/docs/authentication`, 23 Sep |
+| An invalid token gets HTTP 401 `NOT_AUTHENTICATED` | Live, 26 Sep |
+| The schema of any version can be downloaded without a token: `https://api.monday.com/v2/get_schema?format=sdl&version=2026-10` (`2026-07`, `2026-10`, `2027-01` and `dev` all worked on 28 Sep) | Live, 28 Sep |
+| `board_automations` exists in `2026-10`, `2027-01` and `dev` only | Schema, 28 Sep |
+| Older ("legacy") automations come only in `legacy_automations`, only for single-board queries, and cannot be toggled, edited or deleted | Schema text and a live playground run, 28 Sep |
+| No stable version has an activate/deactivate mutation; `dev` has `activate_live_workflow` / `deactivate_live_workflow` / `change_live_workflow_owner` | Schema, 28 Sep |
+| `account_triggers_statistics_by_entity_id`, `trigger_events` and `account_trigger_statistics` exist in `2026-07` | Schema, 28 Sep |
+| The board-view SDK takes the API version per call: `monday.api(query, { variables, apiVersion })` | `monday-sdk-js` `client.js`, used by Watchdog |
+| The SDK **resolves** on GraphQL errors. Check `response.errors`, or a failure looks like an empty account | Watchdog `src/app/monday-source.js`, `query()` |
+| `app_subscription { plan_id is_trial days_left }` returns the account's plan for this app; an empty array means no plan | `api-reference/reference/app-subscription`, 27 Sep |
+
+## monday code (hosting)
+
+- Node 18, 20 and 22. The port comes from `process.env.PORT`.
+- Behind Cloudflare and Google:
+  - The edge replaces the app's HSTS header with 180 days.
+  - **Cloudflare Email Obfuscation** rewrites any full email address in an
+    HTML response into a script that a strict CSP blocks. Mask addresses.
+- **Each deploy gets its own URL**: `<id>-service-<account>-<id>.eu.monday.app`.
+  The **Live URL** (`live1-…`) follows whichever version is live.
+- **`mapps code:push -a <APP_ID>` deploys to the latest version: the draft,
+  if a draft exists.** The Live URL keeps serving the old code until the draft
+  is promoted.
+- **A live version is locked.** Features, redirect URL and webhooks are
+  changed on a new draft, which is then promoted.
+- **Secrets are read when the server starts.** A secret added after a deploy
+  is unseen until the next deploy.
+- Secrets are set in Developer Center → monday code → Secrets. They cannot be
+  read back.
+- `mapps code:env` takes the app as `-i`; `code:push` takes `-a`. Without it,
+  the CLI may pick a different app.
+- `.mappsignore` honours only literal, existing paths. Wildcards are silently
+  dropped.
+- Cron routes (`/mndy-cronjob/*`) answer 403 to the public. The MVP needs none.
+- `mapps code:push -s` runs monday's dependency security scan. Watchdog: 0
+  findings on every push.
+
+## Sidekick tool (the AI capability)
+
+FACT, `apps/docs/authorization-header`, `integration-authorization`,
+`workflows-actions` and `error-handling`, read 28 Sep:
+
+- The Sidekick tool exposes an **action block**; its Run URL is the app's route.
+- The request carries a JWT **signed with the Signing Secret**, not the Client
+  Secret.
+  - Verify `exp`, and verify that `aud` is this route.
+  - Watchdog saw `aud` carry the version URL as well as the Live URL. Accept
+    both. See `sidekickAudience` in Watchdog's `src/server/app-server.js`.
+- The JWT holds a `shortLivedToken`, "valid for five minutes", with the app's
+  scopes. Use it for the API calls.
+- Inputs arrive in `payload.inboundFieldValues` (or `payload.inputFields`).
+- The answer is `200 { outputFields: {...} }`.
+- A run URL is retried for 30 minutes "unless 4xx/severity code". A real
+  failure is a 4xx with `severityCode: 4000`, never a fake 200.
+- **Testing:** sidekick chat needs AI credits on the account, and Samet's
+  account has none (28 Sep). The action block can still be tested by putting
+  it in a normal board automation. On Watchdog it ran "Success" in 7 s.
+
+## Submission and marketplace
+
+- FACT (form, 28 Sep): only apps with AI capabilities are accepted.
+- FACT (Watchdog, 28 Sep): the form froze on "AI capabilities: Yes" while the
+  Sidekick tool existed only on a draft version. After the version with the
+  tool was promoted to live, the submission went through. The cause is
+  UNKNOWN, so promote first, then fill in the form.
+- Install/share link:
+  `https://auth.monday.com/oauth2/authorize?client_id=<CLIENT_ID>&response_type=install`.
+- Domain proof: `https://atesensoftware.com/monday-app-association.json` lists
+  the client ids. Add the new app's id there (`atesensoftware-site/build.mjs`).
+- Watchdog's Pricing & Plans tab was not visible after submission (28 Sep).
+  INFERENCE: it appears once monday processes the submission. UNKNOWN.
+
+## OAuth (only if the app ever needs a stored token; the MVP does not)
+
+See `../monday-automation-watchdog/PLATFORM-FACTS.md` and `LESSONS.md`:
+- the legacy flow;
+- `force_install_if_needed=true`;
+- monday adds its own `state`;
+- keep the "New OAuth Flow" toggle off unless migrating deliberately.

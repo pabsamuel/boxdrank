@@ -1,0 +1,12 @@
+{
+  "name": "automation-inventory-seed",
+  "private": true,
+  "type": "module",
+  "description": "Inventory code carried over from Automation Watchdog, with its tests. Starting point, not the app.",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\""
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
