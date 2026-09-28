@@ -148,6 +148,10 @@ FACT, `apps/docs/authorization-header`, `integration-authorization`,
   with external hosting works.
 - The Live URL serves the live version's code. Code pushed to a draft runs
   only at that draft's own deployment URL until the draft is promoted.
+- After v2 was promoted, the version list showed v2 "Canlı" with an "Aktif"
+  tag and v1 "Kullanımsız" (unused). v2's own deployment and the Live URL
+  both reported the signing secret and `APP_BASE_URL` as set. INFERENCE:
+  secrets and env belong to the app, not to a version.
 
 ## Submission and marketplace
 

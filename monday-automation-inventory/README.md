@@ -5,13 +5,13 @@ searchable place: on or off, with monday's warnings, older automations
 included. Monday's AI assistant can search it too, through a Sidekick tool.
 The idea is Patrick Fallon's; his words are in `SPEC.md`.
 
-**Status, 28 Sep 2026: Gate 0 passed (GO); live on monday code and configured; features not yet added. 21 / 30 = 70%**
+**Status, 28 Sep 2026: Gate 0 passed (GO); v2 live with all four features; not yet installed and tested. 22 / 30 = 73%**
 (`PROGRESS.md`).
 - The code works in tests and in a browser inside a fake monday.
 - Name and price are decided. App 12255778 is live on monday code, with the
-  signing secret set; its features (Object, board view, action block,
-  Sidekick tool) are not added yet.
-- **Next:** `DEPLOY-PROMPTS.md` step 5.
+  signing secret set. v2 is live with its four features: Object, board
+  view, action block, Sidekick skill.
+- **Next:** `DEPLOY-PROMPTS.md` step 6, the install and live test.
 
 ## How it works
 
@@ -81,5 +81,6 @@ node scripts/make-listing-video.js   # listing video; needs Playwright and ffmpe
 | Client ID | `fb2b51f8128e2fbcc70e02843099902d` (public; it is in every install link) |
 | App slug in monday | `sametatesen2s-team-company_automation-inventory`, fixed at creation |
 | First version | v1, draft, version id 18319002; code pushed 28 Sep (deployment `ebb3e-service-36993937-d7d03ea4.eu.monday.app`) |
-| Live URL | `https://live1-service-36993937-d7d03ea4.eu.monday.app` (v1 promoted 28 Sep 2026) |
+| Live URL | `https://live1-service-36993937-d7d03ea4.eu.monday.app` (v1 promoted 28 Sep 2026; v2 promoted the same day) |
+| Live version | v2, version id 18319401, deployment `a8e21-service-36993937-d7d03ea4.eu.monday.app`; v1 is now "Kullanımsız" (unused) |
 | Slug on atesensoftware.com | `automation-inventory` |

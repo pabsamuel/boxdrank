@@ -1,6 +1,6 @@
 # Progress
 
-**21 / 30 done: 70%.** Recompute this line whenever a box changes, and put the
+**22 / 30 done: 73%.** Recompute this line whenever a box changes, and put the
 percentage at the end of every reply to Samet.
 
 Order: Gate 0 decides whether the listing and the submission get done.
@@ -97,12 +97,17 @@ Order: Gate 0 decides whether the listing and the submission get done.
         route answers 503.
       - v1 promoted to live on 28 Sep. Live URL `https://live1-service-36993937-d7d03ea4.eu.monday.app`.
       - `MONDAY_SIGNING_SECRET` entered by Samet himself.
-- [ ] 19. On a draft: v2, version id 18319401, created 28 Sep with all four
-      features, not promoted yet.
-      - [ ] Object and board view, both at `<Live URL>/view/`;
-      - [ ] action block with both builder switches on;
-      - [ ] Sidekick tool;
-      - [ ] draft promoted.
+- [x] 19. v2 (version id 18319401) with all four features, live 28 Sep.
+      - [x] Object and board view, both at `<Live URL>/view/`;
+      - [x] action block "Find automations" with both builder switches on;
+      - [x] Sidekick skill;
+      - [x] code pushed to v2 (security scan 0 findings, deployment
+            `a8e21-service-36993937-d7d03ea4.eu.monday.app`);
+      - [x] promoted by Samet: v2 "Canlı", v1 "Kullanımsız".
+      - Checked from here after the promote: the Live URL's `/health` reads
+        `{"ok":true,"billing":"off","sidekick":"on"}`; `/view/` and
+        `/view/how-to.html` answer 200; an unsigned request to the Sidekick
+        route gets 401.
 - [ ] 20. Tested live on Samet's account:
       - [ ] the list includes his older automation;
       - [ ] the action block run in a board automation succeeds;
