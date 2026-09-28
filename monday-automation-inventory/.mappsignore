@@ -26,3 +26,4 @@ scripts/make-assets.js
 scripts/listing-kit.js
 scripts/make-listing.js
 scripts/make-listing-video.js
+scripts/make-auth-code.js

@@ -10,7 +10,7 @@ document in this folder.
 
 | # | Field | Answer |
 |---|---|---|
-| 1 | App Name | Automation Inventory (OWNER to confirm) |
+| 1 | App Name | Automation Inventory |
 | 2 | Entity | Individual Developer |
 | 3 | Entity Name | Samet Ateşen |
 | 4 | Full name | Samet Ateşen |

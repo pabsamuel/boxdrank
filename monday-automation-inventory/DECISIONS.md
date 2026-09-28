@@ -100,9 +100,29 @@ What the listing must say is the gap, word for word: every automation, found
 by what it does, on or off. What it must not say is that it shows *every*
 older automation: monday calls that field "best-effort".
 
-## Pending, for Samet
+## 28 Sep 2026: name and price, decided by Claude at Samet's request
 
-- **Name**: at most 30 characters, no "monday".
-  - Candidates: *Automation Inventory*, *Automation Map*, *Automation Finder*.
-  - Check the marketplace for clashes first (UNKNOWN).
-- **Price**: see `SPEC.md` → Pricing.
+**Samet:** "sen bul 2sini de sonra devam et" (you pick both, then carry on).
+
+**Name: Automation Inventory.**
+- 20 characters, no "monday".
+- It says what the app is: a list of every automation, for people who audit
+  or look after an account.
+- FACT (apps-for-monday.com, a third-party list of the marketplace's about
+  980 apps, 28 Sep): no app has this name. One app is called just
+  "Inventory"; it tracks stock, so the two are unlikely to be confused. 88
+  app names contain "automation", most of them "… Automations" tools that
+  run automations rather than list them.
+- It is also the name already in the code and in every document, so choosing
+  it cost nothing.
+
+**Price: $1 per seat per month, Optimized mode, 14-day trial**, the same as
+Watchdog.
+- FACT (monday, via Watchdog's research): the seat price must be a whole
+  number of USD, and seat-based plans need a trial. So $1 is the lowest paid
+  price there is.
+- INFERENCE: one price across Samet's apps is easy to explain. This app costs
+  nothing to run per account, since it stores nothing and runs only when
+  someone opens it or asks sidekick.
+- UNKNOWN: whether anyone will pay it. Nobody has been asked. Revisit with
+  installs and reviews, not before.

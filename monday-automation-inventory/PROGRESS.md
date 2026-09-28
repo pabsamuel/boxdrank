@@ -1,6 +1,6 @@
 # Progress
 
-**18 / 30 done: 60%.** Recompute this line whenever a box changes, and put the
+**19 / 30 done: 63%.** Recompute this line whenever a box changes, and put the
 percentage at the end of every reply to Samet.
 
 Order: Gate 0 decides whether the listing and the submission get done.
@@ -27,8 +27,8 @@ Order: Gate 0 decides whether the listing and the submission get done.
 
 ## Setup (Samet)
 
-- [ ] 6. Name chosen: 30 characters at most, no "monday", no marketplace
-      clash. Change it in `src/core/brand.js` and `src/app/index.html`.
+- [x] 6. Name: **Automation Inventory**. Price: **$1 per seat per month,
+      14-day trial.** Both chosen 28 Sep at Samet's request (`DECISIONS.md`).
 - [ ] 7. App created in the Developer Center. App ID and client id recorded
       in `README.md`. "New OAuth Flow" left off.
 - [x] 8. Feature types: **Object** and **Board view**, both pointing at the
@@ -97,7 +97,13 @@ Order: Gate 0 decides whether the listing and the submission get done.
 - [ ] 21. Privacy policy and terms at `atesensoftware.com/automation-inventory/`.
       - The text is written (`PRIVACY_POLICY.md`, `TERMS_OF_SERVICE.md`,
         28 Sep), each sentence checked against the code.
-      - Not published: the site is moving to Cloudflare (`REUSE.md`).
+      - Built as HTML (privacy, terms, pricing) by
+        `../atesensoftware-site/build.mjs` into
+        `../atesensoftware-site/public/automation-inventory/`, in the same
+        format as Watchdog's live pages.
+      - Not published yet: the live site is built from
+        `pabsamuel/atesensoftware-site`, and the pages must be copied there
+        (`REUSE.md`).
 - [ ] 22. Client id added to `monday-app-association.json`.
 - [x] 23. `LISTING.md`: name (working; Samet confirms), short description
       (55 characters), long description (1,465), keywords, categories, and a
@@ -120,7 +126,8 @@ Order: Gate 0 decides whether the listing and the submission get done.
 - [ ] 26. `SECURITY-ANSWERS.md`.
       - Written 28 Sep.
       - Evidence that needs the Live URL is marked PENDING: scan, SSL Labs,
-        Palo Alto, scope confirmation, auth-code screenshot.
+        Palo Alto, scope confirmation.
+      - The auth-code screenshot is done (`listing/auth-code.png`).
 
 ## Submission
 

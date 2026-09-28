@@ -50,7 +50,7 @@ const ignore = await read('.mappsignore');
 check(/^dist\/$/m.test(ignore), '.mappsignore excludes dist/, so a stale build is never uploaded');
 check(!/^src\/?$/m.test(ignore) && !/^scripts\/?$/m.test(ignore) && !/^fixtures\/?$/m.test(ignore), '.mappsignore keeps src/, scripts/ and fixtures/');
 check(/^scripts\/make-assets\.js$/m.test(ignore), '.mappsignore excludes scripts/make-assets.js, which the server never loads');
-for (const script of ['listing-kit.js', 'make-listing.js', 'make-listing-video.js']) {
+for (const script of ['listing-kit.js', 'make-listing.js', 'make-listing-video.js', 'make-auth-code.js']) {
   const line = new RegExp(`^scripts/${script.replace(/\./g, '\\.')}$`, 'm');
   check(line.test(ignore), `.mappsignore excludes scripts/${script}, which the server never loads`);
 }

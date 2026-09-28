@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automation Inventory — Privacy Policy</title>
+<link rel="icon" href="/assets/icon-192.png">
+<style>
+  :root { --bg:#fff; --surface:#f5f6fa; --border:#dcdfea; --text:#1c1f3b; --muted:#5e6178; --accent:#0f7a6e; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14162b; --surface:#1d2040; --border:#32365a; --text:#eceef6; --muted:#a4a7bd; --accent:#3fcfbd; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+    font:16px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 32px 20px 64px; }
+  header.top { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:40px; }
+  header.top a.brand { font-weight:800; font-size:18px; color:var(--text); text-decoration:none; }
+  a { color: var(--accent); }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0 0 12px; letter-spacing: -0.5px; }
+  h2 { font-size: 21px; margin: 34px 0 10px; }
+  h3 { font-size: 17px; }
+  .lead { color: var(--muted); font-size: 18px; margin: 0 0 32px; }
+  .app { display:flex; gap:22px; padding:24px; border:1px solid var(--border); border-radius:14px; background:var(--surface); }
+  .app img { width:88px; height:88px; border-radius:18px; flex:none; }
+  .app h2 { margin: 0 0 4px; }
+  .app .for { color: var(--muted); font-size: 14px; margin: 0 0 10px; }
+  .app ul { margin: 0 0 16px; padding-left: 20px; }
+  .actions { display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; }
+  .button { display:inline-block; padding:10px 18px; border-radius:8px; background:var(--accent); color:#fff; font-weight:700; text-decoration:none; }
+  table { width:100%; border-collapse:collapse; margin: 8px 0 18px; font-size: 15px; }
+  th, td { text-align:left; vertical-align:top; padding:8px 10px; border-bottom:1px solid var(--border); }
+  th { color: var(--muted); font-size: 13px; }
+  code { font-size: 0.9em; background: var(--surface); padding: 1px 5px; border-radius: 4px; }
+  footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--border); color: var(--muted); font-size: 14px; }
+  @media (max-width: 560px) { .app { flex-direction: column; } h1 { font-size: 28px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top"><a class="brand" href="/">Atesen Software</a><a href="mailto:support@atesensoftware.com">support@atesensoftware.com</a></header>
+<h1>Automation Inventory — Privacy Policy</h1>
+<p><em>Last updated: 28 September 2026</em></p>
+<p>Automation Inventory (&quot;the app&quot;) is operated by <strong>Samet Ateşen</strong> (&quot;we&quot;). This policy explains what the app reads from a monday.com account that installs it, what it keeps, and what it sends. It describes what the app's code does. If the app changes, this policy changes with it.</p>
+<h2>What the app does</h2>
+<p>It lists the automations on the boards you can see in monday.com, in one list you can search and filter: whether each one is switched on, and any warning monday.com shows on it. monday.com's AI assistant, sidekick, can search the same list for you. The app only reads. It never changes a board, an item or an automation.</p>
+<h2>Permission requested</h2>
+<table><thead><tr><th>Permission</th><th>Used for</th></tr></thead><tbody><tr><td><code>boards:read</code></td><td>Reading your boards and the automations on them</td></tr></tbody></table>
+<h2>What the app reads</h2>
+<ul><li>Each board's id, name and web address.</li><li>The automations on each board: their name, description, whether they are switched on, the warning monday.com shows on them (if any), and when they were created and last changed.</li><li>For boards whose automations were set up in monday.com's older way only: the board's column titles, its status column labels and its group names. monday.com describes those automations with placeholders (&quot;when status changes to something&quot;), and these names turn that into what the automation actually does (&quot;when Status changes to Done&quot;).</li><li>Whether your account has a plan for the app, when monday.com's billing applies to the sidekick tool. This is not stored.</li></ul>
+<p>It does <strong>not</strong> ask for items, item names, column values, updates, files, documents, or anyone's name or email address. For older automations, monday.com also sends the automation creator's user id; the app does not keep or use it.</p>
+<h2>Where the reading happens</h2>
+<ul><li><strong>In the app's page</strong>, the list is read <strong>in your browser</strong>, directly from monday.com, with your own monday.com session, each time you open it. It does not pass through our server.</li><li><strong>When sidekick asks</strong>, the app's server reads the same list at that moment with a token monday.com issues for that one request (valid for five minutes), answers with the matching automations' names, boards, states and warnings, and keeps nothing. The answer goes back to sidekick.</li></ul>
+<h2>What the app stores</h2>
+<p><strong>Nothing about your account.</strong> There is no database. The app keeps no tokens, no email addresses, and no copy of your boards or automations.</p>
+<p>Your browser keeps one note: whether you have seen the app's welcome page.</p>
+<h2>Logs</h2>
+<p>The app's server writes short operational log lines to monday.com's hosting logs (monday code):</p>
+<ul><li>for each sidekick request, your account id and three numbers: how many automations matched, how many there were, and how many boards were read;</li><li>errors, scrubbed of tokens and secrets.</li></ul>
+<p>Board and automation names are never logged. How long monday code keeps logs is set by monday.com.</p>
+<h2>Third parties</h2>
+<table><thead><tr><th>Who</th><th>Why</th></tr></thead><tbody><tr><td>monday.com</td><td>The app runs on monday code, monday.com's own hosting, and reads your data from monday.com's API</td></tr></tbody></table>
+<p>Nothing leaves monday.com. There is no analytics, no tracking, no cookies, no advertising, and no data is sold or shared.</p>
+<h2>Security</h2>
+<ul><li>Requests from sidekick are accepted only with a valid signature from monday.com, checked for expiry and for being meant for this app.</li><li>The per-request token is used only to call monday.com over HTTPS, is never written to a log or a response, and is discarded after the request.</li><li>Links the app opens are checked to be monday.com addresses.</li></ul>
+<h2>Your choices</h2>
+<p>Uninstalling the app stops it. Because it stores nothing about your account, there is nothing left to delete. For any question, write to <strong><a href="mailto:support@atesensoftware.com">support@atesensoftware.com</a></strong>.</p>
+<footer>© 2026 Samet Ateşen · Atesen Software · <a href="mailto:support@atesensoftware.com">support@atesensoftware.com</a></footer>
+</div>
+</body>
+</html>

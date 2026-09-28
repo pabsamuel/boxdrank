@@ -1,14 +1,14 @@
-# Automation Inventory (working name)
+# Automation Inventory
 
 A monday.com marketplace app that shows every automation in an account in one
 searchable place: on or off, with monday's warnings, older automations
 included. Monday's AI assistant can search it too, through a Sidekick tool.
 The idea is Patrick Fallon's; his words are in `SPEC.md`.
 
-**Status, 28 Sep 2026: Gate 0 passed (GO); built and tested, not yet deployed. 18 / 30 = 60%**
+**Status, 28 Sep 2026: Gate 0 passed (GO); built and tested, not yet deployed. 19 / 30 = 63%**
 (`PROGRESS.md`).
 - The code works in tests and in a browser inside a fake monday.
-- There is no App ID, no name and no deploy yet.
+- Name and price are decided. There is no App ID and no deploy yet.
 - **Next:** creating the app and deploying it, with `DEPLOY-PROMPTS.md`.
 
 ## How it works
@@ -74,8 +74,8 @@ node scripts/make-listing-video.js   # listing video; needs Playwright and ffmpe
 
 | | |
 |---|---|
-| App name | UNKNOWN (Samet decides; then `src/core/brand.js`, `src/app/index.html`) |
+| App name | Automation Inventory |
 | App ID | UNKNOWN |
 | Client ID | UNKNOWN |
 | Live URL | UNKNOWN |
-| Slug on atesensoftware.com | UNKNOWN |
+| Slug on atesensoftware.com | `automation-inventory` |

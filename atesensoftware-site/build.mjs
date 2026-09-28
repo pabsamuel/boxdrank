@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 /**
- * Builds atesensoftware.com into public/, which is what Netlify serves as is
- * (no build step there). Run after changing any app's privacy policy or terms:
+ * Builds atesensoftware.com's monday app pages into public/. Until 28 Sep 2026
+ * Netlify served public/ as is. Since then the live site is on Cloudflare,
+ * built from the separate repository pabsamuel/atesensoftware-site, and the
+ * pages made here are copied into its src/static/<slug>/. Run after changing
+ * any app's privacy policy, terms or price:
  *
  *   node atesensoftware-site/build.mjs
  *
@@ -52,8 +55,35 @@ const APPS = [
       'Emails you when one that used to run regularly goes quiet, and when it recovers',
       'Read-only: it never changes a board, an item or an automation',
     ],
+    // The price decided on 27 Sep (monday-automation-watchdog/LISTING.md).
+    includes: "Every board you can see; daily email alerts when an automation stops, and when it recovers; the board view; mutes; answers in sidekick, monday's AI assistant",
+  },
+  {
+    slug: 'automation-inventory',
+    name: 'Automation Inventory',
+    platform: 'monday.com',
+    // Not created in the Developer Center yet (28 Sep 2026). Until it has a
+    // client id it gets its legal and pricing pages only: no card on the home
+    // page and no entry in monday-app-association.json.
+    clientId: null,
+    installUrl: null,
+    howToUrl: null,
+    icon: `${repo}monday-automation-inventory/listing/app-icon-192.png`,
+    privacy: `${repo}monday-automation-inventory/PRIVACY_POLICY.md`,
+    terms: `${repo}monday-automation-inventory/TERMS_OF_SERVICE.md`,
+    summary: 'Every automation on every board, in one searchable list.',
+    points: [
+      'Lists every automation on the boards you can see, on or off, with monday\'s warnings first',
+      'Search and filter it, and open any automation\'s board in one click',
+      'Read-only, and stores nothing',
+    ],
+    // The price decided on 28 Sep (monday-automation-inventory/DECISIONS.md).
+    includes: "Every automation on every board you can see, in one searchable list; filters; opening a board in one click; answers in sidekick, monday's AI assistant",
   },
 ];
+
+/** Apps that exist in monday's Developer Center, with an install link. */
+const LISTED = APPS.filter((app) => app.clientId);
 
 // ---- Markdown, the subset the legal documents use --------------------------
 
@@ -161,7 +191,7 @@ ${body}
 }
 
 function home() {
-  const cards = APPS.map((app) => `
+  const cards = LISTED.map((app) => `
 <section class="app">
   <img src="/assets/${app.slug}.png" alt="" width="88" height="88">
   <div>
@@ -211,26 +241,29 @@ for (const app of APPS) {
 }
 await copyFile(APPS[0].icon, `${out}assets/icon-192.png`);
 
-// The price decided on 27 Sep (monday-automation-watchdog/LISTING.md). monday
-// bills it; this page only says what it is.
-await mkdir(`${out}automation-watchdog/pricing`, { recursive: true });
-await writeFile(`${out}automation-watchdog/pricing/index.html`, layout('Automation Watchdog — Pricing', `
-<h1>Automation Watchdog — Pricing</h1>
+// Each app's price, as decided in its own documents. monday bills it; this
+// page only says what it is. Optimized mode: monday lowers the per-seat price
+// for larger accounts itself.
+for (const app of APPS) {
+  await mkdir(`${out}${app.slug}/pricing`, { recursive: true });
+  await writeFile(`${out}${app.slug}/pricing/index.html`, layout(`${app.name} — Pricing`, `
+<h1>${escapeHtml(app.name)} — Pricing</h1>
 <p class="lead">One plan, priced by the number of seats in your monday.com account, billed by monday.com.</p>
 <table>
 <thead><tr><th>Plan</th><th>Price</th><th>Includes</th></tr></thead>
 <tbody>
 <tr><td>14-day free trial</td><td>$0</td><td>Everything below, for 14 days</td></tr>
-<tr><td>Automation Watchdog</td><td>$1 per seat per month; larger accounts pay less per seat</td><td>Every board you can see; daily email alerts when an automation stops, and when it recovers; the board view; mutes; answers in sidekick, monday's AI assistant</td></tr>
+<tr><td>${escapeHtml(app.name)}</td><td>$1 per seat per month; larger accounts pay less per seat</td><td>${app.includes}</td></tr>
 </tbody>
 </table>
 <p>Payment, currency, tax, renewals and refunds are handled by monday.com through its marketplace. Questions: <a href="mailto:${SITE.supportEmail}">${SITE.supportEmail}</a>.</p>`));
+}
 
 // FACT (`apps/docs/privacy-and-security`, read 27 Sep 2026): monday checks
 // domain ownership with this file at https://<domain>/monday-app-association.json.
 await writeFile(
   `${out}monday-app-association.json`,
-  `${JSON.stringify({ apps: APPS.map((app) => ({ clientID: app.clientId })) }, null, 2)}\n`,
+  `${JSON.stringify({ apps: LISTED.map((app) => ({ clientID: app.clientId })) }, null, 2)}\n`,
 );
 
 // Netlify reads `_headers` from the publish directory (docs: manage/routing/

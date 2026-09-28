@@ -12,8 +12,7 @@ automations; this app lists all of them.
 
 ## App name (30 characters at most, no "monday")
 
-Automation Inventory. **OWNER** to confirm; it is the working name in the code
-(`src/core/brand.js`, `src/app/index.html`, `src/app/how-to.html`).
+Automation Inventory. Decided 28 Sep (`DECISIONS.md`).
 
 ## Short description (60 characters at most)
 
@@ -108,8 +107,8 @@ monday's rules (Watchdog's research, `../monday-automation-watchdog/LISTING.md`)
 - A seat price is a whole number of USD.
 - Seat-based plans need a trial.
 
-**Proposed: the same as Watchdog, $1 per seat per month, Optimized mode,
-14-day trial.**
+**Decided 28 Sep (`DECISIONS.md`): the same as Watchdog, $1 per seat per
+month, Optimized mode, 14-day trial.**
 - INFERENCE: one price across Samet's apps is easy to explain.
 - INFERENCE: this app has no ongoing cost per account: it stores nothing and
   runs only when someone opens it or asks sidekick.

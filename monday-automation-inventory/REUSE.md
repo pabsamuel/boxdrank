@@ -53,11 +53,15 @@ Freshworks apps' pages.
   - HSTS `max-age=31536000; includeSubDomains`;
   - the association file lists Watchdog's client id;
   - MX and SPF are unchanged (Cloudflare Email Routing).
-- For this app, once the move is live:
-  - `src/static/automation-inventory/privacy/` from `PRIVACY_POLICY.md`;
-  - `src/static/automation-inventory/terms/` from `TERMS_OF_SERVICE.md`;
-  - this app's client id added to `monday-app-association.json` next to
-    Watchdog's.
+- For this app:
+  - `node atesensoftware-site/build.mjs` in this repository renders
+    `atesensoftware-site/public/automation-inventory/{privacy,terms,pricing}/index.html`
+    and `public/assets/automation-inventory.png`, in the live pages' format.
+  - Copy them into `src/static/automation-inventory/` and `/assets/` of
+    `pabsamuel/atesensoftware-site`.
+  - Once the app has a client id: set it in `build.mjs` (which then also
+    lists the app on the home page and in `monday-app-association.json`),
+    and add it to the live association file next to Watchdog's.
 - Until the move is confirmed live, the old setup below still serves the
   domain (response header `server: Netlify`).
 

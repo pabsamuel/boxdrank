@@ -166,6 +166,7 @@ URL was "Low-Risk".
 Routing: `src/server/app-server.js`, the returned `handle` function. Every
 route has tests in `test/app-server.test.js`.
 
-**PENDING:** the screenshot of the authentication code monday asks for. Cut
-`verifyJwt` and the first lines of `sidekickTool` from the source, as
-Watchdog's `scripts/make-assets.js` did.
+The screenshot of the authentication code monday asks for is
+`listing/auth-code.png`: `verifyJwt`, `sidekickAudience` and the first lines of
+`sidekickTool`. `scripts/make-auth-code.js` cuts them from the source, so the
+image cannot drift from the code.
