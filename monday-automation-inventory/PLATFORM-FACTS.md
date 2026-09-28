@@ -197,6 +197,28 @@ From the Claude-in-Chrome report of the step 6 test, with screenshots.
   Object; a reload fixed it, and it did not recur. Cause UNKNOWN: nothing in
   the page disables them after loading, and no element covers them.
 
+## The submission form: FACT, 28 Sep 2026 (Automation Inventory)
+
+From the Claude-in-Chrome report.
+- Developer Center → Dağıt → Pazar yerine gönderin → Başvuru formu opens the
+  form in a frame from another domain, which the agent cannot read. Opened in
+  its own tab ("Submit your app to the monday apps marketplace"), it can.
+- **Clicking a drop-down can freeze the tab.** Clicking EMEA in "Residential
+  region" froze it, and a reload did not help. Choosing with the keyboard
+  never froze. INFERENCE: Watchdog's "AI capabilities: Yes" freezes were the
+  same thing.
+- **Typed text is not kept in the saved draft.** A reopened form offered
+  "Kaydedilen değişikliklerle devam mı?", but the text was missing. A frozen
+  tab loses everything typed in it.
+- Region options: EMEA, Israel, United States, Other.
+- Help texts: "Entity Name" asks individual developers for "N/A". Credentials
+  asks for "N/A" unless the app is an integration. Short description says
+  60 characters at most, while its counter shows /2000.
+- Ticking Board View adds a required question: "Are the board and/or item
+  view feature/s have been enabled for mobile?" (Yes/No).
+- "Value Proposition and Use Cases" is a one-line field: line breaks become
+  spaces.
+
 ## Submission and marketplace
 
 - FACT (form, 28 Sep): only apps with AI capabilities are accepted.

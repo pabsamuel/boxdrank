@@ -12,9 +12,9 @@ document in this folder.
 |---|---|---|
 | 1 | App Name | Automation Inventory |
 | 2 | Entity | Individual Developer |
-| 3 | Entity Name | Samet Ateşen |
+| 3 | Entity Name | N/A: the form's help text asks individual developers for "N/A" (28 Sep) |
 | 4 | Full name | Samet Ateşen |
-| 5 | Residential region | Türkiye |
+| 5 | Residential region | EMEA (the only options: EMEA, Israel, United States, Other) |
 | 6 | Entity Website | https://atesensoftware.com |
 | 7 | Technical Point of Contact | Samet Ateşen — sametatesen2@gmail.com |
 | 8 | Email Addresses of your teammates | *(empty)* |
@@ -24,7 +24,8 @@ document in this folder.
 | 12 | App Short Description | Every automation on every board, in one searchable list |
 | 13 | App Long Description | The long description in `LISTING.md`, as plain text |
 | 14 | Keywords | automation, automations, automation list, automation search, find automations, automation audit, inventory, admin, workflow, sidekick |
-| 15 | App Features | Object; Board view; Sidekick tool (with its "Find automations" action block) |
+| 15 | App Features | Custom Object; Board View; AI Skills. The form's list (28 Sep): AI assistant, AI Skills, Board View, Custom Object, Dashboard Widget, Doc Actions, Integration, Item View, Workspace Template, AI app feature, Board group menu, Board item menu, Board multi-item menu, Column Feature. It has no "Sidekick" or "Object"; the Developer Center calls the feature a "Sidekick skill" |
+| 15b | Are the board and/or item view feature/s have been enabled for mobile? | No. Appears once Board View is ticked, and is required. Mobile was never configured or tested |
 | 16 | Does your APP contain AI capabilities? | Yes — see below. **Fill in the AI fields by hand**: on Watchdog the Chrome agent's tab froze on "Yes" twice |
 | 17 | Value Proposition and Use Cases | See below |
 | 18 | Feature Names | Automation Inventory (object); Automation Inventory (board view); Automation Inventory: find automations (Sidekick tool); Find automations (action block) |
@@ -45,7 +46,7 @@ document in this folder.
 | 33 | How to use Link | https://live1-service-36993937-d7d03ea4.eu.monday.app/view/how-to.html |
 | 34 | Demo Link | https://live1-service-36993937-d7d03ea4.eu.monday.app/view/ (checked 28 Sep: the demo data answers 200) |
 | 35 | Additional Comments | See below |
-| 36 | Credentials for review purpose | See below |
+| 36 | Credentials for review purpose | See below. The help text asks for "N/A" when the app is not an integration, so the answer starts with it |
 | 37 | SLA - Service Level Agreement | **OWNER**: "a two business day response time SLA" |
 | 38 | Agree to Marketplace Listing Terms | **OWNER** |
 | 39 | Signature | **OWNER** |
@@ -104,7 +105,7 @@ document in this folder.
 
 ## 36 — Credentials for review purpose
 
-> No separate credentials are needed: the app uses the reviewer's own monday
+> N/A. No separate credentials are needed: the app uses the reviewer's own monday
 > account. Install it, then open it from the workspace's left menu ("+" → Apps)
 > or add it as a view on any board. It lists every automation on the boards the
 > reviewer can see. The demo link shows the full page on an invented demo
