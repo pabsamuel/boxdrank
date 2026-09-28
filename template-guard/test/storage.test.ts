@@ -349,6 +349,18 @@ describe('MondayCodeStorage specifics', () => {
     expect(await storage.listTemplates('acct-1')).toHaveLength(5);
   });
 
+  it('reads each template through get, because live search values are not the stored objects', async () => {
+    const { storage, accountStoreFor } = make();
+    await install(storage);
+    await storage.saveTemplate(record({ templateBoardId: 'b1' }));
+    const store = accountStoreFor('token-acct-1');
+    store.searchMangles = true;
+    store.getReturnsText = true;
+
+    const list = await storage.listTemplates('acct-1');
+    expect(list.map((r) => r.templateBoardId)).toEqual(['b1']);
+  });
+
   it('surfaces a failed search instead of reporting an empty template list', async () => {
     const { storage, accountStoreFor } = make();
     await install(storage);

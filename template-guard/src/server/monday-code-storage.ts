@@ -196,7 +196,7 @@ export class MondayCodeStorage implements Storage {
       );
     }
     if (!result.value) return null;
-    return this.validate(result.value, accountId, templateBoardId);
+    return this.validate(parseStored<TemplateRecord>(result.value), accountId, templateBoardId);
   }
 
   async listTemplates(accountId: string): Promise<TemplateRecord[]> {
@@ -213,8 +213,14 @@ export class MondayCodeStorage implements Storage {
         );
       }
 
+      // Keys only. Verified live 28 Sep 2026: the values `search` hands back
+      // are not the objects `set` stored (the snapshot's schemaVersion read as
+      // missing, so every template looked stale). `get` returns them intact,
+      // so each record is re-read through it.
       for (const record of result.records ?? []) {
-        out.push(this.validate(record.value, accountId, record.key));
+        const templateBoardId = String(record.key).replace(/^.*?template:/, '');
+        const full = await this.getTemplate(accountId, templateBoardId);
+        if (full) out.push(full);
       }
 
       if (!result.cursor) return out;
@@ -335,4 +341,20 @@ export class MondayCodeStorage implements Storage {
     }
     return record;
   }
+}
+
+/**
+ * monday's Storage may hand a stored object back as its JSON text rather than
+ * the object. Accept both; anything else is passed through for `validate` to
+ * reject loudly.
+ */
+function parseStored<T>(value: unknown): T {
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return value as unknown as T;
+    }
+  }
+  return value as T;
 }

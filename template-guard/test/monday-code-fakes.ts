@@ -35,9 +35,15 @@ export class FakeAccountStore implements AccountStore {
   failNextSearch = false;
   /** Records returned per search page, to exercise cursor paging. */
   pageSize = 100;
+  /** Mimic the live platform: search values are not the stored objects. */
+  searchMangles = false;
+  /** Mimic a platform that returns stored objects as JSON text from get. */
+  getReturnsText = false;
 
   async get<T>(key: string) {
-    return { value: (this.data.get(key) as T) ?? null, success: true };
+    const v = this.data.get(key);
+    if (v !== undefined && this.getReturnsText) return { value: JSON.stringify(v) as unknown as T, success: true };
+    return { value: (v as T) ?? null, success: true };
   }
 
   async set(key: string, value: unknown) {
@@ -62,7 +68,7 @@ export class FakeAccountStore implements AccountStore {
     const next = start + this.pageSize;
 
     return {
-      records: page.map(([key, value]) => ({ key, value: value as T })),
+      records: page.map(([key, value]) => ({ key, value: (this.searchMangles ? {} : value) as T })),
       cursor: next < all.length ? String(next) : undefined,
       success: true,
     };
