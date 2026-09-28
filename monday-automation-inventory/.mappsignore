@@ -20,3 +20,9 @@ listing/
 # it. Its fetch of the local server over http://127.0.0.1 is the kind of line
 # monday's security scan flagged in Watchdog (28 Sep 2026).
 scripts/make-assets.js
+
+# Render the marketplace images and video (listing/) on the owner's machine,
+# with Playwright and ffmpeg; the server never loads them. Same reason as above.
+scripts/listing-kit.js
+scripts/make-listing.js
+scripts/make-listing-video.js

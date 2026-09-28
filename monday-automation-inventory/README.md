@@ -5,7 +5,7 @@ searchable place: on or off, with monday's warnings, older automations
 included. Monday's AI assistant can search it too, through a Sidekick tool.
 The idea is Patrick Fallon's; his words are in `SPEC.md`.
 
-**Status, 28 Sep 2026: Gate 0 passed (GO); built and tested, not yet deployed. 17 / 30 = 57%**
+**Status, 28 Sep 2026: Gate 0 passed (GO); built and tested, not yet deployed. 18 / 30 = 60%**
 (`PROGRESS.md`).
 - The code works in tests and in a browser inside a fake monday.
 - There is no App ID, no name and no deploy yet.
@@ -34,6 +34,8 @@ npm run demo                     # http://localhost:8137/ in demo mode
 npm run check:deploy             # what monday code does on push, locally
 npm run build && node test/browser/verify-view.mjs   # 28 browser checks; needs Playwright
 node scripts/make-assets.js      # re-renders the how-to screenshots; needs Playwright
+node scripts/make-listing.js     # listing icon, card and gallery; needs Playwright
+node scripts/make-listing-video.js   # listing video; needs Playwright and ffmpeg
 ```
 
 ## Files

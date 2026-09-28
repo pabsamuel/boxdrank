@@ -73,7 +73,7 @@ These are Watchdog's, which monday's form accepted.
 | Developer icon | `listing/developer-icon-192.png` | 192×192, the same as Watchdog's |
 | App card image | `listing/app-card-592x348.png` | 592×348 |
 | Gallery, 3–5 images | `listing/gallery-*.png` | 1920×960 each |
-| Video, 30–60 s, HD, MP4, 50 MB at most | `listing/automation-inventory.mp4`, from `scripts/make-listing-video.js` | see the file |
+| Video, 30–60 s, HD, MP4, 50 MB at most | `listing/automation-inventory.mp4`, from `scripts/make-listing-video.js` | 41.5 s, 1920×1080, H.264, 5.6 MB |
 
 The screenshots are the real app on an invented demo account.
 

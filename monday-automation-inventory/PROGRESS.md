@@ -1,6 +1,6 @@
 # Progress
 
-**17 / 30 done: 57%.** Recompute this line whenever a box changes, and put the
+**18 / 30 done: 60%.** Recompute this line whenever a box changes, and put the
 percentage at the end of every reply to Samet.
 
 Order: Gate 0 decides whether the listing and the submission get done.
@@ -102,7 +102,14 @@ Order: Gate 0 decides whether the listing and the submission get done.
 - [x] 23. `LISTING.md`: name (working; Samet confirms), short description
       (55 characters), long description (1,465), keywords, categories, and a
       proposed price for Samet.
-- [ ] 24. App icon, app card, 3–5 gallery images, 30–60 s video.
+- [x] 24. Listing images and video in `listing/` (28 Sep), made by
+      `scripts/make-listing.js` and `scripts/make-listing-video.js` from the
+      real app on the demo account.
+      - App icon and developer icon, 192×192. The developer icon is the same
+        as Watchdog's.
+      - App card, 592×348.
+      - 4 gallery images, 1920×960.
+      - Video: 41.5 s, 1920×1080, H.264, 5.6 MB.
 - [x] 25. How-to-use page at `/view/how-to.html`.
       - It has installation, prerequisites, first use, filters, sidekick and
         data sections.
