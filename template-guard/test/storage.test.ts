@@ -355,10 +355,19 @@ describe('MondayCodeStorage specifics', () => {
     await storage.saveTemplate(record({ templateBoardId: 'b1' }));
     const store = accountStoreFor('token-acct-1');
     store.searchMangles = true;
-    store.getReturnsText = true;
 
     const list = await storage.listTemplates('acct-1');
     expect(list.map((r) => r.templateBoardId)).toEqual(['b1']);
+  });
+
+  it('treats a record the platform flattened to "[object Object]" as never saved, so it can be re-designated', async () => {
+    const { storage, accountStoreFor } = make();
+    await install(storage);
+    await storage.saveTemplate(record({ templateBoardId: 'b1' }));
+    accountStoreFor('token-acct-1').data.set('template:b1', '[object Object]');
+
+    expect(await storage.getTemplate('acct-1', 'b1')).toBeNull();
+    expect(await storage.listTemplates('acct-1')).toEqual([]);
   });
 
   it('surfaces a failed search instead of reporting an empty template list', async () => {

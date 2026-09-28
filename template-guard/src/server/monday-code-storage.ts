@@ -170,7 +170,10 @@ export class MondayCodeStorage implements Storage {
     assertNoItemData(record.snapshot);
 
     const store = await this.openAccount(record.accountId);
-    const result = await store.set(`${TEMPLATE_PREFIX}${record.templateBoardId}`, record);
+    // Stored as JSON text. Verified live 28 Sep 2026: account Storage handed
+    // an object back as something with no snapshot in it, so the record is
+    // serialised here rather than trusted to the platform.
+    const result = await store.set(`${TEMPLATE_PREFIX}${record.templateBoardId}`, JSON.stringify(record));
     if (!result.success) {
       throw new TemplateGuardError(
         `Could not save the template for board ${record.templateBoardId}: ${result.error ?? 'monday storage rejected the write.'}`,
@@ -196,7 +199,20 @@ export class MondayCodeStorage implements Storage {
       );
     }
     if (!result.value) return null;
-    return this.validate(parseStored<TemplateRecord>(result.value), accountId, templateBoardId);
+    const parsed = parseStored<TemplateRecord>(result.value);
+    if (typeof parsed !== 'object' || parsed === null) {
+      // Written by the build that handed Storage a raw object. No version of
+      // this app can read it back, so it is treated as never saved and the
+      // user re-designates — logged so it is not silent.
+      console.warn(
+        `[template-guard] unreadable template record for board ${templateBoardId} (${describeShape(result.value)}); treating as not saved`,
+      );
+      return null;
+    }
+    if ((parsed as TemplateRecord).snapshot?.schemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
+      console.warn(`[template-guard] template record shape for board ${templateBoardId}: ${describeShape(result.value)}`);
+    }
+    return this.validate(parsed, accountId, templateBoardId);
   }
 
   async listTemplates(accountId: string): Promise<TemplateRecord[]> {
@@ -357,4 +373,11 @@ function parseStored<T>(value: unknown): T {
     }
   }
   return value as T;
+}
+
+/** Type and top-level keys only — enough to diagnose, nothing from the board. */
+function describeShape(value: unknown): string {
+  if (typeof value === 'string') return `string(${value.length}) starting ${JSON.stringify(value.slice(0, 16))}`;
+  if (value && typeof value === 'object') return `object keys [${Object.keys(value).slice(0, 12).join(', ')}]`;
+  return typeof value;
 }

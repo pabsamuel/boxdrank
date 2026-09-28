@@ -37,13 +37,9 @@ export class FakeAccountStore implements AccountStore {
   pageSize = 100;
   /** Mimic the live platform: search values are not the stored objects. */
   searchMangles = false;
-  /** Mimic a platform that returns stored objects as JSON text from get. */
-  getReturnsText = false;
 
   async get<T>(key: string) {
-    const v = this.data.get(key);
-    if (v !== undefined && this.getReturnsText) return { value: JSON.stringify(v) as unknown as T, success: true };
-    return { value: (v as T) ?? null, success: true };
+    return { value: (this.data.get(key) as T) ?? null, success: true };
   }
 
   async set(key: string, value: unknown) {
