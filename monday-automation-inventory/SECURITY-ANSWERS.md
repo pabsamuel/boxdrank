@@ -172,8 +172,15 @@ token in a signed JWT** for the Sidekick tool's action block.
 
 ## Malware check
 
-**PENDING:** Palo Alto URL filtering on the Live URL. Watchdog's monday code
-URL was "Low-Risk".
+Palo Alto Networks URL filtering (`urlfiltering.paloaltonetworks.com/query/`),
+28 Sep 2026, Samet's screenshot:
+
+| Domain | Category | Risk |
+|---|---|---|
+| `live1-service-36993937-d7d03ea4.eu.monday.app` | Business-and-Economy | Low-Risk |
+
+Watchdog's monday code URL and `atesensoftware.com` were also Low-Risk the
+same day (`../monday-automation-watchdog/SECURITY-ANSWERS.md`).
 
 ## Third-party domains
 

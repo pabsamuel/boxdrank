@@ -1,6 +1,6 @@
 # Progress
 
-**27 / 30 done: 90%.** Recompute this line whenever a box changes, and put the
+**28 / 30 done: 93%.** Recompute this line whenever a box changes, and put the
 percentage at the end of every reply to Samet.
 
 Order: Gate 0 decides whether the listing and the submission get done.
@@ -166,12 +166,12 @@ Order: Gate 0 decides whether the listing and the submission get done.
         `scripts/make-assets.js`.
       - FACT (`documentation-and-support`, read 28 Sep): the page must include
         "images and videos to support your app".
-- [ ] 26. `SECURITY-ANSWERS.md`.
+- [x] 26. `SECURITY-ANSWERS.md`: every item answered, 28 Sep.
       - Written 28 Sep.
       - Scope confirmed live, and the Live URL filled in, 28 Sep.
       - SSL Labs on the Live URL: A+ on all four endpoints, 28 Sep.
       - Association file checked 28 Sep.
-      - Still PENDING: Palo Alto on the Live URL (`DEPLOY-PROMPTS.md` 7d).
+      - Palo Alto on the Live URL: Business-and-Economy, Low-Risk, 28 Sep.
       - The auth-code screenshot is done (`listing/auth-code.png`).
 
 ## Submission
