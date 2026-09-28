@@ -174,6 +174,7 @@ function home() {
       <a href="${app.howToUrl}">How it works</a>
       <a href="/${app.slug}/privacy/">Privacy</a>
       <a href="/${app.slug}/terms/">Terms</a>
+      <a href="/${app.slug}/pricing/">Pricing</a>
     </div>
   </div>
 </section>`).join('\n');
@@ -209,6 +210,21 @@ for (const app of APPS) {
   await copyFile(app.icon, `${out}assets/${app.slug}.png`);
 }
 await copyFile(APPS[0].icon, `${out}assets/icon-192.png`);
+
+// The price decided on 27 Sep (monday-automation-watchdog/LISTING.md). monday
+// bills it; this page only says what it is.
+await mkdir(`${out}automation-watchdog/pricing`, { recursive: true });
+await writeFile(`${out}automation-watchdog/pricing/index.html`, layout('Automation Watchdog — Pricing', `
+<h1>Automation Watchdog — Pricing</h1>
+<p class="lead">One plan, priced by the number of seats in your monday.com account, billed by monday.com.</p>
+<table>
+<thead><tr><th>Plan</th><th>Price</th><th>Includes</th></tr></thead>
+<tbody>
+<tr><td>14-day free trial</td><td>$0</td><td>Everything below, for 14 days</td></tr>
+<tr><td>Automation Watchdog</td><td>$1 per seat per month; larger accounts pay less per seat</td><td>Every board you can see; daily email alerts when an automation stops, and when it recovers; the board view; mutes; answers in sidekick, monday's AI assistant</td></tr>
+</tbody>
+</table>
+<p>Payment, currency, tax, renewals and refunds are handled by monday.com through its marketplace. Questions: <a href="mailto:${SITE.supportEmail}">${SITE.supportEmail}</a>.</p>`));
 
 // FACT (`apps/docs/privacy-and-security`, read 27 Sep 2026): monday checks
 // domain ownership with this file at https://<domain>/monday-app-association.json.
