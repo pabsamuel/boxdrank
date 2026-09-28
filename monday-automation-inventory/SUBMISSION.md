@@ -27,6 +27,7 @@ document in this folder.
 | 15 | App Features | Custom Object; Board View; AI Skills. The form's list (28 Sep): AI assistant, AI Skills, Board View, Custom Object, Dashboard Widget, Doc Actions, Integration, Item View, Workspace Template, AI app feature, Board group menu, Board item menu, Board multi-item menu, Column Feature. It has no "Sidekick" or "Object"; the Developer Center calls the feature a "Sidekick skill" |
 | 15b | Are the board and/or item view feature/s have been enabled for mobile? | No. Appears once Board View is ticked, and is required. Mobile was never configured or tested |
 | 16 | Does your APP contain AI capabilities? | Yes — see below. **Fill in the AI fields by hand**: on Watchdog the Chrome agent's tab froze on "Yes" twice |
+| 16b | Does you app use AI to generate, process, or somehow interact with the user? If so- what LLM model are you utilizing? (required, choose all models) | The app calls no LLM: its AI capability is a Sidekick skill that monday's own assistant calls. Pick a monday/sidekick option if the list has one; else "Other", with the note below if a box appears; else "None". Never a model the app does not use. Seen 28 Sep; the options were not recorded |
 | 17 | Value Proposition and Use Cases | See below |
 | 18 | Feature Names | Automation Inventory (object); Automation Inventory (board view); Automation Inventory: find automations (Sidekick tool); Find automations (action block) |
 | 19 | Categories | Productivity & efficiency; Reporting & analytics; Project management |
@@ -110,3 +111,9 @@ document in this folder.
 > or add it as a view on any board. It lists every automation on the boards the
 > reviewer can see. The demo link shows the full page on an invented demo
 > account.
+
+## 16b — LLM note, if the form gives a box
+
+> None of its own: Automation Inventory calls no LLM. Its AI capability is a
+> Sidekick skill: monday's AI assistant, sidekick, calls the app's action block,
+> and the app answers with plain data about the user's automations.
