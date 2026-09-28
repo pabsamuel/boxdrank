@@ -8,7 +8,7 @@ with a note.
 
 | | Done | Note |
 |---|---|---|
-| **Code that can be written from here** | **59 / 68 — 87%** | Verified against a live account |
+| **Code that can be written from here** | **60 / 68 — 88%** | Verified against a live account |
 | **Distance to a product someone pays for** | **58 / 68 — 85%** | Recounted 27 Sep against monday's real review checklist; customer-validation items removed by the owner 28 Sep; AI requirement added 28 Sep |
 
 ---
@@ -223,9 +223,12 @@ capabilities, your submission will be rejected.")
 - [x] Sidekick tool and its action block created in the Developer Center,
       `MONDAY_SIGNING_SECRET` set, version 18316508 promoted to live (28 Sep);
       `/health` says `"sidekick":"on"` and an unsigned call gets 401
-- [ ] Seen working end to end — sidekick itself is blocked on the owner's
-      account (FACT: monday's banner says the account's AI credits are used
-      up); a free test through an ordinary board automation is next
+- [x] Seen working end to end (28 Sep, 03:10): with the block enabled for
+      the automation builder in v4, "When an item is created → find stopped
+      automations" ran with **Success** in 7 s, and the server logged
+      `sidekick check for account 36993937: 0 stopped, 6 boards`. Signing
+      secret, audience and short-lived token all worked for real. Asking
+      sidekick itself stays untested: the account has no AI credits
 
 Submission
 - [x] Published from the Share tab (28 Sep): `…/oauth2/authorize?client_id=…&response_type=install`

@@ -950,15 +950,32 @@ test('the Sidekick tool answers with output fields, reading with the short-lived
   }
 });
 
-test('a failing Sidekick read is answered as guidance, not an error monday would retry', withHarness({
+test('a failing Sidekick read is a 4xx with severity 4000: logged by monday, not retried, not a fake success', withHarness({
   config: withSigning,
   makeClient: () => ({ api: async () => { throw new Error(`HTTP 500 while holding ${SHORT_TOKEN}`); } }),
 }, async (h) => {
   const res = await sidekickCall(h, sidekickJwt());
-  assert.equal(res.status, 200);
-  assert.match((await res.json()).outputFields.summary, /could not read your boards just now/);
+  assert.equal(res.status, 422);
+  const body = await res.json();
+  assert.equal(body.severityCode, 4000);
+  assert.match(body.runtimeErrorDescription, /could not read your boards just now/);
+  assert.equal(body.outputFields, undefined);
   assert.ok(!h.logs.join('\n').includes(SHORT_TOKEN), 'the short-lived token is scrubbed from the log');
 }));
+
+test('with billing enforced, the Sidekick tool asks for a plan with a 402', async () => {
+  const h = await harness({
+    config: { ...withSigning, billing: 'enforce' },
+    makeClient: () => ({ api: async () => ({ data: { app_subscription: [] } }) }),
+  });
+  try {
+    const res = await sidekickCall(h, sidekickJwt());
+    assert.equal(res.status, 402);
+    assert.equal((await res.json()).severityCode, 4000);
+  } finally {
+    await h.close();
+  }
+});
 
 test('health says whether the Sidekick tool is on', withHarness({ config: withSigning }, async (h) => {
   assert.equal((await (await h.request('/health')).json()).sidekick, 'on');

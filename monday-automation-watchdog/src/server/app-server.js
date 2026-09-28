@@ -772,9 +772,13 @@ export function createAppHandler({
    * — and "be sure to: Check that the aud field matches your integration app's
    * endpoint. Verify the exp field". FACT (`integration-authorization`): it
    * holds a `shortLivedToken`, "valid for five minutes", with the app's scopes.
-   * FACT (`workflows-actions`): the answer is `{ outputFields }` with a 200;
-   * anything else is retried for 30 minutes, so failures are answered as
-   * guidance with a 200 rather than as errors.
+   * FACT (`workflows-actions`): the answer is `{ outputFields }` with a 200.
+   * FACT (`error-handling`, read 28 Sep 2026): a run URL is retried for 30
+   * minutes "unless 4xx/severity code", and a severity code puts the error in
+   * the automation's activity log and notifies its creator. So a failure is a
+   * 4xx with severity 4000 ("can run again if addressed"), not a fake success;
+   * an unknown board name stays a 200 whose summary asks which board was
+   * meant, as sidekick's guidelines ask.
    */
   /**
    * Whether a token was issued for this endpoint. The path must be the tool's,
@@ -817,13 +821,20 @@ export function createAppHandler({
     }
 
     const reply = (outputFields) => json(res, 200, { outputFields });
+    const fail = (status, title, description) =>
+      json(res, status, {
+        severityCode: 4000,
+        notificationErrorTitle: title,
+        notificationErrorDescription: description,
+        runtimeErrorDescription: description,
+      });
     try {
       if (enforceBilling && (await subscriptionState(token)) === 'none') {
-        return reply({
-          summary: 'Automation Watchdog needs an active plan for this account. An admin can choose one from the app\'s page in the monday.com marketplace.',
-          stopped_count: 0,
-          checked_boards: 0,
-        });
+        return fail(
+          402,
+          'Automation Watchdog needs a plan',
+          'Automation Watchdog needs an active plan for this account. An admin can choose one from the app\'s page in the monday.com marketplace.',
+        );
       }
       const at = now();
       const check = await checkForSidekick({ monday: makeClient(token), boardName, now: at });
@@ -833,11 +844,11 @@ export function createAppHandler({
       return reply(answer);
     } catch (error) {
       log(`sidekick check failed: ${redact(error?.message ?? String(error), [token, signingSecret, clientSecret])}`);
-      return reply({
-        summary: 'Automation Watchdog could not read your boards just now. Try again in a minute; if it keeps failing, open the Automation Watchdog board view, which shows the error.',
-        stopped_count: 0,
-        checked_boards: 0,
-      });
+      return fail(
+        422,
+        'Automation Watchdog could not read your boards',
+        'Automation Watchdog could not read your boards just now. Try again in a minute; if it keeps failing, open the Automation Watchdog board view, which shows the error.',
+      );
     }
   }
 

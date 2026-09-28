@@ -14,7 +14,8 @@ import { formatDuration } from '../core/cadence.js';
 import { createMute, isMuteActive, pruneMutes, describeMute, MUTE_PRESETS } from '../core/mutes.js';
 import { loadMutes, saveMutes } from './mute-store.js';
 import { summarizeRuns } from '../core/run-log.js';
-import { fetchBoards, fetchActivity, looksLikeMondayContext } from './monday-source.js';
+import { fetchBoards, fetchActivity, fetchUsers, looksLikeMondayContext } from './monday-source.js';
+import { classifyActors } from '../core/actors.js';
 
 /** How far back to read activity. Long enough for the engine to learn a rhythm. */
 const HISTORY_DAYS = 60;
@@ -516,7 +517,18 @@ async function loadFromMonday() {
     // Left as "not running"; see above.
   }
   state.unparsedTimestamps = unparsedTimestamps;
-  state.results = watch(entries, now, { boardNames: new Map(boards.map((b) => [b.id, b.name])) });
+  // The same narrowing as the daily check and the Sidekick tool: patterns by
+  // the account's people are not automations. Without it this view counted a
+  // person's routine as a stopped automation — 4 here against 0 from sidekick
+  // on the same account, 28 Sep. When the people cannot be listed, every
+  // repeating pattern stays watched, as in run-check.js.
+  const users = await fetchUsers(monday);
+  const { automationActors, unknown } = classifyActors(entries, (users ?? []).map((user) => user.id));
+  state.results = watch(entries, now, {
+    boardNames: new Map(boards.map((b) => [b.id, b.name])),
+    actorNames: new Map((users ?? []).map((user) => [user.id, user.name])),
+    automationActors: unknown ? undefined : automationActors,
+  });
   state.summary = summarize(state.results);
 }
 
