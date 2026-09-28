@@ -7,6 +7,7 @@
  *
  *   { note, automations: [ { id, boardId, userId, recipeId, config, active,
  *     state, noticeMessage, description, createdAt, updatedAt, … } ],
+ *   (userId is not kept: nothing here uses it.)
  *     recipes: { recipes: [], dynamicRecipes: [ { id, sentenceParts: [
  *     { nodeId, sentencePartial } ], parsedSentence, … } ] }, apps }
  *
@@ -83,21 +84,27 @@ export function legacyNeedsBoardNames(value) {
 
 /**
  * The board's names for a sentence: column titles, status labels by label id,
- * group titles. Built from `boards { columns { id title settings } groups {
- * id title } }`. FACT (`api-reference/reference/status`, read 28 Sep 2026): a
- * status column's `settings.labels` is a list of `{ id, label, index, … }`,
- * and a stored status value's "index" is the label's `id`.
+ * group titles. Built from `boards { columns { id title } statusColumns:
+ * columns(types: [status]) { id settings } groups { id title } }`; settings
+ * inside `columns` are read too. FACT (`api-reference/reference/status`, read
+ * 28 Sep 2026): a status column's `settings.labels` is a list of `{ id, label,
+ * index, … }`, and a stored status value's "index" is the label's `id`.
  */
 export function boardNames(board) {
   const columns = new Map();
-  for (const column of Array.isArray(board?.columns) ? board.columns : []) {
+  const entry = (id) => {
+    if (!columns.has(id)) columns.set(id, { title: null, labels: new Map() });
+    return columns.get(id);
+  };
+  const lists = [board?.columns, board?.statusColumns].filter(Array.isArray);
+  for (const column of lists.flat()) {
     if (!column || column.id === undefined) continue;
+    const target = entry(String(column.id));
+    if (typeof column.title === 'string') target.title = column.title;
     const settings = asObject(column.settings);
-    const labels = new Map();
     for (const label of Array.isArray(settings?.labels) ? settings.labels : []) {
-      if (label && label.id !== undefined && typeof label.label === 'string') labels.set(String(label.id), label.label);
+      if (label && label.id !== undefined && typeof label.label === 'string') target.labels.set(String(label.id), label.label);
     }
-    columns.set(String(column.id), { title: typeof column.title === 'string' ? column.title : null, labels });
   }
   const groups = new Map();
   for (const group of Array.isArray(board?.groups) ? board.groups : []) {

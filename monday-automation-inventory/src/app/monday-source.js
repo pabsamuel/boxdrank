@@ -128,7 +128,6 @@ const AUTOMATIONS_QUERY = `
         title
         description
         active
-        user_id
         created_at
         updated_at
         notice_message
@@ -170,14 +169,12 @@ export function parseLegacyAutomations(value, boardId, names = null) {
     if (!entry || typeof entry !== 'object') continue;
     const id = entry.id ?? entry.automation_id ?? entry.automationId;
     if (id === undefined || id === null || String(id) === '') continue;
-    const userId = entry.userId ?? entry.user_id;
     rows.push({
       id: String(id),
       title: legacyTitle(entry, recipes, names),
       description: '',
       active: flag(entry),
       boardId: String(entry.boardId ?? entry.board_id ?? boardId),
-      userId: userId === undefined || userId === null ? null : String(userId),
       createdAt: text(entry.createdAt ?? entry.created_at),
       updatedAt: text(entry.updatedAt ?? entry.updated_at ?? entry.configUpdatedAt),
       notice: text(entry.noticeMessage ?? entry.notice_message) ?? '',
@@ -189,10 +186,12 @@ export function parseLegacyAutomations(value, boardId, names = null) {
 
 /**
  * The names a board's older automations refer to: its column titles, status
- * labels and group titles. Asked only for boards that have older automations.
- * FACT (the public schema, 2026-10): `boards(ids: [ID!])`, `columns { id title
- * settings: JSON }`, `groups { id title }`; `settings` replaces the deprecated
- * `settings_str` from 2025-10 (`api-reference/reference/status`).
+ * labels and group titles. Asked only for boards that have older automations,
+ * and settings only for status columns: nothing else is needed.
+ * FACT (the public schema, 2026-10): `boards(ids: [ID!])`, `columns(types:
+ * [ColumnType!]) { id title settings: JSON }` with `status` among the types,
+ * `groups { id title }`; `settings` replaces the deprecated `settings_str`
+ * from 2025-10 (`api-reference/reference/status`).
  */
 const BOARD_NAMES_QUERY = `
   query ($boardId: ID!) {
@@ -200,6 +199,9 @@ const BOARD_NAMES_QUERY = `
       columns {
         id
         title
+      }
+      statusColumns: columns(types: [status]) {
+        id
         settings
       }
       groups {
@@ -238,7 +240,6 @@ export async function fetchAutomations(monday, boardIds, onProgress, shouldStop)
           description: typeof item.description === 'string' ? item.description : '',
           active: typeof item.active === 'boolean' ? item.active : null,
           boardId: String(boardId),
-          userId: item.user_id === null || item.user_id === undefined ? null : String(item.user_id),
           createdAt: typeof item.created_at === 'string' ? item.created_at : null,
           updatedAt: typeof item.updated_at === 'string' ? item.updated_at : null,
           notice: typeof item.notice_message === 'string' ? item.notice_message : '',

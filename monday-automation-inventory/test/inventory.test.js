@@ -66,11 +66,12 @@ const REAL_LEGACY = {
   apps: [{ id: 'monday', name: 'monday.com' }],
 };
 
-// The board's names, in the shape `api-reference/reference/status` documents.
+// The board's names: titles for every column, settings for status columns
+// only, in the shape `api-reference/reference/status` documents.
 const REAL_BOARD = {
-  columns: [
-    { id: 'name', title: 'Name', settings: {} },
-    { id: 'status', title: 'Status', settings: { type: 'status', labels: [{ id: 0, label: 'Working on it', index: 0 }, { id: 1, label: 'Bitir', index: 1 }] } },
+  columns: [{ id: 'name', title: 'Name' }, { id: 'status', title: 'Status' }],
+  statusColumns: [
+    { id: 'status', settings: { type: 'status', labels: [{ id: 0, label: 'Working on it', index: 0 }, { id: 1, label: 'Bitir', index: 1 }] } },
   ],
   groups: [{ id: 'topics', title: 'Group One' }, { id: 'group_title', title: 'Group Title' }],
 };
@@ -83,7 +84,6 @@ test('an older automation in the real shape is kept, named from the board, with 
     description: '',
     active: true,
     boardId: '5104569213',
-    userId: '117040353',
     createdAt: '2026-09-21T02:48:12.763Z',
     updatedAt: '2026-09-21T02:49:07.425Z',
     notice: '',
@@ -131,6 +131,7 @@ test('the board\'s names are read only for boards with older automations, and th
       }
       asked.push(boardId);
       assert.equal(options.apiVersion, AUTOMATIONS_API_VERSION);
+      assert.match(graphql, /statusColumns: columns\(types: \[status\]\)/, 'settings are asked for status columns only');
       if (boardId === '3') throw new Error('no access to columns');
       return { data: { boards: [REAL_BOARD] } };
     },
@@ -232,4 +233,10 @@ test('boards carry their checked URL, and rows carry their board\'s URL', async 
   assert.deepEqual(fetched.map((board) => board.url), ['https://acme.monday.com/boards/101', null]);
   const { rows } = buildInventory([automation({ id: '1' }), automation({ id: '2', boardId: '102' }), automation({ id: '3', boardId: null })], fetched);
   assert.deepEqual(rows.map((row) => [row.id, row.boardUrl]).sort(), [['1', 'https://acme.monday.com/boards/101'], ['2', null], ['3', null]]);
+});
+
+test('the automations query asks for nothing the app does not use', async () => {
+  let asked = '';
+  await fetchAutomations({ async api(graphql) { asked = graphql; return { data: { board_automations: { cursor: null, items: [], legacy_automations: null } } }; } }, ['1']);
+  assert.doesNotMatch(asked, /user_id|workflow_blocks|workflow_variables/);
 });

@@ -59,7 +59,8 @@ const harness = `<!doctype html><html><body style="margin:0">
         return reply({ data: { board_automations: { cursor: null, items: [], legacy_automations: null } } });
       }
       if (/groups/.test(q)) return reply({ data: { boards: [{
-        columns: [{ id: 'status', title: 'Status', settings: { labels: [{ id: 3, label: 'Approved', index: 0 }] } }],
+        columns: [{ id: 'status', title: 'Status' }],
+        statusColumns: [{ id: 'status', settings: { labels: [{ id: 3, label: 'Approved', index: 0 }] } }],
         groups: [{ id: 'ready', title: 'Ready' }] }] } });
       if (/boards/.test(q)) return reply({ data: { boards: v.page > 1 ? [] : [
         { id: 1, name: 'Client Projects', url: 'https://acme.monday.com/boards/1' },

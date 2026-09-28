@@ -48,6 +48,11 @@ Freshworks apps' pages.
   `src/static/automation-watchdog/`. This app's go next to them, in
   `src/static/<slug>/`.
 - That folder was not yet on the repo's `main` branch when checked on 28 Sep.
+- For this app, once the move is live:
+  - `src/static/automation-inventory/privacy/` from `PRIVACY_POLICY.md`;
+  - `src/static/automation-inventory/terms/` from `TERMS_OF_SERVICE.md`;
+  - this app's client id added to `monday-app-association.json` next to
+    Watchdog's.
 - Until the move is confirmed live, the old setup below still serves the
   domain (response header `server: Netlify`).
 

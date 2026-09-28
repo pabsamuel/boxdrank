@@ -1,6 +1,6 @@
 # Progress
 
-**16 / 30 done: 53%.** Recompute this line whenever a box changes, and put the
+**17 / 30 done: 57%.** Recompute this line whenever a box changes, and put the
 percentage at the end of every reply to Samet.
 
 Order: Gate 0 decides whether the listing and the submission get done.
@@ -77,7 +77,7 @@ Order: Gate 0 decides whether the listing and the submission get done.
       - 28 browser checks inside a fake monday and as the demo
         (`test/browser/verify-view.mjs`).
 
-## Deploy (Samet, `PLAYBOOK.md` steps 1–6)
+## Deploy (Samet, `PLAYBOOK.md` steps 1–6; ready-to-paste in `DEPLOY-PROMPTS.md`)
 
 - [ ] 18. First push, promote, Live URL recorded; `APP_BASE_URL` set;
       `MONDAY_SIGNING_SECRET` set; redeployed. `/health` shows
@@ -94,10 +94,14 @@ Order: Gate 0 decides whether the listing and the submission get done.
 
 ## Listing and legal (waits for Gate 0)
 
-- [ ] 21. Privacy policy and terms at `atesensoftware.com/<slug>/`. Every
-      sentence checked against the code.
+- [ ] 21. Privacy policy and terms at `atesensoftware.com/automation-inventory/`.
+      - The text is written (`PRIVACY_POLICY.md`, `TERMS_OF_SERVICE.md`,
+        28 Sep), each sentence checked against the code.
+      - Not published: the site is moving to Cloudflare (`REUSE.md`).
 - [ ] 22. Client id added to `monday-app-association.json`.
-- [ ] 23. `LISTING.md`: name, descriptions, keywords, categories.
+- [x] 23. `LISTING.md`: name (working; Samet confirms), short description
+      (55 characters), long description (1,465), keywords, categories, and a
+      proposed price for Samet.
 - [ ] 24. App icon, app card, 3–5 gallery images, 30–60 s video.
 - [x] 25. How-to-use page at `/view/how-to.html`.
       - It has installation, prerequisites, first use, filters, sidekick and
@@ -106,11 +110,17 @@ Order: Gate 0 decides whether the listing and the submission get done.
         `scripts/make-assets.js`.
       - FACT (`documentation-and-support`, read 28 Sep): the page must include
         "images and videos to support your app".
-- [ ] 26. `SECURITY-ANSWERS.md`, with SSL Labs and malware-check evidence.
+- [ ] 26. `SECURITY-ANSWERS.md`.
+      - Written 28 Sep.
+      - Evidence that needs the Live URL is marked PENDING: scan, SSL Labs,
+        Palo Alto, scope confirmation, auth-code screenshot.
 
 ## Submission
 
-- [ ] 27. `SUBMISSION.md`: every form field answered from the repository.
+- [ ] 27. `SUBMISSION.md`.
+      - All 42 fields written 28 Sep.
+      - App ID, links and the install link are PENDING until the app
+        exists.
 - [ ] 28. Form submitted by Samet.
 - [ ] 29. Pricing version submitted, once the Pricing & Plans tab appears.
 - [ ] 30. Approved by monday.

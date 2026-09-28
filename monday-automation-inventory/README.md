@@ -5,11 +5,11 @@ searchable place: on or off, with monday's warnings, older automations
 included. Monday's AI assistant can search it too, through a Sidekick tool.
 The idea is Patrick Fallon's; his words are in `SPEC.md`.
 
-**Status, 28 Sep 2026: Gate 0 passed (GO); built and tested, not yet deployed. 16 / 30 = 53%**
+**Status, 28 Sep 2026: Gate 0 passed (GO); built and tested, not yet deployed. 17 / 30 = 57%**
 (`PROGRESS.md`).
 - The code works in tests and in a browser inside a fake monday.
 - There is no App ID, no name and no deploy yet.
-- **Next:** creating the app and deploying it (`PLAYBOOK.md` steps 1–6).
+- **Next:** creating the app and deploying it, with `DEPLOY-PROMPTS.md`.
 
 ## How it works
 
@@ -45,6 +45,10 @@ node scripts/make-assets.js      # re-renders the how-to screenshots; needs Play
 | `PROGRESS.md` | The checklist and the percentage |
 | `GATE0.md` | The three checks, with exact queries and a ready prompt |
 | `PLAYBOOK.md` | From nothing to submitted, the way it worked for Watchdog |
+| `DEPLOY-PROMPTS.md` | Steps 1–6 as ready-to-paste Chrome prompts and PowerShell commands |
+| `LISTING.md`, `SUBMISSION.md` | Every listing field and all 42 submission-form answers |
+| `PRIVACY_POLICY.md`, `TERMS_OF_SERVICE.md` | The legal pages' text, checked against the code |
+| `SECURITY-ANSWERS.md` | monday's security checklist, answered with code references |
 | `DECISIONS.md` | What was decided, by whom, when; what is still open |
 | `SPEC.md` | The problem, the MVP, what the API can and cannot do |
 | `COMPETITORS.md` | monday's own Autopilot hub, the marketplace (no app does this), and users asking for it |
