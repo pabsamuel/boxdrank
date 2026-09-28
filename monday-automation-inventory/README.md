@@ -80,5 +80,5 @@ node scripts/make-listing-video.js   # listing video; needs Playwright and ffmpe
 | Client ID | `fb2b51f8128e2fbcc70e02843099902d` (public; it is in every install link) |
 | App slug in monday | `sametatesen2s-team-company_automation-inventory`, fixed at creation |
 | First version | v1, draft, version id 18319002; code pushed 28 Sep (deployment `ebb3e-service-36993937-d7d03ea4.eu.monday.app`) |
-| Live URL | UNKNOWN |
+| Live URL | `https://live1-service-36993937-d7d03ea4.eu.monday.app` (v1 promoted 28 Sep 2026) |
 | Slug on atesensoftware.com | `automation-inventory` |

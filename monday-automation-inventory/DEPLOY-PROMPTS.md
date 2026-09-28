@@ -81,7 +81,7 @@ Then open `https://<LIVE_URL>/health` in the browser. It must read
 
 ## 5. Features on a new draft (Chrome)
 
-Replace `<LIVE_URL>` before pasting.
+The Live URL is `https://live1-service-36993937-d7d03ea4.eu.monday.app`; it is already filled in below.
 
 ```
 monday Developer Center → "Automation Inventory". Tek rapor ver. KURALLAR: Şifre/2FA sorulursa dur. Hiçbir gizli değeri açma/kopyalama/gösterme, Regenerate'e basma, ödeme yapma, form gönderme. Automation Watchdog'a DOKUNMA.
@@ -90,11 +90,11 @@ monday Developer Center → "Automation Inventory". Tek rapor ver. KURALLAR: Şi
 2) Özellikler → Create feature → "Object" (Custom object):
    - Ad: Automation Inventory
    - Deployment: Harici barındırma (external hosting / custom URL)
-   - URL: https://<LIVE_URL>/view/
+   - URL: https://live1-service-36993937-d7d03ea4.eu.monday.app/view/
    - Kaydet.
 3) Özellikler → Create feature → "Board view" (Pano Görünümü):
    - Ad: Automation Inventory
-   - Deployment: Harici barındırma, URL: https://<LIVE_URL>/view/
+   - Deployment: Harici barındırma, URL: https://live1-service-36993937-d7d03ea4.eu.monday.app/view/
    - Kaydet.
 4) Özellikler → Create feature → "Automation block" (Otomasyon bloğu):
    - Block name: Find automations
@@ -108,18 +108,32 @@ monday Developer Center → "Automation Inventory". Tek rapor ver. KURALLAR: Şi
      • Number — key: match_count — title: Matching automations
      • Number — key: total_count — title: Automations listed
      • Number — key: checked_boards — title: Boards read
-   - Execution URL: https://<LIVE_URL>/monday/sidekick/find
+   - Execution URL: https://live1-service-36993937-d7d03ea4.eu.monday.app/monday/sidekick/find
    - İKİ anahtar da AÇIK olsun: "Workflow Builder" VE "Otomasyon Oluşturucu'da kullanılabilir hale getir" (Automation Builder). İkisini de kontrol edip rapora yaz.
    - Kaydet.
 5) Özellikler → Create feature → "Sidekick tool":
    - Title: Automation Inventory: find automations
    - Description: Lists and searches the automations on every board the user can see, with whether each is on or off and any warning monday shows on it. Use when the user asks which automations exist, where an automation is, which automations do something (for example "post to Slack" or "move items"), or which are switched off. Inputs: search words (optional) and a board name (optional). Returns: a summary listing each matching automation with its board and state, and counts.
    - Automation block: "Find automations" seç. Kaydet.
-6) Bu draft'ı "Promote to live" ile canlıya al.
+6) Draft'ı canlıya ALMA. Önce kod bu draft'a yüklenecek (Samet PowerShell'den yapacak).
 
 Bir alan tipi ya da ayar talimattakiyle birebir yoksa en yakınını seç ve rapora yaz.
 RAPOR: her adım yapıldı/engellendi, draft numarası, oluşturulan 4 özelliğin adları, bloğun iki anahtarının durumu, hata metinleri kelimesi kelimesine.
 ```
+
+### 5b. Code onto the draft, then promote (Samet)
+
+A new draft is a separate version. Push the code to it before promoting, so
+the version that goes live carries the code. This is the Watchdog v2 lesson.
+
+```
+cd C:\Users\sametatesen2\boxdrank\monday-automation-inventory
+mapps code:push -s -a 12255778
+```
+
+Then Developer Center → Automation Inventory → Uygulama Sürümleri → the new
+draft → **Promote to live** (Tanıt). After that, `https://<LIVE_URL>/health`
+must still read `{"ok":true,"billing":"off","sidekick":"on"}`.
 
 ## 6. Install and test live (Chrome)
 

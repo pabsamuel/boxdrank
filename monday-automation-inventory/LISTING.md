@@ -80,8 +80,8 @@ The screenshots are the real app on an invented demo account.
 
 | Field | Value |
 |---|---|
-| How-to-use page | `https://<LIVE_URL>/view/how-to.html`, once deployed |
-| Demo link, for reviewers | `https://<LIVE_URL>/view/`; opened outside monday it runs on the demo account |
+| How-to-use page | `https://live1-service-36993937-d7d03ea4.eu.monday.app/view/how-to.html` |
+| Demo link, for reviewers | `https://live1-service-36993937-d7d03ea4.eu.monday.app/view/`; opened outside monday it runs on the demo account |
 | Installation link | `https://auth.monday.com/oauth2/authorize?client_id=fb2b51f8128e2fbcc70e02843099902d&response_type=install`, once shared from Developer Center → Share |
 | Privacy policy | `https://atesensoftware.com/automation-inventory/privacy/`, from `PRIVACY_POLICY.md` |
 | Terms of service | `https://atesensoftware.com/automation-inventory/terms/`, from `TERMS_OF_SERVICE.md` |

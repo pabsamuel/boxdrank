@@ -90,8 +90,10 @@ Order: Gate 0 decides whether the listing and the submission get done.
       - Checked from here: setup mode names the two missing settings; the
         page, how-to page, images and demo data answer 200; the Sidekick
         route answers 503.
-      - Still to do: promote v1, record the Live URL, set the two settings,
-        redeploy.
+      - v1 promoted to live on 28 Sep. Live URL `https://live1-service-36993937-d7d03ea4.eu.monday.app`.
+      - `MONDAY_SIGNING_SECRET` entered by Samet himself.
+      - Still to do: `APP_BASE_URL`, then a redeploy, so that the server
+        reads both.
 - [ ] 19. On a draft:
       - [ ] Object and board view, both at `<Live URL>/view/`;
       - [ ] action block with both builder switches on;
