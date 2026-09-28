@@ -1,6 +1,6 @@
 # Progress
 
-**20 / 30 done: 67%.** Recompute this line whenever a box changes, and put the
+**21 / 30 done: 70%.** Recompute this line whenever a box changes, and put the
 percentage at the end of every reply to Samet.
 
 Order: Gate 0 decides whether the listing and the submission get done.
@@ -81,9 +81,14 @@ Order: Gate 0 decides whether the listing and the submission get done.
 
 ## Deploy (Samet, `PLAYBOOK.md` steps 1–6; ready-to-paste in `DEPLOY-PROMPTS.md`)
 
-- [ ] 18. First push, promote, Live URL recorded; `APP_BASE_URL` set;
-      `MONDAY_SIGNING_SECRET` set; redeployed. `/health` shows
-      `"sidekick":"on"`.
+- [x] 18. Live and configured, 28 Sep.
+      - First push, promote, Live URL recorded.
+      - `APP_BASE_URL` set; `MONDAY_SIGNING_SECRET` set by Samet himself;
+        redeployed (security scan 0 findings again).
+      - Checked from here: `/health` answers
+        `{"ok":true,"billing":"off","sidekick":"on"}`; an unsigned or
+        `alg: none` request to the Sidekick route gets 401; `/view/` answers
+        200.
       - First push done (28 Sep): version 18319002, deployment URL
         `ebb3e-service-36993937-d7d03ea4.eu.monday.app`.
       - The security scan found nothing (0 errors, 0 warnings).
@@ -92,8 +97,6 @@ Order: Gate 0 decides whether the listing and the submission get done.
         route answers 503.
       - v1 promoted to live on 28 Sep. Live URL `https://live1-service-36993937-d7d03ea4.eu.monday.app`.
       - `MONDAY_SIGNING_SECRET` entered by Samet himself.
-      - Still to do: `APP_BASE_URL`, then a redeploy, so that the server
-        reads both.
 - [ ] 19. On a draft:
       - [ ] Object and board view, both at `<Live URL>/view/`;
       - [ ] action block with both builder switches on;

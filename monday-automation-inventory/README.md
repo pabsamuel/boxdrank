@@ -5,12 +5,13 @@ searchable place: on or off, with monday's warnings, older automations
 included. Monday's AI assistant can search it too, through a Sidekick tool.
 The idea is Patrick Fallon's; his words are in `SPEC.md`.
 
-**Status, 28 Sep 2026: Gate 0 passed (GO); app created (12255778); not yet deployed. 20 / 30 = 67%**
+**Status, 28 Sep 2026: Gate 0 passed (GO); live on monday code and configured; features not yet added. 21 / 30 = 70%**
 (`PROGRESS.md`).
 - The code works in tests and in a browser inside a fake monday.
-- Name and price are decided. The app exists in the Developer Center (App ID
-  12255778), with no deploy yet.
-- **Next:** creating the app and deploying it, with `DEPLOY-PROMPTS.md`.
+- Name and price are decided. App 12255778 is live on monday code, with the
+  signing secret set; its features (Object, board view, action block,
+  Sidekick tool) are not added yet.
+- **Next:** `DEPLOY-PROMPTS.md` step 5.
 
 ## How it works
 
