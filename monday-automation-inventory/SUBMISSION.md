@@ -40,7 +40,7 @@ document in this folder.
 | 28 | App card image | **OWNER** uploads `listing/app-card-592x348.png` |
 | 29 | Developer Icon | **OWNER** uploads `listing/developer-icon-192.png` |
 | 30 | App gallery video | **OWNER** uploads `listing/automation-inventory.mp4` |
-| 31 | Installation Link | `https://auth.monday.com/oauth2/authorize?client_id=fb2b51f8128e2fbcc70e02843099902d&response_type=install` (works once the app is shared, step 6) |
+| 31 | Installation Link | `https://auth.monday.com/oauth2/authorize?client_id=fb2b51f8128e2fbcc70e02843099902d&response_type=install` (shared, "Tüm hesaplar", and installed with it on 28 Sep 2026) |
 | 32 | App ID | 12255778 |
 | 33 | How to use Link | https://live1-service-36993937-d7d03ea4.eu.monday.app/view/how-to.html |
 | 34 | Demo Link | https://live1-service-36993937-d7d03ea4.eu.monday.app/view/ (checked 28 Sep: the demo data answers 200) |

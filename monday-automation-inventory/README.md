@@ -5,13 +5,16 @@ searchable place: on or off, with monday's warnings, older automations
 included. Monday's AI assistant can search it too, through a Sidekick tool.
 The idea is Patrick Fallon's; his words are in `SPEC.md`.
 
-**Status, 28 Sep 2026: Gate 0 passed (GO); v2 live with all four features; not yet installed and tested. 22 / 30 = 73%**
+**Status, 28 Sep 2026: Gate 0 passed (GO); v2 live with all four features, installed and tested on Samet's account. 22 / 30 = 73%**
 (`PROGRESS.md`).
 - The code works in tests and in a browser inside a fake monday.
 - Name and price are decided. App 12255778 is live on monday code, with the
   signing secret set. v2 is live with its four features: Object, board
   view, action block, Sidekick skill.
-- **Next:** `DEPLOY-PROMPTS.md` step 6, the install and live test.
+- The live test passed; `boards:read` is enough. Left: delete the test
+  automation, and push the welcome-page fix (`DEPLOY-PROMPTS.md` step 7).
+- **Then:** the website pages and the association file, the security
+  evidence, and the submission.
 
 ## How it works
 
@@ -31,10 +34,10 @@ runs without a user present, and nothing is stored.
 
 ```
 npm install
-npm test                         # 52 tests
+npm test                         # 53 tests
 npm run demo                     # http://localhost:8137/ in demo mode
 npm run check:deploy             # what monday code does on push, locally
-npm run build && node test/browser/verify-view.mjs   # 28 browser checks; needs Playwright
+npm run build && node test/browser/verify-view.mjs   # 32 browser checks; needs Playwright
 node scripts/make-assets.js      # re-renders the how-to screenshots; needs Playwright
 node scripts/make-listing.js     # listing icon, card and gallery; needs Playwright
 node scripts/make-listing-video.js   # listing video; needs Playwright and ffmpeg

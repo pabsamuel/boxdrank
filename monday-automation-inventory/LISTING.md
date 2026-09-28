@@ -118,9 +118,9 @@ month, Optimized mode, 14-day trial.**
 
 - Hosted entirely on monday code. Nothing is stored: no database, no monday
   storage, no secure storage.
-- One read-only scope, `boards:read`. **To confirm on the first live test**
-  (`PLAYBOOK.md` step 6): which scope `board_automations` needs has not been
-  seen with the app's own token.
+- One read-only scope, `boards:read`. Confirmed live on 28 Sep 2026: the
+  installed app listed every automation, the older one included, with it
+  alone.
 - No OAuth install flow. The page uses seamless authentication. The Sidekick
   tool's action block uses the short-lived token in monday's signed request.
 - Security answers with code references: `SECURITY-ANSWERS.md`.

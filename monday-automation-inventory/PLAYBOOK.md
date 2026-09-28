@@ -29,10 +29,9 @@ seen on 28 Sep:
    monday code secrets form (step 3).
 4. oAuth & İzinler: leave **"New OAuth Flow" off**.
 5. Scopes: only what the code reads, and nothing that writes.
-   - UNKNOWN: which scope `board_automations` needs. Samet's playground run
-     used his personal token. Watchdog's inventory tab, which would have
-     tested it with app scopes, was never deployed. Start with `boards:read`
-     and prove it in step 6.
+   - FACT (Automation Inventory, live, 28 Sep 2026): `boards:read` alone is
+     enough for `board_automations`, older automations included, with both
+     the page's seamless token and the action block's short-lived token.
    - UNKNOWN: the scope of the run-statistics queries. Gate 0 item 4 answers
      it.
 

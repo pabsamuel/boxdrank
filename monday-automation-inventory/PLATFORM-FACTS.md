@@ -153,6 +153,50 @@ FACT, `apps/docs/authorization-header`, `integration-authorization`,
   both reported the signing secret and `APP_BASE_URL` as set. INFERENCE:
   secrets and env belong to the app, not to a version.
 
+## Installing and testing live: FACT, 28 Sep 2026 (Automation Inventory v2)
+
+From the Claude-in-Chrome report of the step 6 test, with screenshots.
+- **Share:** tick the Developer Terms box, then publish. The share status
+  becomes "Yayınlandı", for "Tüm hesaplar".
+- **The install page** asked for one permission, "Read all of your boards
+  data", with "All Workspaces" chosen. It also said, word for word:
+  - "This app hasn't been reviewed or approved by monday.com."
+  - "Workspace restrictions apply only when the app is used directly. This
+    app includes AI Tools, for those tools such restrictions do not apply,
+    and access may extend across workspaces based on the relevant user's
+    permissions."
+- Right after installing, the Developer Center still said "Uygulama yüklü
+  değil". A later reload said "Uygulama yüklendi". Reload before concluding
+  an install failed.
+- **`boards:read` alone is enough for `board_automations`,** older
+  automations included, with the page's seamless token and with the action
+  block's short-lived token.
+- **monday's own titles can lack spaces.** `board_automations.items.title`
+  came back as "When an item is created, assignitemcreator asperson" (the
+  playground, and the live app), where monday's Automations page shows
+  "assign item creator as Person". Another: "…create an update
+  onitemwiththis text". The app shows what the API sends. Whether
+  `description`, `workflow_blocks` or `workflow_variables` hold a readable
+  sentence is UNKNOWN until the playground query in `DEPLOY-PROMPTS.md`
+  step 7 is run.
+- The older automation was named "When Status changes to Bitir move item to
+  Group Title", as `src/core/legacy.js` intends.
+- **Adding an Object twice** from "+" → Apps puts two objects in the left
+  menu. Each is removed on its own.
+- **The action block in a board automation:** the sentence reads "Find
+  automations matching Search on board Board name". One run: "Success",
+  9 s, while the Automations window said "Yapay zeka özellikleri çalışmayı
+  durdurdu. Tekrar çalışmaya başlamaları için daha fazla AI kredisi satın
+  alın." An action block does not need AI credits.
+- The monday code log showed `sidekick find for account 36993937: 6 of 6,
+  8 boards`, with payload `{"tag":"automation-inventory"}`.
+- **Deleting an automation** asks "Bu otomasyonu silelim mi? Kalıcı olarak
+  silinecek ve kurtarmanız mümkün olmayacaktır." The Chrome agent will not
+  delete permanently, even when told to. Samet deletes test automations.
+- **Once, the page's filters and search stopped answering clicks** in the
+  Object; a reload fixed it, and it did not recur. Cause UNKNOWN: nothing in
+  the page disables them after loading, and no element covers them.
+
 ## Submission and marketplace
 
 - FACT (form, 28 Sep): only apps with AI capabilities are accepted.

@@ -7,8 +7,9 @@ first deploy are marked **PENDING**.
 
 ## Burp scan of all domains
 
-monday runs it during review. The app serves only from its monday code URL:
-**PENDING**, the Live URL after the first promotion.
+monday runs it during review. The app serves only from its monday code URL,
+`https://live1-service-36993937-d7d03ea4.eu.monday.app` (v2 live since
+28 Sep 2026).
 
 monday's `mapps code:push -s` scan, first push (28 Sep 2026, version
 18319002): **0 errors, 0 warnings, 0 info**. Scripts that run only on the
@@ -60,8 +61,11 @@ because Watchdog's only scan warning was in such a script.
 |---|---|
 | `boards:read` | Boards, their automations (`board_automations`), and for older automations the board's column, label and group names |
 
-**PENDING:** confirm on the first live test that `board_automations` works
-with this scope alone.
+**Confirmed live, 28 Sep 2026:** with `boards:read` alone, the installed app
+listed all five automations on Samet's account, the older one included,
+through the page's seamless token. The action block's short-lived token read 8
+boards and 6 automations. The install page asked for one permission: "Read all
+of your boards data".
 
 ## Logging and retention
 
@@ -110,7 +114,8 @@ values passed as variables (`src/app/monday-source.js`, `query()`).
 - The app serves only from monday code's own domain.
 - The owner's domain is `atesensoftware.com`.
 - `https://atesensoftware.com/monday-app-association.json` must list this
-  app's client id: **PENDING**, once the app exists.
+  app's client id, `fb2b51f8128e2fbcc70e02843099902d`: **PENDING**, until the
+  website is redeployed with it (`../atesensoftware-site/build.mjs` has it).
 
 ## Deleting data on uninstall
 

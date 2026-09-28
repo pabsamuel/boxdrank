@@ -290,6 +290,16 @@ function show(automations, boards, now) {
   Object.assign(state, { rows, counts, now });
 }
 
+/**
+ * One step of reading boards. Behind the welcome page the text is only kept
+ * for later: redrawing the welcome page on every board would replace its
+ * button, and a click that lands during the swap is lost.
+ */
+function showProgress(text) {
+  state.status = text;
+  if (!state.welcome) render();
+}
+
 async function loadDemo() {
   // Served at /fixtures/ by the server, which is where this resolves from
   // /view/main.js; Watchdog's demo link broke on exactly this until 28 Sep.
@@ -317,20 +327,15 @@ async function loadFromMonday() {
     return;
   }
 
+  // Drawn once here, so the welcome page (or the progress) appears at once.
   state.status = 'Finding boards…';
   render();
-  const boards = await fetchBoards(monday, (n) => {
-    state.status = `Found ${n} boards…`;
-    render();
-  });
+  const boards = await fetchBoards(monday, (n) => showProgress(`Found ${n} boards…`));
 
   const { automations, failedBoards } = await fetchAutomations(
     monday,
     boards.map((board) => board.id),
-    (found, read) => {
-      state.status = `Read ${read} of ${boards.length} boards, ${found} automations so far…`;
-      render();
-    },
+    (found, read) => showProgress(`Read ${read} of ${boards.length} boards, ${found} automations so far…`),
   );
   state.source = 'monday';
   state.failedBoards = failedBoards;

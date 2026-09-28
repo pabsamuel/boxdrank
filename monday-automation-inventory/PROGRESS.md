@@ -75,8 +75,8 @@ Order: Gate 0 decides whether the listing and the submission get done.
       `valueCreatedForUser`; a welcome page the first time, which is the
       onboarding monday's review asks for.
 - [x] 17. Tests:
-      - 52 unit and HTTP tests (`npm test`);
-      - 28 browser checks inside a fake monday and as the demo
+      - 53 unit and HTTP tests (`npm test`);
+      - 32 browser checks inside a fake monday and as the demo
         (`test/browser/verify-view.mjs`).
 
 ## Deploy (Samet, `PLAYBOOK.md` steps 1–6; ready-to-paste in `DEPLOY-PROMPTS.md`)
@@ -108,10 +108,28 @@ Order: Gate 0 decides whether the listing and the submission get done.
         `{"ok":true,"billing":"off","sidekick":"on"}`; `/view/` and
         `/view/how-to.html` answer 200; an unsigned request to the Sidekick
         route gets 401.
-- [ ] 20. Tested live on Samet's account:
-      - [ ] the list includes his older automation;
-      - [ ] the action block run in a board automation succeeds;
-      - [ ] the test automation is deleted.
+- [ ] 20. Tested live on Samet's account, 28 Sep (Claude-in-Chrome, 10
+      screenshots; details in `PLATFORM-FACTS.md`).
+      - [x] Shared ("Tüm hesaplar") and installed; one permission asked,
+            "Read all of your boards data". **`boards:read` is enough.**
+      - [x] The Object lists all 5 automations on 3 boards (8 boards
+            read), the older one included, as "When Status changes to Bitir
+            move item to Group Title".
+      - [x] Filters, search, "Open board ↗", the board view and the dark
+            theme work.
+      - [x] The action block in a board automation: "Success", 9 s; the
+            log says `6 of 6, 8 boards`.
+      - [ ] **The test automation is deleted.** Samet does it: the Chrome
+            agent will not delete permanently. It is switched off.
+      - Found:
+        - monday's own API titles can lack spaces ("assignitemcreator
+          asperson"). The app shows them as sent. Playground check pending
+          (`DEPLOY-PROMPTS.md` step 7).
+        - Behind the welcome page, the page was redrawn on every board read,
+          so a click on "Show my automations" could be lost. Fixed 28 Sep,
+          with a browser check that fails on the old code. Not deployed yet.
+        - Once, the filters stopped answering clicks; a reload fixed it.
+          Cause UNKNOWN; not reproduced.
 
 ## Listing and legal (waits for Gate 0)
 
@@ -146,8 +164,9 @@ Order: Gate 0 decides whether the listing and the submission get done.
         "images and videos to support your app".
 - [ ] 26. `SECURITY-ANSWERS.md`.
       - Written 28 Sep.
-      - Evidence that needs the Live URL is marked PENDING: scan, SSL Labs,
-        Palo Alto, scope confirmation.
+      - Scope confirmed live, and the Live URL filled in, 28 Sep.
+      - Still PENDING: SSL Labs and Palo Alto on the Live URL, and the
+        client id in the association file.
       - The auth-code screenshot is done (`listing/auth-code.png`).
 
 ## Submission

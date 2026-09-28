@@ -160,3 +160,71 @@ After step 6, Claude:
 - marks items 7 and 18–20 in `PROGRESS.md`;
 - checks from here that `https://<LIVE_URL>/health` and `/view/how-to.html` answer and that an unsigned `POST /monday/sidekick/find` gets 401;
 - runs the security evidence (SSL Labs, Palo Alto) prompts in `PLAYBOOK.md` step 9.
+
+## 7. After the live test (28 Sep 2026)
+
+Step 6 passed (`PROGRESS.md` item 20). Four things are left.
+
+### 7a. Delete the test automation (Samet only)
+
+The Chrome agent will not delete permanently. The automation is switched off.
+
+On the "Automation Actor Test" board: Otomatikleştir → **⋯** next to "When an
+item is created, Find automations…" → Sil → **Kalıcı Olarak Sil**.
+
+The second "Automation Inventory" object in the left menu is harmless. Keep it
+or remove it; the app does not care.
+
+### 7b. Push the welcome-page fix (PowerShell)
+
+v2 is live and there is no draft, so the push needs `-f`. It replaces the live
+code; the Live URL keeps its address.
+
+```
+cd C:\Users\sametatesen2\boxdrank
+git pull
+cd monday-automation-inventory
+npm install
+npm test
+npm run check:deploy
+mapps code:push -s -f -a 12255778
+```
+
+Then open `https://live1-service-36993937-d7d03ea4.eu.monday.app/health`. It
+must read `{"ok":true,"billing":"off","sidekick":"on"}`.
+
+### 7c. Where monday keeps the readable title (Chrome)
+
+`board_automations` sent "When an item is created, assignitemcreator asperson"
+where monday's Automations page shows "assign item creator as Person". The
+schema (2026-10, read 28 Sep) has `description: String`, `workflow_blocks:
+JSON` and `workflow_variables: JSON` on each automation. This query shows
+whether any of them holds the words with their spaces.
+
+```
+monday API playground'da iki sorgu çalıştır ve cevapları olduğu gibi rapora yaz. KURALLAR: Hiçbir gizli değeri (API token, Client Secret, Signing Secret) açma, kopyalama, gösterme. Regenerate'e basma. Şifre veya 2FA isterse dur, bana sor. Ödeme yapma. Formu ben söylemeden gönderme. Mutation ÇALIŞTIRMA; yalnızca aşağıdaki query. Automation Watchdog'a DOKUNMA.
+
+1) monday → profil resmi → Geliştiriciler (Developers) → API playground.
+2) Headers kutusuna yaz: {"API-Version": "2026-10"}
+3) Sorgu 1:
+query { board_automations(board_ids: [5104569213]) { items { id title description workflow_blocks workflow_variables } } }
+   Çalıştır. Cevabın TAMAMINI kelimesi kelimesine rapora yapıştır, kısaltma.
+4) "Spike Source" board'unu aç; adres çubuğundaki /boards/ sonrasındaki sayıyı yaz. Sorgu 1'i o sayıyla tekrar çalıştır (5104569213 yerine). Cevabı yine tamamen yapıştır.
+
+RAPOR: Spike Source'un board ID'si ve iki cevap, olduğu gibi.
+```
+
+### 7d. Security evidence: Palo Alto (Chrome)
+
+SSL Labs is run from Claude's side.
+
+```
+Palo Alto URL filtering'de bir adresin kategorisini kontrol et. KURALLAR: Hiçbir gizli değeri açma, kopyalama, gösterme. Şifre veya 2FA isterse dur, bana sor. Ödeme yapma. Hesap açma. Formu ben söylemeden gönderme (sorgu kutusu hariç).
+
+1) https://urlfiltering.paloaltonetworks.com/query/ aç.
+2) Adres: live1-service-36993937-d7d03ea4.eu.monday.app
+3) Robot doğrulaması çıkarsa çöz; çözemezsen dur ve bana sor.
+4) Sonuçtaki kategori(ler)i ve risk seviyesini kelimesi kelimesine yaz. Ekran görüntüsü al.
+
+RAPOR: kategori, risk seviyesi, tarih, ekran görüntüsünün adı.
+```

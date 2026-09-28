@@ -40,6 +40,11 @@ const harness = `<!doctype html><html><body style="margin:0">
     if (method === 'listen') return;
     if (method === 'api') {
       const q = args.params.query, v = args.params.variables || {};
+      if (/board_automations/.test(q) && cfg.slow && !args.slowed) {
+        // A slow account: each board answers after cfg.slow ms.
+        return setTimeout(() => window.dispatchEvent(new MessageEvent('message', { source: e.source,
+          data: { method, requestId, args: { ...args, slowed: true } } })), cfg.slow);
+      }
       if (/board_automations/.test(q)) {
         window.apiVersions.push(args.apiVersion || 'none');
         const board = String(v.boardId);
@@ -158,6 +163,20 @@ await inMonday({ theme: 'light' }, async ({ page, frame }) => {
   await frame.waitForSelector('.rows');
   expect((await frame.locator('#app .rows h3').allInnerTexts()).length === 3, 'Show my automations shows the list');
   expect(await frame.evaluate(() => localStorage.getItem('inventory:welcomed:v1') !== null), 'and remembers it');
+}, { welcomed: false });
+
+await inMonday({ theme: 'light', slow: 2000 }, async ({ page, frame }) => {
+  await frame.waitForSelector('.welcome');
+  expect(await page.evaluate(() => window.apiVersions.length) < 3, 'the welcome page shows while boards are still being read');
+  await frame.evaluate(() => { document.querySelector('.welcome').dataset.mark = 'first'; });
+  const read = await page.evaluate(() => window.apiVersions.length);
+  await page.waitForFunction((n) => window.apiVersions.length > n, read, { timeout: 10000 });
+  await page.waitForTimeout(300);
+  expect(await frame.evaluate(() => document.querySelector('.welcome')?.dataset.mark === 'first'), 'the welcome page stays put while a board is read behind it, so its button is not swapped mid-click');
+  await frame.getByRole('button', { name: 'Show my automations' }).click();
+  expect(/^Read \d of 3 boards/.test(await frame.locator('#app .status').innerText()), 'dismissed mid-load, it shows how far reading has got');
+  await frame.waitForSelector('.rows', { timeout: 10000 });
+  expect((await titles(frame)).length === 3, 'and then the whole list');
 }, { welcomed: false });
 
 {
