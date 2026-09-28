@@ -62,8 +62,19 @@ Freshworks apps' pages.
   - Once the app has a client id: set it in `build.mjs` (which then also
     lists the app on the home page and in `monday-app-association.json`),
     and add it to the live association file next to Watchdog's.
-- Until the move is confirmed live, the old setup below still serves the
-  domain (response header `server: Netlify`).
+- **The live site is deployed from Samet's computer** (Cloudflare Pages,
+  `scripts/deploy.ps1`), per the site session on 28 Sep. The GitHub copy of
+  `pabsamuel/atesensoftware-site` was last pushed on 23 Sep and has no
+  `src/static/`. **Deploying from GitHub would take Watchdog's live pages
+  down.** Push the local repository to GitHub.
+- The site session's zip for this app (28 Sep) is byte-identical to what
+  `build.mjs` here renders:
+  - three pages, with the app's own favicon;
+  - `src/static/assets/automation-inventory.png`;
+  - a `_headers` block giving `/automation-inventory/*` the same CSP
+    override as Watchdog's pages (inline styles allowed).
+- `build.mjs` output also matches the live Watchdog pages byte for byte
+  (checked 28 Sep).
 
 The old setup, `../atesensoftware-site/` in this repository, shared by all
 apps:

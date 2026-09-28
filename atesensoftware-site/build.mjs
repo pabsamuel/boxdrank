@@ -172,14 +172,18 @@ const STYLE = `
   @media (max-width: 560px) { .app { flex-direction: column; } h1 { font-size: 28px; } }
 `;
 
-function layout(title, body) {
+/**
+ * `icon` is the favicon. App pages use the app's own icon, as the live site
+ * does since the move to Cloudflare (28 Sep 2026); other pages the site's.
+ */
+function layout(title, body, icon = '/assets/icon-192.png') {
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
-<link rel="icon" href="/assets/icon-192.png">
+<link rel="icon" href="${icon}">
 <style>${STYLE}</style>
 </head>
 <body>
@@ -228,7 +232,7 @@ async function legalPage(app, file, label) {
     .replaceAll('[FILL IN: name or company]', `${SITE.entity} (${SITE.brand})`)
     .replaceAll('[FILL IN: support email]', SITE.supportEmail);
   if (source.includes('[FILL IN')) throw new Error(`${file} still has a [FILL IN] placeholder.`);
-  return layout(`${app.name} — ${label}`, markdown(source));
+  return layout(`${app.name} — ${label}`, markdown(source), `/assets/${app.slug}.png`);
 }
 
 await rm(out, { recursive: true, force: true });
@@ -259,7 +263,7 @@ for (const app of APPS) {
 <tr><td>${escapeHtml(app.name)}</td><td>$1 per seat per month; larger accounts pay less per seat</td><td>${app.includes}</td></tr>
 </tbody>
 </table>
-<p>Payment, currency, tax, renewals and refunds are handled by monday.com through its marketplace. Questions: <a href="mailto:${SITE.supportEmail}">${SITE.supportEmail}</a>.</p>`));
+<p>Payment, currency, tax, renewals and refunds are handled by monday.com through its marketplace. Questions: <a href="mailto:${SITE.supportEmail}">${SITE.supportEmail}</a>.</p>`, `/assets/${app.slug}.png`));
 }
 
 // FACT (`apps/docs/privacy-and-security`, read 27 Sep 2026): monday checks
