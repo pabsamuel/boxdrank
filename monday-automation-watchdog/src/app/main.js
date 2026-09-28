@@ -68,7 +68,7 @@ const state = {
   status: '',
   boards: [],
   tab: 'watch',
-  inventory: { phase: 'idle', rows: [], counts: null, error: null, query: '' },
+  inventory: { phase: 'idle', rows: [], counts: null, error: null, query: '', failedBoards: 0, progress: '' },
 };
 
 function hasSeenWelcome() {
@@ -342,16 +342,23 @@ function renderTabs() {
 
 function renderInventoryRow(row) {
   const tone = row.notice ? 'late' : row.active === false ? 'dormant' : row.active ? 'healthy' : 'unknown';
-  const label = row.active === false ? 'Off' : row.active ? 'On' : 'Unknown';
+  const label = row.active === false ? 'Off' : row.active ? 'On' : row.legacy ? 'Older' : 'Unknown';
   const section = el('section', `row ${tone}`);
   const head = el('header', 'row-head');
   const pill = el('span', `pill ${tone}`, label);
-  pill.title = row.active === false ? 'Switched off in monday.' : row.active ? 'Switched on in monday.' : 'monday did not say.';
+  pill.title = row.active === false
+    ? 'Switched off in monday.'
+    : row.active
+      ? 'Switched on in monday.'
+      : row.legacy
+        ? 'Set up the older way; monday does not report whether it is on.'
+        : 'monday did not say.';
   head.append(pill, el('h3', null, row.title));
   section.append(head);
   if (row.notice) section.append(el('p', 'reason', `monday says: ${row.notice}`));
   const changed = Date.parse(row.updatedAt ?? row.createdAt ?? '');
   const meta = [row.board];
+  if (row.legacy) meta.push('older type of automation');
   if (Number.isFinite(changed)) meta.push(`last changed ${formatDuration(Math.max(0, state.now - changed))} ago`);
   section.append(el('p', 'meta', meta.join(' · ')));
   if (row.description) section.append(el('p', 'meta', row.description));
@@ -365,7 +372,7 @@ function renderInventoryRow(row) {
 function renderInventory(app) {
   const inventory = state.inventory;
   if (inventory.phase === 'loading' || inventory.phase === 'idle') {
-    app.append(el('p', 'status', 'Listing every automation in the account…'));
+    app.append(el('p', 'status', inventory.progress || 'Listing every automation in the account…'));
     return;
   }
   if (inventory.phase === 'error') {
@@ -408,11 +415,16 @@ function renderInventory(app) {
   });
   draw();
   app.append(list);
+  if (inventory.failedBoards > 0) {
+    app.append(
+      el('p', 'warning', `${inventory.failedBoards} board${inventory.failedBoards === 1 ? '' : 's'} could not be read, so their automations are not listed.`),
+    );
+  }
   app.append(
     el(
       'p',
       'meta',
-      'Listed by monday itself, on and off, including automations that have never run. Automations set up the older way can be missing from an account-wide list; monday returns those only board by board.',
+      'Listed by monday itself, board by board: on and off, older and newer kinds, including automations that have never run.',
     ),
   );
 }
@@ -422,7 +434,13 @@ async function loadInventory() {
   try {
     let automations;
     if (state.source === 'monday') {
-      automations = await fetchAutomations(state.sdk);
+      const boardIds = state.boards.map((board) => board.id);
+      const result = await fetchAutomations(state.sdk, boardIds, (found) => {
+        state.inventory.progress = `Found ${found} automations so far…`;
+        render();
+      });
+      automations = result.automations;
+      state.inventory.failedBoards = result.failedBoards;
     } else {
       const response = await fetch(new URL('../../fixtures/demo-automations.json', import.meta.url));
       automations = (await response.json()).automations;

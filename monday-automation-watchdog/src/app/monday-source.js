@@ -275,20 +275,22 @@ export function looksLikeMondayContext() {
  * Fallon asked for: "impossible to 'see' all your automations in one place".
  *
  * FACT (the public schema, `api.monday.com/v2/get_schema?version=2026-10`,
- * read 28 Sep 2026): `board_automations(ids, board_ids, limit, cursor):
- * AutomationsPage!` — "Omit all filters to get all account automations" — and
- * `BoardAutomation { id user_id active title description created_at updated_at
- * workflow_host_data workflow_blocks workflow_variables importance
- * notice_message template_reference_id }`. It exists in 2026-10 only, not in
- * 2026-07 (the default) or earlier, hence the explicit version; the SDK takes
- * `apiVersion` as an option (monday-sdk-js client.js). Legacy automations are
- * returned only for single-board queries, so an account-wide list can miss them.
+ * read 28 Sep 2026, and a live query on the owner's account the same day):
+ * `board_automations(ids, board_ids, limit, cursor): AutomationsPage!` exists
+ * in 2026-10, 2027-01 and dev, not in 2026-07, the current default — hence the
+ * explicit version, which the SDK takes as an option (monday-sdk-js client.js).
+ * `AutomationsPage { cursor items: [BoardAutomation!] legacy_automations: JSON }`,
+ * and `legacy_automations` — automations "set up in an older way" — is
+ * "resolved only for board-scoped queries (null otherwise)". On the owner's
+ * test board one automation came back in `items` and a second, older one only
+ * in `legacy_automations`. So this asks board by board: one account-wide query
+ * would silently miss every older automation.
  */
 export const AUTOMATIONS_API_VERSION = '2026-10';
 
 const AUTOMATIONS_QUERY = `
-  query ($limit: Int, $cursor: String) {
-    board_automations(limit: $limit, cursor: $cursor) {
+  query ($boardId: ID!, $limit: Int, $cursor: String) {
+    board_automations(board_ids: [$boardId], limit: $limit, cursor: $cursor) {
       cursor
       items {
         id
@@ -298,67 +300,113 @@ const AUTOMATIONS_QUERY = `
         user_id
         created_at
         updated_at
-        workflow_host_data
         notice_message
       }
+      legacy_automations
     }
   }
 `;
 
-const MAX_AUTOMATION_PAGES = 50;
+const MAX_AUTOMATION_PAGES_PER_BOARD = 20;
 
 /**
- * The board an automation lives on. The schema says only "Host data (board ID
- * and type)" and types it as JSON, so its keys are UNKNOWN: this accepts the
- * plausible spellings and returns null rather than guessing further.
+ * The older automations on one board. The schema types them as JSON and says
+ * the field is "best-effort, so it may carry an error marker instead of data";
+ * the live answer showed an id, a boardId and a title. So the keys are read
+ * defensively, and anything without an id or a title is left out rather than
+ * guessed at. Whether one is switched on is kept only if monday says so.
  */
-export function hostBoardId(host) {
-  let value = host;
-  if (typeof value === 'string') {
+export function parseLegacyAutomations(value, boardId) {
+  let data = value;
+  if (typeof data === 'string') {
     try {
-      value = JSON.parse(value);
+      data = JSON.parse(data);
     } catch {
-      return null;
+      return [];
     }
   }
-  if (!value || typeof value !== 'object') return null;
-  const direct = value.board_id ?? value.boardId;
-  if (direct !== undefined && direct !== null) return String(direct);
-  const kind = String(value.type ?? value.host_type ?? value.hostType ?? '').toLowerCase();
-  if (kind === 'board' && value.id !== undefined && value.id !== null) return String(value.id);
-  return null;
+  const list = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.automations) ? data.automations
+    : Array.isArray(data?.items) ? data.items
+    : [];
+  const flag = (entry) => {
+    for (const key of ['active', 'is_active', 'isActive', 'enabled']) {
+      if (typeof entry[key] === 'boolean') return entry[key];
+    }
+    if (typeof entry.status === 'string') {
+      const status = entry.status.toLowerCase();
+      if (status === 'active' || status === 'on' || status === 'enabled') return true;
+      if (status === 'inactive' || status === 'off' || status === 'disabled') return false;
+    }
+    return null;
+  };
+  const rows = [];
+  for (const entry of list) {
+    if (!entry || typeof entry !== 'object') continue;
+    const id = entry.id ?? entry.automation_id ?? entry.automationId;
+    const title = [entry.title, entry.name, entry.description, entry.text].find(
+      (candidate) => typeof candidate === 'string' && candidate.trim() !== '',
+    );
+    if (id === undefined || id === null || !title) continue;
+    rows.push({
+      id: String(id),
+      title,
+      description: '',
+      active: flag(entry),
+      boardId: String(entry.boardId ?? entry.board_id ?? boardId),
+      userId: null,
+      createdAt: null,
+      updatedAt: null,
+      notice: '',
+      legacy: true,
+    });
+  }
+  return rows;
 }
 
 /**
- * Every automation in the account, normalised.
+ * Every automation on the given boards, newer and older kinds, normalised.
+ * A board that cannot be read is counted, not fatal: the rest still show.
  *
- * @returns {Promise<{id: string, title: string, description: string, active: boolean|null,
- *   boardId: string|null, userId: string|null, createdAt: string|null, updatedAt: string|null,
- *   notice: string}[]>}
+ * @returns {Promise<{automations: object[], failedBoards: number}>}
  */
-export async function fetchAutomations(monday, onProgress) {
+export async function fetchAutomations(monday, boardIds, onProgress) {
   const automations = [];
-  let cursor = null;
-  for (let page = 0; page < MAX_AUTOMATION_PAGES; page += 1) {
-    const data = await query(monday, AUTOMATIONS_QUERY, { limit: 100, cursor }, AUTOMATIONS_API_VERSION);
-    const result = data?.board_automations;
-    for (const item of result?.items ?? []) {
-      automations.push({
-        id: String(item.id ?? ''),
-        title: typeof item.title === 'string' && item.title.trim() !== '' ? item.title : 'Untitled automation',
-        description: typeof item.description === 'string' ? item.description : '',
-        active: typeof item.active === 'boolean' ? item.active : null,
-        boardId: hostBoardId(item.workflow_host_data),
-        userId: item.user_id === null || item.user_id === undefined ? null : String(item.user_id),
-        createdAt: typeof item.created_at === 'string' ? item.created_at : null,
-        updatedAt: typeof item.updated_at === 'string' ? item.updated_at : null,
-        notice: typeof item.notice_message === 'string' ? item.notice_message : '',
-      });
+  const seen = new Set();
+  let failedBoards = 0;
+  for (const boardId of boardIds) {
+    try {
+      let cursor = null;
+      for (let page = 0; page < MAX_AUTOMATION_PAGES_PER_BOARD; page += 1) {
+        const data = await query(monday, AUTOMATIONS_QUERY, { boardId, limit: 100, cursor }, AUTOMATIONS_API_VERSION);
+        const result = data?.board_automations;
+        const found = (result?.items ?? []).map((item) => ({
+          id: String(item.id ?? ''),
+          title: typeof item.title === 'string' && item.title.trim() !== '' ? item.title : 'Untitled automation',
+          description: typeof item.description === 'string' ? item.description : '',
+          active: typeof item.active === 'boolean' ? item.active : null,
+          boardId: String(boardId),
+          userId: item.user_id === null || item.user_id === undefined ? null : String(item.user_id),
+          createdAt: typeof item.created_at === 'string' ? item.created_at : null,
+          updatedAt: typeof item.updated_at === 'string' ? item.updated_at : null,
+          notice: typeof item.notice_message === 'string' ? item.notice_message : '',
+          legacy: false,
+        }));
+        if (page === 0) found.push(...parseLegacyAutomations(result?.legacy_automations, boardId));
+        for (const automation of found) {
+          const key = `${automation.legacy ? 'legacy' : 'new'}:${automation.id}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          automations.push(automation);
+        }
+        cursor = result?.cursor ?? null;
+        if (!cursor) break;
+      }
+    } catch {
+      failedBoards += 1;
     }
     onProgress?.(automations.length);
-    cursor = result?.cursor ?? null;
-    if (!cursor) break;
   }
-  return automations;
+  return { automations, failedBoards };
 }
-

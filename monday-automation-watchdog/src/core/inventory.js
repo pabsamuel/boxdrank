@@ -29,6 +29,7 @@ export function buildInventory(automations, boards) {
       ? singleLine(boardNames.get(automation.boardId) ?? `Board ${automation.boardId}`)
       : 'Not on a board',
     notice: singleLine(automation.notice ?? '', 300),
+    legacy: automation.legacy === true,
     updatedAt: automation.updatedAt,
     createdAt: automation.createdAt,
   }));
@@ -55,7 +56,7 @@ export function searchInventory(rows, text) {
   const words = fold(text).split(/\s+/).filter(Boolean);
   if (words.length === 0) return rows;
   return rows.filter((row) => {
-    const haystack = fold(`${row.title} ${row.board} ${row.description} ${row.notice} ${row.active === false ? 'off' : row.active ? 'on active' : ''}`);
+    const haystack = fold(`${row.title} ${row.board} ${row.description} ${row.notice} ${row.active === false ? 'off' : row.active ? 'on active' : ''} ${row.legacy ? 'legacy older' : ''}`);
     return words.every((word) => haystack.includes(word));
   });
 }

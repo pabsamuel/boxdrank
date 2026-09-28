@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildInventory, searchInventory } from '../src/core/inventory.js';
-import { hostBoardId, fetchAutomations, AUTOMATIONS_API_VERSION } from '../src/app/monday-source.js';
+import { parseLegacyAutomations, fetchAutomations, AUTOMATIONS_API_VERSION } from '../src/app/monday-source.js';
 
 const boards = [{ id: '101', name: 'Client Projects' }, { id: '102', name: 'Sales Pipeline' }];
 const automation = (over) => ({ id: '1', title: 'A', description: '', active: true, boardId: '101', createdAt: null, updatedAt: null, notice: '', ...over });
@@ -37,31 +37,46 @@ test('an unknown board id is shown as an id, never dropped', () => {
   assert.equal(rows[0].board, 'Board 999');
 });
 
-test('the host board is read from the plausible shapes and nothing else', () => {
-  assert.equal(hostBoardId({ board_id: 5, type: 'board' }), '5');
-  assert.equal(hostBoardId('{"boardId":"6"}'), '6');
-  assert.equal(hostBoardId({ type: 'board', id: 7 }), '7');
-  assert.equal(hostBoardId({ type: 'workspace', id: 8 }), null);
-  assert.equal(hostBoardId('not json'), null);
-  assert.equal(hostBoardId(null), null);
+test('older automations are read from the JSON monday returns, and nothing is guessed', () => {
+  // The live answer on 28 Sep carried an id, a boardId and a title.
+  const legacy = parseLegacyAutomations([
+    { id: 186000595, boardId: 5104569213, title: 'When Status changes to Bitir move item to Group Title' },
+    { id: 7, name: 'Named instead', is_active: false },
+    { id: 8 },
+    { title: 'no id' },
+    'noise',
+  ], '5104569213');
+  assert.deepEqual(legacy.map((a) => [a.id, a.title, a.active, a.boardId, a.legacy]), [
+    ['186000595', 'When Status changes to Bitir move item to Group Title', null, '5104569213', true],
+    ['7', 'Named instead', false, '5104569213', true],
+  ]);
+  assert.deepEqual(parseLegacyAutomations('{"automations":[{"id":1,"title":"T","status":"inactive"}]}', '9')[0].active, false);
+  assert.deepEqual(parseLegacyAutomations({ error: 'unavailable' }, '9'), []);
+  assert.deepEqual(parseLegacyAutomations(null, '9'), []);
 });
 
-test('fetchAutomations pages through every account automation with the 2026-10 API', async () => {
+test('fetchAutomations asks board by board with the 2026-10 API, pages, and keeps older ones', async () => {
   const calls = [];
   const monday = {
     async api(graphql, options) {
       calls.push(options);
-      const page = options.variables.cursor === null
-        ? { cursor: 'next', items: [{ id: 1, title: 'One', active: true, workflow_host_data: { board_id: 101 } }] }
-        : { cursor: null, items: [{ id: 2, title: '', active: false, notice_message: 'Needs attention' }] };
-      return { data: { board_automations: page } };
+      const { boardId, cursor } = options.variables;
+      if (boardId === 'broken') throw new Error('no access');
+      if (boardId === '101' && cursor === null) {
+        return { data: { board_automations: { cursor: 'next', items: [{ id: 1, title: 'One', active: true }], legacy_automations: [{ id: 99, boardId: 101, title: 'Old one' }] } } };
+      }
+      if (boardId === '101') {
+        return { data: { board_automations: { cursor: null, items: [{ id: 2, title: '', active: false, notice_message: 'Needs attention' }], legacy_automations: [{ id: 99, boardId: 101, title: 'Old one' }] } } };
+      }
+      return { data: { board_automations: { cursor: null, items: [], legacy_automations: null } } };
     },
   };
-  const all = await fetchAutomations(monday);
-  assert.equal(calls.length, 2);
+  const { automations, failedBoards } = await fetchAutomations(monday, ['101', 'broken', '102']);
+  assert.equal(failedBoards, 1);
   assert.ok(calls.every((options) => options.apiVersion === AUTOMATIONS_API_VERSION && AUTOMATIONS_API_VERSION === '2026-10'));
-  assert.deepEqual(all.map((a) => [a.id, a.title, a.active, a.boardId, a.notice]), [
-    ['1', 'One', true, '101', ''],
-    ['2', 'Untitled automation', false, null, 'Needs attention'],
+  assert.deepEqual(automations.map((a) => [a.id, a.title, a.active, a.boardId, a.notice, a.legacy]), [
+    ['1', 'One', true, '101', '', false],
+    ['99', 'Old one', null, '101', '', true],
+    ['2', 'Untitled automation', false, '101', 'Needs attention', false],
   ]);
 });
