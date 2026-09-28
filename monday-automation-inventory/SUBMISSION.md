@@ -31,10 +31,10 @@ document in this folder.
 | 19 | Categories | Productivity & efficiency; Reporting & analytics; Project management |
 | 20 | OAuth Scopes | See below |
 | 21 | Personal Data Use | See below |
-| 22 | Privacy Policy | https://atesensoftware.com/automation-inventory/privacy/ (PENDING until published) |
-| 23 | Terms of Service | https://atesensoftware.com/automation-inventory/terms/ (PENDING until published) |
+| 22 | Privacy Policy | https://atesensoftware.com/automation-inventory/privacy/ (live since 28 Sep 2026) |
+| 23 | Terms of Service | https://atesensoftware.com/automation-inventory/terms/ (live since 28 Sep 2026) |
 | 24 | Pricing Model | monday's Monetization |
-| 25 | Link to your Pricing Page | *(empty — pricing lives on the marketplace listing)* |
+| 25 | Link to your Pricing Page | https://atesensoftware.com/automation-inventory/pricing/ (live since 28 Sep 2026; built for this field) |
 | 26 | App gallery images | **OWNER** uploads `listing/gallery-*.png` |
 | 27 | App Icon | **OWNER** uploads `listing/app-icon-192.png` |
 | 28 | App card image | **OWNER** uploads `listing/app-card-592x348.png` |

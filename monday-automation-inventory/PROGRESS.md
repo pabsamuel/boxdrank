@@ -1,6 +1,6 @@
 # Progress
 
-**23 / 30 done: 77%.** Recompute this line whenever a box changes, and put the
+**26 / 30 done: 87%.** Recompute this line whenever a box changes, and put the
 percentage at the end of every reply to Samet.
 
 Order: Gate 0 decides whether the listing and the submission get done.
@@ -135,17 +135,19 @@ Order: Gate 0 decides whether the listing and the submission get done.
 
 ## Listing and legal (waits for Gate 0)
 
-- [ ] 21. Privacy policy and terms at `atesensoftware.com/automation-inventory/`.
-      - The text is written (`PRIVACY_POLICY.md`, `TERMS_OF_SERVICE.md`,
-        28 Sep), each sentence checked against the code.
-      - Built as HTML (privacy, terms, pricing) by
-        `../atesensoftware-site/build.mjs` into
-        `../atesensoftware-site/public/automation-inventory/`, in the same
-        format as Watchdog's live pages.
-      - Not published yet: the live site is deployed from Samet's computer,
-        so the site session must run there (`DEPLOY-PROMPTS.md` step 8). Its
-        first try, 28 Sep, ran in the cloud and could do nothing.
-- [ ] 22. Client id added to `monday-app-association.json`.
+- [x] 21. Privacy policy, terms and pricing at
+      `atesensoftware.com/automation-inventory/`, live 28 Sep.
+      - The text is `PRIVACY_POLICY.md` and `TERMS_OF_SERVICE.md`, each
+        sentence checked against the code.
+      - Published by the site session on Samet's computer (`deploy.ps1`,
+        site commit 7c3ffaf, pushed to GitHub; GitHub's automatic deploy
+        stays off).
+      - Checked from here: all three answer 200, byte for byte what
+        `../atesensoftware-site/build.mjs` renders; the support address is
+        plain text; the CSP matches Watchdog's, with `no-transform`; the
+        icon answers 200; Watchdog's three pages are unchanged.
+- [x] 22. Client id added to `monday-app-association.json`: both ids listed,
+      checked from here 28 Sep.
 - [x] 23. `LISTING.md`: name (working; Samet confirms), short description
       (55 characters), long description (1,465), keywords, categories, and a
       proposed price for Samet.
@@ -168,16 +170,14 @@ Order: Gate 0 decides whether the listing and the submission get done.
       - Written 28 Sep.
       - Scope confirmed live, and the Live URL filled in, 28 Sep.
       - SSL Labs on the Live URL: A+ on all four endpoints, 28 Sep.
-      - Still PENDING: Palo Alto on the Live URL (`DEPLOY-PROMPTS.md` 7d),
-        and the client id in the association file.
+      - Association file checked 28 Sep.
+      - Still PENDING: Palo Alto on the Live URL (`DEPLOY-PROMPTS.md` 7d).
       - The auth-code screenshot is done (`listing/auth-code.png`).
 
 ## Submission
 
-- [ ] 27. `SUBMISSION.md`.
-      - All 42 fields written 28 Sep.
-      - App ID, links and the install link are PENDING until the app
-        exists.
+- [x] 27. `SUBMISSION.md`: all 42 fields, every link live (28 Sep). The
+      pricing-page field now points at the pricing page.
 - [ ] 28. Form submitted by Samet.
 - [ ] 29. Pricing version submitted, once the Pricing & Plans tab appears.
 - [ ] 30. Approved by monday.

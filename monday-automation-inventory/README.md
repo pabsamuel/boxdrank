@@ -5,7 +5,7 @@ searchable place: on or off, with monday's warnings, older automations
 included. Monday's AI assistant can search it too, through a Sidekick tool.
 The idea is Patrick Fallon's; his words are in `SPEC.md`.
 
-**Status, 28 Sep 2026: Gate 0 passed (GO); v2 live with all four features, installed and tested on Samet's account. 23 / 30 = 77%**
+**Status, 28 Sep 2026: Gate 0 passed (GO); v2 live with all four features, installed and tested on Samet's account; website pages live. 26 / 30 = 87%**
 (`PROGRESS.md`).
 - The code works in tests and in a browser inside a fake monday.
 - Name and price are decided. App 12255778 is live on monday code, with the
@@ -14,8 +14,9 @@ The idea is Patrick Fallon's; his words are in `SPEC.md`.
 - The live test passed; `boards:read` is enough. The test automation is
   deleted and the welcome-page fix is live. Left from `DEPLOY-PROMPTS.md`
   step 7: the title query (7c) and Palo Alto (7d).
-- **Then:** the website pages and the association file, the security
-  evidence, and the submission.
+- The privacy, terms and pricing pages are live, and the association file
+  lists the client id.
+- **Then:** Palo Alto, then the submission form (`SUBMISSION.md`).
 
 ## How it works
 

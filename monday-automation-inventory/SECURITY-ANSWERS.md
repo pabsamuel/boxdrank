@@ -129,9 +129,9 @@ values passed as variables (`src/app/monday-source.js`, `query()`).
 
 - The app serves only from monday code's own domain.
 - The owner's domain is `atesensoftware.com`.
-- `https://atesensoftware.com/monday-app-association.json` must list this
-  app's client id, `fb2b51f8128e2fbcc70e02843099902d`: **PENDING**, until the
-  website is redeployed with it (`../atesensoftware-site/build.mjs` has it).
+- `https://atesensoftware.com/monday-app-association.json` lists this app's
+  client id, `fb2b51f8128e2fbcc70e02843099902d`, next to Watchdog's. Checked
+  from here, 28 Sep 2026.
 
 ## Deleting data on uninstall
 

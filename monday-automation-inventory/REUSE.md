@@ -63,10 +63,17 @@ Freshworks apps' pages.
     lists the app on the home page and in `monday-app-association.json`),
     and add it to the live association file next to Watchdog's.
 - **The live site is deployed from Samet's computer** (Cloudflare Pages,
-  `scripts/deploy.ps1`), per the site session on 28 Sep. The GitHub copy of
-  `pabsamuel/atesensoftware-site` was last pushed on 23 Sep and has no
-  `src/static/`. **Deploying from GitHub would take Watchdog's live pages
-  down.** Push the local repository to GitHub.
+  `scripts/deploy.ps1`), so the site session must run there. A cloud session
+  cannot reach it (28 Sep).
+  - The local repository was pushed to GitHub on 28 Sep (site commit
+    7c3ffaf). GitHub Actions is disabled there and has no Cloudflare secret,
+    so a push deploys nothing.
+  - The site's `build.mjs` writes the `_headers` block, with one CSP shared
+    by Watchdog and Inventory.
+  - **Line endings:** the repository has `core.autocrlf=true`. A rebase on
+    28 Sep turned Watchdog's pages into CRLF, which would have changed the
+    live bytes. The site session put LF back before deploying. A
+    `.gitattributes` pinning LF under `src/static/` would stop it recurring.
 - The site session's zip for this app (28 Sep) is byte-identical to what
   `build.mjs` here renders:
   - three pages, with the app's own favicon;

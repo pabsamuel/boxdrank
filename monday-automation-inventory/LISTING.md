@@ -89,9 +89,9 @@ The screenshots are the real app on an invented demo account.
 | Support email | `support@atesensoftware.com` |
 | Domain proof | `https://atesensoftware.com/monday-app-association.json`, with this app's client id added |
 
-The website is moving to Cloudflare (28 Sep). The pages go in the repository
-`pabsamuel/atesensoftware-site`, under `src/static/automation-inventory/`
-(`REUSE.md`).
+All of these answered 200 on 28 Sep 2026, checked from here. The privacy,
+terms and pricing pages are byte for byte what `../atesensoftware-site/build.mjs`
+renders, and the association file lists both client ids.
 
 ## Legal
 
