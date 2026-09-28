@@ -100,6 +100,14 @@ try {
     check(view.status === 200 && (await view.text()).includes('main.js'), 'board view is served in setup mode');
     const script = await fetch(`${base}/view/main.js`);
     check(script.status === 200 && (await script.text()).length > 1000, 'board view script is built and served');
+    const howTo = await fetch(`${base}/view/how-to.html`);
+    check(howTo.status === 200 && (await howTo.text()).includes('How to use Automation Inventory'), 'how-to-use page is served');
+    for (const image of ['welcome.png', 'list.png', 'search.png']) {
+      const response = await fetch(`${base}/view/assets/${image}`);
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      // The PNG signature, so an HTML error page cannot pass for an image.
+      check(response.status === 200 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47, `${image} is served`);
+    }
     const demo = await fetch(`${base}/fixtures/demo-automations.json`);
     const demoBody = demo.status === 200 ? await demo.json().catch(() => null) : null;
     check(Array.isArray(demoBody?.boards) && Array.isArray(demoBody?.automations), 'demo data for the demo link is served');

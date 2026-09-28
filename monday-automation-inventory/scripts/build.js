@@ -11,6 +11,9 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 
+/** The how-to page's screenshots, made by scripts/make-assets.js. */
+export const IMAGES = ['welcome.png', 'list.png', 'search.png'];
+
 await mkdir(new URL('../dist/fixtures/', import.meta.url), { recursive: true });
 
 const result = await build({
@@ -24,8 +27,11 @@ const result = await build({
 });
 
 await copyFile(`${root}src/app/index.html`, `${root}dist/index.html`);
+await copyFile(`${root}src/app/how-to.html`, `${root}dist/how-to.html`);
+await mkdir(new URL('../dist/assets/', import.meta.url), { recursive: true });
+for (const image of IMAGES) await copyFile(`${root}src/app/assets/${image}`, `${root}dist/assets/${image}`);
 await copyFile(`${root}fixtures/demo-automations.json`, `${root}dist/fixtures/demo-automations.json`);
 
 const bytes = Object.values(result.metafile.outputs)[0].bytes;
 console.log(`dist/main.js   ${(bytes / 1024).toFixed(1)} kB`);
-console.log('dist/index.html, dist/fixtures/demo-automations.json');
+console.log('dist/index.html, dist/how-to.html, dist/assets/, dist/fixtures/demo-automations.json');

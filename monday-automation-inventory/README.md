@@ -5,7 +5,7 @@ searchable place: on or off, with monday's warnings, older automations
 included. Monday's AI assistant can search it too, through a Sidekick tool.
 The idea is Patrick Fallon's; his words are in `SPEC.md`.
 
-**Status, 28 Sep 2026: built and tested, not yet deployed. 8 / 30 = 27%**
+**Status, 28 Sep 2026: built and tested, not yet deployed. 11 / 30 = 37%**
 (`PROGRESS.md`).
 - The code works in tests and in a browser inside a fake monday.
 - There is no App ID, no name and no deploy yet.
@@ -17,7 +17,8 @@ The idea is Patrick Fallon's; his words are in `SPEC.md`.
 
 | Part | File | What it does |
 |---|---|---|
-| Board view | `src/app/main.js`, `src/app/index.html` | Lists every automation on the boards the user can see, board by board, reading monday with the user's own session. Warnings first, then switched off. Filters, search, themes, viewer message. Opened outside monday it shows an invented demo account |
+| The page (an Object and a board view) | `src/app/main.js`, `src/app/index.html` | Lists every automation on the boards the user can see, board by board, reading monday with the user's own session. Warnings first, then switched off. Filters, search, "Open board ↗", themes, viewer message, a welcome page the first time. Opened outside monday it shows an invented demo account |
+| How-to page | `src/app/how-to.html`, `src/app/assets/` | The page monday's review asks for, with three screenshots from `scripts/make-assets.js` |
 | Sidekick tool | `src/server/sidekick.js` | `POST /monday/sidekick/find`: monday's AI assistant asks for automations matching some words, on every board or one board, and gets a summary in words |
 | Server | `src/server/app-server.js`, `scripts/serve-monday.js` | Serves `/view/` and the demo data, and checks each Sidekick request (signing-secret JWT, expiry, audience). Setup mode until `APP_BASE_URL` and `MONDAY_SIGNING_SECRET` exist |
 | monday API | `src/app/monday-source.js` | `boards`, and `board_automations` on API version `2026-10`, one board at a time, because older automations come only that way |
@@ -30,10 +31,11 @@ runs without a user present, and nothing is stored.
 
 ```
 npm install
-npm test                         # 47 tests
+npm test                         # 49 tests
 npm run demo                     # http://localhost:8137/ in demo mode
 npm run check:deploy             # what monday code does on push, locally
-npm run build && node test/browser/verify-view.mjs   # 21 browser checks; needs Playwright
+npm run build && node test/browser/verify-view.mjs   # 29 browser checks; needs Playwright
+node scripts/make-assets.js      # re-renders the how-to screenshots; needs Playwright
 ```
 
 ## Files

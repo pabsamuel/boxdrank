@@ -31,8 +31,8 @@ answers are the model: `../monday-automation-watchdog/SUBMISSION.md`,
 | App card image | 592×348 |
 | Gallery | 3–5 images, 1920×960 |
 | Video | 30–60 s, HD, MP4, at most 50 MB |
-| How-to-use page | A URL that can be embedded in monday |
-| Demo link | For reviewers |
+| How-to-use page | A URL that can be embedded in monday; must include installation, prerequisites, first use, and images and videos, with no navigation to other pages (`documentation-and-support`) |
+| Demo link | For reviewers. Open it outside monday before submitting; Watchdog's was broken |
 
 ## Legal and contact
 

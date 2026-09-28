@@ -21,10 +21,11 @@ Sidekick tool, board view, tests, listing, legal pages and submission answers.
 
 **The app is already built and tested** (28 Sep 2026), mostly from
 Watchdog's code:
-- a board view listing every automation;
+- a page listing every automation, offered as an Object and as a board view,
+  with a welcome page and a how-to page;
 - a Sidekick tool;
 - a server;
-- 47 tests and 21 browser checks.
+- 49 tests and 29 browser checks.
 
 It is **not deployed** and has no App ID yet. Do not rebuild what exists:
 read it, run `npm test`, and continue from `PROGRESS.md`.

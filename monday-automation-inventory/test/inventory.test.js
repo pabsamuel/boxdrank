@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildInventory, searchInventory, filterInventory, boardsIn } from '../src/core/inventory.js';
-import { parseLegacyAutomations, fetchAutomations, AUTOMATIONS_API_VERSION } from '../src/app/monday-source.js';
+import { parseLegacyAutomations, fetchAutomations, fetchBoards, safeBoardUrl, AUTOMATIONS_API_VERSION } from '../src/app/monday-source.js';
 
 const boards = [{ id: '101', name: 'Client Projects' }, { id: '102', name: 'Sales Pipeline' }];
 const automation = (over) => ({ id: '1', title: 'A', description: '', active: true, boardId: '101', createdAt: null, updatedAt: null, notice: '', ...over });
@@ -112,4 +112,36 @@ test('fetchAutomations stops before the next board when told to, and says how fa
   assert.equal(result.boardsRead, 2);
   assert.equal(result.automations.length, 2);
   assert.equal(result.failedBoards, 0);
+});
+
+test('only https monday.com board URLs are kept, so a link cannot lead elsewhere', () => {
+  assert.equal(safeBoardUrl('https://acme.monday.com/boards/123'), 'https://acme.monday.com/boards/123');
+  assert.equal(safeBoardUrl('https://monday.com/boards/1'), 'https://monday.com/boards/1');
+  for (const bad of [
+    'http://acme.monday.com/boards/1',
+    'javascript:alert(1)',
+    'https://evil.example/boards/1',
+    'https://monday.com.evil.example/x',
+    'https://notmonday.com/x',
+    'https://user:pw@acme.monday.com/boards/1',
+    '',
+    null,
+  ]) {
+    assert.equal(safeBoardUrl(bad), null, String(bad));
+  }
+});
+
+test('boards carry their checked URL, and rows carry their board\'s URL', async () => {
+  const monday = {
+    async api() {
+      return { data: { boards: [
+        { id: 101, name: 'Client Projects', url: 'https://acme.monday.com/boards/101' },
+        { id: 102, name: 'Sales Pipeline', url: 'javascript:alert(1)' },
+      ] } };
+    },
+  };
+  const fetched = await fetchBoards(monday);
+  assert.deepEqual(fetched.map((board) => board.url), ['https://acme.monday.com/boards/101', null]);
+  const { rows } = buildInventory([automation({ id: '1' }), automation({ id: '2', boardId: '102' }), automation({ id: '3', boardId: null })], fetched);
+  assert.deepEqual(rows.map((row) => [row.id, row.boardUrl]).sort(), [['1', 'https://acme.monday.com/boards/101'], ['2', null], ['3', null]]);
 });

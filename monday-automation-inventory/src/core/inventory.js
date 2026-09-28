@@ -21,6 +21,7 @@ const rank = (row) => (row.notice ? 0 : row.active === false ? 1 : row.active ==
  */
 export function buildInventory(automations, boards) {
   const boardNames = new Map((boards ?? []).map((board) => [String(board.id), board.name]));
+  const boardUrls = new Map((boards ?? []).map((board) => [String(board.id), board.url ?? null]));
   const rows = (automations ?? []).map((automation) => ({
     id: automation.id,
     title: singleLine(automation.title),
@@ -29,6 +30,7 @@ export function buildInventory(automations, boards) {
     board: automation.boardId
       ? singleLine(boardNames.get(automation.boardId) ?? `Board ${automation.boardId}`)
       : 'Not on a board',
+    boardUrl: automation.boardId ? boardUrls.get(automation.boardId) ?? null : null,
     notice: singleLine(automation.notice ?? '', 300),
     legacy: automation.legacy === true,
     updatedAt: automation.updatedAt,

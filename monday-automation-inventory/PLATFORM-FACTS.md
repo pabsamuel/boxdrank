@@ -20,13 +20,43 @@ relying on anything here that looks thin. Re-check anything older than a month.
 | The SDK **resolves** on GraphQL errors. Check `response.errors`, or a failure looks like an empty account | Watchdog `src/app/monday-source.js`, `query()` |
 | `app_subscription { plan_id is_trial days_left }` returns the account's plan for this app; an empty array means no plan | `api-reference/reference/app-subscription`, 27 Sep |
 
+## Views and features: FACT, read 28 Sep 2026
+
+- `apps/docs/app-features` (updated 30 Apr 2026) lists these feature types:
+  - AI assistant and Sidekick tool;
+  - on boards: board column extension, board menu features, board view,
+    column view, item view;
+  - dashboard widgets;
+  - doc actions;
+  - monday workflows;
+  - account settings view and administration view;
+  - on workspaces: custom objects and workspace templates.
+- **Custom object** ("Object" in the Developer Center, `apps/docs/custom-objects`)
+  lives "in the left-pane menu so that users can access the view outside the
+  context of a specific dashboard, board, or item". Users add it with "Add
+  item to workspace (+)" → Apps.
+- **Administration view** (`apps/docs/administration-view`) can be opened by
+  account admins only, from Administration → Administration apps.
+- `Board.url: String!` exists in the 2026-07 schema.
+- `monday.execute("openLinkInTab", { url })` "opens a link in a new tab for
+  views" (`apps/docs/mondayexecute`).
+- The how-to-use page must include "installation instructions, prerequisite
+  information, first-time-use instructions, and images and videos", and must
+  not let users navigate to other pages
+  (`apps/docs/documentation-and-support`).
+
 ## monday code (hosting)
 
 - Node 18, 20 and 22. The port comes from `process.env.PORT`.
 - Behind Cloudflare and Google:
   - The edge replaces the app's HSTS header with 180 days.
   - **Cloudflare Email Obfuscation** rewrites any full email address in an
-    HTML response into a script that a strict CSP blocks. Mask addresses.
+    HTML response.
+    - On a page with no CSP, the edge adds its own decoding script
+      (`/cdn-cgi/scripts/…/email-decode.min.js`), so the address still shows.
+      Seen on Watchdog's how-to page, 28 Sep.
+    - On a page whose CSP forbids scripts, the address shows as
+      "[email protected]". Mask it there.
 - **Each deploy gets its own URL**: `<id>-service-<account>-<id>.eu.monday.app`.
   The **Live URL** (`live1-…`) follows whichever version is live.
 - **`mapps code:push -a <APP_ID>` deploys to the latest version: the draft,

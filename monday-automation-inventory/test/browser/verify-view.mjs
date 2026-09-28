@@ -33,7 +33,7 @@ const harness = `<!doctype html><html><body style="margin:0">
   window.addEventListener('message', (e) => {
     const { method, args, requestId } = e.data || {};
     if (!requestId) return;
-    window.calls.push({ method, type: args && args.type });
+    window.calls.push({ method, type: args && args.type, params: args && args.params });
     const reply = (data) => e.source.postMessage({ requestId, data }, '*');
     if (method === 'get' && args.type === 'context') return reply({ theme: cfg.theme, user: { isViewOnly: !!cfg.viewOnly } });
     if (method === 'execute') return reply({});
@@ -51,13 +51,16 @@ const harness = `<!doctype html><html><body style="margin:0">
           items: [{ id: 21, title: 'When a lead is created, assign an owner', active: false, notice_message: 'The owner of this automation was deactivated' }], legacy_automations: null } } });
         return reply({ data: { board_automations: { cursor: null, items: [], legacy_automations: null } } });
       }
-      if (/boards/.test(q)) return reply({ data: { boards: v.page > 1 ? [] : [{ id: 1, name: 'Client Projects' }, { id: 2, name: 'Sales Pipeline' }, { id: 3, name: 'Empty board' }] } });
+      if (/boards/.test(q)) return reply({ data: { boards: v.page > 1 ? [] : [
+        { id: 1, name: 'Client Projects', url: 'https://acme.monday.com/boards/1' },
+        { id: 2, name: 'Sales Pipeline', url: 'javascript:alert(1)' },
+        { id: 3, name: 'Empty board', url: 'https://acme.monday.com/boards/3' }] } });
       return reply({ data: {} });
     }
   });
 </script></body></html>`;
 
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json' };
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.png': 'image/png' };
 const server = createServer(async (req, res) => {
   const path = new URL(req.url, 'http://x').pathname;
   if (path === '/harness') return res.writeHead(200, { 'content-type': 'text/html' }).end(harness);
@@ -81,8 +84,9 @@ const expect = (ok, label) => {
   if (!ok) failures += 1;
 };
 
-async function inMonday(cfg, fn) {
+async function inMonday(cfg, fn, { welcomed = true } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 900, height: 1400 } });
+  if (welcomed) await ctx.addInitScript(() => { try { localStorage.setItem('inventory:welcomed:v1', '1'); } catch {} });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -105,6 +109,12 @@ await inMonday({ theme: 'dark' }, async ({ page, frame, errors }) => {
   expect((await page.evaluate(() => window.apiVersions)).every((v) => v === '2026-10'), 'every automations query asks for API 2026-10');
   expect(await frame.evaluate(() => document.documentElement.dataset.theme) === 'dark', 'follows the dark theme');
   expect((await page.evaluate(() => window.calls)).some((c) => c.method === 'execute' && c.type === 'valueCreatedForUser'), 'reports valueCreatedForUser');
+
+  expect((await frame.getByRole('button', { name: 'Open board ↗' }).count()) === 2, 'the two automations on a board with a safe URL get an Open board link; the unsafe URL gets none');
+  await frame.getByRole('button', { name: 'Open board ↗' }).first().click();
+  await page.waitForTimeout(100);
+  const opened = (await page.evaluate(() => window.calls)).filter((c) => c.method === 'execute' && c.type === 'openLinkInTab');
+  expect(opened.length === 1 && opened[0].params?.url === 'https://acme.monday.com/boards/1', 'Open board asks monday to open that board in a new tab');
 
   await frame.getByRole('button', { name: 'Switched off' }).click();
   expect(JSON.stringify(await titles(frame)) === JSON.stringify(['When a lead is created, assign an owner']), 'the Switched off filter');
@@ -131,16 +141,34 @@ await inMonday({ viewOnly: true, theme: 'light' }, async ({ page, frame }) => {
   expect(!(await page.evaluate(() => window.calls)).some((c) => c.method === 'api'), 'and no API call is made for them');
 });
 
+await inMonday({ theme: 'light' }, async ({ page, frame }) => {
+  expect((await frame.locator('.welcome h2').innerText()) === 'Every automation, in one list', 'the first visit shows the welcome page');
+  const sentEarly = (await page.evaluate(() => window.calls)).some((c) => c.type === 'valueCreatedForUser');
+  expect(!sentEarly, 'and does not report value while the welcome covers the list');
+  await frame.getByRole('button', { name: 'Show my automations' }).click();
+  await frame.waitForSelector('.rows');
+  expect((await frame.locator('#app .rows h3').allInnerTexts()).length === 3, 'Show my automations shows the list');
+  expect(await frame.evaluate(() => localStorage.getItem('inventory:welcomed:v1') !== null), 'and remembers it');
+}, { welcomed: false });
+
 {
   const ctx = await browser.newContext({ viewport: { width: 900, height: 1400 } });
   const page = await ctx.newPage();
   const failed = [];
   page.on('response', (r) => { if (r.status() >= 400) failed.push(`${r.status()} ${r.url()}`); });
   await page.goto(`${base}/view/`);
+  await page.getByRole('button', { name: 'Show my automations' }).click();
   await page.waitForSelector('.rows');
   expect((await page.locator('#source-note').innerText()).startsWith('Demo data, invented'), 'opened on its own, it shows the invented demo account');
   expect((await page.locator('#app .rows h3').allInnerTexts()).length === 8, 'with all 8 demo automations');
   expect(failed.length === 0, `no failed requests ${failed.join(' ')}`);
+  const howTo = await ctx.newPage();
+  await howTo.goto(`${base}/view/how-to.html`);
+  expect((await howTo.locator('h1').innerText()) === 'How to use Automation Inventory', 'the How it works page opens');
+  await howTo.waitForLoadState('load');
+  const widths = await howTo.evaluate(() => [...document.images].map((img) => img.naturalWidth));
+  expect(widths.length === 3 && widths.every((w) => w > 0), `with its 3 screenshots loaded (${widths.join(', ')})`);
+  await howTo.close();
   await page.screenshot({ path: process.env.SHOT || '/dev/null', fullPage: true }).catch(() => {});
   await ctx.close();
 }

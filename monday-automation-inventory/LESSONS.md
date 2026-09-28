@@ -24,6 +24,11 @@ Each one cost time on the first app (23–28 Sep 2026).
 7. **A live version is locked.** Plan feature changes as: draft, push to
    draft, promote.
 8. **`.mappsignore` wildcards are silently ignored.** List literal paths.
+9a. **A file the page fetches must be in the server's allowlist.**
+    Watchdog's demo link was submitted to monday while its demo data answered
+    404 on the live app, so the link showed an error. It was found on 28 Sep
+    by requesting the file from the live URL. Everything the page loads must
+    be checked by `check:deploy` and by opening the view outside monday.
 9. **Samet ran commands from the wrong folder once** ("Failed in creating
    archive"). Always give the full `cd C:\Users\sametatesen2\boxdrank\<folder>`
    line.

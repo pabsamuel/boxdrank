@@ -42,9 +42,11 @@ His email names three pains. They set the order of the work:
 3. **Filters**: switched off, "has a warning", older type, and board. Built
    28 Sep. Creator (`user_id` → name) is parked in `BACKLOG.md`: it needs
    `users:read`.
-4. **Open on its board.** A link from each row to that board's automations
-   page, so the user can switch it on or off there.
-   - UNKNOWN: the URL of that page. Get it from Samet's browser; do not guess.
+4. **Open board.** A link from each row to its board, where the user can
+   switch the automation on or off under Automate.
+   - Built 28 Sep from `Board.url` and `openLinkInTab`.
+   - UNKNOWN: a URL straight to a board's automations page. monday documents
+     none.
 5. **Sidekick tool.** This is the AI capability, and monday requires one.
    - FACT (submission form, 28 Sep 2026): "monday.com is only accepting apps
      that include AI capabilities. If you proceed with submitting this form
@@ -135,10 +137,9 @@ His email names three pains. They set the order of the work:
     uninstall clean-up. It is a much smaller app than Watchdog.
   - Built and tested this way on 28 Sep. Not yet deployed, so nothing here
     has run against a real account.
-- UNKNOWN: whether a board view is the best surface for an account-wide list.
-  monday has other feature types (dashboard widget, workspace-level views and
-  others). Read the current feature list in the Developer Center before
-  choosing. A board view is proven to work.
+- **Surface: an Object** (standalone, in the workspace's left menu), **plus a
+  board view**. Both serve the same page. Chosen 28 Sep from monday's feature
+  list; see `PLATFORM-FACTS.md`.
 - UNKNOWN: API cost for large accounts. There is one query per board, plus
   pages; an account with 500 boards means 500+ calls.
   - Measure on the biggest account available.

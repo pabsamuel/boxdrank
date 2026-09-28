@@ -1,6 +1,6 @@
 # Progress
 
-**8 / 30 done: 27%.** Recompute this line whenever a box changes, and put the
+**11 / 30 done: 37%.** Recompute this line whenever a box changes, and put the
 percentage at the end of every reply to Samet.
 
 Order: Gate 0 decides whether the listing and the submission get done.
@@ -28,9 +28,14 @@ Order: Gate 0 decides whether the listing and the submission get done.
       clash. Change it in `src/core/brand.js` and `src/app/index.html`.
 - [ ] 7. App created in the Developer Center. App ID and client id recorded
       in `README.md`. "New OAuth Flow" left off.
-- [ ] 8. Feature type confirmed from the Developer Center's current list.
-      The code is a board view; if something account-wide exists, check it
-      first.
+- [x] 8. Feature types: **Object** and **Board view**, both pointing at the
+      same page.
+      - FACT (`apps/docs/app-features`, `custom-objects`, read 28 Sep): an
+        Object "lives independently in the left-pane menu … outside the
+        context of a specific dashboard, board, or item". That fits a list of
+        the whole account.
+      - The Administration view was left out: it is for account admins only.
+      - Nothing in the page depends on a board, so both features serve it.
 
 ## Build
 
@@ -45,8 +50,12 @@ Order: Gate 0 decides whether the listing and the submission get done.
       by creator is in `BACKLOG.md`: it needs `users:read`.
 - [ ] 13. Run statistics on each row. Only if Gate 0 item 4 shows the data
       exists.
-- [ ] 14. "Open on its board" link. The URL is taken from Samet's browser,
-      not guessed. Until then the view says where to go.
+- [x] 14. "Open board ↗" on each row.
+      - FACT: `Board.url` (schema 2026-07) and `openLinkInTab`
+        (`apps/docs/mondayexecute`).
+      - Only https monday.com URLs are opened (`safeBoardUrl`).
+      - It opens the board; the automations are under Automate there. monday
+        documents no URL for a board's automations page.
 - [x] 15. Sidekick tool route `POST /monday/sidekick/find`.
       - Inputs `search` and `board_name`; outputs `summary`, `match_count`,
         `total_count`, `checked_boards`.
@@ -54,10 +63,11 @@ Order: Gate 0 decides whether the listing and the submission get done.
       - Errors are 4xx with `severityCode: 4000`.
       - 8-second budget; plan gating.
 - [x] 16. Light, dark and night themes; viewer message;
-      `valueCreatedForUser`.
+      `valueCreatedForUser`; a welcome page the first time, which is the
+      onboarding monday's review asks for.
 - [x] 17. Tests:
-      - 47 unit and HTTP tests (`npm test`);
-      - 21 browser checks inside a fake monday and as the demo
+      - 49 unit and HTTP tests (`npm test`);
+      - 29 browser checks inside a fake monday and as the demo
         (`test/browser/verify-view.mjs`).
 
 ## Deploy (Samet, `PLAYBOOK.md` steps 1–6)
@@ -66,7 +76,7 @@ Order: Gate 0 decides whether the listing and the submission get done.
       `MONDAY_SIGNING_SECRET` set; redeployed. `/health` shows
       `"sidekick":"on"`.
 - [ ] 19. On a draft:
-      - [ ] board view at `<Live URL>/view/`;
+      - [ ] Object and board view, both at `<Live URL>/view/`;
       - [ ] action block with both builder switches on;
       - [ ] Sidekick tool;
       - [ ] draft promoted.
@@ -82,8 +92,13 @@ Order: Gate 0 decides whether the listing and the submission get done.
 - [ ] 22. Client id added to `monday-app-association.json`.
 - [ ] 23. `LISTING.md`: name, descriptions, keywords, categories.
 - [ ] 24. App icon, app card, 3–5 gallery images, 30–60 s video.
-- [ ] 25. How-to-use page, and a welcome page before first use (Watchdog
-      had both; monday's review asks for onboarding).
+- [x] 25. How-to-use page at `/view/how-to.html`.
+      - It has installation, prerequisites, first use, filters, sidekick and
+        data sections.
+      - Three real screenshots of the demo account, made by
+        `scripts/make-assets.js`.
+      - FACT (`documentation-and-support`, read 28 Sep): the page must include
+        "images and videos to support your app".
 - [ ] 26. `SECURITY-ANSWERS.md`, with SSL Labs and malware-check evidence.
 
 ## Submission

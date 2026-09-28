@@ -17,7 +17,11 @@ import { formatDuration } from '../core/time.js';
 import { APP_NAME } from '../core/brand.js';
 import { fetchBoards, fetchAutomations, looksLikeMondayContext } from './monday-source.js';
 
+/** Set once the welcome page has been dismissed in this browser. */
+const WELCOME_KEY = 'inventory:welcomed:v1';
+
 const state = {
+  welcome: !hasSeenWelcome(),
   phase: 'loading',
   source: null,
   sdk: null,
@@ -35,6 +39,25 @@ const state = {
 };
 
 const $ = (id) => document.getElementById(id);
+
+function hasSeenWelcome() {
+  try {
+    return window.localStorage.getItem(WELCOME_KEY) !== null;
+  } catch {
+    // Storage blocked: showing the welcome page every time is the lesser harm.
+    return false;
+  }
+}
+
+function dismissWelcome() {
+  try {
+    window.localStorage.setItem(WELCOME_KEY, String(Date.now()));
+  } catch {
+    // Remembered for this page view only.
+  }
+  state.welcome = false;
+  render();
+}
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -82,6 +105,18 @@ function renderRow(row) {
   if (Number.isFinite(changed)) meta.push(`last changed ${formatDuration(Math.max(0, state.now - changed))} ago`);
   section.append(el('p', 'meta', meta.join(' · ')));
   if (row.description) section.append(el('p', 'meta', row.description));
+  if (row.boardUrl && state.sdk) {
+    // FACT (`apps/docs/mondayexecute`, read 28 Sep 2026): `openLinkInTab`
+    // "opens a link in a new tab for views". The URL is monday's own board
+    // URL, already checked to be https on monday.com (safeBoardUrl).
+    const open = el('button', 'link', 'Open board ↗');
+    open.type = 'button';
+    open.title = 'Opens the board in a new tab. Its automations are under Automate.';
+    open.addEventListener('click', () => {
+      state.sdk.execute('openLinkInTab', { url: row.boardUrl }).catch(() => {});
+    });
+    section.append(open);
+  }
   return section;
 }
 
@@ -156,6 +191,38 @@ function renderList(app) {
   app.append(filters, search, list);
 }
 
+/**
+ * The first screen, once per browser: what the list is, and what it is not.
+ * monday's review asks for onboarding (`apps/docs/product`); Watchdog's
+ * welcome page is the model. The automations load behind it.
+ */
+function renderWelcome() {
+  const box = el('section', 'welcome');
+  box.append(
+    el('h2', null, 'Every automation, in one list'),
+    el(
+      'p',
+      null,
+      'monday keeps automations on each board\'s own Automations page. This view lists all of them, from every board you can see, so you can find one without opening board after board.',
+    ),
+  );
+  const steps = el('ol', 'steps');
+  for (const text of [
+    'It reads the automations on every board you can see, one board at a time, older kinds included. It only reads: it never changes a board, an item or an automation.',
+    'Automations with a warning from monday come first, then the ones switched off. Filter them, or search by name, board or warning.',
+    'To switch one on or off, click Open board and choose Automate. This app cannot switch them itself: monday\'s public API does not offer that.',
+    'If your account uses sidekick, monday\'s AI assistant, you can also ask it, for example: "which of my automations are switched off?"',
+  ]) {
+    steps.append(el('li', null, text));
+  }
+  box.append(steps);
+  const go = el('button', 'primary', 'Show my automations');
+  go.type = 'button';
+  go.addEventListener('click', dismissWelcome);
+  box.append(go);
+  return box;
+}
+
 function render() {
   const app = $('app');
   app.replaceChildren();
@@ -169,6 +236,13 @@ function render() {
       el('span', null, 'It lists automations through monday\'s API, which viewer accounts cannot use. Ask an admin or a member of this account to open this view.'),
     );
     app.append(box);
+    return;
+  }
+
+  // After the viewer check: a welcome promising automations a viewer then
+  // cannot see would be worse than no welcome.
+  if (state.welcome) {
+    app.append(renderWelcome());
     return;
   }
 
@@ -197,7 +271,7 @@ function render() {
     );
   }
   renderList(app);
-  app.append(el('p', 'meta', 'To switch an automation on or off, open its board\'s Automations page in monday.'));
+  app.append(el('p', 'meta', 'To switch an automation on or off, open its board and choose Automate.'));
   reportValueCreated();
 }
 

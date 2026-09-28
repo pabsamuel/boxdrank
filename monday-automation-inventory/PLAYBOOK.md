@@ -82,9 +82,14 @@ not push.
 A live version is locked. Uygulama Sürümleri → new version (draft). Then
 Özellikler → create:
 
-**a) Board view** ("Pano Görünümleri")
-- Deployment: **Harici barındırma** (external hosting).
-- URL: `https://<LIVE_URL>/view/`.
+**a) Object**, and **Board view** ("Pano Görünümleri")
+- Create both. They show the same page.
+  - The Object sits in the workspace's left menu, not on a board. That is
+    where a list of the whole account belongs.
+  - FACT (`apps/docs/custom-objects`): users add it with "Add item to
+    workspace (+)" → Apps.
+- Deployment for each: **Harici barındırma** (external hosting).
+- URL for each: `https://<LIVE_URL>/view/`.
 
 **b) Automation block** (the Sidekick tool's action)
 - Name: `Find automations`. Type **Action**, **not async**.
@@ -132,6 +137,8 @@ draft when one exists) and **promote the draft**. After promoting, check
 
 ## 6. Test live, before any listing work
 
+- **Object**: in the workspace's left menu, **+** → Apps → the app. Then do
+  the same checks as for the board view.
 - **Board view**: add it to a board through the Apps menu.
   - It shows the list.
   - The legacy automation "When Status changes to Bitir move item to Group

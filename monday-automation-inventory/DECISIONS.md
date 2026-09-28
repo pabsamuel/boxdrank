@@ -20,14 +20,11 @@ What is true either way:
 - This app's scope is the map: every automation, findable, understandable.
 - They must not both do the same thing.
 
-**Open, for Samet: does Watchdog keep its "All automations" tab?**
-- State on 28 Sep:
-  - The tab was built into Watchdog: commits `bb5ecaf`, `23fcca6`, and the
-    docs commit after them.
-  - It was pushed to the repository but **never deployed**. Live Watchdog
-    (v4, 18317118) does not have it.
-- If it stays, this app sells what Watchdog gives away.
-- Removing it means reverting those three commits in Watchdog. Samet decides.
+**Watchdog does not keep its "All automations" tab.**
+- Samet, 28 Sep: "sekmeyi çıkar".
+- The three commits that added it were reverted in `7ed95e6`.
+- The tab was never deployed, so live Watchdog and its submitted listing
+  already matched.
 
 ## 28 Sep 2026: the MVP does not switch automations on or off
 
@@ -63,6 +60,15 @@ What was built (`PROGRESS.md` items 9–17):
     to ask about.
 - Filtering by creator was left out: it needs `users:read`, which is one more
   scope to justify. It is in `BACKLOG.md`.
+
+## 28 Sep 2026: an Object and a board view
+
+- The list covers the whole account, so its natural home is not a board.
+- monday's **Object** feature lives in the workspace's left menu, outside any
+  board (`apps/docs/custom-objects`).
+- The app offers both an Object and a board view, which serve the same page.
+- The **Administration view** was not chosen: only account admins could open
+  it.
 
 ## Pending, for Samet
 

@@ -10,14 +10,34 @@
 
 import { singleLine } from '../core/sanitize.js';
 
+/** `url` is `String!` on `Board` (public schema, 2026-07, read 28 Sep 2026). */
 const BOARDS_QUERY = `
   query ($limit: Int!, $page: Int!) {
     boards(limit: $limit, page: $page) {
       id
       name
+      url
     }
   }
 `;
+
+/**
+ * A board URL the view may open, or null. It comes from monday's API, and it
+ * is only ever opened if it is https on monday.com, so a value that is
+ * anything else cannot send the user somewhere else.
+ */
+export function safeBoardUrl(value) {
+  let url;
+  try {
+    url = new URL(String(value ?? ''));
+  } catch {
+    return null;
+  }
+  const host = url.hostname.toLowerCase();
+  if (url.protocol !== 'https:' || url.username || url.password) return null;
+  if (host !== 'monday.com' && !host.endsWith('.monday.com')) return null;
+  return url.toString();
+}
 
 const PAGE_SIZE = 100;
 const MAX_BOARD_PAGES = 50;
@@ -60,7 +80,11 @@ export async function fetchBoards(monday, onProgress) {
     const data = await query(monday, BOARDS_QUERY, { limit: PAGE_SIZE, page });
     const batch = data?.boards ?? [];
     boards.push(
-      ...batch.map((board) => ({ id: String(board.id), name: singleLine(board.name) || '(untitled board)' })),
+      ...batch.map((board) => ({
+        id: String(board.id),
+        name: singleLine(board.name) || '(untitled board)',
+        url: safeBoardUrl(board.url),
+      })),
     );
     onProgress?.(boards.length);
     if (batch.length < PAGE_SIZE) break;

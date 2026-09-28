@@ -65,6 +65,16 @@ async function loadView() {
     '/view/': { ...page, body: html },
     '/view/index.html': { ...page, body: html },
     '/view/main.js': { type: 'text/javascript; charset=utf-8', body: await readFile(new URL('main.js', dist)) },
+    // The how-to-use page monday's review asks for, embeddable in monday.
+    '/view/how-to.html': { ...page, body: await readFile(new URL('how-to.html', dist)) },
+    ...Object.fromEntries(
+      await Promise.all(
+        ['welcome.png', 'list.png', 'search.png'].map(async (name) => [
+          `/view/assets/${name}`,
+          { type: 'image/png', body: await readFile(new URL(`assets/${name}`, dist)) },
+        ]),
+      ),
+    ),
     // The invented demo account, for the view opened outside monday. main.js
     // fetches `../../fixtures/…` from /view/main.js, which resolves here.
     '/fixtures/demo-automations.json': {
