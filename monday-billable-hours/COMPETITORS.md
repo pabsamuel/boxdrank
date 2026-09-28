@@ -288,3 +288,16 @@ owner is deactivated, so the automations keep running. It is opt-in — it helps
 only accounts that set it up before the person leaves — but it means the
 offboarding case, the Watchdog's sharpest pitch, has a native answer.
 
+### monday's Autopilot hub, for Watchdog: 28 Sep 2026
+
+FACT, from https://support.monday.com/hc/en-us/articles/28738092924562-The-Autopilot-hub
+(updated 6 Aug 2026; launched 6 Nov 2025 per monday.com/whats-new):
+- The hub's Health tab is account-wide. It is for "helping you instantly
+  understand which automations are running, which are failing, and why".
+- It lists failures with owner, board, time of last failure and an
+  AI-generated root cause.
+
+INFERENCE: this overlaps Watchdog wherever an automation *fails*. It does not
+cover an automation monday switched off, which no longer runs and so no
+longer fails. That silent case is Watchdog's niche, and the listing already
+leads with it. Full research: `../monday-automation-inventory/COMPETITORS.md`.

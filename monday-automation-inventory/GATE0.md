@@ -1,6 +1,7 @@
 # Gate 0: what Samet runs, and what to paste back
 
-Three checks, about 30 minutes in total. Each one can stop the project before
+Three checks. Item 2 was done by research on 28 Sep, which leaves about 20
+minutes of Samet's time. Each one can stop the project before
 the listing and submission work, which is where the time goes. The code is
 already written; see `DECISIONS.md` for why the gate now sits before the
 listing instead of before the build.
@@ -79,7 +80,13 @@ If it works, each row in the list can show "ran 214 times, 12 failed" (item 13
 in `PROGRESS.md`). If it does not, the list stays as it is. Either way the
 project goes on; this check changes a feature, not the go/stop decision.
 
-## 2. Competitors: Claude-in-Chrome prompt (delegate, 15 min)
+## 2. Competitors: done by research on 28 Sep (`COMPETITORS.md`)
+
+- No marketplace app among about 980 lists automations across boards.
+- The competitor that matters is monday's own **Autopilot hub** (November
+  2025). See item 3.
+- Optional, if Samet wants a second look: the Claude-in-Chrome prompt below
+  searches the marketplace itself.
 
 ```
 monday.com marketplace'te (https://monday.com/marketplace) rakip araştırması yap. Sadece oku: hiçbir uygulamayı YÜKLEME, hiçbir şey satın alma, hiçbir forma bir şey gönderme. Şifre/2FA sorulursa dur ve bana sor.
@@ -104,38 +111,40 @@ Hiçbir sayıyı tahmin etme; ekranda yoksa "görünmüyor" yaz.
 RAPOR: tablo, en yakın 3 rakibin detayı, ve ekran görüntüsü aldıysan adları.
 ```
 
-Paste the report back. What it decides:
-- If an app already does this with installs and reviews, the question becomes
-  what this app does better, answered in one sentence, or stop.
-- If nothing close exists, go on.
+## 3. monday's Autopilot hub (Samet, 10 min)
 
-## 3. monday's own automations page (Samet, 5 min)
+This is the one check that can still stop the project. monday's help article
+(`COMPETITORS.md`) says the hub gives "full visibility into everything that's
+automated" across the account. Its documented parts, though, are:
+- failures (Health tab);
+- usage rankings (Usage tab);
+- a search over *workflows* (Workflows tab);
+- nothing about a searchable list of every board automation with its on/off
+  state.
 
-Patrick called its search "weak"; see it first-hand.
-
-1. In monday, open any board → **Otomatikleştir** (Automate).
-2. Look for a page that lists automations across **every** board, not just
-   this one. It may be called "Automation Center", "Otomasyon Merkezi" or
-   something like "Hesap otomasyonları"; UNKNOWN where exactly it is. Also look
-   under the profile menu → Administration.
-3. If it exists, write down:
-   - Does it show every board's automations at once?
-   - Is there a search box, and what does it search: names only, or board
-     names too?
-   - Can you filter by on/off?
-   - Does it show your older automation on board 5104569213 ("When Status
-     changes to Bitir…")?
-4. Send two screenshots: the page, and a search on it.
+See it first-hand:
+1. In monday, find the **Autopilot hub**. The help article does not say where
+   the entry point is (UNKNOWN); try the left menu, the top bar, and
+   profile picture → Administration.
+2. Open each tab: Health, Usage, Workflows, Connections.
+3. Write down:
+   - Can you see **every automation** from every board in one list, including
+     ones that never failed? Or only failed ones, or only the top ones?
+   - Is there a **search box** for automations, and what does it find?
+   - Can you filter by **on/off**?
+   - Does your older automation on board 5104569213 ("When Status changes to
+     Bitir…") appear anywhere?
+4. Send screenshots of each tab.
 
 What it decides:
-- If monday's own page already does all of this well, stop: nobody pays for
-  what is free.
-- If it lacks a cross-board list, search, filters or the older automations,
-  the gap is the pitch, and it goes into `LISTING.md` word for word.
+- If the hub already lists and searches every automation with its on/off
+  state: **stop**. Nobody pays for what monday gives free.
+- If it only shows failures, rankings and workflows: **go**. The gap goes
+  into `LISTING.md` word for word.
 
 ## The decision
 
-Write it in `DECISIONS.md` once 2 and 3 are back:
+Write it in `DECISIONS.md` once 3 is back (2 is done):
 - go or stop;
 - and the one sentence of what this does that monday and the competitors do
   not.

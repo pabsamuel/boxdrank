@@ -70,6 +70,16 @@ What was built (`PROGRESS.md` items 9–17):
 - The **Administration view** was not chosen: only account admins could open
   it.
 
+## 28 Sep 2026: Gate 0, early reading (not the decision)
+
+- No marketplace app does this (`COMPETITORS.md`).
+- Users do ask for it.
+- monday's Autopilot hub covers *failures* across the account, but its
+  documentation shows no searchable list of every automation with its on/off
+  state.
+- The decision waits for Samet's first-hand look at the hub (`GATE0.md`
+  item 3). If the hub already does it, stop.
+
 ## Pending, for Samet
 
 - **Name**: at most 30 characters, no "monday".

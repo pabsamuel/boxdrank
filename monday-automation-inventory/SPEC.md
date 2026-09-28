@@ -31,6 +31,20 @@ His email names three pains. They set the order of the work:
 | 2 | "hard to find the automation you are looking for" | Search, plus filters: on/off, has a warning, older type, board, creator | MVP. Search and filters built 28 Sep; creator filter in `BACKLOG.md` |
 | 3 | "hard to understand how your monday system works as a whole", the dominoes | Show which automations set off which others | After the MVP. Feasibility UNKNOWN, see below |
 
+## What monday already has (`COMPETITORS.md`, 28 Sep 2026)
+
+- FACT: monday's **Autopilot hub** (November 2025) is account-wide. Its Health
+  tab lists automations that are *failing*, with owner, board and an
+  AI-generated cause, filterable by owner and board. It also has usage
+  rankings and a searchable list of *workflows*.
+- NOT DOCUMENTED for the hub: a searchable list of every board automation
+  with its on/off state, and legacy automations.
+- The pitch is therefore narrower than Patrick's email:
+  - not "you cannot see automations across boards";
+  - but "find any automation, on or off, older kinds included, by searching
+    across every board".
+- Gate 0 item 3 checks this against the real hub.
+
 ## MVP, the smallest thing worth submitting
 
 1. **All automations list.** Every automation on every board the signed-in

@@ -49,6 +49,7 @@ node scripts/make-assets.js      # re-renders the how-to screenshots; needs Play
 | `PLAYBOOK.md` | From nothing to submitted, the way it worked for Watchdog |
 | `DECISIONS.md` | What was decided, by whom, when; what is still open |
 | `SPEC.md` | The problem, the MVP, what the API can and cannot do |
+| `COMPETITORS.md` | monday's own Autopilot hub, the marketplace (no app does this), and users asking for it |
 | `PLATFORM-FACTS.md` | monday facts learned on Watchdog, with sources |
 | `LESSONS.md` | Mistakes from Watchdog not to repeat |
 | `REUSE.md` | What came from Watchdog, and what is still to take |

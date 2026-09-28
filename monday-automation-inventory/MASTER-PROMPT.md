@@ -83,14 +83,15 @@ you are missing. Do not reconstruct them.
   what was not.
 
 **First task: two things at once.**
-1. **Gate 0** (`GATE0.md`), which needs Samet's hands:
+1. **Gate 0** (`GATE0.md`). The competitor research is done
+   (`COMPETITORS.md`): no marketplace app does this, and the one to beat is
+   monday's own **Autopilot hub**. Two checks need Samet's hands:
    - the run-statistics queries in the playground;
-   - a Claude-in-Chrome prompt for the competitor search;
-   - a look at monday's own automations page.
+   - a first-hand look at the Autopilot hub, with screenshots.
 
-   Ask him for the results, and judge them bluntly. "Someone already does
-   this well, stop" is an acceptable answer. The gate decides whether the
-   listing and the submission get done.
+   Judge the hub bluntly. "monday already does this, stop" is an acceptable
+   answer. The gate decides whether the listing and the submission get
+   done.
 2. **Deploy** (`PLAYBOOK.md` steps 1–6). Walk him through creating the app,
    the first push, the settings, the features and the live test, one step at
    a time.

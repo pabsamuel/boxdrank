@@ -1,6 +1,6 @@
 # Progress
 
-**11 / 30 done: 37%.** Recompute this line whenever a box changes, and put the
+**12 / 30 done: 40%.** Recompute this line whenever a box changes, and put the
 percentage at the end of every reply to Samet.
 
 Order: Gate 0 decides whether the listing and the submission get done.
@@ -14,10 +14,12 @@ Order: Gate 0 decides whether the listing and the submission get done.
 - [x] 1. `board_automations` verified live, older automations included.
       Samet's playground run, 28 Sep 2026: board 5104569213 returned one
       normal and one legacy automation (`SPEC.md`).
-- [ ] 2. Competitors in the marketplace, with exactly what their listings
-      show.
-- [ ] 3. monday's own automations page, seen on Samet's account, with
-      screenshots.
+- [x] 2. Competitors in the marketplace (`COMPETITORS.md`, 28 Sep).
+      - None of about 980 apps lists automations across boards.
+      - The real competitor is monday's own **Autopilot hub**.
+- [ ] 3. monday's **Autopilot hub**, seen on Samet's account, with
+      screenshots. Its help article is summarised in `COMPETITORS.md`; what
+      is left is to see it first-hand.
 - [ ] 4. Run statistics in the playground: the real JSON shape, the period
       covered, the permission needed.
 - [ ] 5. Gate decision written in `DECISIONS.md`: go, or stop and why.
