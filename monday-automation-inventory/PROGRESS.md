@@ -1,6 +1,6 @@
 # Progress
 
-**26 / 30 done: 87%.** Recompute this line whenever a box changes, and put the
+**27 / 30 done: 90%.** Recompute this line whenever a box changes, and put the
 percentage at the end of every reply to Samet.
 
 Order: Gate 0 decides whether the listing and the submission get done.
@@ -178,6 +178,13 @@ Order: Gate 0 decides whether the listing and the submission get done.
 
 - [x] 27. `SUBMISSION.md`: all 42 fields, every link live (28 Sep). The
       pricing-page field now points at the pricing page.
-- [ ] 28. Form submitted by Samet.
+- [x] 28. Form submitted by Samet, 28 Sep 2026.
+      - Claude-in-Chrome filled the text fields; Samet did the AI fields,
+        uploads, SLA, terms and signature by hand, and submitted.
+      - The page after: "Teşekkür ederim! We received your monday apps
+        marketplace submission. You will be contacted shortly to start the
+        review process".
+      - Answers as sent: `SUBMISSION.md` (region EMEA; features Custom
+        Object, Board View, AI Skills; mobile No; LLM "AI monday Credits").
 - [ ] 29. Pricing version submitted, once the Pricing & Plans tab appears.
 - [ ] 30. Approved by monday.

@@ -218,6 +218,13 @@ From the Claude-in-Chrome report.
   view feature/s have been enabled for mobile?" (Yes/No).
 - "Value Proposition and Use Cases" is a one-line field: line breaks become
   spaces.
+- Choosing "AI capabilities: Yes" with the keyboard did not freeze the tab.
+  It then asks, required: "Does you app use AI to generate, process, or
+  somehow interact with the user? If so- what LLM model are you utilizing?"
+  Options: AI monday Credits, Open AI (GPT), Anthropic (Claude), Google
+  Gemini, DeepSeek, Meta (Llama), Grok, and more below.
+- After Submit: "Teşekkür ederim! We received your monday apps marketplace
+  submission. You will be contacted shortly to start the review process".
 
 ## Submission and marketplace
 

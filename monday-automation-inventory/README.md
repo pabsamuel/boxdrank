@@ -5,7 +5,7 @@ searchable place: on or off, with monday's warnings, older automations
 included. Monday's AI assistant can search it too, through a Sidekick tool.
 The idea is Patrick Fallon's; his words are in `SPEC.md`.
 
-**Status, 28 Sep 2026: Gate 0 passed (GO); v2 live with all four features, installed and tested on Samet's account; website pages live. 26 / 30 = 87%**
+**Status, 28 Sep 2026: Gate 0 passed (GO); v2 live with all four features, installed and tested; submitted to monday on 28 Sep. 27 / 30 = 90%**
 (`PROGRESS.md`).
 - The code works in tests and in a browser inside a fake monday.
 - Name and price are decided. App 12255778 is live on monday code, with the
@@ -16,7 +16,9 @@ The idea is Patrick Fallon's; his words are in `SPEC.md`.
   step 7: the title query (7c) and Palo Alto (7d).
 - The privacy, terms and pricing pages are live, and the association file
   lists the client id.
-- **Then:** Palo Alto, then the submission form (`SUBMISSION.md`).
+- Submitted to the marketplace on 28 Sep.
+- **Next:** Palo Alto evidence (`DEPLOY-PROMPTS.md` 7d); the review-board
+  invitation; the pricing version once the Pricing & Plans tab appears.
 
 ## How it works
 
