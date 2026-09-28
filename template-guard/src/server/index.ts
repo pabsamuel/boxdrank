@@ -23,6 +23,7 @@ import {
   type OAuthConfig,
 } from './oauth.js';
 import { isAuthorisedCronCaller } from './cron-auth.js';
+import { SIDEKICK_PATH, answerSidekick, readInputs, verifySidekickRequest } from './sidekick.js';
 import { InMemoryStorage, TokenCipher, type Storage } from './storage.js';
 import { SqliteStorage } from './sqlite-storage.js';
 import { ConsoleNotificationSink, DriftScheduler, type NotificationSink } from '../drift/scheduler.js';
@@ -130,7 +131,7 @@ export function assertSafeWebhookUrl(raw: string): URL {
  * Paths that belong to the server, never to the single-page app. Anything
  * under one of these that has no route is a 404, not the app shell.
  */
-const SERVICE_PREFIXES = ['/api', '/auth', '/webhooks', '/mndy-cronjob', '/health'];
+const SERVICE_PREFIXES = ['/api', '/auth', '/webhooks', '/mndy-cronjob', '/monday', '/health'];
 
 export function createServer(deps: ServerDeps) {
   const app = express();
@@ -524,6 +525,49 @@ export function createServer(deps: ServerDeps) {
       }
       console.error('[template-guard] subscription webhook failed', err);
       res.status(500).json({ error: 'Could not record this subscription change.' });
+    }
+  });
+
+  // --- Sidekick tool ---------------------------------------------------------
+
+  /**
+   * The action block behind the Sidekick tool (see `sidekick.ts`). Verified
+   * with the Signing Secret, not the Client Secret, and answered with the
+   * short-lived token monday sends for this one request.
+   */
+  app.post(SIDEKICK_PATH, async (req, res) => {
+    const claims = verifySidekickRequest(
+      req.header('Authorization'),
+      deps.signingSecret,
+      new URL(deps.oauth.redirectUri).origin,
+    );
+    if (!claims) {
+      res.status(401).json({ error: 'unauthorized' });
+      return;
+    }
+    try {
+      const { boardName, templateName } = readInputs(req.body);
+      const answer = await answerSidekick({
+        client: new MondayClient({ token: claims.shortLivedToken }),
+        storage: deps.storage,
+        accountId: claims.accountId,
+        boardName,
+        templateName,
+        automationsPreviewEnabled: previewOn,
+      });
+      // Counts only; board names stay out of the log.
+      console.log(`[template-guard] sidekick compare account=${claims.accountId}: ${answer.findings_count} findings`);
+      res.json({ outputFields: answer });
+    } catch (err) {
+      console.error('[template-guard] sidekick compare failed', err instanceof Error ? err.message : err);
+      const description =
+        'Template Guard could not read that board just now. Try again in a minute; if it keeps failing, open the Template Guard board view, which shows the error.';
+      res.status(422).json({
+        severityCode: 4000,
+        notificationErrorTitle: 'Template Guard could not check the board',
+        notificationErrorDescription: description,
+        runtimeErrorDescription: description,
+      });
     }
   });
 
