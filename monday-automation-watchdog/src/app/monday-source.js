@@ -162,10 +162,10 @@ function explainApiError(rawMessage) {
   return message;
 }
 
-async function query(monday, graphql, variables) {
+async function query(monday, graphql, variables, apiVersion) {
   let response;
   try {
-    response = await monday.api(graphql, { variables });
+    response = await monday.api(graphql, apiVersion ? { variables, apiVersion } : { variables });
   } catch (error) {
     throw new Error(explainApiError(error?.message ?? error));
   }
@@ -269,3 +269,96 @@ export function looksLikeMondayContext() {
     return true;
   }
 }
+
+/**
+ * The account's automations, as monday lists them — the inventory Patrick
+ * Fallon asked for: "impossible to 'see' all your automations in one place".
+ *
+ * FACT (the public schema, `api.monday.com/v2/get_schema?version=2026-10`,
+ * read 28 Sep 2026): `board_automations(ids, board_ids, limit, cursor):
+ * AutomationsPage!` — "Omit all filters to get all account automations" — and
+ * `BoardAutomation { id user_id active title description created_at updated_at
+ * workflow_host_data workflow_blocks workflow_variables importance
+ * notice_message template_reference_id }`. It exists in 2026-10 only, not in
+ * 2026-07 (the default) or earlier, hence the explicit version; the SDK takes
+ * `apiVersion` as an option (monday-sdk-js client.js). Legacy automations are
+ * returned only for single-board queries, so an account-wide list can miss them.
+ */
+export const AUTOMATIONS_API_VERSION = '2026-10';
+
+const AUTOMATIONS_QUERY = `
+  query ($limit: Int, $cursor: String) {
+    board_automations(limit: $limit, cursor: $cursor) {
+      cursor
+      items {
+        id
+        title
+        description
+        active
+        user_id
+        created_at
+        updated_at
+        workflow_host_data
+        notice_message
+      }
+    }
+  }
+`;
+
+const MAX_AUTOMATION_PAGES = 50;
+
+/**
+ * The board an automation lives on. The schema says only "Host data (board ID
+ * and type)" and types it as JSON, so its keys are UNKNOWN: this accepts the
+ * plausible spellings and returns null rather than guessing further.
+ */
+export function hostBoardId(host) {
+  let value = host;
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+  if (!value || typeof value !== 'object') return null;
+  const direct = value.board_id ?? value.boardId;
+  if (direct !== undefined && direct !== null) return String(direct);
+  const kind = String(value.type ?? value.host_type ?? value.hostType ?? '').toLowerCase();
+  if (kind === 'board' && value.id !== undefined && value.id !== null) return String(value.id);
+  return null;
+}
+
+/**
+ * Every automation in the account, normalised.
+ *
+ * @returns {Promise<{id: string, title: string, description: string, active: boolean|null,
+ *   boardId: string|null, userId: string|null, createdAt: string|null, updatedAt: string|null,
+ *   notice: string}[]>}
+ */
+export async function fetchAutomations(monday, onProgress) {
+  const automations = [];
+  let cursor = null;
+  for (let page = 0; page < MAX_AUTOMATION_PAGES; page += 1) {
+    const data = await query(monday, AUTOMATIONS_QUERY, { limit: 100, cursor }, AUTOMATIONS_API_VERSION);
+    const result = data?.board_automations;
+    for (const item of result?.items ?? []) {
+      automations.push({
+        id: String(item.id ?? ''),
+        title: typeof item.title === 'string' && item.title.trim() !== '' ? item.title : 'Untitled automation',
+        description: typeof item.description === 'string' ? item.description : '',
+        active: typeof item.active === 'boolean' ? item.active : null,
+        boardId: hostBoardId(item.workflow_host_data),
+        userId: item.user_id === null || item.user_id === undefined ? null : String(item.user_id),
+        createdAt: typeof item.created_at === 'string' ? item.created_at : null,
+        updatedAt: typeof item.updated_at === 'string' ? item.updated_at : null,
+        notice: typeof item.notice_message === 'string' ? item.notice_message : '',
+      });
+    }
+    onProgress?.(automations.length);
+    cursor = result?.cursor ?? null;
+    if (!cursor) break;
+  }
+  return automations;
+}
+

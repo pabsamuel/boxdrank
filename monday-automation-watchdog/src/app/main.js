@@ -14,7 +14,8 @@ import { formatDuration } from '../core/cadence.js';
 import { createMute, isMuteActive, pruneMutes, describeMute, MUTE_PRESETS } from '../core/mutes.js';
 import { loadMutes, saveMutes } from './mute-store.js';
 import { summarizeRuns } from '../core/run-log.js';
-import { fetchBoards, fetchActivity, fetchUsers, looksLikeMondayContext } from './monday-source.js';
+import { fetchBoards, fetchActivity, fetchUsers, fetchAutomations, looksLikeMondayContext } from './monday-source.js';
+import { buildInventory, searchInventory } from '../core/inventory.js';
 import { classifyActors } from '../core/actors.js';
 
 /** How far back to read activity. Long enough for the engine to learn a rhythm. */
@@ -65,6 +66,9 @@ const state = {
   welcome: !hasSeenWelcome(),
   error: null,
   status: '',
+  boards: [],
+  tab: 'watch',
+  inventory: { phase: 'idle', rows: [], counts: null, error: null, query: '' },
 };
 
 function hasSeenWelcome() {
@@ -317,6 +321,120 @@ function renderWelcome() {
   return box;
 }
 
+/** Two views of the same account: what has stopped, and everything there is. */
+function renderTabs() {
+  const bar = el('nav', 'tabs');
+  const tabs = [
+    ['watch', 'Stopped automations'],
+    ['inventory', state.inventory.counts ? `All automations (${state.inventory.counts.total})` : 'All automations'],
+  ];
+  for (const [id, label] of tabs) {
+    const button = el('button', `tab${state.tab === id ? ' active' : ''}`, label);
+    button.addEventListener('click', () => {
+      state.tab = id;
+      if (id === 'inventory' && state.inventory.phase === 'idle') loadInventory();
+      render();
+    });
+    bar.append(button);
+  }
+  return bar;
+}
+
+function renderInventoryRow(row) {
+  const tone = row.notice ? 'late' : row.active === false ? 'dormant' : row.active ? 'healthy' : 'unknown';
+  const label = row.active === false ? 'Off' : row.active ? 'On' : 'Unknown';
+  const section = el('section', `row ${tone}`);
+  const head = el('header', 'row-head');
+  const pill = el('span', `pill ${tone}`, label);
+  pill.title = row.active === false ? 'Switched off in monday.' : row.active ? 'Switched on in monday.' : 'monday did not say.';
+  head.append(pill, el('h3', null, row.title));
+  section.append(head);
+  if (row.notice) section.append(el('p', 'reason', `monday says: ${row.notice}`));
+  const changed = Date.parse(row.updatedAt ?? row.createdAt ?? '');
+  const meta = [row.board];
+  if (Number.isFinite(changed)) meta.push(`last changed ${formatDuration(Math.max(0, state.now - changed))} ago`);
+  section.append(el('p', 'meta', meta.join(' · ')));
+  if (row.description) section.append(el('p', 'meta', row.description));
+  return section;
+}
+
+/**
+ * The inventory. The list is redrawn on its own as the search changes, so
+ * the search box keeps its focus while typing.
+ */
+function renderInventory(app) {
+  const inventory = state.inventory;
+  if (inventory.phase === 'loading' || inventory.phase === 'idle') {
+    app.append(el('p', 'status', 'Listing every automation in the account…'));
+    return;
+  }
+  if (inventory.phase === 'error') {
+    const box = el('div', 'checks warn');
+    box.append(el('strong', null, 'monday did not return the list of automations'), el('span', null, inventory.error));
+    app.append(box);
+    return;
+  }
+
+  const { counts } = inventory;
+  const summary = el('div', 'summary');
+  for (const [value, label, tone] of [
+    [counts.total, 'Automations', ''],
+    [counts.off, 'Switched off', 'dormant'],
+    [counts.withNotice, 'With a notice from monday', 'late'],
+    [counts.boards, 'Boards', ''],
+  ]) {
+    const tile = el('div', `tile ${tone}`);
+    tile.append(el('div', 'tile-value', String(value)), el('div', 'tile-label', label));
+    summary.append(tile);
+  }
+  app.append(summary);
+
+  const search = el('input', 'search');
+  search.type = 'search';
+  search.placeholder = 'Search by name, board, "off"…';
+  search.value = inventory.query;
+  search.setAttribute('aria-label', 'Search automations');
+  app.append(search);
+
+  const list = el('div', 'rows');
+  const draw = () => {
+    const matches = searchInventory(inventory.rows, inventory.query);
+    list.replaceChildren(...matches.map(renderInventoryRow));
+    if (matches.length === 0) list.append(el('p', 'status', inventory.rows.length === 0 ? 'monday listed no automations in this account.' : 'No automation matches that search.'));
+  };
+  search.addEventListener('input', () => {
+    inventory.query = search.value;
+    draw();
+  });
+  draw();
+  app.append(list);
+  app.append(
+    el(
+      'p',
+      'meta',
+      'Listed by monday itself, on and off, including automations that have never run. Automations set up the older way can be missing from an account-wide list; monday returns those only board by board.',
+    ),
+  );
+}
+
+async function loadInventory() {
+  state.inventory.phase = 'loading';
+  try {
+    let automations;
+    if (state.source === 'monday') {
+      automations = await fetchAutomations(state.sdk);
+    } else {
+      const response = await fetch(new URL('../../fixtures/demo-automations.json', import.meta.url));
+      automations = (await response.json()).automations;
+    }
+    const { rows, counts } = buildInventory(automations, state.boards);
+    Object.assign(state.inventory, { phase: 'ready', rows, counts });
+  } catch (error) {
+    Object.assign(state.inventory, { phase: 'error', error: error?.message ?? String(error) });
+  }
+  render();
+}
+
 function render() {
   const app = $('app');
   app.replaceChildren();
@@ -360,6 +478,12 @@ function render() {
 
   if (state.phase === 'loading') {
     app.append(el('p', 'status', state.status || 'Loading…'));
+    return;
+  }
+
+  app.append(renderTabs());
+  if (state.tab === 'inventory') {
+    renderInventory(app);
     return;
   }
 
@@ -443,6 +567,7 @@ async function loadDemo() {
   const response = await fetch(new URL('../../fixtures/demo-activity.json', import.meta.url));
   const demo = await response.json();
   state.source = 'demo';
+  state.boards = demo.boards;
   state.now = demo.now;
   state.mutes = pruneMutes(loadMutes(), demo.now);
   state.runs = demo.runs ?? [];
@@ -493,6 +618,7 @@ async function loadFromMonday() {
   );
 
   state.source = 'monday';
+  state.boards = boards;
   state.now = now;
   state.mutes = pruneMutes(loadMutes(), now);
   // The scheduled job's history lives server-side. It is asked for with the
