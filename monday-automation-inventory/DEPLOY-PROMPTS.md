@@ -257,3 +257,104 @@ Automation Inventory canlı ve test edildi (App ID 12255778, client id fb2b51f81
 
 After the report, Claude checks the four URLs from here and marks items 21
 and 22.
+
+## 9. The submission form (Chrome fills, Samet finishes and submits)
+
+Do 7d (Palo Alto) first. The prompt below is generated from `SUBMISSION.md`
+and `LISTING.md`; if either changes, regenerate it rather than editing it by
+hand. The Chrome agent fills every text field and **does not submit**. Samet
+then does, by hand, in the same tab:
+- "Does your APP contain AI capabilities?" → Yes, and the AI description
+  (`SUBMISSION.md`, section 16). On Watchdog the agent's tab froze here twice.
+- The uploads from `listing/`: 4 gallery images, app icon, app card,
+  developer icon, video.
+- SLA, Marketplace Listing Terms, signature, Submit.
+
+```
+monday Developer Center'da "Automation Inventory" uygulamasının başvuru formunu (Submit app → Submission form) doldur. Tek rapor ver.
+
+KURALLAR: Hiçbir gizli değeri (API token, Client Secret, Signing Secret) açma, kopyalama, gösterme. Regenerate'e basma. Şifre veya 2FA isterse dur, bana sor. Ödeme yapma. Formu GÖNDERME (Submit'e BASMA). Sekmeyi kapatma. Automation Watchdog'a DOKUNMA.
+
+ŞUNLARA DOKUNMA, BOŞ BIRAK (Samet elle yapacak):
+- "Does your APP contain AI capabilities?" ve AI ile ilgili tüm alanlar (Watchdog'da bu alanda sekme iki kez dondu)
+- Görsel/video yüklemeleri (gallery, app icon, app card, developer icon, video)
+- SLA, Marketplace Listing Terms onayı, imza (Signature)
+
+Diğer alanları aşağıdaki değerlerle birebir doldur. Seçenekli bir alanda değer birebir yoksa en yakınını seç ve rapora yaz. Formda listede olmayan bir alan varsa boş bırak ve adını rapora yaz.
+
+1) App Name: Automation Inventory
+2) Entity: Individual Developer
+3) Entity Name: Samet Ateşen
+4) Full name: Samet Ateşen
+5) Residential region: Türkiye
+6) Entity Website: https://atesensoftware.com
+7) Technical Point of Contact: Samet Ateşen — sametatesen2@gmail.com
+8) Email Addresses of your teammates: (boş bırak)
+9) Business Point of Contact - Email: sametatesen2@gmail.com
+10) Support Address: support@atesensoftware.com
+11) Did you build the app using monday code?: Yes
+12) App Short Description: Every automation on every board, in one searchable list
+13) App Long Description: AŞAĞIDAKİ UZUN AÇIKLAMA
+14) Keywords: automation, automations, automation list, automation search, find automations, automation audit, inventory, admin, workflow, sidekick
+15) App Features: Object; Board view; Sidekick tool (with its "Find automations" action block)
+17) Value Proposition and Use Cases: AŞAĞIDAKİ METİN (Value Proposition and Use Cases)
+18) Feature Names: Automation Inventory (object); Automation Inventory (board view); Automation Inventory: find automations (Sidekick tool); Find automations (action block)
+19) Categories: Productivity & efficiency; Reporting & analytics; Project management
+20) OAuth Scopes: AŞAĞIDAKİ METİN (OAuth Scopes)
+21) Personal Data Use: AŞAĞIDAKİ METİN (Personal Data Use)
+22) Privacy Policy: https://atesensoftware.com/automation-inventory/privacy/
+23) Terms of Service: https://atesensoftware.com/automation-inventory/terms/
+24) Pricing Model: monday's Monetization
+25) Link to your Pricing Page: https://atesensoftware.com/automation-inventory/pricing/
+31) Installation Link: https://auth.monday.com/oauth2/authorize?client_id=fb2b51f8128e2fbcc70e02843099902d&response_type=install
+32) App ID: 12255778
+33) How to use Link: https://live1-service-36993937-d7d03ea4.eu.monday.app/view/how-to.html
+34) Demo Link: https://live1-service-36993937-d7d03ea4.eu.monday.app/view/
+35) Additional Comments: AŞAĞIDAKİ METİN (Additional Comments)
+36) Credentials for review purpose: AŞAĞIDAKİ METİN (Credentials for review purpose)
+40) How did you hear about our marketplace?: Other
+41) Do you have any apps published or under review in our marketplace?: Yes (ayrıca bir metin kutusu çıkarsa: Automation Watchdog, app 12249756, submitted 28 Sep 2026)
+42) Are you a monday.com channel partner?: No
+
+--- UZUN AÇIKLAMA (App Long Description), düz metin ---
+monday keeps each board's automations on that board's own Automations page. With dozens of boards, finding the one that moves items to Done, or checking which automations are switched off, means opening board after board.
+
+Automation Inventory puts every automation on every board you can see into one list.
+
+What it does
+- Lists every automation on the boards you can see, on one page, including ones that have never run
+- Shows whether each one is switched on, and the warning monday shows on it, with the ones that need attention first
+- Finds an automation by searching its name, its board or its warning
+- Filters to the ones switched off, the ones with a warning, or one board
+- Opens an automation's board in one click, to switch it on or off there
+- Works with sidekick, monday's AI assistant: ask "which of my automations are switched off?" or "which automations post to Slack?" and it answers with each automation's name, board and state
+- Sits in your workspace's left menu, or as a view on any board, and follows monday's light, dark and night themes
+
+What it asks for
+Read-only access to boards, and nothing else. It never changes a board, an item or an automation, and it stores nothing: the list is read in your browser each time you open it.
+
+What it cannot do
+It cannot switch automations on or off itself, because monday's public API does not offer that, so it takes you to the board instead. It shows only the boards you have access to.
+
+--- Value Proposition and Use Cases ---
+monday keeps each board's automations on that board's own Automations page. Automation Inventory lists every automation on every board the user can see in one searchable list, with whether each is switched on and the warning monday shows on it, including automations that have never run. Automations set up the older way are named by what they do, using the board's own column, label and group names.
+
+Use cases:
+- An admin finds which automation keeps moving items to Done, without opening board after board.
+- A team checks which automations are switched off, or carry a warning, across all its boards.
+- A consultant taking over an account sees every automation in one place on day one.
+
+--- OAuth Scopes ---
+boards:read — the boards the user can see, the automations on them, and, for automations set up the older way, the board's column titles, status labels and group names, to name those automations. Read-only; the app never writes. It has no OAuth install flow and stores no token.
+
+--- Personal Data Use ---
+None is stored. The app reads boards and their automations, in the user's browser with their own session, or with the short-lived token monday sends with a sidekick request, and keeps nothing: no database, no tokens, no email addresses. It does not ask for items, column values, updates, files or anyone's name or email. Logs hold only an account id and counts. Full details: https://atesensoftware.com/automation-inventory/privacy/
+
+--- Additional Comments ---
+Hosted entirely on monday code, with no storage of any kind. One read-only scope. The page uses seamless authentication. The Sidekick tool's action block verifies monday's signed request with the signing secret, checks expiry and audience, and returns 4xx with severityCode 4000 on failure. Security answers with code references are available on request.
+
+--- Credentials for review purpose ---
+No separate credentials are needed: the app uses the reviewer's own monday account. Install it, then open it from the workspace's left menu ("+" → Apps) or add it as a view on any board. It lists every automation on the boards the reviewer can see. The demo link shows the full page on an invented demo account.
+
+RAPOR: doldurulan her alan (numara + ad), boş bırakılanlar, formda gördüğün ama listede olmayan alanlar, karakter sınırı uyarıları ve hata metinleri kelimesi kelimesine. Submit'e basmadığını teyit et.
+```
