@@ -121,6 +121,13 @@ try {
       check(response.status === 200 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47, `${image} is served`);
     }
 
+    // The listing's demo link opens /view/ outside monday, which fetches this.
+    // It was missing from the live app until 28 Sep, so the demo link showed
+    // an error instead of the demo account.
+    const demo = await fetch(`${base}/fixtures/demo-activity.json`);
+    const demoBody = demo.status === 200 ? await demo.json().catch(() => null) : null;
+    check(Array.isArray(demoBody?.boards) && Array.isArray(demoBody?.entries), 'demo data for the demo link is served');
+
     const cron = await fetch(`${base}/mndy-cronjob/check`, { method: 'POST' });
     check(cron.status === 503, 'scheduled route refuses to run before setup');
   }

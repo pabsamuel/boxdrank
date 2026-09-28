@@ -33,7 +33,7 @@
  */
 
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { SecureStorage, SecretsManager, Logger } from '@mondaycom/apps-sdk';
 import { createAppHandler, createSetupHandler } from '../src/server/app-server.js';
 import { createHttpClient } from '../src/server/http-client.js';
@@ -78,6 +78,17 @@ async function loadView() {
     '/view/how-to.html': { ...page, body: await readFile(new URL('how-to.html', dist)) },
     '/view/assets/board-view.png': { ...png, body: await readFile(new URL('assets/board-view.png', dist)) },
     '/view/assets/alert-email.png': { ...png, body: await readFile(new URL('assets/alert-email.png', dist)) },
+    // The invented demo account, for the view opened outside monday — the
+    // listing's demo link. main.js fetches `../../fixtures/…` from
+    // /view/main.js, which resolves to /fixtures/….
+    ...Object.fromEntries(
+      await Promise.all(
+        (await readdir(new URL('fixtures/', dist))).filter((name) => /^demo-[a-z-]+\.json$/.test(name)).map(async (name) => [
+          `/fixtures/${name}`,
+          { type: 'application/json; charset=utf-8', body: await readFile(new URL(`fixtures/${name}`, dist)) },
+        ]),
+      ),
+    ),
   };
 }
 
