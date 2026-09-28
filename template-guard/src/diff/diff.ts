@@ -4,6 +4,11 @@ import { compareWiring, isBoardReferencing, linkedBoardIds } from './connect.js'
 import { matchColumns, type ColumnMatch } from './match.js';
 import { sortFindings, type DiffResult, type Finding } from './types.js';
 
+/** How a person reads a view type. App views come back as FeatureBoardView. */
+export function describeViewType(type: string): string {
+  return type === 'FeatureBoardView' ? 'an app view — add it from “+” → Apps' : `a ${type} view`;
+}
+
 /**
  * The diff engine.
  *
@@ -306,7 +311,7 @@ function diffViews(
         what: `The view “${v.name}” exists on the template but not on this board.`,
         whyItMatters:
           'Views carry filters and groupings the team relies on. A missing view usually means someone is looking at an unfiltered board and does not realise it.',
-        howToFix: `Recreate the “${v.name}” view (type: ${v.type}) on this board.`,
+        howToFix: `Recreate the “${v.name}” view on this board (${describeViewType(v.type)}).`,
         confidence: 'certain',
         evidence: { templateViewId: v.id, type: v.type },
       });
@@ -321,7 +326,7 @@ function diffViews(
         subject: { type: 'view', id: found.id, title: found.name },
         what: `The view “${found.name}” is a ${found.type} view here but a ${v.type} view on the template.`,
         whyItMatters: 'The team is looking at this board through a different lens than the template intends.',
-        howToFix: `Recreate the view as a ${v.type} view.`,
+        howToFix: `Recreate the view as ${describeViewType(v.type)}.`,
         confidence: 'certain',
         evidence: { templateViewId: v.id, copyViewId: found.id },
       });

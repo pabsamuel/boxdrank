@@ -5,9 +5,11 @@ import {
   boardLink,
   columnLink,
   columnNavigationHint,
+  addColumnNavigationHint,
   viewLink,
   type DeepLinkContext,
 } from './deeplinks.js';
+import { describeViewType } from '../diff/diff.js';
 
 /**
  * The repair layer: turning findings into either a button or a checklist item.
@@ -122,7 +124,7 @@ function planFor(
           link: columnLink(ctx, null),
           whyManual:
             'Template Guard can create the column but cannot know which board it should connect to on this copy — pointing it at the template’s target is exactly the mistake this app exists to catch.',
-          navigationHint: columnNavigationHint(f.subject.title),
+          navigationHint: addColumnNavigationHint(f.subject.title),
         };
       }
 
@@ -220,7 +222,7 @@ function planFor(
       return {
         mode: 'manual',
         findingId: f.id,
-        instruction: `Recreate the “${f.subject.title}” view (type: ${String(f.evidence.type ?? 'unknown')}) on this board.`,
+        instruction: `Recreate the “${f.subject.title}” view on this board (${describeViewType(String(f.evidence.type ?? 'unknown'))}).`,
         link: viewLink(ctx, null),
         whyManual:
           'monday’s API does not expose view creation, so this one genuinely has to be done in the interface.',

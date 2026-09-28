@@ -73,6 +73,11 @@ export function columnNavigationHint(columnTitle: string): string {
   return `Open the board, click the “${columnTitle}” column header, then choose Settings → Customize.`;
 }
 
+/** For a column that is not on the board at all, so has no header to click. */
+export function addColumnNavigationHint(columnTitle: string): string {
+  return `Open the board, click “+” at the right end of the column headers, choose Connect boards, name it “${columnTitle}” and pick the board it should link to.`;
+}
+
 export function automationNavigationHint(): string {
   return 'Open the board, click Automate in the top-right, then review the recipe list.';
 }
