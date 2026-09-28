@@ -148,7 +148,7 @@ mapps init
 # set secrets and env vars (Part 5 lists every one)
 npm run deploy:monday:scan     # deploy + security scan
 npm run monday:report          # read the scan report
-mapps scheduler:create -a <APP_ID> -s "0 */6 * * *" -e "mndy-cronjob/drift" -n "template-guard-drift"
+mapps scheduler:create -a <APP_ID> -s "0 */6 * * *" -e "drift" -n "template-guard-drift"
 ```
 
 Deploy as a **private** app first. You get five of those free.

@@ -22,6 +22,7 @@ import {
   verifyState,
   type OAuthConfig,
 } from './oauth.js';
+import { isAuthorisedCronCaller } from './cron-auth.js';
 import { InMemoryStorage, TokenCipher, type Storage } from './storage.js';
 import { SqliteStorage } from './sqlite-storage.js';
 import { ConsoleNotificationSink, DriftScheduler, type NotificationSink } from '../drift/scheduler.js';
@@ -535,8 +536,9 @@ export function createServer(deps: ServerDeps) {
    * It starts a sweep across every paying account, so it is guarded. The
    * platform is trusted to be the caller, but "reachable over the internet"
    * and "only monday calls it" are different claims, and only one of them is
-   * enforceable: when `DRIFT_CRON_SECRET` is configured, the header must
-   * match. Answering 202 immediately rather than holding the connection open
+   * enforceable: the caller must present monday's signed JWT or the
+   * `DRIFT_CRON_SECRET` header (see `cron-auth.ts` for why both).
+   * Answering 202 immediately rather than holding the connection open
    * for a sweep keeps a slow account from turning into a timeout that the
    * scheduler retries into a second concurrent sweep.
    */
@@ -545,7 +547,13 @@ export function createServer(deps: ServerDeps) {
       res.status(503).json({ error: 'Drift monitoring is not enabled on this deployment.' });
       return;
     }
-    if (deps.cronSecret && req.header('X-Template-Guard-Cron') !== deps.cronSecret) {
+    const authorised = isAuthorisedCronCaller({
+      authorization: req.header('Authorization'),
+      cronHeader: req.header('X-Template-Guard-Cron'),
+      cronSecret: deps.cronSecret,
+      signingSecret: deps.signingSecret,
+    });
+    if (!authorised) {
       console.warn('[template-guard] rejected a cron invocation with a bad or missing secret');
       res.status(401).json({ error: 'Not authorised.' });
       return;

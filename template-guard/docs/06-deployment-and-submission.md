@@ -241,7 +241,7 @@ region, and the `il` region has no cron at all:
 
 ```bash
 mapps scheduler:create -a <APP_ID> \
-  -s "0 */6 * * *" -e "mndy-cronjob/drift" \
+  -s "0 */6 * * *" -e "drift" \
   -n "template-guard-drift" -d "Re-check linked boards against their templates."
 ```
 
