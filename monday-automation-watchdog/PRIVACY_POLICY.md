@@ -48,12 +48,6 @@ The board view reads the same activity **in your browser**, directly from
 monday.com, to show you the results. That reading does not pass through our
 server.
 
-The board view's "All automations" tab also reads, in your browser, the list of
-automations on the boards you can see: each automation's title, description,
-whether it is on or off, and any warning monday shows on it. A title can
-contain what the automation was set up with, such as a status label or a group
-name. This list is shown to you and is neither sent to our server nor stored.
-
 When you ask monday's AI assistant, sidekick, which automations have stopped,
 the app reads the same activity at that moment with a token monday issues for
 that one request (valid for five minutes), answers with the names of stopped

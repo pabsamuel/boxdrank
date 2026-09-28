@@ -162,10 +162,10 @@ function explainApiError(rawMessage) {
   return message;
 }
 
-async function query(monday, graphql, variables, apiVersion) {
+async function query(monday, graphql, variables) {
   let response;
   try {
-    response = await monday.api(graphql, apiVersion ? { variables, apiVersion } : { variables });
+    response = await monday.api(graphql, { variables });
   } catch (error) {
     throw new Error(explainApiError(error?.message ?? error));
   }
@@ -268,145 +268,4 @@ export function looksLikeMondayContext() {
   } catch {
     return true;
   }
-}
-
-/**
- * The account's automations, as monday lists them — the inventory Patrick
- * Fallon asked for: "impossible to 'see' all your automations in one place".
- *
- * FACT (the public schema, `api.monday.com/v2/get_schema?version=2026-10`,
- * read 28 Sep 2026, and a live query on the owner's account the same day):
- * `board_automations(ids, board_ids, limit, cursor): AutomationsPage!` exists
- * in 2026-10, 2027-01 and dev, not in 2026-07, the current default — hence the
- * explicit version, which the SDK takes as an option (monday-sdk-js client.js).
- * `AutomationsPage { cursor items: [BoardAutomation!] legacy_automations: JSON }`,
- * and `legacy_automations` — automations "set up in an older way" — is
- * "resolved only for board-scoped queries (null otherwise)". On the owner's
- * test board one automation came back in `items` and a second, older one only
- * in `legacy_automations`. So this asks board by board: one account-wide query
- * would silently miss every older automation.
- */
-export const AUTOMATIONS_API_VERSION = '2026-10';
-
-const AUTOMATIONS_QUERY = `
-  query ($boardId: ID!, $limit: Int, $cursor: String) {
-    board_automations(board_ids: [$boardId], limit: $limit, cursor: $cursor) {
-      cursor
-      items {
-        id
-        title
-        description
-        active
-        user_id
-        created_at
-        updated_at
-        notice_message
-      }
-      legacy_automations
-    }
-  }
-`;
-
-const MAX_AUTOMATION_PAGES_PER_BOARD = 20;
-
-/**
- * The older automations on one board. The schema types them as JSON and says
- * the field is "best-effort, so it may carry an error marker instead of data";
- * the live answer showed an id, a boardId and a title. So the keys are read
- * defensively, and anything without an id or a title is left out rather than
- * guessed at. Whether one is switched on is kept only if monday says so.
- */
-export function parseLegacyAutomations(value, boardId) {
-  let data = value;
-  if (typeof data === 'string') {
-    try {
-      data = JSON.parse(data);
-    } catch {
-      return [];
-    }
-  }
-  const list = Array.isArray(data)
-    ? data
-    : Array.isArray(data?.automations) ? data.automations
-    : Array.isArray(data?.items) ? data.items
-    : [];
-  const flag = (entry) => {
-    for (const key of ['active', 'is_active', 'isActive', 'enabled']) {
-      if (typeof entry[key] === 'boolean') return entry[key];
-    }
-    if (typeof entry.status === 'string') {
-      const status = entry.status.toLowerCase();
-      if (status === 'active' || status === 'on' || status === 'enabled') return true;
-      if (status === 'inactive' || status === 'off' || status === 'disabled') return false;
-    }
-    return null;
-  };
-  const rows = [];
-  for (const entry of list) {
-    if (!entry || typeof entry !== 'object') continue;
-    const id = entry.id ?? entry.automation_id ?? entry.automationId;
-    const title = [entry.title, entry.name, entry.description, entry.text].find(
-      (candidate) => typeof candidate === 'string' && candidate.trim() !== '',
-    );
-    if (id === undefined || id === null || !title) continue;
-    rows.push({
-      id: String(id),
-      title,
-      description: '',
-      active: flag(entry),
-      boardId: String(entry.boardId ?? entry.board_id ?? boardId),
-      userId: null,
-      createdAt: null,
-      updatedAt: null,
-      notice: '',
-      legacy: true,
-    });
-  }
-  return rows;
-}
-
-/**
- * Every automation on the given boards, newer and older kinds, normalised.
- * A board that cannot be read is counted, not fatal: the rest still show.
- *
- * @returns {Promise<{automations: object[], failedBoards: number}>}
- */
-export async function fetchAutomations(monday, boardIds, onProgress) {
-  const automations = [];
-  const seen = new Set();
-  let failedBoards = 0;
-  for (const boardId of boardIds) {
-    try {
-      let cursor = null;
-      for (let page = 0; page < MAX_AUTOMATION_PAGES_PER_BOARD; page += 1) {
-        const data = await query(monday, AUTOMATIONS_QUERY, { boardId, limit: 100, cursor }, AUTOMATIONS_API_VERSION);
-        const result = data?.board_automations;
-        const found = (result?.items ?? []).map((item) => ({
-          id: String(item.id ?? ''),
-          title: typeof item.title === 'string' && item.title.trim() !== '' ? item.title : 'Untitled automation',
-          description: typeof item.description === 'string' ? item.description : '',
-          active: typeof item.active === 'boolean' ? item.active : null,
-          boardId: String(boardId),
-          userId: item.user_id === null || item.user_id === undefined ? null : String(item.user_id),
-          createdAt: typeof item.created_at === 'string' ? item.created_at : null,
-          updatedAt: typeof item.updated_at === 'string' ? item.updated_at : null,
-          notice: typeof item.notice_message === 'string' ? item.notice_message : '',
-          legacy: false,
-        }));
-        if (page === 0) found.push(...parseLegacyAutomations(result?.legacy_automations, boardId));
-        for (const automation of found) {
-          const key = `${automation.legacy ? 'legacy' : 'new'}:${automation.id}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          automations.push(automation);
-        }
-        cursor = result?.cursor ?? null;
-        if (!cursor) break;
-      }
-    } catch {
-      failedBoards += 1;
-    }
-    onProgress?.(automations.length);
-  }
-  return { automations, failedBoards };
 }

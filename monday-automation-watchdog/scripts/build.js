@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('..', import.meta.url));
 
 /** Invented demo data the view fetches when it is not inside monday. */
-export const DEMO_FILES = ['demo-activity.json', 'demo-automations.json'];
+export const DEMO_FILES = ['demo-activity.json'];
 
 await mkdir(new URL('../dist/', import.meta.url), { recursive: true });
 

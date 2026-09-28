@@ -524,14 +524,6 @@ where it can be, tested:
   to `https://<slug>.monday.com/`, the slug checked as a single DNS label so it
   cannot become an open redirect.
 - **A how-to-use page** served by the app itself, embeddable in monday.
-- **An "All automations" tab** — Patrick Fallon's ask: every automation in the
-  account in one searchable list, on or off, with monday's own notice and the
-  board it lives on, including automations that have never run. It reads
-  `board_automations`, which exists only from API version 2026-10 (the public
-  schema, `api.monday.com/v2/get_schema`), board by board: older automations
-  come back only in `legacy_automations`, and only for single-board queries —
-  on the owner's test board one of two automations was of that older kind. The
-  list and its search are pure functions in `src/core/inventory.js`.
 - **The activity query no longer asks for `data`**, the field that would carry
   item names and column values. Nothing used it, and not asking is what makes
   the privacy policy's "does not read item names or column values" true.
