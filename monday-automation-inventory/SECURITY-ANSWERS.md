@@ -17,6 +17,22 @@ owner's machine (`scripts/make-assets.js` and the listing scripts) are left out
 of the upload (`.mappsignore`, checked by `npm run check:deploy`). That is
 because Watchdog's only scan warning was in such a script.
 
+Every later push found nothing either: the one that set the settings, the one
+onto v2, and the welcome-page fix (28 Sep 2026, version 18319401, **0 errors,
+0 warnings, 0 info**).
+
+`npm audit --omit=dev`, 28 Sep 2026: 8 "moderate" entries, all one advisory.
+- The advisory: `uuid` below 11.1.1, "Missing buffer bounds check in v3/v5/v6
+  when buf is provided" (GHSA-w5hq-g745-h8pq).
+- The path: `uuid@9.0.1`, under `@google-cloud/pubsub` and
+  `@google-cloud/storage`, under `@mondaycom/apps-sdk@3.3.2`, the latest
+  release (npm, 28 Sep 2026). The other seven entries are those packages.
+- The app never imports `uuid`, and uses only the SDK's `Logger`.
+  INFERENCE: the flaw is not reachable from this app's code.
+- npm's suggested fix is to go back to `@mondaycom/apps-sdk@3.2.1`, an older
+  release. Not taken. It goes away when monday updates its SDK.
+- Watchdog has the same eight entries.
+
 ## How secrets are stored, and whether any are in the repository
 
 - None are in the repository.

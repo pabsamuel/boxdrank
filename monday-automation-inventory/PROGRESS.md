@@ -1,6 +1,6 @@
 # Progress
 
-**22 / 30 done: 73%.** Recompute this line whenever a box changes, and put the
+**23 / 30 done: 77%.** Recompute this line whenever a box changes, and put the
 percentage at the end of every reply to Samet.
 
 Order: Gate 0 decides whether the listing and the submission get done.
@@ -108,7 +108,7 @@ Order: Gate 0 decides whether the listing and the submission get done.
         `{"ok":true,"billing":"off","sidekick":"on"}`; `/view/` and
         `/view/how-to.html` answer 200; an unsigned request to the Sidekick
         route gets 401.
-- [ ] 20. Tested live on Samet's account, 28 Sep (Claude-in-Chrome, 10
+- [x] 20. Tested live on Samet's account, 28 Sep (Claude-in-Chrome, 10
       screenshots; details in `PLATFORM-FACTS.md`).
       - [x] Shared ("Tüm hesaplar") and installed; one permission asked,
             "Read all of your boards data". **`boards:read` is enough.**
@@ -119,15 +119,17 @@ Order: Gate 0 decides whether the listing and the submission get done.
             theme work.
       - [x] The action block in a board automation: "Success", 9 s; the
             log says `6 of 6, 8 boards`.
-      - [ ] **The test automation is deleted.** Samet does it: the Chrome
-            agent will not delete permanently. It is switched off.
+      - [x] The test automation is deleted (Samet, 28 Sep; the Chrome agent
+            will not delete permanently).
       - Found:
         - monday's own API titles can lack spaces ("assignitemcreator
           asperson"). The app shows them as sent. Playground check pending
           (`DEPLOY-PROMPTS.md` step 7).
         - Behind the welcome page, the page was redrawn on every board read,
           so a click on "Show my automations" could be lost. Fixed 28 Sep,
-          with a browser check that fails on the old code. Not deployed yet.
+          with a browser check that fails on the old code. Pushed to v2 by
+          Samet (scan 0 findings); the Live URL's `main.js` is byte for byte
+          this build.
         - Once, the filters stopped answering clicks; a reload fixed it.
           Cause UNKNOWN; not reproduced.
 

@@ -5,14 +5,15 @@ searchable place: on or off, with monday's warnings, older automations
 included. Monday's AI assistant can search it too, through a Sidekick tool.
 The idea is Patrick Fallon's; his words are in `SPEC.md`.
 
-**Status, 28 Sep 2026: Gate 0 passed (GO); v2 live with all four features, installed and tested on Samet's account. 22 / 30 = 73%**
+**Status, 28 Sep 2026: Gate 0 passed (GO); v2 live with all four features, installed and tested on Samet's account. 23 / 30 = 77%**
 (`PROGRESS.md`).
 - The code works in tests and in a browser inside a fake monday.
 - Name and price are decided. App 12255778 is live on monday code, with the
   signing secret set. v2 is live with its four features: Object, board
   view, action block, Sidekick skill.
-- The live test passed; `boards:read` is enough. Left: delete the test
-  automation, and push the welcome-page fix (`DEPLOY-PROMPTS.md` step 7).
+- The live test passed; `boards:read` is enough. The test automation is
+  deleted and the welcome-page fix is live. Left from `DEPLOY-PROMPTS.md`
+  step 7: the title query (7c) and Palo Alto (7d).
 - **Then:** the website pages and the association file, the security
   evidence, and the submission.
 
