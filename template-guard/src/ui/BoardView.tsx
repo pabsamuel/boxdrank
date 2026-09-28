@@ -184,13 +184,17 @@ export function BoardView() {
             </Text>
           )}
 
-          <Toggle
-            isSelected={includeCosmetic}
-            onChange={setIncludeCosmetic}
-            ariaLabel="Include cosmetic differences"
-            offOverrideText="Hiding cosmetic differences"
-            onOverrideText="Showing cosmetic differences"
-          />
+          {/* One label beside the switch. Vibe's Toggle renders its off and on
+              texts on both sides at once, which read as a contradiction live. */}
+          <Flex gap={Flex.gaps.SMALL} align={Flex.align.CENTER}>
+            <Toggle
+              isSelected={includeCosmetic}
+              onChange={setIncludeCosmetic}
+              ariaLabel="Show cosmetic differences"
+              areLabelsHidden
+            />
+            <Text type={Text.types.TEXT2}>Show cosmetic differences</Text>
+          </Flex>
         </>
       )}
 

@@ -1079,3 +1079,25 @@ not requested in chat on purpose — one token has already been exposed there.
 `MONDAY_REDIRECT_URI` depends on the deployed URL, which exists only after a
 successful deploy; it is set to a placeholder until then and corrected
 immediately after.
+
+## ADR-035 — What the first live install taught (28 Sep 2026)
+
+Three defects that no test could have found, each now pinned by one:
+
+1. **The view's `sessionToken` is signed with the Client Secret**, not the
+   Signing Secret. Every real token failed verification. The cron route
+   accepts a JWT signed with either, since which one the scheduler uses is
+   still unobserved.
+2. **monday code's scheduler cannot send custom headers**, so the
+   `X-Template-Guard-Cron` secret alone would have 401'd every sweep. The
+   route now also accepts the platform's signed JWT (`cron-auth.ts`).
+3. **Account `Storage` does not store objects.** A record passed to `set` came
+   back from both `get` and `search` as the 15-character string
+   `"[object Object]"` (observed in the logs). Template records are now
+   written as JSON text and parsed on read; `search` is used for keys only;
+   a record flattened by the earlier build is treated as never saved so the
+   board can be re-designated. Secure Storage stores objects correctly and
+   is unchanged.
+
+Resolves platform ✱2 ("does `search('template:')` return what the code
+expects?"): **no** — and neither did `get`, until the value was a string.
