@@ -228,3 +228,26 @@ Palo Alto URL filtering'de bir adresin kategorisini kontrol et. KURALLAR: Hiçbi
 
 RAPOR: kategori, risk seviyesi, tarih, ekran görüntüsünün adı.
 ```
+
+## 8. The website (message for the site session)
+
+Checked 28 Sep 2026, after the live test: the three pages answer 404, and
+`monday-app-association.json` lists only Watchdog's client id. Paste this into
+the Claude session that deploys `atesensoftware-site` from Samet's computer:
+
+```
+Automation Inventory canlı ve test edildi (App ID 12255778, client id fb2b51f8128e2fbcc70e02843099902d). Sayfalarını şimdi yayınla:
+
+1) Daha önce hazırladığın automation-inventory zip'indeki içeriği yerel atesensoftware-site reposuna koy: privacy, terms, pricing sayfaları (src/static/automation-inventory/), src/static/assets/automation-inventory.png ve _headers'taki /automation-inventory/* bloğu (Watchdog'unkiyle aynı CSP).
+2) monday-app-association.json'a ikinci clientID olarak fb2b51f8128e2fbcc70e02843099902d ekle. Watchdog'unki (9fcd68cae356c7fed3eacf09a0f9df81) kalsın. Ana sayfaya Automation Inventory kartı EKLEME; onay gelince eklenecek.
+3) scripts/deploy.ps1 ile yayınla.
+4) Kontrol et ve rapor ver:
+   - https://atesensoftware.com/automation-inventory/privacy/, /terms/, /pricing/ → 200
+   - https://atesensoftware.com/monday-app-association.json → iki clientID
+   - Watchdog'un üç sayfası hâlâ 200 ve değişmemiş
+   - support@atesensoftware.com yeni sayfalarda düz yazı
+5) Yerel repoyu GitHub'a push et (pabsamuel/atesensoftware-site). GitHub'dan otomatik deploy AÇMA.
+```
+
+After the report, Claude checks the four URLs from here and marks items 21
+and 22.
