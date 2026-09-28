@@ -13,23 +13,29 @@ function jwt(payload: Record<string, unknown>, secret = SIGNING, alg = 'HS256'):
 
 describe('isAuthorisedCronCaller', () => {
   it("accepts monday code's scheduler, which can only send a signed JWT", () => {
-    expect(isAuthorisedCronCaller({ authorization: `Bearer ${jwt({ exp: 2_000_000_000 })}`, signingSecret: SIGNING, nowSeconds: 1 })).toBe(true);
-    expect(isAuthorisedCronCaller({ authorization: jwt({}), signingSecret: SIGNING })).toBe(true);
+    expect(isAuthorisedCronCaller({ authorization: `Bearer ${jwt({ exp: 2_000_000_000 })}`, signingSecrets: [SIGNING], nowSeconds: 1 })).toBe(true);
+    expect(isAuthorisedCronCaller({ authorization: jwt({}), signingSecrets: [SIGNING] })).toBe(true);
   });
 
   it('accepts the shared-secret header for a self-hosted cron', () => {
-    expect(isAuthorisedCronCaller({ cronHeader: 'c', cronSecret: 'c', signingSecret: SIGNING })).toBe(true);
+    expect(isAuthorisedCronCaller({ cronHeader: 'c', cronSecret: 'c', signingSecrets: [SIGNING] })).toBe(true);
   });
 
   it('refuses a token signed with another secret, an expired one, or alg none', () => {
-    expect(isAuthorisedCronCaller({ authorization: jwt({}, 'other'), signingSecret: SIGNING })).toBe(false);
-    expect(isAuthorisedCronCaller({ authorization: jwt({ exp: 10 }), signingSecret: SIGNING, nowSeconds: 20 })).toBe(false);
-    expect(isAuthorisedCronCaller({ authorization: jwt({}, SIGNING, 'none'), signingSecret: SIGNING })).toBe(false);
+    expect(isAuthorisedCronCaller({ authorization: jwt({}, 'other'), signingSecrets: [SIGNING] })).toBe(false);
+    expect(isAuthorisedCronCaller({ authorization: jwt({ exp: 10 }), signingSecrets: [SIGNING], nowSeconds: 20 })).toBe(false);
+    expect(isAuthorisedCronCaller({ authorization: jwt({}, SIGNING, 'none'), signingSecrets: [SIGNING] })).toBe(false);
   });
 
   it('refuses a caller with nothing, or with the wrong header secret', () => {
-    expect(isAuthorisedCronCaller({ signingSecret: SIGNING })).toBe(false);
-    expect(isAuthorisedCronCaller({ cronHeader: 'x', cronSecret: 'c', signingSecret: SIGNING })).toBe(false);
-    expect(isAuthorisedCronCaller({ cronHeader: 'x', signingSecret: SIGNING })).toBe(false);
+    expect(isAuthorisedCronCaller({ signingSecrets: [SIGNING] })).toBe(false);
+    expect(isAuthorisedCronCaller({ cronHeader: 'x', cronSecret: 'c', signingSecrets: [SIGNING] })).toBe(false);
+    expect(isAuthorisedCronCaller({ cronHeader: 'x', signingSecrets: [SIGNING] })).toBe(false);
+  });
+});
+
+describe('isAuthorisedCronCaller with both app secrets', () => {
+  it('accepts a token signed with either secret', () => {
+    expect(isAuthorisedCronCaller({ authorization: jwt({}, 'client'), signingSecrets: [SIGNING, 'client'] })).toBe(true);
   });
 });

@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -199,5 +200,26 @@ describe('the OAuth install flow', () => {
   it('refuses a callback with no code', async () => {
     const res = await fetch(`${base}/auth/callback?state=x`, { redirect: 'manual' });
     expect(res.status).toBe(403);
+  });
+});
+
+describe('the view session token', () => {
+  function sign(payload: Record<string, unknown>, secret: string): string {
+    const h = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+    const p = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const s = crypto.createHmac('sha256', secret).update(`${h}.${p}`).digest('base64url');
+    return `${h}.${p}.${s}`;
+  }
+  const claims = { dat: { account_id: 1, user_id: 2 }, exp: Math.floor(Date.now() / 1000) + 600 };
+
+  it('is verified with the Client Secret, which is what monday signs it with', async () => {
+    const res = await fetch(`${base}/api/templates`, { headers: { Authorization: sign(claims, 'secret') } });
+    // Not installed in this in-memory store, so 403 — but past signature verification.
+    expect(await res.text()).not.toMatch(/signature/i);
+  });
+
+  it('is rejected when signed with the Signing Secret', async () => {
+    const res = await fetch(`${base}/api/templates`, { headers: { Authorization: sign(claims, 'signing-secret') } });
+    expect(await res.text()).toMatch(/signature/i);
   });
 });

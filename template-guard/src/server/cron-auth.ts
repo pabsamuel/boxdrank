@@ -21,10 +21,11 @@ export function isAuthorisedCronCaller(opts: {
   authorization?: string;
   cronHeader?: string;
   cronSecret?: string;
-  signingSecret: string;
+  /** Which of the app's two secrets monday code uses here is unverified (✱), so both are tried. */
+  signingSecrets: string[];
   nowSeconds?: number;
 }): boolean {
-  const { authorization, cronHeader, cronSecret, signingSecret } = opts;
+  const { authorization, cronHeader, cronSecret, signingSecrets } = opts;
 
   if (cronSecret && cronHeader) {
     const a = Buffer.from(cronHeader);
@@ -34,13 +35,16 @@ export function isAuthorisedCronCaller(opts: {
 
   const token = authorization?.replace(/^Bearer\s+/i, '').trim();
   if (!token) return false;
-  try {
-    const payload = verifySubscriptionToken(token, signingSecret);
-    const exp = payload.exp;
-    const now = opts.nowSeconds ?? Math.floor(Date.now() / 1000);
-    if (typeof exp === 'number' && exp < now) return false;
-    return true;
-  } catch {
-    return false;
+  const now = opts.nowSeconds ?? Math.floor(Date.now() / 1000);
+  for (const secret of signingSecrets) {
+    if (!secret) continue;
+    try {
+      const payload = verifySubscriptionToken(token, secret);
+      const exp = payload.exp;
+      return !(typeof exp === 'number' && exp < now);
+    } catch {
+      // try the next secret
+    }
   }
+  return false;
 }

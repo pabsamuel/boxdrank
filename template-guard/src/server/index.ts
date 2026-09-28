@@ -160,7 +160,10 @@ export function createServer(deps: ServerDeps) {
     const token = header.replace(/^Bearer\s+/i, '');
     if (!token) throw new TemplateGuardError('Not signed in.', 'permission_denied');
 
-    const session = verifySessionToken(token, deps.signingSecret);
+    // monday signs the view's sessionToken with the app's *Client* Secret, not
+    // its Signing Secret (that one signs webhooks and integration calls).
+    // Verified live 28 Sep 2026: the Signing Secret rejected every real token.
+    const session = verifySessionToken(token, deps.oauth.clientSecret);
     const install = await deps.storage.getInstall(session.accountId);
     if (!install) {
       throw new TemplateGuardError(
@@ -551,7 +554,7 @@ export function createServer(deps: ServerDeps) {
       authorization: req.header('Authorization'),
       cronHeader: req.header('X-Template-Guard-Cron'),
       cronSecret: deps.cronSecret,
-      signingSecret: deps.signingSecret,
+      signingSecrets: [deps.signingSecret, deps.oauth.clientSecret],
     });
     if (!authorised) {
       console.warn('[template-guard] rejected a cron invocation with a bad or missing secret');
