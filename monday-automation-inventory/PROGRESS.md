@@ -97,7 +97,8 @@ Order: Gate 0 decides whether the listing and the submission get done.
         route answers 503.
       - v1 promoted to live on 28 Sep. Live URL `https://live1-service-36993937-d7d03ea4.eu.monday.app`.
       - `MONDAY_SIGNING_SECRET` entered by Samet himself.
-- [ ] 19. On a draft:
+- [ ] 19. On a draft: v2, version id 18319401, created 28 Sep with all four
+      features, not promoted yet.
       - [ ] Object and board view, both at `<Live URL>/view/`;
       - [ ] action block with both builder switches on;
       - [ ] Sidekick tool;

@@ -132,6 +132,23 @@ FACT, `apps/docs/authorization-header`, `integration-authorization`,
   is a 404. The reliable way in is profile picture → Geliştiriciler.
 - A new app starts with one version, v1, as a draft.
 
+## Adding features: FACT, 28 Sep 2026 (Automation Inventory v2)
+
+- The Developer Center offers a **"Sidekick skill"**, not a "Sidekick tool".
+  Watchdog's was the same.
+- Automation-block field types have no plain "Text": **"Dize" (String)** and
+  **"Numara" (Number)** were used. The block sends them by field key, which is
+  what the code reads.
+- **Turning on the Automation Builder switch makes a sentence required.**
+  Used: "Find automations matching [Search] on board [Board name]".
+- **Every feature asks for a permanent slug when first saved:**
+  `automation-inventory`, `automation-inventory-board-view`,
+  `find-automations`, `find-automations-skill`.
+- A board view's wizard asks how to start; "Sıfırdan başla" (from scratch)
+  with external hosting works.
+- The Live URL serves the live version's code. Code pushed to a draft runs
+  only at that draft's own deployment URL until the draft is promoted.
+
 ## Submission and marketplace
 
 - FACT (form, 28 Sep): only apps with AI capabilities are accepted.
