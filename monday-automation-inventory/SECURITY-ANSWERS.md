@@ -10,7 +10,8 @@ first deploy are marked **PENDING**.
 monday runs it during review. The app serves only from its monday code URL:
 **PENDING**, the Live URL after the first promotion.
 
-monday's `mapps code:push -s` scan: **PENDING**. Scripts that run only on the
+monday's `mapps code:push -s` scan, first push (28 Sep 2026, version
+18319002): **0 errors, 0 warnings, 0 info**. Scripts that run only on the
 owner's machine (`scripts/make-assets.js` and the listing scripts) are left out
 of the upload (`.mappsignore`, checked by `npm run check:deploy`). That is
 because Watchdog's only scan warning was in such a script.

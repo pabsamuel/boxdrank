@@ -84,6 +84,14 @@ Order: Gate 0 decides whether the listing and the submission get done.
 - [ ] 18. First push, promote, Live URL recorded; `APP_BASE_URL` set;
       `MONDAY_SIGNING_SECRET` set; redeployed. `/health` shows
       `"sidekick":"on"`.
+      - First push done (28 Sep): version 18319002, deployment URL
+        `ebb3e-service-36993937-d7d03ea4.eu.monday.app`.
+      - The security scan found nothing (0 errors, 0 warnings).
+      - Checked from here: setup mode names the two missing settings; the
+        page, how-to page, images and demo data answer 200; the Sidekick
+        route answers 503.
+      - Still to do: promote v1, record the Live URL, set the two settings,
+        redeploy.
 - [ ] 19. On a draft:
       - [ ] Object and board view, both at `<Live URL>/view/`;
       - [ ] action block with both builder switches on;
