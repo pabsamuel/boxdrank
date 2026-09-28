@@ -48,6 +48,11 @@ Freshworks apps' pages.
   `src/static/automation-watchdog/`. This app's go next to them, in
   `src/static/<slug>/`.
 - That folder was not yet on the repo's `main` branch when checked on 28 Sep.
+- **Live on Cloudflare from 28 Sep.** Checked from here:
+  - every page answers `server: cloudflare`;
+  - HSTS `max-age=31536000; includeSubDomains`;
+  - the association file lists Watchdog's client id;
+  - MX and SPF are unchanged (Cloudflare Email Routing).
 - For this app, once the move is live:
   - `src/static/automation-inventory/privacy/` from `PRIVACY_POLICY.md`;
   - `src/static/automation-inventory/terms/` from `TERMS_OF_SERVICE.md`;
