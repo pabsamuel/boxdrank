@@ -8,8 +8,8 @@ with a note.
 
 | | Done | Note |
 |---|---|---|
-| **Code that can be written from here** | **61 / 68 — 90%** | Verified against a live account |
-| **Distance to a product someone pays for** | **58 / 68 — 85%** | Recounted 27 Sep against monday's real review checklist; customer-validation items removed by the owner 28 Sep; AI requirement added 28 Sep |
+| **Code that can be written from here** | **60 / 68 — 88%** | Verified against a live account |
+| **Distance to a product someone pays for** | **57 / 68 — 84%** | Recounted 27 Sep against monday's real review checklist; customer-validation items removed by the owner 28 Sep; AI requirement added 28 Sep |
 
 ---
 
@@ -134,7 +134,7 @@ review.
 - [x] The token cannot leave the process: the endpoint is validated before the
       token is attached, and every response is scrubbed of it before parsing
 
-## 5. Marketplace — 21/28
+## 5. Marketplace — 20/28
 
 *Rewritten 27 Sep.* This section had five items. monday's own review checklist,
 read on 27 Sep from `developer.monday.com/apps/docs/*.md` (app-listing-page,
@@ -175,8 +175,11 @@ Documentation, support and money
       the website — live, with the right client id
 - [x] How-to-use page, embeddable in monday, linked from the app —
       `/view/how-to.html`
-- [x] Demo link for the reviewers — the Live URL's `/view/` runs on the demo
-      account outside monday
+- [ ] Demo link for the reviewers — the Live URL's `/view/` runs on the demo
+      account outside monday. **Was marked done and was not:** on 28 Sep the
+      live app answered 404 for the demo data, so the link showed an error.
+      Fixed in code (4a9aee0, verified in Chromium); live after the next
+      `mapps code:push`
 
 Legal
 - [x] Terms of Service, which must say whether users will be contacted —
