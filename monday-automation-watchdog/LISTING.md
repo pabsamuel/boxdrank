@@ -20,7 +20,7 @@ Automation Watchdog
 
 Email alerts when a monday automation quietly stops
 
-## Long description (about 1,600 characters)
+## Long description (about 1,950 characters)
 
 The checklist says 200–2,500 characters; the listing guidelines say 200–2,000.
 This fits both.
@@ -45,6 +45,8 @@ run regularly goes quiet.
 - Lets you mute an alert you already know about — for a day, a week, 90 days
   or until it works again, never forever, so a mute cannot become a blind spot
 - Shows every watched automation with its normal rhythm and its state today
+- Lists every automation on your boards in one searchable place, on or off,
+  older types included
 - Works with sidekick, monday's AI assistant: ask "which of my automations
   have stopped?" — for every board, or one board by name — and it answers with
   the automations that went quiet and how long they have been quiet
