@@ -232,8 +232,14 @@ RAPOR: kategori, risk seviyesi, tarih, ekran görüntüsünün adı.
 ## 8. The website (message for the site session)
 
 Checked 28 Sep 2026, after the live test: the three pages answer 404, and
-`monday-app-association.json` lists only Watchdog's client id. Paste this into
-the Claude session that deploys `atesensoftware-site` from Samet's computer:
+`monday-app-association.json` lists only Watchdog's client id.
+
+**That session must run on Samet's computer.** The site repository and
+`deploy.ps1` exist only there, and a cloud session cannot reach them: the
+first attempt, 28 Sep, stopped for exactly this. Start it from the Claude
+desktop app with the computer selected (or "Link to this computer" on the
+existing task), or run `claude remote-control` in a terminal inside the
+site's folder. Then paste:
 
 ```
 Automation Inventory canlı ve test edildi (App ID 12255778, client id fb2b51f8128e2fbcc70e02843099902d). Sayfalarını şimdi yayınla:

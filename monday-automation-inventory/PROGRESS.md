@@ -142,9 +142,9 @@ Order: Gate 0 decides whether the listing and the submission get done.
         `../atesensoftware-site/build.mjs` into
         `../atesensoftware-site/public/automation-inventory/`, in the same
         format as Watchdog's live pages.
-      - Not published yet: the live site is built from
-        `pabsamuel/atesensoftware-site`, and the pages must be copied there
-        (`REUSE.md`).
+      - Not published yet: the live site is deployed from Samet's computer,
+        so the site session must run there (`DEPLOY-PROMPTS.md` step 8). Its
+        first try, 28 Sep, ran in the cloud and could do nothing.
 - [ ] 22. Client id added to `monday-app-association.json`.
 - [x] 23. `LISTING.md`: name (working; Samet confirms), short description
       (55 characters), long description (1,465), keywords, categories, and a
