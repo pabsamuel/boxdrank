@@ -1,5 +1,13 @@
 # Gate 0: what Samet runs, and what to paste back
 
+> **Result, 28 Sep 2026: GO.**
+> - monday's Autopilot hub does not list every automation with its on/off
+>   state, has no automation search, and names older automations with
+>   generic words (`COMPETITORS.md`).
+> - The run statistics are not usable per automation (`PLATFORM-FACTS.md`),
+>   so that feature is dropped.
+> - The rest of this file is kept as the record of what was run.
+
 Three checks. Item 2 was done by research on 28 Sep, which leaves about 20
 minutes of Samet's time. Each one can stop the project before
 the listing and submission work, which is where the time goes. The code is

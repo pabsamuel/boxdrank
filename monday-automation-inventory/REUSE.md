@@ -38,9 +38,21 @@ monday's review.
 | `SECURITY-ANSWERS.md` | `../monday-automation-watchdog/SECURITY-ANSWERS.md` | Far shorter: no OAuth, no storage, no email |
 | `PRIVACY_POLICY.md`, `TERMS_OF_SERVICE.md` | Watchdog's | Every sentence re-checked against this app's code |
 
-## Website: `atesensoftware-site/`
+## Website
 
-The site is shared by all apps.
+**Moving, 28 Sep 2026.** Samet is moving `atesensoftware.com` from Netlify to
+Cloudflare. The site is being built from the separate repository
+`pabsamuel/atesensoftware-site`, which also carries his Atlassian and
+Freshworks apps' pages.
+- Samet, 28 Sep: monday pages live in that repo under
+  `src/static/automation-watchdog/`. This app's go next to them, in
+  `src/static/<slug>/`.
+- That folder was not yet on the repo's `main` branch when checked on 28 Sep.
+- Until the move is confirmed live, the old setup below still serves the
+  domain (response header `server: Netlify`).
+
+The old setup, `../atesensoftware-site/` in this repository, shared by all
+apps:
 - Add an entry to `APPS` in `atesensoftware-site/build.mjs`: slug, name,
   client id, install URL, icon, privacy, terms.
 - That entry creates `/<slug>/privacy/`, `/<slug>/terms/` and

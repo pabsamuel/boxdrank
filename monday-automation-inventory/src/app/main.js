@@ -85,7 +85,9 @@ function stateTone(row) {
 const tone = (row) => (row.notice ? 'warn' : stateTone(row));
 
 function renderRow(row) {
-  const label = row.active === false ? 'Off' : row.active ? 'On' : row.legacy ? 'Older' : 'Unknown';
+  // Older automations are shown like any other, as monday's own note on
+  // `legacy_automations` asks (src/core/legacy.js).
+  const label = row.active === false ? 'Off' : row.active ? 'On' : 'Unknown';
   const section = el('section', `row ${tone(row)}`);
   const head = el('header', 'row-head');
   const pill = el('span', `pill ${stateTone(row)}`, label);
@@ -93,15 +95,12 @@ function renderRow(row) {
     ? 'Switched off in monday.'
     : row.active
       ? 'Switched on in monday.'
-      : row.legacy
-        ? 'Set up the older way; monday does not report whether it is on.'
-        : 'monday did not say.';
+      : 'monday did not say whether it is on.';
   head.append(pill, el('h3', null, row.title));
   section.append(head);
   if (row.notice) section.append(el('p', 'reason', `monday says: ${row.notice}`));
   const changed = Date.parse(row.updatedAt ?? row.createdAt ?? '');
   const meta = [row.board];
-  if (row.legacy) meta.push('older type of automation');
   if (Number.isFinite(changed)) meta.push(`last changed ${formatDuration(Math.max(0, state.now - changed))} ago`);
   section.append(el('p', 'meta', meta.join(' · ')));
   if (row.description) section.append(el('p', 'meta', row.description));
@@ -208,7 +207,7 @@ function renderWelcome() {
   );
   const steps = el('ol', 'steps');
   for (const text of [
-    'It reads the automations on every board you can see, one board at a time, older kinds included. It only reads: it never changes a board, an item or an automation.',
+    'It reads the automations on every board you can see, one board at a time. It only reads: it never changes a board, an item or an automation.',
     'Automations with a warning from monday come first, then the ones switched off. Filter them, or search by name, board or warning.',
     'To switch one on or off, click Open board and choose Automate. This app cannot switch them itself: monday\'s public API does not offer that.',
     'If your account uses sidekick, monday\'s AI assistant, you can also ask it, for example: "which of my automations are switched off?"',
@@ -248,7 +247,7 @@ function render() {
 
   $('source-note').textContent =
     state.source === 'monday'
-      ? 'Listed by monday itself, board by board: on and off, older and newer kinds, including automations that have never run.'
+      ? 'Listed by monday itself, board by board: on and off, including automations that have never run.'
       : state.source === 'demo'
         ? 'Demo data, invented — open this inside monday to list your own automations.'
         : '';

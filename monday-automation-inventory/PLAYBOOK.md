@@ -157,6 +157,12 @@ draft when one exists) and **promote the draft**. After promoting, check
 
 ## 7. Website and legal (Claude writes, Samet pushes)
 
+**Where the pages go changed on 28 Sep.** The site moves to Cloudflare, built
+from the repository `pabsamuel/atesensoftware-site`, with monday pages under
+`src/static/<slug>/` (see `REUSE.md`). Check which host serves the domain
+before adding pages: `curl -sI https://atesensoftware.com/` shows `server:`.
+The steps below are for the old Netlify setup.
+
 1. Add the app to `APPS` in `atesensoftware-site/build.mjs`.
 2. Write `PRIVACY_POLICY.md` and `TERMS_OF_SERVICE.md`. **Check every sentence
    against the code.**

@@ -1,6 +1,6 @@
 # Progress
 
-**12 / 30 done: 40%.** Recompute this line whenever a box changes, and put the
+**16 / 30 done: 53%.** Recompute this line whenever a box changes, and put the
 percentage at the end of every reply to Samet.
 
 Order: Gate 0 decides whether the listing and the submission get done.
@@ -17,12 +17,13 @@ Order: Gate 0 decides whether the listing and the submission get done.
 - [x] 2. Competitors in the marketplace (`COMPETITORS.md`, 28 Sep).
       - None of about 980 apps lists automations across boards.
       - The real competitor is monday's own **Autopilot hub**.
-- [ ] 3. monday's **Autopilot hub**, seen on Samet's account, with
-      screenshots. Its help article is summarised in `COMPETITORS.md`; what
-      is left is to see it first-hand.
-- [ ] 4. Run statistics in the playground: the real JSON shape, the period
-      covered, the permission needed.
-- [ ] 5. Gate decision written in `DECISIONS.md`: go, or stop and why.
+- [x] 3. monday's **Autopilot hub**, seen on Samet's account (28 Sep).
+      - No full list, no automation search, no on/off, rows link nowhere.
+      - The older automation is shown with generic words.
+      - `COMPETITORS.md`.
+- [x] 4. Run statistics in the playground (28 Sep): account totals only;
+      per-automation answers came back empty (`PLATFORM-FACTS.md`).
+- [x] 5. Gate decision: **GO** (`DECISIONS.md`, 28 Sep).
 
 ## Setup (Samet)
 
@@ -41,17 +42,21 @@ Order: Gate 0 decides whether the listing and the submission get done.
 
 ## Build
 
-- [x] 9. Inventory core: board-by-board fetch including older automations,
-      list, counts, search. From Watchdog.
+- [x] 9. Inventory core: board-by-board fetch, list, counts, search. From
+      Watchdog.
+      - Older automations are parsed from the **real** answer shape
+        (28 Sep).
+      - They are named from the board's columns, status labels and groups,
+        and shown like any other.
 - [x] 10. App skeleton: server with `/health` and `/view/`, security
       headers, setup mode, esbuild build, demo mode, `check:deploy`, CI
       workflow.
 - [x] 11. Board view: the list, search, reading progress, a warning for
       unreadable boards, demo mode for the listing's demo link.
-- [x] 12. Filters: switched off, with a warning, older type, board. Filtering
-      by creator is in `BACKLOG.md`: it needs `users:read`.
-- [ ] 13. Run statistics on each row. Only if Gate 0 item 4 shows the data
-      exists.
+- [x] 12. Filters: switched off, with a warning, board. Filtering by creator
+      is in `BACKLOG.md`: it needs `users:read`.
+- [x] 13. Run statistics on each row: **dropped**. Gate 0 item 4 showed that
+      the API gives no per-automation counts.
 - [x] 14. "Open board ↗" on each row.
       - FACT: `Board.url` (schema 2026-07) and `openLinkInTab`
         (`apps/docs/mondayexecute`).
@@ -68,8 +73,8 @@ Order: Gate 0 decides whether the listing and the submission get done.
       `valueCreatedForUser`; a welcome page the first time, which is the
       onboarding monday's review asks for.
 - [x] 17. Tests:
-      - 49 unit and HTTP tests (`npm test`);
-      - 29 browser checks inside a fake monday and as the demo
+      - 52 unit and HTTP tests (`npm test`);
+      - 28 browser checks inside a fake monday and as the demo
         (`test/browser/verify-view.mjs`).
 
 ## Deploy (Samet, `PLAYBOOK.md` steps 1–6)

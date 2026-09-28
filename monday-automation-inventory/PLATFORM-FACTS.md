@@ -45,6 +45,32 @@ relying on anything here that looks thin. Re-check anything older than a month.
   not let users navigate to other pages
   (`apps/docs/documentation-and-support`).
 
+## Found in Samet's API playground, 28 Sep 2026 (Gate 0)
+
+- **The playground has no version selector.** The version goes in its
+  Headers box: `{"API-Version": "2026-10"}`.
+- **`legacy_automations` is an object:** `{ note, automations, recipes, apps }`.
+  - Each automation has `id, boardId, userId, recipeId, config, active,
+    state, noticeMessage, createdAt, updatedAt`, and **no title**.
+  - The recipe's `sentenceParts` plus `config` give the name. Parsed in
+    `src/core/legacy.js`, tested with that answer.
+  - The `note` asks that they be presented "like any other automation,
+    without labels such as legacy or read-only". The app does.
+- **Older automations do report their state:** `active: true`,
+  `state: "active"`.
+- **`account_trigger_statistics`** gives account totals only:
+  `{"success":17,"failure":0,"total":17}`. These match the hub's "17
+  çalıştırmanın 0 tanesi başarısız oldu".
+- **`account_triggers_statistics_by_entity_id(run_status: failure)`** returned
+  `{"automation_statistics":{},"workflow_statistics":{}}`, with 0 failures in
+  the account.
+- **`trigger_events(filters: {automationIds: [1719079685]})`** returned
+  `{"triggerEvents":[]}` for an automation whose run history showed "Success"
+  that same day. Per-automation run data is not available this way.
+- **Board ids do not fit a GraphQL `Int`:** `board_id: 5104569213` in the
+  statistics filter failed with "Int cannot represent non 32-bit signed
+  integer value". Any `Int` board-id argument is unusable on newer boards.
+
 ## monday code (hosting)
 
 - Node 18, 20 and 22. The port comes from `process.env.PORT`.

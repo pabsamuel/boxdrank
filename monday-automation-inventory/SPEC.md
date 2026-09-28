@@ -112,7 +112,9 @@ His email names three pains. They set the order of the work:
 - Older automations can never be toggled through the API, by the schema's own
   statement.
 
-**Run statistics: FACT, in `2026-07`, so stable.**
+**Run statistics: checked on 28 Sep, not usable (see below). Dropped.**
+
+**Originally read from the schema, in `2026-07`, so stable:**
 - `account_triggers_statistics_by_entity_id(run_status: TriggerEventState!, filters: { board_id, automation_ids, user_ids })`
   returns `automation_statistics: JSON`. The schema describes it as: "each key
   is an automation Id, and the value contains the total count and breakdown by
@@ -169,6 +171,16 @@ His email names three pains. They set the order of the work:
 - Watchdog chose $1/seat/month, Optimized mode, 14-day trial.
 - UNKNOWN: whether monday allows feature-based plans (Basic/Pro) inside one
   app. Read `apps/docs/plans-and-pricing` before deciding.
+
+## Data the app reads (for the privacy policy)
+
+- Board ids, names and URLs.
+- Each board's automations: title, description, on/off, monday's warning,
+  creator id, created/updated times.
+- For boards with older automations only: the board's **column titles,
+  status labels and group names**, to name those automations. Read in the
+  browser, or with the Sidekick request's short-lived token.
+- **Nothing is stored.** No item names or column values are read.
 
 ## Not in scope, in `BACKLOG.md`
 

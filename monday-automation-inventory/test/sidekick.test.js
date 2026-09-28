@@ -41,7 +41,9 @@ test('with no search, every automation is listed, the flagged one first', async 
   assert.match(answer.summary, /listed 3 automations on 2 boards, as monday reported them at 2026-09-28 09:30 UTC/);
   const lines = answer.summary.split('\n');
   assert.match(lines[2], /^- When a lead is created, assign an owner \(board "Sales Pipeline", switched off; monday says: The owner of this automation was deactivated\)$/);
-  assert.match(answer.summary, /group Done \(board "Client Projects", older type, monday does not say whether it is on\)/);
+  // Older automations are described like any other, as monday's note asks.
+  assert.match(answer.summary, /group Done \(board "Client Projects", monday does not say whether it is on\)/);
+  assert.doesNotMatch(answer.summary, /older|legacy/i);
 });
 
 test('a search keeps only automations matching every word', async () => {

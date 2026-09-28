@@ -46,11 +46,21 @@ const harness = `<!doctype html><html><body style="margin:0">
         if (cfg.failBoard === board) return reply({ errors: [{ message: 'Internal server error' }] });
         if (board === '1') return reply({ data: { board_automations: { cursor: null,
           items: [{ id: 11, title: 'When status changes to Done, notify the team', active: true, updated_at: '2026-09-01T10:00:00Z' }],
-          legacy_automations: [{ id: 91, boardId: 1, title: 'When Status changes to Approved move item to group Ready' }] } } });
+          // The real shape (Samet's playground, 28 Sep): no title, a recipe
+          // sentence, and the values in config.
+          legacy_automations: { note: 'These ARE automations on the user board.', automations: [{ id: 91, boardId: 1, recipeId: 5,
+            active: true, state: 'active', noticeMessage: null,
+            config: { 0: { columnId: { columnId: 'status' }, statusColumnValue: { index: 3 } }, 2: { groupId: 'ready' } } }],
+            recipes: { recipes: [], dynamicRecipes: [{ id: 5,
+              sentenceParts: [{ nodeId: '0', sentencePartial: 'When {status,columnId} changes to {something,statusColumnValue} ' }, { nodeId: '2', sentencePartial: 'move item to {group, groupId}' }],
+              parsedSentence: 'When status changes to something move item to group' }] } } } } });
         if (board === '2') return reply({ data: { board_automations: { cursor: null,
           items: [{ id: 21, title: 'When a lead is created, assign an owner', active: false, notice_message: 'The owner of this automation was deactivated' }], legacy_automations: null } } });
         return reply({ data: { board_automations: { cursor: null, items: [], legacy_automations: null } } });
       }
+      if (/groups/.test(q)) return reply({ data: { boards: [{
+        columns: [{ id: 'status', title: 'Status', settings: { labels: [{ id: 3, label: 'Approved', index: 0 }] } }],
+        groups: [{ id: 'ready', title: 'Ready' }] }] } });
       if (/boards/.test(q)) return reply({ data: { boards: v.page > 1 ? [] : [
         { id: 1, name: 'Client Projects', url: 'https://acme.monday.com/boards/1' },
         { id: 2, name: 'Sales Pipeline', url: 'javascript:alert(1)' },
@@ -104,8 +114,8 @@ await inMonday({ theme: 'dark' }, async ({ page, frame, errors }) => {
   const rows = await titles(frame);
   expect(rows.length === 3, `lists all 3 automations (${rows.length})`);
   expect(rows[0] === 'When a lead is created, assign an owner', 'the one with a warning comes first');
-  expect(rows.includes('When Status changes to Approved move item to group Ready'), 'the older automation is listed');
-  expect((await frame.locator('.pill').allInnerTexts()).includes('Older'), 'the older one is marked Older');
+  expect(rows.includes('When Status changes to Approved move item to Ready'), 'an older automation is listed, named from the board\'s own column, label and group');
+  expect(!(await frame.locator('#app').innerText()).match(/older|legacy/i), 'and shown like any other, with no "older" label');
   expect((await page.evaluate(() => window.apiVersions)).every((v) => v === '2026-10'), 'every automations query asks for API 2026-10');
   expect(await frame.evaluate(() => document.documentElement.dataset.theme) === 'dark', 'follows the dark theme');
   expect((await page.evaluate(() => window.calls)).some((c) => c.method === 'execute' && c.type === 'valueCreatedForUser'), 'reports valueCreatedForUser');
@@ -118,8 +128,6 @@ await inMonday({ theme: 'dark' }, async ({ page, frame, errors }) => {
 
   await frame.getByRole('button', { name: 'Switched off' }).click();
   expect(JSON.stringify(await titles(frame)) === JSON.stringify(['When a lead is created, assign an owner']), 'the Switched off filter');
-  await frame.getByRole('button', { name: 'Older type' }).click();
-  expect((await titles(frame)).length === 1, 'the Older type filter');
   await frame.getByRole('button', { name: 'All' }).click();
   await frame.locator('select.board').selectOption('Client Projects');
   expect((await titles(frame)).length === 2, 'the board filter');

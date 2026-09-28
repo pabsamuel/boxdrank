@@ -25,7 +25,10 @@ Watchdog's code:
   with a welcome page and a how-to page;
 - a Sidekick tool;
 - a server;
-- 49 tests and 29 browser checks.
+- 52 tests and 28 browser checks.
+
+**Gate 0 passed on 28 Sep (GO)**: monday's Autopilot hub does not do this
+(`COMPETITORS.md`, `DECISIONS.md`).
 
 It is **not deployed** and has no App ID yet. Do not rebuild what exists:
 read it, run `npm test`, and continue from `PROGRESS.md`.
@@ -82,19 +85,9 @@ you are missing. Do not reconstruct them.
 - Test before claiming something works. Say plainly what was verified live and
   what was not.
 
-**First task: two things at once.**
-1. **Gate 0** (`GATE0.md`). The competitor research is done
-   (`COMPETITORS.md`): no marketplace app does this, and the one to beat is
-   monday's own **Autopilot hub**. Two checks need Samet's hands:
-   - the run-statistics queries in the playground;
-   - a first-hand look at the Autopilot hub, with screenshots.
-
-   Judge the hub bluntly. "monday already does this, stop" is an acceptable
-   answer. The gate decides whether the listing and the submission get
-   done.
-2. **Deploy** (`PLAYBOOK.md` steps 1–6). Walk him through creating the app,
-   the first push, the settings, the features and the live test, one step at
-   a time.
+**First task: deploy** (`PLAYBOOK.md` steps 1–6). Walk Samet through
+creating the app, the first push, the settings, the features and the live
+test, one step at a time. Then the listing work in `PROGRESS.md`.
 
 This session cannot reach monday.com in a browser. Delegate browsing to his
 Claude-in-Chrome side panel with the prompt template in `PLAYBOOK.md`.

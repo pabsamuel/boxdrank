@@ -44,6 +44,31 @@ How the sources were read:
   access the Autopilot hub", and board permissions are respected. The plans
   that include it are not stated.
 
+### The Autopilot hub, seen first-hand: 28 Sep 2026
+
+FACT, from Samet's account, checked by his Claude-in-Chrome agent with
+screenshots:
+- **Where:** the robot icon in the top bar, between "monday marketplace" and
+  search. Also a board's Automate menu → "Autopilot Hub". No upgrade was
+  asked for.
+- **Health (Sağlık):** failed runs only. With no failures it said "Tüm ikincil
+  otomasyonlar sorunsuz çalışıyor. Bu zaman aralığında başarısız çalıştırma
+  yok." Filters: person and board.
+- **Usage (Kullanım):**
+  - "En iyi automations / iş akışları", tooltip "Kullanılan eylemlere göre en
+    iyi automations". This is a ranking by actions used.
+  - Columns: Automation / iş akışı, Pano, Sahip, Eylemler. **No on/off
+    column.**
+  - The "Automations 3" card counts "Bu faturalandırma döneminde çalışan
+    automations sayısı": only those that ran this billing period.
+- **Workflows (İş akışları):** its search box was disabled on an account with
+  no workflows. Connections has a search for integrations only.
+- **Search over automations: none. On/off filter: none.**
+- **Clicking a row does nothing**: no link to the board, no details.
+- **The older automation on board 5104569213** appears in Usage as "When
+  status changes to something move item to group". "Bitir" and "Group Title"
+  appear nowhere, so it cannot be found by what it actually does.
+
 ### Other native places
 
 | Where | What it is | Source |
@@ -63,6 +88,12 @@ documented, it does not answer three questions:
 
 That gap is the pitch, but it is **narrower than Patrick's email made it
 sound**: "siloed per board" is only partly true since November 2025.
+
+**Confirmed first-hand on 28 Sep.** The pitch in one sentence: *find any
+automation on any board by what it actually does ("Bitir", "Group Title"),
+switched on or off, even the ones that never ran. monday's Autopilot hub lists
+only failures and the most-used, and names older automations with generic
+words.*
 
 ## 2. Marketplace competitors
 

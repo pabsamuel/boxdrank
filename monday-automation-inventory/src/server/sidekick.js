@@ -79,10 +79,10 @@ export async function findForSidekick({ monday, boardName = '', search = '', clo
   };
 }
 
+/** Older automations are described like any other, as monday's note asks. */
 function stateWords(row) {
   if (row.active === false) return 'switched off';
   if (row.active === true) return 'on';
-  if (row.legacy) return 'older type, monday does not say whether it is on';
   return 'monday does not say whether it is on';
 }
 

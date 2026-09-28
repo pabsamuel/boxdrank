@@ -9,6 +9,7 @@
  */
 
 import { singleLine } from '../core/sanitize.js';
+import { legacyEntries, legacyRecipes, legacyNeedsBoardNames, legacyTitle, boardNames } from '../core/legacy.js';
 
 /** `url` is `String!` on `Board` (public schema, 2026-07, read 28 Sep 2026). */
 const BOARDS_QUERY = `
@@ -140,60 +141,74 @@ const AUTOMATIONS_QUERY = `
 const MAX_AUTOMATION_PAGES_PER_BOARD = 20;
 
 /**
- * The older automations on one board. The schema types them as JSON and says
- * the field is "best-effort, so it may carry an error marker instead of data";
- * the live answer showed an id, a boardId and a title. So the keys are read
- * defensively, and anything without an id or a title is left out rather than
- * guessed at. Whether one is switched on is kept only if monday says so.
+ * The older automations on one board, normalised like the newer ones. The
+ * shape and how their names are built are in src/core/legacy.js. Every entry
+ * with an id is kept: monday's own note on the field says to always list
+ * them, and a missing name becomes monday's generic sentence, never a gap.
+ *
+ * @param {unknown} value   `legacy_automations` as monday returned it.
+ * @param {string} boardId
+ * @param {{columns: Map, groups: Map}|null} [names]  The board's names, if read.
  */
-export function parseLegacyAutomations(value, boardId) {
-  let data = value;
-  if (typeof data === 'string') {
-    try {
-      data = JSON.parse(data);
-    } catch {
-      return [];
-    }
-  }
-  const list = Array.isArray(data)
-    ? data
-    : Array.isArray(data?.automations) ? data.automations
-    : Array.isArray(data?.items) ? data.items
-    : [];
+export function parseLegacyAutomations(value, boardId, names = null) {
+  const recipes = legacyRecipes(value);
   const flag = (entry) => {
     for (const key of ['active', 'is_active', 'isActive', 'enabled']) {
       if (typeof entry[key] === 'boolean') return entry[key];
     }
-    if (typeof entry.status === 'string') {
-      const status = entry.status.toLowerCase();
-      if (status === 'active' || status === 'on' || status === 'enabled') return true;
-      if (status === 'inactive' || status === 'off' || status === 'disabled') return false;
+    for (const key of ['state', 'status']) {
+      if (typeof entry[key] !== 'string') continue;
+      const state = entry[key].toLowerCase();
+      if (state === 'active' || state === 'on' || state === 'enabled') return true;
+      if (state === 'inactive' || state === 'off' || state === 'disabled') return false;
     }
     return null;
   };
+  const text = (value) => (typeof value === 'string' ? value : null);
   const rows = [];
-  for (const entry of list) {
+  for (const entry of legacyEntries(value)) {
     if (!entry || typeof entry !== 'object') continue;
     const id = entry.id ?? entry.automation_id ?? entry.automationId;
-    const title = [entry.title, entry.name, entry.description, entry.text].find(
-      (candidate) => typeof candidate === 'string' && candidate.trim() !== '',
-    );
-    if (id === undefined || id === null || !title) continue;
+    if (id === undefined || id === null || String(id) === '') continue;
+    const userId = entry.userId ?? entry.user_id;
     rows.push({
       id: String(id),
-      title,
+      title: legacyTitle(entry, recipes, names),
       description: '',
       active: flag(entry),
       boardId: String(entry.boardId ?? entry.board_id ?? boardId),
-      userId: null,
-      createdAt: null,
-      updatedAt: null,
-      notice: '',
+      userId: userId === undefined || userId === null ? null : String(userId),
+      createdAt: text(entry.createdAt ?? entry.created_at),
+      updatedAt: text(entry.updatedAt ?? entry.updated_at ?? entry.configUpdatedAt),
+      notice: text(entry.noticeMessage ?? entry.notice_message) ?? '',
       legacy: true,
     });
   }
   return rows;
 }
+
+/**
+ * The names a board's older automations refer to: its column titles, status
+ * labels and group titles. Asked only for boards that have older automations.
+ * FACT (the public schema, 2026-10): `boards(ids: [ID!])`, `columns { id title
+ * settings: JSON }`, `groups { id title }`; `settings` replaces the deprecated
+ * `settings_str` from 2025-10 (`api-reference/reference/status`).
+ */
+const BOARD_NAMES_QUERY = `
+  query ($boardId: ID!) {
+    boards(ids: [$boardId]) {
+      columns {
+        id
+        title
+        settings
+      }
+      groups {
+        id
+        title
+      }
+    }
+  }
+`;
 
 /**
  * Every automation on the given boards, newer and older kinds, normalised.
@@ -229,7 +244,20 @@ export async function fetchAutomations(monday, boardIds, onProgress, shouldStop)
           notice: typeof item.notice_message === 'string' ? item.notice_message : '',
           legacy: false,
         }));
-        if (page === 0) found.push(...parseLegacyAutomations(result?.legacy_automations, boardId));
+        if (page === 0 && legacyEntries(result?.legacy_automations).length > 0) {
+          // The older kind has no title; the board's names make one. If they
+          // cannot be read, monday's generic sentence is used instead.
+          let names = null;
+          if (legacyNeedsBoardNames(result.legacy_automations)) {
+            try {
+              const board = (await query(monday, BOARD_NAMES_QUERY, { boardId }, AUTOMATIONS_API_VERSION))?.boards?.[0];
+              names = board ? boardNames(board) : null;
+            } catch {
+              names = null;
+            }
+          }
+          found.push(...parseLegacyAutomations(result.legacy_automations, boardId, names));
+        }
         for (const automation of found) {
           const key = `${automation.legacy ? 'legacy' : 'new'}:${automation.id}`;
           if (seen.has(key)) continue;

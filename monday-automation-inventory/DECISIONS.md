@@ -80,6 +80,26 @@ What was built (`PROGRESS.md` items 9–17):
 - The decision waits for Samet's first-hand look at the hub (`GATE0.md`
   item 3). If the hub already does it, stop.
 
+## 28 Sep 2026: Gate 0 passed, GO
+
+Bound by the checks in `GATE0.md`, run the same day:
+- **Competitors:** no marketplace app does this.
+- **monday's Autopilot hub**, seen first-hand, has:
+  - no list of every automation;
+  - no automation search;
+  - no on/off filter or column;
+  - rows that link nowhere;
+  - the older automation shown as "When status changes to something move
+    item to group". This app names it "When Status changes to Bitir move item
+    to Group Title".
+- **Run statistics:** per-automation counts came back empty
+  (`automation_statistics: {}`, `trigger_events: []` for an automation that
+  ran that day). Item 13 is dropped, not built.
+
+What the listing must say is the gap, word for word: every automation, found
+by what it does, on or off. What it must not say is that it shows *every*
+older automation: monday calls that field "best-effort".
+
 ## Pending, for Samet
 
 - **Name**: at most 30 characters, no "monday".

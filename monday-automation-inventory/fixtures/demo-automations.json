@@ -89,10 +89,10 @@
       "id": "7001",
       "title": "When status changes to Approved, move item to group Ready",
       "description": "",
-      "active": null,
+      "active": true,
       "boardId": "103",
-      "createdAt": null,
-      "updatedAt": null,
+      "createdAt": "2025-11-03T08:20:00Z",
+      "updatedAt": "2025-11-03T08:21:00Z",
       "notice": "",
       "legacy": true
     }

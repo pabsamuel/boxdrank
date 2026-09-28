@@ -59,7 +59,7 @@ export function searchInventory(rows, text) {
   const words = fold(text).split(/\s+/).filter(Boolean);
   if (words.length === 0) return rows;
   return rows.filter((row) => {
-    const haystack = fold(`${row.title} ${row.board} ${row.description} ${row.notice} ${row.active === false ? 'off' : row.active ? 'on active' : ''} ${row.legacy ? 'legacy older' : ''}`);
+    const haystack = fold(`${row.title} ${row.board} ${row.description} ${row.notice} ${row.active === false ? 'off' : row.active ? 'on active' : ''}`);
     return words.every((word) => haystack.includes(word));
   });
 }
@@ -69,7 +69,6 @@ export const SHOW_OPTIONS = [
   ['all', 'All'],
   ['off', 'Switched off'],
   ['notice', 'With a warning'],
-  ['older', 'Older type'],
 ];
 
 /**
@@ -84,7 +83,6 @@ export function filterInventory(rows, { show = 'all', board = '' } = {}) {
     if (board && row.board !== board) return false;
     if (show === 'off') return row.active === false;
     if (show === 'notice') return row.notice !== '';
-    if (show === 'older') return row.legacy;
     return true;
   });
 }

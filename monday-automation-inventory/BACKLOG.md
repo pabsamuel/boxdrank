@@ -8,3 +8,4 @@ One line per idea: date, idea, why it is parked.
 - 28 Sep: Bulk delete of unused automations with `delete_board_automation` (stable). Risky, needs a write scope, and nobody has asked for it.
 - 28 Sep: Change an automation's owner before someone leaves: `change_live_workflow_owner`, `dev` only. Watchdog's offboarding pain.
 - 28 Sep: Filter by who created an automation (`user_id` → name). Needs the `users:read` scope and a line in the privacy policy.
+- 28 Sep: Per-automation run counts ("ran 214 times, 12 failed"). The API returned nothing per automation on 28 Sep (`PLATFORM-FACTS.md`); retry if monday changes that.
