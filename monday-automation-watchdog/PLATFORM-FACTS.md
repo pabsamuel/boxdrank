@@ -418,4 +418,11 @@ and reading is now possible.
   monday.com is only accepting apps that include AI capabilities. If you
   proceed with submitting this form for an app that does not include AI
   capabilities, your submission will be rejected."
-
+- **The security scan's one warning (28 Sep).**
+  - `mapps code:push -s` writes its report to
+    `security-scan-<version>-<time>.json`. The scanner is "Opengrep OSS".
+  - Its only finding was `react-insecure-request` ("Unencrypted request over
+    HTTP detected") in `scripts/asset-kit.js:55`: a `fetch` of the local demo
+    server at `http://127.0.0.1`, run only when rendering listing images.
+  - The scan covers every uploaded file, not just what the server runs.
+    Local-only scripts are therefore now excluded in `.mappsignore`.

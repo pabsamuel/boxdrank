@@ -7,9 +7,19 @@ owner are marked **OPEN**.
 
 ## Burp scan of all domains
 
-monday runs it during review. The only domain the app serves from is its monday
-code URL, `live1-service-36993937-ca48573e.eu.monday.app`. Every `mapps
-code:push -s` security scan so far has reported 0 findings (`PLATFORM-FACTS.md`).
+monday runs it during review. The only domain the app serves from is its
+monday code URL, `live1-service-36993937-ca48573e.eu.monday.app`.
+
+monday's own `mapps code:push -s` scan (Opengrep OSS):
+- The early pushes reported 0 findings.
+- From 27 Sep it reported **0 errors and 1 warning**. The warning was in
+  `scripts/asset-kit.js`, line 55: "Unencrypted request over HTTP detected"
+  (rule `react-insecure-request`). That line fetches the local demo server at
+  `http://127.0.0.1` while rendering the listing images on the owner's
+  machine.
+- The server never loads that script. Since 28 Sep it and the other two
+  image scripts are left out of the upload (`.mappsignore`), and
+  `check:deploy` checks that they stay out.
 
 ## How secrets are stored, and whether any are in the repository
 

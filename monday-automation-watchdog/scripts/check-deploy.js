@@ -56,6 +56,11 @@ const ignore = await read('.mappsignore');
 check(/^dist\/$/m.test(ignore), '.mappsignore excludes dist/, so a stale build is never uploaded');
 check(!/^src\/?$/m.test(ignore) && !/^scripts\/?$/m.test(ignore), '.mappsignore keeps src/ and scripts/');
 check(/^listing\/$/m.test(ignore), '.mappsignore excludes listing/, the marketplace images the server never serves');
+// The one warning monday's scan raised (28 Sep 2026) was in asset-kit.js, a
+// script that only runs on the owner's machine.
+for (const script of ['scripts/asset-kit.js', 'scripts/make-assets.js', 'scripts/make-video.js']) {
+  check(new RegExp(`^${script.replace(/[./]/g, '\\$&')}$`, 'm').test(ignore), `.mappsignore excludes ${script}, which the server never loads`);
+}
 
 // ---- 4: boot ---------------------------------------------------------------
 

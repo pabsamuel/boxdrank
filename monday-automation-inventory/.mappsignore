@@ -15,3 +15,8 @@ dist/
 # Not needed to run.
 test/
 listing/
+
+# Renders the how-to screenshots on the owner's machine; the server never loads
+# it. Its fetch of the local server over http://127.0.0.1 is the kind of line
+# monday's security scan flagged in Watchdog (28 Sep 2026).
+scripts/make-assets.js

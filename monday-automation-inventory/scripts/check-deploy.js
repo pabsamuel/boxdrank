@@ -49,6 +49,7 @@ check(!pkg.devDependencies || Object.keys(pkg.devDependencies).length === 0, 'no
 const ignore = await read('.mappsignore');
 check(/^dist\/$/m.test(ignore), '.mappsignore excludes dist/, so a stale build is never uploaded');
 check(!/^src\/?$/m.test(ignore) && !/^scripts\/?$/m.test(ignore) && !/^fixtures\/?$/m.test(ignore), '.mappsignore keeps src/, scripts/ and fixtures/');
+check(/^scripts\/make-assets\.js$/m.test(ignore), '.mappsignore excludes scripts/make-assets.js, which the server never loads');
 
 // ---- 3: boot -----------------------------------------------------------------
 
