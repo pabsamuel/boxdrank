@@ -12,8 +12,8 @@ Go to https://dash.cloudflare.com/profile/api-tokens and create a token from the
 Then open https://dash.cloudflare.com and copy the Account ID from the Workers & Pages overview.
 Now open https://github.com/pabsamuel/boxdrank/settings/secrets/actions and add two repository
 secrets: CLOUDFLARE_API_TOKEN (the token) and CLOUDFLARE_ACCOUNT_ID (the account id).
-Also open the Workers plan page and enable the Workers Paid plan if it is not enabled; Durable
-Objects need it. Tell me when both secrets show up in the list.
+The Workers Free plan is enough (the rooms are SQLite-backed Durable Objects); do not upgrade.
+Tell me when both secrets show up in the list.
 ```
 
 Checkpoint: the secrets page lists both names. Push any commit touching `perde/` on `main`, or run

@@ -1,12 +1,14 @@
 # Deploy
 
 Perde is one Cloudflare Worker: the Vite build as static assets plus the Durable Object relay.
-Free tier covers development and the first families; Durable Objects need the Workers Paid plan
-($5/month) once you go live, because DO usage is not on the free plan.
+The Workers **Free** plan is enough: rooms are SQLite-backed Durable Objects
+(`new_sqlite_classes` in `wrangler.jsonc`), which the free plan allows. A `new_classes` migration
+would be refused on Free, so keep it SQLite. Upgrade to Workers Paid ($5/month) only when the
+free-plan limits (requests per day, DO duration) start to bind.
 
 ## One-time setup
 
-1. **Cloudflare account** → Workers & Pages → enable the Workers Paid plan (for Durable Objects).
+1. **Cloudflare account** → Workers & Pages. The Free plan works; no upgrade needed to start.
 2. **API token**: My Profile → API Tokens → Create Token → "Edit Cloudflare Workers" template.
    Copy the token and the Account ID (Workers & Pages overview, right column).
 3. **GitHub repository secrets** (Settings → Secrets and variables → Actions):
@@ -59,7 +61,8 @@ Phones on the same Wi‑Fi can reach the Vite server (`--host`). iOS motion need
 
 A room is one Durable Object; hibernation means idle rooms cost nothing. A 20-minute show with
 two phones at 30 pose messages/s is ~72k messages; at Cloudflare's DO pricing that is well under
-a cent. Static assets are free. Budget: the $5 plan until thousands of families.
+a cent. Static assets are free. Budget: the Free plan until the daily request limit binds, then
+the $5 plan until thousands of families.
 
 ## Rollback
 
