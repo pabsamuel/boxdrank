@@ -65,8 +65,16 @@ export interface ServerDeps {
    * from `process.env`, because on monday code it is not there — see ADR-020.
    */
   automationsPreview?: boolean;
-  /** Shared secret the monday code scheduler must present. */
+  /** Shared secret a self-hosted cron must present. */
   cronSecret?: string;
+  /**
+   * On monday code the platform itself keeps `/mndy-cronjob/*` from the
+   * public (a direct call gets 403 before reaching the app), and the
+   * scheduler's own request carries neither our header nor a JWT we can
+   * verify — observed 28 Sep 2026: every scheduled run was rejected. So there
+   * the route is trusted; self-hosted, the secret still applies.
+   */
+  trustCronRoute?: boolean;
   /**
    * One-click repair, and with it `boards:write` and the three mutations.
    * **Off in v1** — ADR-025. The manual checklist is unaffected.
@@ -594,7 +602,7 @@ export function createServer(deps: ServerDeps) {
       res.status(503).json({ error: 'Drift monitoring is not enabled on this deployment.' });
       return;
     }
-    const authorised = isAuthorisedCronCaller({
+    const authorised = deps.trustCronRoute || isAuthorisedCronCaller({
       authorization: req.header('Authorization'),
       cronHeader: req.header('X-Template-Guard-Cron'),
       cronSecret: deps.cronSecret,
@@ -848,6 +856,7 @@ if (isMain) {
     scheduler,
     automationsPreview,
     cronSecret: config.get('DRIFT_CRON_SECRET') ?? undefined,
+    trustCronRoute: platform !== null,
     oneClickRepair: config.flag('FEATURE_ONE_CLICK_REPAIR'),
     // Only set this when the built client lives somewhere other than
     // `dist/client`. In local development Vite serves the client on its own

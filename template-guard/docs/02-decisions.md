@@ -1117,3 +1117,9 @@ The request is verified with the **Signing Secret** (the view's sessionToken
 uses the Client Secret — ADR-035), `exp` and `aud` checked, and reads use the
 request's `shortLivedToken`. Features in the Developer Center: action block
 `compare-board-with-template` and Sidekick skill `template-guard-sidekick`.
+
+**Update to ADR-035 (2), 29 Sep 2026:** accepting the platform's JWT was not
+enough — every scheduled run was still rejected, so the scheduler's request
+carries nothing our secrets verify. On monday code the route is now trusted
+(`trustCronRoute`), because the platform answers 403 to any public call to
+`/mndy-cronjob/*` before it reaches the app. Self-hosted, the secret applies.
