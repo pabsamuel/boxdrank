@@ -780,3 +780,115 @@ select {
   flex: 1;
   min-width: 0;
 }
+
+/* The rod: no buttons, the whole screen is the hand ---------------------- */
+.btn--icon {
+  min-width: 44px;
+  font-size: 1.3rem;
+  padding: 0.3em 0.5em;
+}
+.rod {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  border-radius: 24px;
+  padding: 18px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  background: rgba(0, 0, 0, 0.25);
+  position: relative;
+}
+.rod.is-mine {
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: inset 0 0 0 3px var(--seat);
+}
+.rod__line {
+  display: grid;
+  gap: 10px;
+}
+.rod__line--end h2 {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  margin: 0;
+}
+.rod__line--idle {
+  color: #d9ccb0;
+  font-size: 1.1rem;
+}
+.rod__listen {
+  margin: 0;
+}
+.rod__tap {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.rod__waiting {
+  color: var(--muted);
+  animation: pulse 2s infinite;
+  text-align: center;
+}
+.rod__hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  text-align: center;
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 14px;
+}
+.rod__flash {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--saffron);
+  color: var(--ink);
+  padding: 0.3em 0.8em;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.rod .karaoke__line {
+  font-size: 1.7rem;
+}
+.tuning {
+  border-top: 1px solid rgba(255, 245, 214, 0.15);
+  padding-top: 8px;
+  color: #d9ccb0;
+}
+.tuning summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 6px 0;
+}
+.tuning__row {
+  display: grid;
+  gap: 4px;
+  padding: 6px 0;
+  font-size: 0.9rem;
+}
+.tuning__row b {
+  color: var(--saffron);
+}
+.tuning__row input[type='range'] {
+  width: 100%;
+}
+.tuning__row--toggle {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.tuning__live {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  margin: 6px 0;
+}

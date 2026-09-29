@@ -17,6 +17,7 @@ const GREEN = '#3c8d3f';
 export const punch: PuppetInput = {
   id: 'punch',
   cultureId: 'en',
+  rod: [100, 330],
   name: 'Mr Punch',
   description:
     'Hook-nosed, hunch-backed and delighted with himself. Carries a slapstick and never loses an argument.',
@@ -31,7 +32,7 @@ export const punch: PuppetInput = {
       fill: RED,
       pivot: [100, 330],
       driver: 'lean',
-      gain: 10,
+      gain: 4,
     },
     {
       id: 'stripe-1',
@@ -133,6 +134,7 @@ export const punch: PuppetInput = {
 export const judy: PuppetInput = {
   id: 'judy',
   cultureId: 'en',
+  rod: [100, 330],
   name: 'Judy',
   description:
     'Mob cap, apron and the only sensible person in the booth. Not impressed by Mr Punch.',
@@ -147,7 +149,7 @@ export const judy: PuppetInput = {
       fill: BLUE,
       pivot: [100, 330],
       driver: 'lean',
-      gain: 8,
+      gain: 4,
     },
     {
       id: 'apron',
@@ -225,6 +227,7 @@ export const judy: PuppetInput = {
 export const crocodile: PuppetInput = {
   id: 'crocodile',
   cultureId: 'en',
+  rod: [100, 330],
   name: 'Crocodile',
   description: 'Green, toothy and fond of sausages. Opens his jaws whenever he speaks.',
   width: 200,
@@ -238,7 +241,7 @@ export const crocodile: PuppetInput = {
       fill: GREEN,
       pivot: [100, 330],
       driver: 'lean',
-      gain: 10,
+      gain: 4,
     },
     {
       id: 'belly',
@@ -321,6 +324,7 @@ export const crocodile: PuppetInput = {
 export const constable: PuppetInput = {
   id: 'constable',
   cultureId: 'en',
+  rod: [100, 330],
   name: 'Constable',
   description:
     'Custodian helmet, big whistle, bigger moustache. Always arrives one scene too late.',
@@ -335,7 +339,7 @@ export const constable: PuppetInput = {
       fill: '#2c3e50',
       pivot: [100, 330],
       driver: 'lean',
-      gain: 8,
+      gain: 4,
     },
     {
       id: 'buttons',

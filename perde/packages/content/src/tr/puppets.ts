@@ -29,6 +29,7 @@ const feet = (fill = '#3b2a14') => [
 export const karagoz: PuppetInput = {
   id: 'karagoz',
   cultureId: 'tr',
+  rod: [100, 138],
   name: 'Karagöz',
   description:
     'Halkın adamı. Kel kafasında koca bir ışkırlak, yüzünde kara sakal, dilinde her söze bir cevap.',
@@ -42,7 +43,7 @@ export const karagoz: PuppetInput = {
       fill: RED,
       pivot: [100, 400],
       driver: 'lean',
-      gain: 10,
+      gain: 3,
     },
     { id: 'dot-1', d: circle(100, 200, 7), fill: SAFFRON, parent: 'body' },
     { id: 'dot-2', d: circle(124, 242, 6), fill: SAFFRON, parent: 'body' },
@@ -113,6 +114,7 @@ export const karagoz: PuppetInput = {
 export const hacivat: PuppetInput = {
   id: 'hacivat',
   cultureId: 'tr',
+  rod: [100, 130],
   name: 'Hacivat',
   description: 'Okumuş, kibar, ağdalı konuşur. Uzun kavuğu ve sivri sakalıyla her oyunu o açar.',
   width: 200,
@@ -125,7 +127,7 @@ export const hacivat: PuppetInput = {
       fill: GREEN,
       pivot: [100, 400],
       driver: 'lean',
-      gain: 8,
+      gain: 3,
     },
     {
       id: 'trim',
@@ -195,6 +197,7 @@ export const hacivat: PuppetInput = {
 export const celebi: PuppetInput = {
   id: 'celebi',
   cultureId: 'tr',
+  rod: [100, 132],
   name: 'Çelebi',
   description: 'Züppe delikanlı. Fesi yan, bastonu elinde, aklı hep aşkta.',
   width: 200,
@@ -207,7 +210,7 @@ export const celebi: PuppetInput = {
       fill: INDIGO,
       pivot: [100, 400],
       driver: 'lean',
-      gain: 8,
+      gain: 3,
     },
     {
       id: 'lapel',
@@ -278,6 +281,7 @@ export const celebi: PuppetInput = {
 export const zenne: PuppetInput = {
   id: 'zenne',
   cultureId: 'tr',
+  rod: [100, 130],
   name: 'Zenne',
   description: 'Mahallenin hanımı. Yaşmağı, feracesi ve elinde yelpazesiyle; sözünü sakınmaz.',
   width: 200,
@@ -290,7 +294,7 @@ export const zenne: PuppetInput = {
       fill: ROSE,
       pivot: [100, 400],
       driver: 'lean',
-      gain: 7,
+      gain: 3,
     },
     {
       id: 'hem',
@@ -357,6 +361,7 @@ export const zenne: PuppetInput = {
 export const tuzsuz: PuppetInput = {
   id: 'tuzsuz',
   cultureId: 'tr',
+  rod: [100, 136],
   name: 'Tuzsuz Deli Bekir',
   description:
     'Mahallenin kabadayısı. Pala bıyık, koca kılıç; bağırır çağırır, sonunda hep yumuşar.',
@@ -371,7 +376,7 @@ export const tuzsuz: PuppetInput = {
       fill: '#8e3b46',
       pivot: [100, 400],
       driver: 'lean',
-      gain: 12,
+      gain: 3,
     },
     { id: 'sash', d: rect(46, 258, 112, 16), fill: SAFFRON, parent: 'body' },
     {

@@ -35,7 +35,7 @@ await phone.goto(`${base}/join?room=${code}&seat=p1`);
 await phone.screenshot({ path: `${out}phone-pickup.png` });
 await phone.getByRole('button', { name: /Kuklayı eline al|Pick up/ }).click();
 await phone.waitForSelector('.controller__puppet');
-await phone.getByRole('button', { name: '☰' }).click();
+await phone.getByRole('button', { name: 'menu' }).click();
 await phone.getByRole('button', { name: /Yâr Bana/ }).click();
 await phone.waitForTimeout(800);
 await phone.screenshot({ path: `${out}phone-controller.png` });

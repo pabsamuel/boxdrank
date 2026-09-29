@@ -1,9 +1,18 @@
 import { memo } from 'react';
-import { orderParts, type Gesture, type Pose, type Puppet, type PuppetPart } from '@perde/shared';
+import {
+  orderParts,
+  rodPoint,
+  type Gesture,
+  type Pose,
+  type Puppet,
+  type PuppetPart,
+} from '@perde/shared';
 
 /**
- * Draws one puppet as nested SVG groups. Each driven part rotates around its
- * pivot by (rest + gain × axis). Gestures are short time-based overlays.
+ * Draws one puppet as nested SVG groups. The whole figure hangs from its rod
+ * point and leans there, like a real Karagöz on its stick; individual parts
+ * (arm, head, hat) rotate around their own pivots by (rest + gain × axis).
+ * Gestures are short time-based overlays.
  */
 
 export interface GestureAnim {
@@ -15,6 +24,8 @@ export interface GestureAnim {
 export interface PuppetSvgProps {
   puppet: Puppet;
   pose: Pose;
+  /** Extra lean from motion (the feet trailing behind a dragged rod), -1..1. */
+  swing?: number;
   /** Seconds, for the talking wobble and idle breathing. */
   time: number;
   gesture?: GestureAnim;
@@ -26,6 +37,8 @@ export interface PuppetSvgProps {
   y: number;
   scale: number;
   highlight?: boolean;
+  /** Degrees of whole-figure lean at pose.lean = 1. */
+  leanDegrees?: number;
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -42,13 +55,8 @@ function axisValue(part: PuppetPart, pose: Pose, talk: number, gesture?: Gesture
       if (gesture?.gesture === 'wave') v = 0.8 + Math.sin(gesture.t * Math.PI * 6 + Math.PI) * 0.2;
       return v;
     }
-    case 'lean': {
-      let v = pose.lean;
-      if (gesture?.gesture === 'bow') v += Math.sin(gesture.t * Math.PI) * 0.9;
-      if (gesture?.gesture === 'shake')
-        v += Math.sin(gesture.t * Math.PI * 8) * 0.5 * (1 - gesture.t);
-      return clamp(v, -1.5, 1.5);
-    }
+    case 'lean':
+      return pose.lean;
     case 'talk': {
       let v = talk;
       if (gesture?.gesture === 'nod') v = Math.max(v, Math.abs(Math.sin(gesture.t * Math.PI * 3)));
@@ -93,6 +101,7 @@ function PartNode({
 function PuppetSvgInner({
   puppet,
   pose,
+  swing = 0,
   time,
   gesture,
   opacity,
@@ -101,6 +110,7 @@ function PuppetSvgInner({
   y,
   scale,
   highlight,
+  leanDegrees = 28,
 }: PuppetSvgProps) {
   const parts = orderParts(puppet);
   const childrenOf = new Map<string | undefined, PuppetPart[]>();
@@ -110,7 +120,7 @@ function PuppetSvgInner({
     childrenOf.set(p.parent, list);
   }
   const talk = pose.talking ? (Math.sin(time * 18) + 1) / 2 : 0;
-  const breathe = Math.sin(time * 1.6) * 0.6;
+  const breathe = Math.sin(time * 1.6) * 0.5;
 
   const render = (part: PuppetPart): React.ReactNode => {
     const v = axisValue(part, pose, talk, gesture);
@@ -122,15 +132,26 @@ function PuppetSvgInner({
     );
   };
 
-  // Hop from the pose; jump gesture adds height; spin rotates the whole figure.
-  let hop = clamp(pose.y, 0, 1) * 60;
+  // Whole-figure lean around the rod point: the pose, plus the swing of a dragged
+  // rod, plus bow/shake gestures.
+  let figureLean = clamp(pose.lean + swing, -1.4, 1.4);
+  if (gesture?.gesture === 'bow') figureLean += Math.sin(gesture.t * Math.PI) * 0.9;
+  if (gesture?.gesture === 'shake')
+    figureLean += Math.sin(gesture.t * Math.PI * 8) * 0.5 * (1 - gesture.t);
+  const [rx, ry] = rodPoint(puppet);
+  const leanAngle = figureLean * leanDegrees;
+
+  // Hop from the pose; jump gesture adds height; spin whirls; turn flips.
+  let hop = clamp(pose.y, 0, 1) * 70;
   let spin = 0;
+  let squash = 1;
   if (gesture?.gesture === 'jump') hop = Math.max(hop, Math.sin(gesture.t * Math.PI) * 120);
   if (gesture?.gesture === 'spin') spin = gesture.t * 360;
-  const flip = facing === 'left' ? -1 : 1;
+  if (gesture?.gesture === 'turn') squash = Math.max(0.05, Math.abs(Math.cos(gesture.t * Math.PI)));
+  const flip = (facing === 'left' ? -1 : 1) * squash;
   const w = puppet.width;
   const h = puppet.height;
-  const transform = `translate(${x} ${y - hop}) scale(${scale}) rotate(${spin} 0 ${-h / 2}) scale(${flip} 1) translate(${-w / 2} ${-h})`;
+  const transform = `translate(${x} ${y - hop}) scale(${scale}) rotate(${spin} 0 ${-h / 2}) scale(${flip} 1) translate(${-w / 2} ${-h}) rotate(${leanAngle.toFixed(2)} ${rx} ${ry})`;
   return (
     <g
       transform={transform}

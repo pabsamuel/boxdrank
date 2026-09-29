@@ -29,7 +29,11 @@ work; don't tick ahead.
 ## M2 — Feels good in the hand
 
 - [ ] Playtest on iPhone + Android on real Wi‑Fi; record tilt→movement latency in `docs/PLAYTESTS.md`
-- [ ] Tune motion mapping from playtest notes (deadzones, gains, bounce threshold)
+- [x] Track the hand, not just the wrist: sideways/upward travel from the accelerometer with zero-velocity resets, heading and lean from the rotation matrix (no gimbal lock upright), 50 Hz sends, 45 ms follow on the TV
+- [x] Hang the figure from its rod point and let the feet trail when dragged; face the way it walks; wrist flick turns it, tipping forward bows
+- [x] No buttons on the phone while playing: the screen is the rod (drag to walk, double-tap the line to count it as said); set-up lives behind ☰
+- [x] Live motion tuning panel on the phone (gains, deadband, inversions, iOS sign) persisted per device
+- [ ] Tune the default gains from real-device numbers (copy them from the tuning panel into `DEFAULT_TUNING`)
 - [ ] Speech: log pass/fail per line in the browser console and collect a first accuracy table
 - [ ] Puppet entrances/exits (walk in from the wing, walk off when the section ends)
 - [ ] Sound: tef (tambourine) hit on entrance and a curtain sting, synthesized with WebAudio

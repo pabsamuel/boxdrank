@@ -36,8 +36,8 @@ const dict = {
   karaokeOff: { tr: 'Metin: kapalı', en: 'Text: off' },
   listening: { tr: 'Dinliyorum…', en: 'Listening…' },
   micUnavailable: {
-    tr: 'Bu tarayıcı konuşmayı tanıyamıyor; repliği söyleyince "Söyledim"e bas.',
-    en: 'This browser cannot recognise speech; tap "I said it" after your line.',
+    tr: 'Bu tarayıcı konuşmayı tanıyamıyor; repliği söyleyince metne iki kez dokun.',
+    en: 'This browser cannot recognise speech; double-tap the line after you say it.',
   },
   theEnd: { tr: 'Perde!', en: 'Curtain!' },
   backToLobby: { tr: 'Lobiye dön', en: 'Back to lobby' },
@@ -58,6 +58,29 @@ const dict = {
   enterCode: { tr: 'Televizyondaki kodu gir', en: 'Enter the code on the TV' },
   join: { tr: 'Katıl', en: 'Join' },
   spokenLines: { tr: 'söylenen replik', en: 'lines spoken' },
+  holdLikeARod: {
+    tr: 'Telefonu dik tut, çubuk gibi. Eli sağa sola kaydır: kukla yürür. Yana yatır: eğilir. Geriye yatır: kolunu kaldırır. Hızla kaldır: zıplar. Bileği hızla çevir: döner. Öne eğ: selam verir.',
+    en: 'Hold the phone upright like a rod. Slide your hand: it walks. Roll: it leans. Tip back: arm up. Lift sharply: it hops. Flick the wrist: it turns. Tip forward: it bows.',
+  },
+  tapTwiceToPass: {
+    tr: 'Repliğe iki kez dokun: geçildi say',
+    en: 'Double-tap the line to count it as said',
+  },
+  tuning: { tr: 'Hareket ayarı', en: 'Motion tuning' },
+  tuningYaw: { tr: 'Kol dönüşü (°/yarım sahne)', en: 'Arm turn (° per half stage)' },
+  tuningTravel: { tr: 'El kayması (cm/yarım sahne)', en: 'Hand travel (cm per half stage)' },
+  tuningLean: { tr: 'Eğilme (°)', en: 'Lean (°)' },
+  tuningArm: { tr: 'Kol kaldırma (°)', en: 'Arm raise (°)' },
+  tuningHop: { tr: 'Zıplama (cm)', en: 'Hop (cm)' },
+  tuningSmoothing: { tr: 'Yumuşatma', en: 'Smoothing' },
+  tuningDeadband: { tr: 'Sensör gürültü eşiği (m/s²)', en: 'Sensor noise floor (m/s²)' },
+  tuningInvertX: { tr: 'Sağ-solu ters çevir', en: 'Invert left/right' },
+  tuningInvertLean: { tr: 'Eğilmeyi ters çevir', en: 'Invert lean' },
+  tuningAccelSign: { tr: 'İvme işareti (iOS: −1)', en: 'Acceleration sign (iOS: −1)' },
+  tuningReset: { tr: 'Varsayılana dön', en: 'Reset to defaults' },
+  tuningCopy: { tr: 'Ayarları kopyala', en: 'Copy settings' },
+  tuningLive: { tr: 'Canlı değerler', en: 'Live readings' },
+  waitingForStage: { tr: 'Televizyonu bekliyorum…', en: 'Waiting for the TV…' },
 } as const;
 
 export type UiKey = keyof typeof dict;

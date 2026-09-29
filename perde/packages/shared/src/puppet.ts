@@ -41,6 +41,12 @@ export const PuppetSchema = z
     height: z.number().positive(),
     /** Suggested karaoke colour for this character. */
     color: z.string(),
+    /**
+     * Where the puppeteer's rod holds the figure, in local coordinates. The whole
+     * figure leans and swings around this point (a Karagöz hangs from the neck,
+     * a glove puppet pivots at the wrist). Defaults to a point on the neck line.
+     */
+    rod: z.tuple([z.number(), z.number()]).optional(),
     premium: z.boolean().default(false),
     parts: z.array(PuppetPartSchema).min(1),
   })
@@ -75,6 +81,11 @@ export const PuppetSchema = z
   });
 export type Puppet = z.infer<typeof PuppetSchema>;
 export type PuppetInput = z.input<typeof PuppetSchema>;
+
+/** The rod point, with a sensible default for rigs that do not declare one. */
+export function rodPoint(puppet: Puppet): [number, number] {
+  return puppet.rod ?? [puppet.width / 2, puppet.height * 0.34];
+}
 
 /** Order parts so every parent precedes its children (stable otherwise). */
 export function orderParts(puppet: Puppet): PuppetPart[] {

@@ -10,7 +10,7 @@ import { z } from 'zod';
  * with the sender's seat and fans them out. All game logic lives on the stage.
  */
 
-export const GESTURES = ['none', 'wave', 'jump', 'spin', 'bow', 'nod', 'shake'] as const;
+export const GESTURES = ['none', 'wave', 'jump', 'spin', 'bow', 'nod', 'shake', 'turn'] as const;
 export const GestureSchema = z.enum(GESTURES);
 export type Gesture = z.infer<typeof GestureSchema>;
 
