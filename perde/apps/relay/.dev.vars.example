@@ -1,0 +1,4 @@
+# Copy to .dev.vars for local overrides (never committed).
+ENTITLEMENTS_MODE=open
+LEMONSQUEEZY_STORE_ID=
+LEMONSQUEEZY_PRODUCT_ID=

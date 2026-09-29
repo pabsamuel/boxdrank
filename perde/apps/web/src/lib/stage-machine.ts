@@ -1,0 +1,474 @@
+import {
+  emptyProgress,
+  flattenLines,
+  matchLine,
+  NEUTRAL_POSE,
+  PLAYER_SEATS,
+  type CulturePack,
+  type FlatLine,
+  type FromControllerMsg,
+  type Gesture,
+  type Plan,
+  type Play,
+  type Pose,
+  type SeatInfo,
+  type StageState,
+} from '@perde/shared';
+import { getPack, isUnlocked, packs } from '@perde/content';
+
+/**
+ * The stage's brain: a pure reducer over controller events. It owns seats,
+ * the running play, karaoke progress and speech matching. React only renders
+ * what comes out of it, which keeps the whole game logic unit-testable.
+ */
+
+export interface GestureEvent {
+  gesture: Gesture;
+  at: number;
+}
+
+export interface StageModel {
+  state: StageState;
+  pack: CulturePack;
+  play: Play | null;
+  lines: FlatLine[];
+  poses: Record<string, Pose>;
+  gestures: Record<string, GestureEvent>;
+  /** seat id → character id for the running play */
+  casting: Record<string, string>;
+  /** Names players typed on their phones, kept across plays. */
+  names: Record<string, string>;
+  hostSeat: string | null;
+}
+
+export type StageEvent =
+  | { type: 'joined'; seat: string; name?: string; at: number }
+  | { type: 'left'; seat: string }
+  | { type: 'plan'; plan: Plan; notice?: string }
+  | { type: 'notice'; notice?: string }
+  | { type: 'msg'; msg: FromControllerMsg; at: number }
+  | {
+      type: 'local';
+      action: 'next' | 'prev' | 'toggle-karaoke' | 'lobby' | 'free-play' | 'set-culture';
+      cultureId?: string;
+      at: number;
+    };
+
+function seatsFor(
+  pack: CulturePack,
+  prev: SeatInfo[] | undefined,
+  names: Record<string, string>,
+  hostSeat: string | null,
+): SeatInfo[] {
+  return PLAYER_SEATS.map((id, i) => {
+    const def = pack.culture.defaultSeats[i] ?? pack.culture.defaultSeats[0]!;
+    const puppet = pack.puppets.find((p) => p.id === def.puppetId) ?? pack.puppets[0]!;
+    const old = prev?.find((s) => s.id === id);
+    return {
+      id,
+      name: names[id] ?? puppet.name,
+      puppetId: puppet.id,
+      puppetName: puppet.name,
+      color: puppet.color,
+      connected: old?.connected ?? false,
+      isHost: hostSeat === id,
+    };
+  });
+}
+
+export function createStageModel(cultureId = 'tr', plan: Plan = 'free'): StageModel {
+  const pack = getPack(cultureId) ?? packs[0]!;
+  const names: Record<string, string> = {};
+  const seats = seatsFor(pack, undefined, names, null);
+  return {
+    state: {
+      mode: 'lobby',
+      cultureId: pack.culture.id,
+      karaoke: true,
+      leniency: 'kids',
+      plan,
+      seats,
+      play: null,
+    },
+    pack,
+    play: null,
+    lines: [],
+    poses: {},
+    gestures: {},
+    casting: {},
+    names,
+    hostSeat: null,
+  };
+}
+
+function withState(model: StageModel, patch: Partial<StageState>): StageModel {
+  return { ...model, state: { ...model.state, ...patch } };
+}
+
+function playState(
+  model: StageModel,
+  lineIndex: number,
+  progress: StageState['play'] extends infer P
+    ? P extends { progress: infer Q }
+      ? Q
+      : never
+    : never,
+  spokenLines: number,
+  finished: boolean,
+): StageState['play'] {
+  const play = model.play!;
+  const flat = model.lines[lineIndex];
+  const seatFor = Object.entries(model.casting).find(([, ch]) => ch === flat?.line.seat)?.[0];
+  const speaker = play.characters.find((c) => c.seat === flat?.line.seat)?.name ?? '';
+  return {
+    id: play.id,
+    title: play.title,
+    sectionTitle: flat?.sectionTitle ?? '',
+    lineIndex,
+    totalLines: model.lines.length,
+    line: flat
+      ? {
+          seat: seatFor,
+          character: flat.line.seat,
+          speaker,
+          text: flat.line.text,
+          hint: flat.line.hint,
+          song: flat.line.song,
+        }
+      : null,
+    progress,
+    finished,
+    spokenLines,
+  };
+}
+
+function gotoLine(model: StageModel, lineIndex: number, spokenLines: number): StageModel {
+  const total = model.lines.length;
+  const idx = Math.max(0, Math.min(lineIndex, total));
+  const finished = idx >= total;
+  const flat = model.lines[idx];
+  const progress = flat ? emptyProgress(flat.line.text) : null;
+  const next = withState(model, { play: playState(model, idx, progress, spokenLines, finished) });
+  if (flat?.line.gesture) {
+    const seat =
+      Object.entries(model.casting).find(([, ch]) => ch === flat.line.seat)?.[0] ??
+      `npc:${flat.line.seat}`;
+    return {
+      ...next,
+      gestures: { ...next.gestures, [seat]: { gesture: flat.line.gesture, at: Date.now() } },
+    };
+  }
+  return next;
+}
+
+/** Bind play characters to seats: same puppet first, then any connected seat, the rest are unclaimed. */
+export function castPlay(
+  play: Play,
+  seats: SeatInfo[],
+): { casting: Record<string, string>; seats: SeatInfo[] } {
+  const casting: Record<string, string> = {};
+  const connected = seats.filter((s) => s.connected);
+  const taken = new Set<string>();
+  for (const ch of play.characters) {
+    const seat = connected.find((s) => !taken.has(s.id) && s.puppetId === ch.puppetId);
+    if (seat) {
+      casting[seat.id] = ch.seat;
+      taken.add(seat.id);
+    }
+  }
+  for (const ch of play.characters) {
+    if (Object.values(casting).includes(ch.seat)) continue;
+    const seat = connected.find((s) => !taken.has(s.id));
+    if (seat) {
+      casting[seat.id] = ch.seat;
+      taken.add(seat.id);
+    }
+  }
+  const pack = getPack(play.cultureId)!;
+  const nextSeats = seats.map((s) => {
+    const ch = casting[s.id];
+    if (!ch) return { ...s, character: undefined };
+    const c = play.characters.find((x) => x.seat === ch)!;
+    const puppet = pack.puppets.find((p) => p.id === c.puppetId)!;
+    return {
+      ...s,
+      character: ch,
+      puppetId: puppet.id,
+      puppetName: puppet.name,
+      color: c.color ?? puppet.color,
+    };
+  });
+  return { casting, seats: nextSeats };
+}
+
+function startPlay(model: StageModel, playId: string | undefined): StageModel {
+  const play = model.pack.plays.find((p) => p.id === playId);
+  if (!play) return model;
+  if (!isUnlocked(play, model.state.plan)) return withState(model, { notice: 'locked' });
+  const { casting, seats } = castPlay(play, model.state.seats);
+  const lines = flattenLines(play);
+  const next: StageModel = {
+    ...model,
+    play,
+    lines,
+    casting,
+    state: { ...model.state, mode: 'play', seats, notice: undefined },
+  };
+  return gotoLine(next, 0, 0);
+}
+
+function setCulture(model: StageModel, cultureId: string | undefined): StageModel {
+  const pack = getPack(cultureId ?? '');
+  if (!pack) return model;
+  if (!isUnlocked(pack.culture, model.state.plan)) return withState(model, { notice: 'locked' });
+  const seats = seatsFor(pack, model.state.seats, model.names, model.hostSeat);
+  return {
+    ...model,
+    pack,
+    play: null,
+    lines: [],
+    casting: {},
+    state: {
+      ...model.state,
+      cultureId: pack.culture.id,
+      mode: model.state.mode === 'play' ? 'free' : model.state.mode,
+      seats,
+      play: null,
+      notice: undefined,
+    },
+  };
+}
+
+function setPuppet(model: StageModel, seat: string, puppetId: string | undefined): StageModel {
+  const puppet = model.pack.puppets.find((p) => p.id === puppetId);
+  if (!puppet) return model;
+  if (!isUnlocked(puppet, model.state.plan)) return withState(model, { notice: 'locked' });
+  const seats = model.state.seats.map((s) =>
+    s.id === seat
+      ? {
+          ...s,
+          puppetId: puppet.id,
+          puppetName: puppet.name,
+          color: puppet.color,
+          name: model.names[s.id] ?? puppet.name,
+        }
+      : s,
+  );
+  return withState(model, { seats, notice: undefined });
+}
+
+function applySpeech(
+  model: StageModel,
+  seat: string,
+  transcript: string,
+  lineIndex: number | undefined,
+  at: number,
+): StageModel {
+  const ps = model.state.play;
+  if (!ps || ps.finished || !ps.line || !model.play) return model;
+  if (lineIndex !== undefined && lineIndex !== ps.lineIndex) return model;
+  // Only the seat cast for this line may voice it; unclaimed characters accept anyone.
+  if (ps.line.seat && ps.line.seat !== seat) return model;
+  const result = matchLine(ps.line.text, transcript, {
+    lang: model.play.lang,
+    leniency: model.state.leniency,
+    song: ps.line.song,
+  });
+  const progress = { tokens: result.tokens, ratio: result.ratio, passed: result.passed };
+  const talkingSeat = ps.line.seat ?? `npc:${ps.line.character}`;
+  const poses = {
+    ...model.poses,
+    [talkingSeat]: { ...(model.poses[talkingSeat] ?? NEUTRAL_POSE), talking: true },
+  };
+  const updated: StageModel = {
+    ...model,
+    poses,
+    state: { ...model.state, play: { ...ps, progress } },
+  };
+  if (result.passed) {
+    const advanced = gotoLine(updated, ps.lineIndex + 1, ps.spokenLines + 1);
+    // A little nod for a line well said, unless the next line already triggered a gesture.
+    const g = advanced.gestures[talkingSeat];
+    return g && g.at === Date.now()
+      ? advanced
+      : { ...advanced, gestures: { ...advanced.gestures, [talkingSeat]: { gesture: 'nod', at } } };
+  }
+  return updated;
+}
+
+export function reduceStage(model: StageModel, ev: StageEvent): StageModel {
+  switch (ev.type) {
+    case 'joined': {
+      if (!PLAYER_SEATS.includes(ev.seat as (typeof PLAYER_SEATS)[number])) return model;
+      const hostSeat =
+        model.hostSeat && model.state.seats.find((s) => s.id === model.hostSeat)?.connected
+          ? model.hostSeat
+          : ev.seat;
+      const names = ev.name ? { ...model.names, [ev.seat]: ev.name } : model.names;
+      const seats = model.state.seats
+        .map((s) =>
+          s.id === ev.seat ? { ...s, connected: true, name: names[s.id] ?? s.puppetName } : s,
+        )
+        .map((s) => ({ ...s, isHost: s.id === hostSeat }));
+      const mode = model.state.mode === 'lobby' ? 'free' : model.state.mode;
+      return {
+        ...model,
+        hostSeat,
+        names,
+        poses: { ...model.poses, [ev.seat]: model.poses[ev.seat] ?? NEUTRAL_POSE },
+        state: { ...model.state, seats, mode },
+      };
+    }
+    case 'left': {
+      const seats = model.state.seats.map((s) =>
+        s.id === ev.seat ? { ...s, connected: false } : s,
+      );
+      let hostSeat = model.hostSeat;
+      if (hostSeat === ev.seat) hostSeat = seats.find((s) => s.connected)?.id ?? null;
+      const withHost = seats.map((s) => ({ ...s, isHost: s.id === hostSeat }));
+      const anyone = withHost.some((s) => s.connected);
+      const mode = anyone ? model.state.mode : 'lobby';
+      return {
+        ...model,
+        hostSeat,
+        state: { ...model.state, seats: withHost, mode, play: anyone ? model.state.play : null },
+        play: anyone ? model.play : null,
+        lines: anyone ? model.lines : [],
+      };
+    }
+    case 'plan':
+      return withState(model, { plan: ev.plan, notice: ev.notice });
+    case 'notice':
+      return withState(model, { notice: ev.notice });
+    case 'local':
+      return reduceControl(model, 'local', ev.action, {}, ev.at, ev.cultureId);
+    case 'msg': {
+      const m = ev.msg;
+      switch (m.t) {
+        case 'pose':
+          return { ...model, poses: { ...model.poses, [m.seat]: m.pose } };
+        case 'gesture':
+          return {
+            ...model,
+            gestures: { ...model.gestures, [m.seat]: { gesture: m.gesture, at: ev.at } },
+          };
+        case 'speech':
+          return applySpeech(model, m.seat, m.transcript, m.lineIndex, ev.at);
+        case 'control':
+          return reduceControl(model, m.seat, m.action, m, ev.at, m.cultureId);
+      }
+    }
+  }
+  return model;
+}
+
+type ControlExtras = {
+  playId?: string;
+  puppetId?: string;
+  leniency?: StageState['leniency'];
+  licenseKey?: string;
+};
+
+function reduceControl(
+  model: StageModel,
+  seat: string,
+  action: string,
+  extras: ControlExtras,
+  _at: number,
+  cultureId?: string,
+): StageModel {
+  const ps = model.state.play;
+  switch (action) {
+    case 'next':
+      return ps && !ps.finished ? gotoLine(model, ps.lineIndex + 1, ps.spokenLines) : model;
+    case 'prev':
+      return ps ? gotoLine(model, Math.max(0, ps.lineIndex - 1), ps.spokenLines) : model;
+    case 'said-it':
+      return ps && !ps.finished ? gotoLine(model, ps.lineIndex + 1, ps.spokenLines) : model;
+    case 'start-play':
+      return startPlay(model, extras.playId);
+    case 'free-play':
+      return {
+        ...model,
+        play: null,
+        lines: [],
+        casting: {},
+        state: {
+          ...model.state,
+          mode: 'free',
+          play: null,
+          seats: model.state.seats.map((s) => ({ ...s, character: undefined })),
+        },
+      };
+    case 'lobby':
+      return {
+        ...model,
+        play: null,
+        lines: [],
+        casting: {},
+        state: {
+          ...model.state,
+          mode: model.state.seats.some((s) => s.connected) ? 'free' : 'lobby',
+          play: null,
+        },
+      };
+    case 'toggle-karaoke':
+      return withState(model, { karaoke: !model.state.karaoke });
+    case 'set-culture':
+      return setCulture(model, cultureId);
+    case 'set-puppet':
+      return seat === 'local' ? model : setPuppet(model, seat, extras.puppetId);
+    case 'set-leniency':
+      return extras.leniency ? withState(model, { leniency: extras.leniency }) : model;
+    default:
+      return model;
+  }
+}
+
+/** Puppets to draw: connected seats, plus unclaimed play characters that speak in the current section. */
+export interface VisiblePuppet {
+  key: string;
+  puppetId: string;
+  color: string;
+  npc: boolean;
+  /** Preferred x when no controller drives it. */
+  slot: number;
+  speaking: boolean;
+}
+
+export function visiblePuppets(model: StageModel): VisiblePuppet[] {
+  const out: VisiblePuppet[] = [];
+  const ps = model.state.play;
+  const currentChar = ps?.line?.character;
+  model.state.seats.forEach((s, i) => {
+    if (s.connected)
+      out.push({
+        key: s.id,
+        puppetId: s.puppetId,
+        color: s.color,
+        npc: false,
+        slot: i,
+        speaking: s.character === currentChar && !!currentChar,
+      });
+  });
+  if (ps && model.play && !ps.finished) {
+    const sectionIndex = model.lines[ps.lineIndex]?.sectionIndex;
+    const section = model.play.sections[sectionIndex ?? -1];
+    const speaksHere = new Set(section?.lines.map((l) => l.seat));
+    model.play.characters.forEach((c, i) => {
+      if (Object.values(model.casting).includes(c.seat)) return;
+      if (!speaksHere.has(c.seat)) return;
+      const puppet = model.pack.puppets.find((p) => p.id === c.puppetId);
+      if (!puppet) return;
+      out.push({
+        key: `npc:${c.seat}`,
+        puppetId: puppet.id,
+        color: c.color ?? puppet.color,
+        npc: true,
+        slot: 4 + i,
+        speaking: c.seat === currentChar,
+      });
+    });
+  }
+  return out;
+}

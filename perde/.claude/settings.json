@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install*)",
+      "Bash(pnpm verify*)",
+      "Bash(pnpm typecheck*)",
+      "Bash(pnpm lint*)",
+      "Bash(pnpm format*)",
+      "Bash(pnpm test*)",
+      "Bash(pnpm vitest*)",
+      "Bash(pnpm build*)",
+      "Bash(pnpm e2e*)",
+      "Bash(pnpm metrics*)",
+      "Bash(pnpm validate:content*)",
+      "Bash(pnpm screenshots*)",
+      "Bash(pnpm dev:relay*)",
+      "Bash(pnpm dev:web*)",
+      "Bash(pnpm --filter *)",
+      "Bash(npx playwright *)",
+      "Bash(npx wrangler dev*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git push*)",
+      "Bash(git checkout*)",
+      "Bash(git switch*)",
+      "Bash(curl -s http://127.0.0.1:*)"
+    ],
+    "deny": ["Bash(rm -rf /*)", "Bash(git push --force*)"]
+  },
+  "env": {
+    "WRANGLER_SEND_METRICS": "false"
+  }
+}

@@ -1,0 +1,12 @@
+# Perde — this file also re-includes .claude/, which the repository root ignores.
+!.claude/
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+*.local
+coverage/
+playwright-report/
+test-results/
+.eslintcache
+*.tsbuildinfo
