@@ -1,0 +1,11 @@
+{
+  "name": "Perde",
+  "short_name": "Perde",
+  "description": "Karagöz & Hacivat on your TV, the strings in your phone.",
+  "start_url": "/join",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1c1a17",
+  "theme_color": "#1c1a17",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

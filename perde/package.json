@@ -1,0 +1,49 @@
+{
+  "name": "perde",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Karagöz & Hacivat on your TV, played with two phones. Gyroscope-driven shadow puppets with karaoke-style scripts and speech recognition.",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @perde/web build --watch & pnpm --filter @perde/relay dev",
+    "dev:web": "pnpm --filter @perde/web dev",
+    "dev:relay": "pnpm --filter @perde/relay dev",
+    "build": "pnpm --filter @perde/web build",
+    "typecheck": "tsc -p tsconfig.json && pnpm -r --parallel typecheck",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "playwright test",
+    "validate:content": "pnpm --filter @perde/content validate",
+    "metrics": "tsx scripts/metrics.ts",
+    "deploy": "pnpm build && pnpm --filter @perde/relay deploy",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
+    "screenshots": "node scripts/screenshots.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@perde/content": "workspace:*",
+    "@perde/shared": "workspace:*",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^22.18.0",
+    "eslint": "^9.39.0",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "globals": "^16.0.0",
+    "prettier": "^3.9.0",
+    "tsx": "^4.20.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^3.2.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "workerd"
+    ]
+  },
+  "type": "module"
+}

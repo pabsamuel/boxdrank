@@ -1,0 +1,436 @@
+import type { PuppetInput } from '@perde/shared';
+import { blob, circle, ellipse, poly, rect } from '../shapes';
+
+/**
+ * Punch and Judy glove puppets, authored front-on in a 200×400 box. The booth
+ * hides everything below the waist, so these figures stop at y≈330 and the
+ * stage places them on its playboard.
+ */
+
+const SKIN = '#f1c9a5';
+const INK = '#1a1a1a';
+const RED = '#c8102e';
+const YELLOW = '#f2c94c';
+const BLUE = '#1f4e8c';
+const GREEN = '#3c8d3f';
+
+export const punch: PuppetInput = {
+  id: 'punch',
+  cultureId: 'en',
+  name: 'Mr Punch',
+  description:
+    'Hook-nosed, hunch-backed and delighted with himself. Carries a slapstick and never loses an argument.',
+  width: 200,
+  height: 400,
+  color: '#c8102e',
+  premium: true,
+  parts: [
+    {
+      id: 'body',
+      d: blob([70, 150], [130, 150], [152, 240], [148, 330], [52, 330], [48, 240]),
+      fill: RED,
+      pivot: [100, 330],
+      driver: 'lean',
+      gain: 10,
+    },
+    {
+      id: 'stripe-1',
+      d: poly([70, 190], [130, 190], [134, 206], [66, 206]),
+      fill: YELLOW,
+      parent: 'body',
+    },
+    {
+      id: 'stripe-2',
+      d: poly([64, 240], [136, 240], [140, 256], [60, 256]),
+      fill: YELLOW,
+      parent: 'body',
+    },
+    {
+      id: 'stripe-3',
+      d: poly([58, 290], [142, 290], [146, 306], [54, 306]),
+      fill: YELLOW,
+      parent: 'body',
+    },
+    {
+      id: 'hump',
+      d: blob([120, 150], [150, 160], [154, 200], [130, 196]),
+      fill: RED,
+      parent: 'body',
+    },
+    { id: 'ruff', d: ellipse(100, 150, 42, 12), fill: '#f4f1e6', parent: 'body' },
+    {
+      id: 'head',
+      d: blob([72, 70], [128, 66], [136, 110], [118, 146], [82, 146], [64, 110]),
+      fill: SKIN,
+      parent: 'body',
+      pivot: [100, 146],
+      driver: 'talk',
+      gain: 6,
+    },
+    {
+      id: 'nose',
+      d: blob([96, 96], [112, 98], [120, 118], [110, 128], [100, 122]),
+      fill: '#e2a67c',
+      parent: 'head',
+    },
+    {
+      id: 'chin',
+      d: blob([90, 126], [110, 126], [112, 148], [92, 148]),
+      fill: '#e2a67c',
+      parent: 'head',
+    },
+    { id: 'eye-l', d: circle(86, 94, 5), fill: INK, parent: 'head' },
+    { id: 'eye-r', d: circle(112, 92, 5), fill: INK, parent: 'head' },
+    { id: 'cheeks', d: circle(78, 112, 7), fill: '#f08a8a', parent: 'head' },
+    {
+      id: 'mouth',
+      d: blob([84, 122], [110, 120], [104, 132], [88, 132]),
+      fill: '#8a1a1a',
+      parent: 'head',
+    },
+    {
+      id: 'hat',
+      d: blob([66, 70], [134, 70], [120, 10], [84, 4]),
+      fill: RED,
+      parent: 'head',
+      pivot: [100, 68],
+      driver: 'bob',
+      gain: -20,
+    },
+    { id: 'hat-trim', d: ellipse(100, 70, 36, 9), fill: YELLOW, parent: 'hat' },
+    { id: 'bell', d: circle(118, 10, 7), fill: YELLOW, parent: 'hat' },
+    {
+      id: 'arm',
+      d: poly([140, 170], [156, 176], [176, 250], [160, 256]),
+      fill: RED,
+      parent: 'body',
+      pivot: [146, 172],
+      driver: 'arm',
+      gain: -110,
+      rest: 0,
+    },
+    { id: 'hand', d: circle(170, 258, 10), fill: SKIN, parent: 'arm' },
+    {
+      id: 'slapstick',
+      d: poly([164, 262], [176, 262], [196, 150], [186, 148]),
+      fill: '#c99a5a',
+      parent: 'arm',
+    },
+    {
+      id: 'arm-l',
+      d: poly([44, 176], [60, 170], [40, 250], [24, 246]),
+      fill: RED,
+      parent: 'body',
+      pivot: [54, 172],
+      driver: 'arm-inverse',
+      gain: 60,
+      rest: 0,
+    },
+    { id: 'hand-l', d: circle(30, 254, 10), fill: SKIN, parent: 'arm-l' },
+  ],
+};
+
+export const judy: PuppetInput = {
+  id: 'judy',
+  cultureId: 'en',
+  name: 'Judy',
+  description:
+    'Mob cap, apron and the only sensible person in the booth. Not impressed by Mr Punch.',
+  width: 200,
+  height: 400,
+  color: '#1f4e8c',
+  premium: true,
+  parts: [
+    {
+      id: 'body',
+      d: blob([74, 150], [126, 150], [150, 240], [152, 330], [48, 330], [50, 240]),
+      fill: BLUE,
+      pivot: [100, 330],
+      driver: 'lean',
+      gain: 8,
+    },
+    {
+      id: 'apron',
+      d: blob([80, 200], [120, 200], [132, 330], [68, 330]),
+      fill: '#f4f1e6',
+      parent: 'body',
+    },
+    { id: 'collar', d: ellipse(100, 150, 34, 10), fill: '#f4f1e6', parent: 'body' },
+    {
+      id: 'head',
+      d: circle(100, 104, 38),
+      fill: SKIN,
+      parent: 'body',
+      pivot: [100, 146],
+      driver: 'talk',
+      gain: 5,
+    },
+    { id: 'eye-l', d: circle(86, 98, 4.5), fill: INK, parent: 'head' },
+    { id: 'eye-r', d: circle(114, 98, 4.5), fill: INK, parent: 'head' },
+    {
+      id: 'nose',
+      d: blob([96, 106], [104, 106], [106, 116], [94, 116]),
+      fill: '#e2a67c',
+      parent: 'head',
+    },
+    {
+      id: 'mouth',
+      d: blob([90, 124], [110, 124], [104, 130], [96, 130]),
+      fill: '#8a1a1a',
+      parent: 'head',
+    },
+    { id: 'cheek-l', d: circle(80, 116, 6), fill: '#f08a8a', parent: 'head' },
+    { id: 'cheek-r', d: circle(120, 116, 6), fill: '#f08a8a', parent: 'head' },
+    {
+      id: 'cap',
+      d: blob([56, 84], [144, 84], [140, 40], [100, 24], [60, 40]),
+      fill: '#f4f1e6',
+      parent: 'head',
+      pivot: [100, 80],
+      driver: 'bob',
+      gain: -10,
+    },
+    {
+      id: 'cap-ribbon',
+      d: poly([58, 78], [142, 78], [144, 88], [56, 88]),
+      fill: RED,
+      parent: 'cap',
+    },
+    {
+      id: 'arm',
+      d: poly([138, 172], [154, 178], [172, 250], [156, 256]),
+      fill: BLUE,
+      parent: 'body',
+      pivot: [144, 174],
+      driver: 'arm',
+      gain: -100,
+      rest: 0,
+    },
+    { id: 'hand', d: circle(166, 258, 10), fill: SKIN, parent: 'arm' },
+    { id: 'rolling-pin', d: rect(150, 262, 42, 10), fill: '#c99a5a', parent: 'arm' },
+    {
+      id: 'arm-l',
+      d: poly([46, 178], [62, 172], [42, 250], [26, 246]),
+      fill: BLUE,
+      parent: 'body',
+      pivot: [56, 174],
+      driver: 'arm-inverse',
+      gain: 50,
+      rest: 0,
+    },
+    { id: 'hand-l', d: circle(32, 254, 10), fill: SKIN, parent: 'arm-l' },
+  ],
+};
+
+export const crocodile: PuppetInput = {
+  id: 'crocodile',
+  cultureId: 'en',
+  name: 'Crocodile',
+  description: 'Green, toothy and fond of sausages. Opens his jaws whenever he speaks.',
+  width: 200,
+  height: 400,
+  color: '#3c8d3f',
+  premium: true,
+  parts: [
+    {
+      id: 'body',
+      d: blob([60, 200], [140, 200], [160, 330], [40, 330]),
+      fill: GREEN,
+      pivot: [100, 330],
+      driver: 'lean',
+      gain: 10,
+    },
+    {
+      id: 'belly',
+      d: blob([80, 230], [120, 230], [130, 330], [70, 330]),
+      fill: '#b8d98b',
+      parent: 'body',
+    },
+    {
+      id: 'head',
+      d: blob([50, 150], [150, 150], [160, 200], [40, 200]),
+      fill: GREEN,
+      parent: 'body',
+      pivot: [100, 200],
+    },
+    {
+      id: 'snout-top',
+      d: blob([100, 120], [196, 128], [196, 158], [100, 160]),
+      fill: GREEN,
+      parent: 'head',
+      pivot: [104, 158],
+      driver: 'talk',
+      gain: -28,
+    },
+    {
+      id: 'teeth-top',
+      d: poly(
+        [120, 156],
+        [128, 166],
+        [136, 156],
+        [144, 166],
+        [152, 156],
+        [160, 166],
+        [168, 156],
+        [176, 166],
+        [184, 156],
+        [184, 152],
+        [120, 152],
+      ),
+      fill: '#f4f1e6',
+      parent: 'snout-top',
+    },
+    { id: 'nostril', d: circle(184, 134, 4), fill: INK, parent: 'snout-top' },
+    {
+      id: 'snout-bottom',
+      d: blob([100, 160], [196, 160], [190, 186], [100, 190]),
+      fill: '#2f6f31',
+      parent: 'head',
+      pivot: [104, 162],
+      driver: 'talk',
+      gain: 22,
+    },
+    { id: 'eye-ridge', d: circle(90, 146, 14), fill: GREEN, parent: 'head' },
+    { id: 'eye', d: circle(90, 146, 8), fill: YELLOW, parent: 'head' },
+    { id: 'pupil', d: ellipse(90, 146, 2.5, 6), fill: INK, parent: 'head' },
+    {
+      id: 'scales',
+      d: circle(70, 260, 6) + ' ' + circle(50, 290, 6) + ' ' + circle(150, 280, 6),
+      fill: '#2f6f31',
+      parent: 'body',
+    },
+    {
+      id: 'arm',
+      d: poly([146, 220], [162, 226], [176, 280], [160, 284]),
+      fill: GREEN,
+      parent: 'body',
+      pivot: [152, 222],
+      driver: 'arm',
+      gain: -80,
+      rest: 0,
+    },
+    {
+      id: 'claw',
+      d: poly([158, 282], [180, 282], [186, 300], [170, 294], [156, 300]),
+      fill: '#2f6f31',
+      parent: 'arm',
+    },
+  ],
+};
+
+export const constable: PuppetInput = {
+  id: 'constable',
+  cultureId: 'en',
+  name: 'Constable',
+  description:
+    'Custodian helmet, big whistle, bigger moustache. Always arrives one scene too late.',
+  width: 200,
+  height: 400,
+  color: '#2c3e50',
+  premium: true,
+  parts: [
+    {
+      id: 'body',
+      d: blob([72, 150], [128, 150], [150, 240], [148, 330], [52, 330], [50, 240]),
+      fill: '#2c3e50',
+      pivot: [100, 330],
+      driver: 'lean',
+      gain: 8,
+    },
+    {
+      id: 'buttons',
+      d:
+        circle(100, 190, 4) +
+        ' ' +
+        circle(100, 215, 4) +
+        ' ' +
+        circle(100, 240, 4) +
+        ' ' +
+        circle(100, 265, 4),
+      fill: '#c0c8d0',
+      parent: 'body',
+    },
+    { id: 'belt', d: rect(54, 280, 92, 12), fill: INK, parent: 'body' },
+    { id: 'buckle', d: rect(94, 279, 12, 14), fill: '#c0c8d0', parent: 'body' },
+    {
+      id: 'head',
+      d: circle(100, 106, 36),
+      fill: SKIN,
+      parent: 'body',
+      pivot: [100, 146],
+      driver: 'talk',
+      gain: 5,
+    },
+    { id: 'eye-l', d: circle(88, 100, 4.5), fill: INK, parent: 'head' },
+    { id: 'eye-r', d: circle(112, 100, 4.5), fill: INK, parent: 'head' },
+    {
+      id: 'nose',
+      d: blob([96, 108], [104, 108], [106, 120], [94, 120]),
+      fill: '#e2a67c',
+      parent: 'head',
+    },
+    {
+      id: 'moustache',
+      d: blob([76, 124], [124, 124], [118, 134], [100, 130], [82, 134]),
+      fill: INK,
+      parent: 'head',
+    },
+    {
+      id: 'helmet',
+      d: blob([60, 84], [140, 84], [134, 40], [100, 8], [66, 40]),
+      fill: '#1c2833',
+      parent: 'head',
+      pivot: [100, 80],
+      driver: 'bob',
+      gain: -10,
+    },
+    { id: 'helmet-brim', d: ellipse(100, 84, 44, 8), fill: '#1c2833', parent: 'helmet' },
+    {
+      id: 'badge',
+      d: poly(
+        [100, 40],
+        [108, 54],
+        [124, 56],
+        [112, 66],
+        [116, 82],
+        [100, 74],
+        [84, 82],
+        [88, 66],
+        [76, 56],
+        [92, 54],
+      ),
+      fill: '#c0c8d0',
+      parent: 'helmet',
+    },
+    {
+      id: 'arm',
+      d: poly([138, 172], [154, 178], [172, 250], [156, 256]),
+      fill: '#2c3e50',
+      parent: 'body',
+      pivot: [144, 174],
+      driver: 'arm',
+      gain: -100,
+      rest: 0,
+    },
+    { id: 'hand', d: circle(166, 258, 10), fill: SKIN, parent: 'arm' },
+    {
+      id: 'truncheon',
+      d: poly([160, 262], [172, 262], [180, 190], [170, 188]),
+      fill: INK,
+      parent: 'arm',
+    },
+    {
+      id: 'arm-l',
+      d: poly([46, 178], [62, 172], [42, 250], [26, 246]),
+      fill: '#2c3e50',
+      parent: 'body',
+      pivot: [56, 174],
+      driver: 'arm-inverse',
+      gain: 50,
+      rest: 0,
+    },
+    { id: 'hand-l', d: circle(32, 254, 10), fill: SKIN, parent: 'arm-l' },
+  ],
+};
+
+export const enPuppets: PuppetInput[] = [punch, judy, crocodile, constable];
