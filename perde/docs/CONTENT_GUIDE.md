@@ -35,17 +35,21 @@ eyledin viran! / Var git sahibine haber ver heman!" and the apology "sürç-i li
 2. Use `shapes.ts` helpers (`blob`, `poly`, `circle`, `ellipse`, `rect`) in a 200×400 box, y down,
    feet on y=400 (booth puppets stop around y=330; the board hides the rest).
 3. Author facing **right**; the stage flips it.
-4. Parts:
-   - `body` is the root: pivot `[100, 400]`, `driver: 'lean'`, gain 8–12.
+4. `rod: [x, y]` is where the puppeteer holds the figure. The whole figure leans and swings
+   around it: the neck for a Karagöz figure (about `[100, 135]`), the base for a glove puppet
+   (`[100, 330]`). If you leave it out, a point on the neck line is assumed.
+5. Parts:
+   - `body` is the root: pivot `[100, 400]`, `driver: 'lean'`, gain 3–4 (a little extra bend; the
+     big lean comes from the rod).
    - `head` under body: pivot at the neck, `driver: 'talk'`, gain 4–6 (nods while speaking).
    - `arm` under body: pivot at the shoulder, `driver: 'arm'`, negative gain (−90…−120) so the
      hand rises; hang it down at rest. Booth puppets add `arm-l` with `arm-inverse` and positive gain.
    - `hat`/headgear under head with `driver: 'bob'` and a small negative gain: it flips when the
      puppet hops (Karagöz's ışkırlak is the reference).
    - Jaws: `snout-top` / `snout-bottom` with `talk` and opposite gains (see the crocodile).
-5. Colours from the pack palette; shadow puppets are drawn translucent by the stage, so avoid
+6. Colours from the pack palette; shadow puppets are drawn translucent by the stage, so avoid
    pale fills on pale backgrounds (add a `stroke` if needed).
-6. Look at it: `pnpm build && pnpm dev:relay`, then `/stage?demo=1&culture=<id>` or set the puppet
+7. Look at it: `pnpm build && pnpm dev:relay`, then `/stage?demo=1&culture=<id>` or set the puppet
    from the phone menu. `pnpm screenshots` refreshes the docs images.
 
 ## Adding a tradition (culture pack)

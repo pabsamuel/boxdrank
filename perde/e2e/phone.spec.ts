@@ -32,13 +32,14 @@ test.describe('phone', () => {
     await expect(tv.locator('.lobby')).toBeHidden({ timeout: 10_000 });
 
     // The host phone starts a play; both screens show the first line.
-    await page.getByRole('button', { name: '☰' }).click();
+    await page.getByRole('button', { name: 'menu' }).click();
     await page.getByRole('button', { name: /Salıncak/ }).click();
     await expect(tv.locator('.karaoke__line')).toContainText('bayram geldi', { timeout: 10_000 });
     await expect(page.locator('.karaoke__line')).toContainText('bayram geldi');
     // p2 holds Hacivat, so the first line (Hacivat's) is "your line".
-    await expect(page.locator('.controller__line')).toHaveClass(/is-mine/);
-    await page.getByRole('button', { name: /Söyledim|I said it/ }).click();
+    await expect(page.locator('.rod')).toHaveClass(/is-mine/);
+    // No buttons on the rod: a double-tap on the line counts it as said.
+    await page.locator('.rod').dblclick();
     await expect(tv.locator('.karaoke__count')).toContainText('2 /');
     await tv.close();
   });

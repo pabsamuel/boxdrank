@@ -13,12 +13,18 @@ import {
 import { cultures, getPack, isUnlocked } from '@perde/content';
 import { KaraokeBar } from '../components/KaraokeBar';
 import {
-  computePose,
+  DEFAULT_TUNING,
+  MotionModel,
   createMotionSource,
+  loadTuning,
   poseChanged,
   requestMotionPermission,
+  resetTuning,
+  saveTuning,
   type MotionPermission,
+  type MotionReadout,
   type MotionSource,
+  type MotionTuning,
 } from '../lib/motion';
 import { createSpeechSession, speechSupported, type SpeechSession } from '../lib/speech';
 import { openControllerSocket, type ConnectionStatus } from '../lib/ws';
@@ -26,7 +32,8 @@ import { useT, useUiLang } from '../lib/ui';
 
 /**
  * The phone. Three screens: enter/confirm the room, pick up the puppet
- * (permissions need a tap), then the controller itself.
+ * (permissions need a tap), then the rod itself: no buttons, just the line to
+ * say. The hand does everything; the menu in the corner is for set-up.
  */
 
 type Step = 'form' | 'pickup' | 'play';
@@ -125,6 +132,10 @@ interface ControllerProps {
   onToggleLang: () => void;
 }
 
+const POSE_INTERVAL_MS = 20;
+const DRAG_START_PX = 12;
+const DOUBLE_TAP_MS = 350;
+
 function Controller({ code, seat, name, onName, step, setStep, onToggleLang }: ControllerProps) {
   const t = useT();
   const uiLang = useUiLang();
@@ -138,14 +149,21 @@ function Controller({ code, seat, name, onName, step, setStep, onToggleLang }: C
   const [heard, setHeard] = useState('');
   const [menu, setMenu] = useState(false);
   const [licenseKey, setLicenseKey] = useState('');
-  const [touchX, setTouchX] = useState<number | null>(null);
-  const [knobX, setKnobX] = useState(0);
+  const [tuning, setTuning] = useState<MotionTuning>(() => loadTuning());
+  const [readout, setReadout] = useState<MotionReadout | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
   const socketRef = useRef<ReturnType<typeof openControllerSocket> | null>(null);
+  const modelRef = useRef<MotionModel>(new MotionModel(tuning));
   const motionRef = useRef<MotionSource | null>(null);
   const speechRef = useRef<SpeechSession | null>(null);
   const poseRef = useRef<Pose>(NEUTRAL_POSE);
   const talkingRef = useRef(false);
   const touchRef = useRef<number | null>(null);
+  const dragRef = useRef<{ startPx: number; startX: number; width: number; moved: boolean } | null>(
+    null,
+  );
+  const lastTapRef = useRef(0);
+  const lastPassRef = useRef(0);
   const stateRef = useRef<StageState | null>(null);
   useEffect(() => {
     stateRef.current = state;
@@ -193,9 +211,9 @@ function Controller({ code, seat, name, onName, step, setStep, onToggleLang }: C
     const perm = await requestMotionPermission();
     setMotion(perm);
     if (perm === 'granted') {
-      motionRef.current = createMotionSource();
+      motionRef.current = createMotionSource(modelRef.current);
       motionRef.current.start();
-      setTimeout(() => motionRef.current?.recenter(), 600);
+      setTimeout(() => motionRef.current?.recenter(), 700);
     }
     if (speechSupported()) {
       const lang = stateRef.current
@@ -231,27 +249,31 @@ function Controller({ code, seat, name, onName, step, setStep, onToggleLang }: C
     setStep('play');
   };
 
-  // Pose loop at ~30 Hz, sending only when something moved.
+  // Pose loop at 50 Hz, sending only when something moved; hand gestures ride along.
   useEffect(() => {
     if (step !== 'play') return;
     const timer = setInterval(() => {
-      const m = motionRef.current;
-      const next = computePose({
-        orientation: m?.orientation ?? { alpha: null, beta: null, gamma: null },
-        calibration: m?.calibration ?? { alpha0: 0, beta0: 40 },
-        bounce: m?.bounce ?? 0,
-        touchX: touchRef.current,
-        talking: talkingRef.current,
-        prev: poseRef.current,
-      });
+      const model = modelRef.current;
+      const next = model.pose(touchRef.current, talkingRef.current);
       if (poseChanged(poseRef.current, next)) {
-        if (Math.abs(next.x - poseRef.current.x) > 0.01) setKnobX(next.x);
         poseRef.current = next;
         socketRef.current?.send({ t: 'pose', pose: next });
       }
-    }, 33);
+      for (const g of model.takeGestures()) {
+        const gesture: Gesture = g === 'turn' ? 'turn' : 'bow';
+        socketRef.current?.send({ t: 'gesture', gesture });
+        navigator.vibrate?.(15);
+      }
+    }, POSE_INTERVAL_MS);
     return () => clearInterval(timer);
   }, [step]);
+
+  // Live readings for the tuning panel.
+  useEffect(() => {
+    if (!menu) return;
+    const timer = setInterval(() => setReadout(modelRef.current.current()), 125);
+    return () => clearInterval(timer);
+  }, [menu]);
 
   // Reset the transcript buffer whenever the line changes; follow the culture's language.
   useEffect(() => {
@@ -278,20 +300,55 @@ function Controller({ code, seat, name, onName, step, setStep, onToggleLang }: C
     socketRef.current?.send(msg);
   const control = (action: ControlAction, extra: Record<string, string> = {}) =>
     send({ t: 'control', action, ...extra });
-  const gesture = (g: Gesture) => {
-    send({ t: 'gesture', gesture: g });
-    navigator.vibrate?.(20);
+  const applyTuning = (next: MotionTuning) => {
+    setTuning(next);
+    saveTuning(next);
+    modelRef.current.setTuning(next);
+  };
+  const recenter = () => {
+    motionRef.current?.recenter();
+    modelRef.current.recenter();
+    setFlash(t('recenter'));
+    setTimeout(() => setFlash(null), 700);
+  };
+  const passLine = () => {
+    const now = Date.now();
+    if (now - lastPassRef.current < 600) return;
+    lastPassRef.current = now;
+    if (myLine) control('said-it');
   };
 
-  const onPad = (e: React.PointerEvent<HTMLDivElement>) => {
+  // The whole screen is the rod: drag sideways to walk, double-tap the line to count it as said.
+  const onPointerDown = (e: React.PointerEvent<HTMLElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    touchRef.current = Math.max(-1, Math.min(1, x));
-    setTouchX(touchRef.current);
+    dragRef.current = {
+      startPx: e.clientX,
+      startX: poseRef.current.x,
+      width: rect.width,
+      moved: false,
+    };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
   };
-  const onPadEnd = () => {
-    // Keep the last touched position: the puppet stays where you left it.
-    setTouchX(null);
+  const onPointerMove = (e: React.PointerEvent<HTMLElement>) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const dx = e.clientX - d.startPx;
+    if (!d.moved && Math.abs(dx) < DRAG_START_PX) return;
+    d.moved = true;
+    touchRef.current = Math.max(-1, Math.min(1, d.startX + dx / (d.width * 0.45)));
+  };
+  const onPointerUp = () => {
+    const d = dragRef.current;
+    dragRef.current = null;
+    touchRef.current = null;
+    if (!d || d.moved) return;
+    const now = Date.now();
+    if (now - lastTapRef.current < DOUBLE_TAP_MS) {
+      lastTapRef.current = 0;
+      passLine();
+    } else {
+      lastTapRef.current = now;
+    }
   };
 
   const color = me?.color ?? '#f2c94c';
@@ -314,6 +371,7 @@ function Controller({ code, seat, name, onName, step, setStep, onToggleLang }: C
             🎭 {t('pickUpPuppet')}
           </button>
           <p className="pickup__hint">{t('motionPermission')}</p>
+          <p className="pickup__hint">{t('holdLikeARod')}</p>
           {!speechSupported() && (
             <p className="pickup__hint pickup__hint--warn">{t('micUnavailable')}</p>
           )}
@@ -335,119 +393,82 @@ function Controller({ code, seat, name, onName, step, setStep, onToggleLang }: C
         </div>
         <div className="controller__status">
           <span className={`dot dot--${status}`} />
-          {!stageOnline && <span className="warn">{t('stageOffline')}</span>}
           <button
-            className="btn btn--ghost btn--small"
-            onClick={() => motionRef.current?.recenter()}
+            className="btn btn--ghost btn--icon"
+            onClick={recenter}
             disabled={motion !== 'granted'}
+            aria-label={t('recenter')}
+            title={t('recenter')}
           >
-            {t('recenter')}
+            ⌖
           </button>
           <button
-            className="btn btn--ghost btn--small"
+            className="btn btn--ghost btn--icon"
             onClick={() => setMenu((m) => !m)}
             aria-expanded={menu}
+            aria-label="menu"
           >
             ☰
           </button>
         </div>
       </header>
 
-      {ps && !ps.finished && (
-        <section className={`controller__line ${myLine ? 'is-mine' : ''}`}>
-          <KaraokeBar play={ps} color={color} compact label={lineLabel} />
-          {myLine && (
-            <div className="controller__listen">
-              {speechOk ? (
-                <span className={`listen ${talking ? 'is-talking' : ''}`}>
-                  🎤 {t('listening')} {heard && <em>{heard.slice(-60)}</em>}
-                </span>
-              ) : (
-                <span className="warn">{t('micUnavailable')}</span>
-              )}
-              <button className="btn btn--small" onClick={() => control('said-it')}>
-                ✓ {t('saidIt')}
-              </button>
-            </div>
-          )}
-        </section>
-      )}
-      {ps?.finished && (
-        <section className="controller__line">
-          <h2>{t('theEnd')}</h2>
-          <button className="btn" onClick={() => control('lobby')}>
-            {t('backToLobby')}
-          </button>
-        </section>
-      )}
-      {!ps && state && (
-        <section className="controller__line controller__line--idle">
-          <p>
-            {me?.isHost
-              ? uiLang === 'tr'
-                ? 'Serbest oyun. Menüden bir oyun seç.'
-                : 'Free play. Pick a play from the menu.'
-              : t('freePlay')}
-          </p>
-        </section>
-      )}
-
-      <div
-        className="pad"
-        onPointerDown={onPad}
-        onPointerMove={(e) => e.buttons > 0 && onPad(e)}
-        onPointerUp={onPadEnd}
-        onPointerCancel={onPadEnd}
-        role="slider"
-        aria-label="stage position"
-        aria-valuenow={Math.round(((touchX ?? knobX) + 1) * 50)}
+      <main
+        className={`rod ${myLine ? 'is-mine' : ''}`}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onDoubleClick={passLine}
       >
-        <p className="pad__hint">
-          {uiLang === 'tr'
-            ? 'Sürükle: sahnede yürü · Telefonu eğ: eğil · Öne yatır: kolunu kaldır · Salla: zıpla'
-            : 'Drag: walk · Tilt: lean · Tip forward: raise arm · Shake: hop'}
-        </p>
-        <div className="pad__track">
-          <div className="pad__knob" style={{ left: `${((touchX ?? knobX) + 1) * 50}%` }} />
-        </div>
+        {!stageOnline && <p className="warn">{t('stageOffline')}</p>}
+        {ps && !ps.finished && (
+          <section className="rod__line">
+            <KaraokeBar play={ps} color={color} compact label={lineLabel} />
+            {myLine && (
+              <p className="rod__listen">
+                {speechOk ? (
+                  <span className={`listen ${talking ? 'is-talking' : ''}`}>
+                    🎤 {t('listening')} {heard && <em>{heard.slice(-60)}</em>}
+                  </span>
+                ) : (
+                  <span className="warn">{t('micUnavailable')}</span>
+                )}
+              </p>
+            )}
+            {myLine && <p className="rod__tap">{t('tapTwiceToPass')}</p>}
+          </section>
+        )}
+        {ps?.finished && (
+          <section className="rod__line rod__line--end">
+            <h2>{t('theEnd')}</h2>
+            <p>
+              {ps.spokenLines}/{ps.totalLines} {t('spokenLines')}
+            </p>
+          </section>
+        )}
+        {!ps && state && (
+          <section className="rod__line rod__line--idle">
+            <p>
+              {me?.isHost
+                ? uiLang === 'tr'
+                  ? 'Serbest oyun. Oyun seçmek için ☰.'
+                  : 'Free play. ☰ to pick a play.'
+                : t('freePlay')}
+            </p>
+          </section>
+        )}
+        {!state && <p className="rod__waiting">{t('waitingForStage')}</p>}
+        {flash && <div className="rod__flash">{flash}</div>}
+        <p className="rod__hint">{t('holdLikeARod')}</p>
         {motion === 'denied' && (
           <p className="warn">
             {uiLang === 'tr'
-              ? 'Hareket izni verilmedi; sürükleyerek oynat.'
-              : 'Motion access denied; drag to play.'}
+              ? 'Hareket izni verilmedi; ekranda sürükleyerek oynat.'
+              : 'Motion access denied; drag on the screen to play.'}
           </p>
         )}
-      </div>
-
-      <div className="gestures">
-        <button className="btn btn--gesture" onClick={() => gesture('wave')}>
-          👋 {t('wave')}
-        </button>
-        <button className="btn btn--gesture" onClick={() => gesture('jump')}>
-          ⬆️ {t('jump')}
-        </button>
-        <button className="btn btn--gesture" onClick={() => gesture('spin')}>
-          🌀 {t('spin')}
-        </button>
-        <button className="btn btn--gesture" onClick={() => gesture('bow')}>
-          🙇 {t('bow')}
-        </button>
-        {!speechOk && (
-          <button
-            className="btn btn--gesture btn--talk"
-            onPointerDown={() => {
-              talkingRef.current = true;
-              setTalking(true);
-            }}
-            onPointerUp={() => {
-              talkingRef.current = false;
-              setTalking(false);
-            }}
-          >
-            🗣 {uiLang === 'tr' ? 'Konuş (basılı tut)' : 'Talk (hold)'}
-          </button>
-        )}
-      </div>
+      </main>
 
       {menu && state && (
         <div className="menu" role="dialog">
@@ -480,6 +501,9 @@ function Controller({ code, seat, name, onName, step, setStep, onToggleLang }: C
           <div className="menu__row">
             <button className="btn btn--small" onClick={() => control('free-play')}>
               {t('freePlay')}
+            </button>
+            <button className="btn btn--small" onClick={() => control('lobby')}>
+              {t('backToLobby')}
             </button>
             <button className="btn btn--small" onClick={() => control('toggle-karaoke')}>
               {state.karaoke ? t('karaokeOn') : t('karaokeOff')}
@@ -556,8 +580,106 @@ function Controller({ code, seat, name, onName, step, setStep, onToggleLang }: C
             </form>
           )}
           {state.notice && <p className="warn">{state.notice}</p>}
+
+          <TuningPanel
+            tuning={tuning}
+            readout={readout}
+            onChange={applyTuning}
+            onReset={() => applyTuning(resetTuning())}
+          />
         </div>
       )}
     </div>
+  );
+}
+
+interface TuningPanelProps {
+  tuning: MotionTuning;
+  readout: MotionReadout | null;
+  onChange: (t: MotionTuning) => void;
+  onReset: () => void;
+}
+
+function TuningPanel({ tuning, readout, onChange, onReset }: TuningPanelProps) {
+  const t = useT();
+  const slider = (
+    key: keyof MotionTuning,
+    label: string,
+    min: number,
+    max: number,
+    step: number,
+  ) => (
+    <label className="tuning__row" key={key}>
+      <span>
+        {label} <b>{String(tuning[key])}</b>
+      </span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={Number(tuning[key])}
+        onChange={(e) => onChange({ ...tuning, [key]: Number(e.target.value) })}
+      />
+    </label>
+  );
+  const toggle = (key: 'invertX' | 'invertLean', label: string) => (
+    <label className="tuning__row tuning__row--toggle" key={key}>
+      <input
+        type="checkbox"
+        checked={tuning[key]}
+        onChange={(e) => onChange({ ...tuning, [key]: e.target.checked })}
+      />
+      <span>{label}</span>
+    </label>
+  );
+  const copy = () => {
+    const text = JSON.stringify(tuning, null, 2);
+    navigator.clipboard?.writeText(text).catch(() => undefined);
+  };
+  return (
+    <details className="tuning">
+      <summary>{t('tuning')}</summary>
+      {slider('travelCm', t('tuningTravel'), 0, 60, 1)}
+      {slider('yawRangeDeg', t('tuningYaw'), 10, 120, 1)}
+      {slider('leanRangeDeg', t('tuningLean'), 10, 70, 1)}
+      {slider('armRangeDeg', t('tuningArm'), 10, 80, 1)}
+      {slider('hopCm', t('tuningHop'), 0, 30, 1)}
+      {slider('smoothing', t('tuningSmoothing'), 0, 0.9, 0.05)}
+      {slider('deadband', t('tuningDeadband'), 0.1, 1.5, 0.05)}
+      {toggle('invertX', t('tuningInvertX'))}
+      {toggle('invertLean', t('tuningInvertLean'))}
+      <label className="tuning__row tuning__row--toggle">
+        <input
+          type="checkbox"
+          checked={tuning.accelSign === -1}
+          onChange={(e) => onChange({ ...tuning, accelSign: e.target.checked ? -1 : 1 })}
+        />
+        <span>{t('tuningAccelSign')}</span>
+      </label>
+      {readout && (
+        <pre className="tuning__live">
+          {t('tuningLive')}
+          {'\n'}heading {readout.headingDeg.toFixed(0)}° · lean {readout.leanDeg.toFixed(0)}° ·
+          pitch {readout.pitchDeg.toFixed(0)}°{'\n'}
+          a→ {readout.lateralAccel.toFixed(2)} · a↑ {readout.upAccel.toFixed(2)} m/s²{'\n'}x{' '}
+          {readout.lateralCm.toFixed(1)} cm · y {readout.upCm.toFixed(1)} cm
+          {readout.hasOrientation ? '' : ' · no orientation events'}
+        </pre>
+      )}
+      <div className="menu__row">
+        <button className="btn btn--small" onClick={onReset}>
+          {t('tuningReset')}
+        </button>
+        <button className="btn btn--small" onClick={copy}>
+          {t('tuningCopy')}
+        </button>
+        <small>
+          {JSON.stringify(DEFAULT_TUNING) === JSON.stringify({ ...tuning, accelSign: 1 })
+            ? 'defaults'
+            : 'custom'}
+        </small>
+      </div>
+    </details>
   );
 }

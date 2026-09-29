@@ -45,16 +45,24 @@ current line is compared with `matchLine`; on pass the line advances and `spoken
 
 ## Rendering (`components/StageScene.tsx`, `PuppetSvg.tsx`)
 
-Puppets are trees of SVG paths. Each part may rotate around a pivot driven by one pose axis:
-`arm`, `lean`, `talk`, `bob` (plus `arm-inverse` for two-armed booth puppets). The scene eases
-every puppet toward its target pose each frame, flips facing by side of stage, and plays short
-gesture animations (wave, jump, spin, bow, nod, shake). The culture's `stage` block decides look:
+Puppets are trees of SVG paths hanging from a `rod` point: the whole figure leans and swings
+there, like a Karagöz on its stick. Each part may additionally rotate around its own pivot driven
+by one pose axis: `arm`, `lean`, `talk`, `bob` (plus `arm-inverse` for two-armed booth puppets).
+The scene follows every puppet's target pose tightly each frame, faces it the way it walks (a
+`turn` gesture flips it on the spot), and plays short gesture animations (wave, jump, spin, bow,
+nod, shake, turn). The culture's `stage` block decides look:
 translucent + blurred on a lit muslin for shadow theatre, opaque in a striped booth for Punch.
 
 ## Motion and speech (`lib/motion.ts`, `lib/speech.ts`)
 
-- `computePose` is pure: orientation (alpha/beta/gamma) + bounce + touch → pose, with deadzones
-  and smoothing. iOS needs `requestPermission()` from a tap.
+- `MotionModel` turns sensor samples into a pose the way a rod behaves. Sideways and upward hand
+  travel come from the accelerometer, integrated with zero-velocity resets (still hand → velocity 0) and walls at the stage edges, so it never drifts far; the arm's turn (heading) adds to it.
+  Lean, pitch and heading are read from the DeviceOrientation rotation matrix, not the raw Euler
+  angles, because an upright phone sits in the gimbal lock. A sharp wrist twist is a `turn`, a
+  deep tip forward is a `bow`. Everything is tunable live (`MotionTuning`, persisted per device).
+  iOS needs `requestPermission()` from a tap and reports acceleration with the opposite sign.
+- The phone sends poses at 50 Hz when they change; the TV follows with a 45 ms time constant and
+  adds the swing of a dragged rod (feet trailing) from the puppet's own velocity.
 - `createSpeechSession` wraps `webkitSpeechRecognition` with restart-on-end and a transcript
   buffer that resets when the line changes. Firefox has no API → "I said it" button.
 

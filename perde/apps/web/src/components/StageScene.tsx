@@ -4,8 +4,8 @@ import { PuppetSvg, type GestureAnim } from './PuppetSvg';
 
 /**
  * The picture on the TV: a lit screen (or a striped booth), a ground line and
- * the puppets. Poses arrive as targets and are eased every frame so 20–30 Hz
- * phone updates look like continuous motion.
+ * the puppets. Poses arrive as targets and are followed tightly every frame;
+ * a dragged rod makes the figure's feet trail, a 'turn' flips it on the spot.
  */
 
 export const STAGE_W = 1600;
@@ -20,7 +20,13 @@ const GESTURE_MS: Record<Gesture, number> = {
   bow: 1200,
   nod: 700,
   shake: 900,
+  turn: 380,
 };
+/** Seconds for the displayed pose to close most of the gap to the phone's pose. */
+const FOLLOW_TAU = 0.045;
+/** How much a dragged rod makes the feet trail (lean per stage-width/second). */
+const SWING_GAIN = 0.22;
+const SWING_TAU = 0.12;
 
 export interface ScenePuppet {
   key: string;
@@ -42,6 +48,18 @@ export interface StageSceneProps {
 interface Live {
   pose: Pose;
   facing: 'left' | 'right';
+  /** Extra lean from motion, -1..1. */
+  swing: number;
+  /** Timestamp of the 'turn' gesture already applied, so it flips once. */
+  turnedAt: number;
+}
+
+interface Frame {
+  /** Seconds since mount. */
+  time: number;
+  /** performance.now() of this frame, for gesture timing. */
+  nowMs: number;
+  live: Map<string, Live>;
 }
 
 function lerp(a: number, b: number, k: number) {
@@ -54,12 +72,13 @@ function slotX(slot: number): number {
   return positions[slot % positions.length]!;
 }
 
-interface Frame {
-  /** Seconds since mount. */
-  time: number;
-  /** performance.now() of this frame, for gesture timing. */
-  nowMs: number;
-  live: Map<string, Live>;
+function fresh(slot: number): Live {
+  return {
+    pose: { ...NEUTRAL_POSE, x: slotX(slot) },
+    facing: slotX(slot) < 0 ? 'right' : 'left',
+    swing: 0,
+    turnedAt: 0,
+  };
 }
 
 export function StageScene({ culture, puppets, highlightSpeaking = true }: StageSceneProps) {
@@ -76,14 +95,12 @@ export function StageScene({ culture, puppets, highlightSpeaking = true }: Stage
     const live = new Map<string, Live>();
     const loop = (nowMs: number) => {
       const now = (nowMs - start) / 1000;
-      const dt = Math.min(0.1, (nowMs - last) / 1000);
+      const dt = Math.min(0.1, Math.max(0.001, (nowMs - last) / 1000));
       last = nowMs;
-      const k = 1 - Math.pow(0.001, dt); // ~ reach target in ~1s, mostly in 200ms
+      const k = 1 - Math.exp(-dt / FOLLOW_TAU);
+      const ks = 1 - Math.exp(-dt / SWING_TAU);
       for (const p of puppetsRef.current) {
-        const cur = live.get(p.key) ?? {
-          pose: { ...NEUTRAL_POSE, x: slotX(p.slot) },
-          facing: slotX(p.slot) < 0 ? 'right' : 'left',
-        };
+        const cur = live.get(p.key) ?? fresh(p.slot);
         let target = p.target;
         if (p.npc) {
           // Idle life for characters nobody holds: gentle sway, talk when it is their line.
@@ -97,16 +114,28 @@ export function StageScene({ culture, puppets, highlightSpeaking = true }: Stage
           };
         }
         const next: Pose = {
-          x: lerp(cur.pose.x, target.x, k * 0.9),
+          x: lerp(cur.pose.x, target.x, k),
           y: lerp(cur.pose.y, target.y, k),
           lean: lerp(cur.pose.lean, target.lean, k),
           arm: lerp(cur.pose.arm, target.arm, k),
           talking: target.talking,
         };
+        // Stage-widths per second; a brisk walk is about 1.
+        const vx = (next.x - cur.pose.x) / dt;
+        const swing = p.npc
+          ? 0
+          : lerp(cur.swing, Math.max(-0.7, Math.min(0.7, vx * SWING_GAIN)), ks);
+        // Face the way you walk; a 'turn' gesture flips on the spot.
         let facing = cur.facing;
-        if (next.x < -0.08) facing = 'right';
-        else if (next.x > 0.08) facing = 'left';
-        live.set(p.key, { pose: next, facing });
+        let turnedAt = cur.turnedAt;
+        if (p.npc) facing = slotX(p.slot) < 0 ? 'right' : 'left';
+        else if (vx > 0.35) facing = 'right';
+        else if (vx < -0.35) facing = 'left';
+        if (p.gesture?.gesture === 'turn' && p.gesture.at !== cur.turnedAt) {
+          facing = facing === 'left' ? 'right' : 'left';
+          turnedAt = p.gesture.at;
+        }
+        live.set(p.key, { pose: next, facing, swing, turnedAt });
       }
       for (const key of [...live.keys()])
         if (!puppetsRef.current.some((p) => p.key === key)) live.delete(key);
@@ -169,7 +198,6 @@ export function StageScene({ culture, puppets, highlightSpeaking = true }: Stage
       ) : (
         <>
           <rect width={STAGE_W} height={STAGE_H} fill="url(#perde-glow-grad)" />
-          <rect width={STAGE_W} height={STAGE_H} fill="url(#perde-weave)" opacity="0.35" />
           <line
             x1="0"
             y1={GROUND_Y + 2}
@@ -186,10 +214,7 @@ export function StageScene({ culture, puppets, highlightSpeaking = true }: Stage
         {[...puppets]
           .sort((a, b) => Number(a.speaking) - Number(b.speaking))
           .map((p) => {
-            const live = frame.live.get(p.key) ?? {
-              pose: { ...NEUTRAL_POSE, x: slotX(p.slot) },
-              facing: 'right' as const,
-            };
+            const live = frame.live.get(p.key) ?? fresh(p.slot);
             const px = STAGE_W / 2 + live.pose.x * (STAGE_W / 2 - 220);
             let gestureAnim: GestureAnim | undefined;
             if (p.gesture && p.gesture.gesture !== 'none') {
@@ -202,7 +227,9 @@ export function StageScene({ culture, puppets, highlightSpeaking = true }: Stage
                 key={p.key}
                 puppet={p.puppet}
                 pose={live.pose}
+                swing={live.swing}
                 facing={live.facing}
+                leanDegrees={booth ? 14 : 28}
                 time={time + p.slot}
                 gesture={gestureAnim}
                 opacity={culture.stage.puppetOpacity}
