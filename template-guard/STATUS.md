@@ -1,6 +1,6 @@
 # Status — how much of this is done
 
-**Updated:** 23 Sep 2026 · 250 tests passing · **API verified 8/8, and the product has now run against a real duplicate** · typecheck clean · production build clean
+**Updated:** 29 Sep 2026 · 266 tests passing · **Live on monday code (app 12248804, v1 published) and submitted to the marketplace on 29 Sep 2026** · typecheck clean · production build clean
 
 Two numbers, because they are genuinely different and mixing them would be the
 kind of comfortable lie this project is supposed to be allergic to.
@@ -8,10 +8,12 @@ kind of comfortable lie this project is supposed to be allergic to.
 | | Done |
 |---|---|
 | **The build** — everything specified that can be built without a live monday account | **100%** |
-| **Shipping** — live on the marketplace, taking money | **~85%** |
+| **Shipping** — live on the marketplace, taking money | **~99%** — submitted; waiting on monday's review, then Pro plan + `MONDAY_PAID_PLAN_IDS` |
 
-The gap between them is no longer code at all. Every remaining item needs a
-monday account, a deployed instance, or a conversation with a human being.
+What remains is monday's review. After approval: create the Pro plan ($39/mo
+per account, 14-day trial) and put its id in `MONDAY_PAID_PLAN_IDS`. Watch the
+first successful scheduled sweep (the cron fix, ADR-035 update, went live
+29 Sep ~06:10 UTC). If the review asks for a demo video, record one.
 
 ---
 
