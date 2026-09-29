@@ -123,8 +123,11 @@ Order: Gate 0 decides whether the listing and the submission get done.
             will not delete permanently).
       - Found:
         - monday's own API titles can lack spaces ("assignitemcreator
-          asperson"). The app shows them as sent. Playground check pending
-          (`DEPLOY-PROMPTS.md` step 7).
+          asperson"). The app shows them as sent. The playground check
+          (29 Sep) found no field with the readable sentence; the step names
+          in `workflow_blocks` are the closest. Parked in `BACKLOG.md` while
+          the app is under review, because using them changes what the
+          privacy policy lists.
         - Behind the welcome page, the page was redrawn on every board read,
           so a click on "Show my automations" could be lost. Fixed 28 Sep,
           with a browser check that fails on the old code. Pushed to v2 by

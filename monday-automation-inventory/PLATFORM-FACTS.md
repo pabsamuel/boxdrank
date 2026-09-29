@@ -175,10 +175,25 @@ From the Claude-in-Chrome report of the step 6 test, with screenshots.
   came back as "When an item is created, assignitemcreator asperson" (the
   playground, and the live app), where monday's Automations page shows
   "assign item creator as Person". Another: "…create an update
-  onitemwiththis text". The app shows what the API sends. Whether
-  `description`, `workflow_blocks` or `workflow_variables` hold a readable
-  sentence is UNKNOWN until the playground query in `DEPLOY-PROMPTS.md`
-  step 7 is run.
+  onitemwiththis text". The app shows what the API sends.
+- **No field holds the readable sentence** (playground, 29 Sep, API
+  2026-10, boards 5104569213 and 5104569192 "Spike Source"):
+  - `description` is `""` for both automations.
+  - `workflow_blocks` is a list of `{ workflowNodeId, blockReferenceId,
+    title, inboundFieldsSourceConfig, credentialsSourceConfig,
+    nextWorkflowBlocksConfig }`. The titles are readable step names: "When
+    item created" → "Assign item creator", and "When item created" →
+    "Create update". The order comes from `nextWorkflowBlocksConfig: { type:
+    "directMapping", mapping: { nextWorkflowNode: { workflowNodeId } } }`,
+    and the trigger is node 1 in both.
+  - `workflow_variables` holds what the user configured, including their own
+    words: the update text ("Automation note: a new item was created on
+    Spike Source. Item: …") and `{ value: "person", title: "Person" }`.
+    INFERENCE: the glued title uses `value` ("person") where monday's page
+    uses `title` ("Person"), and loses the spaces between terms.
+  - Asking for `workflow_variables` would read user content the app does not
+    need. The step names in `workflow_blocks` would not, but the privacy
+    policy does not list them (`BACKLOG.md`).
 - The older automation was named "When Status changes to Bitir move item to
   Group Title", as `src/core/legacy.js` intends.
 - **Adding an Object twice** from "+" → Apps puts two objects in the left
