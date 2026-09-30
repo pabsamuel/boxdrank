@@ -1,17 +1,42 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('phone', () => {
-  test('join form validates the code and leads to the pick-up screen', async ({ page }) => {
+  test('a wrong code is caught on the form and every screen has a way back', async ({
+    page,
+    request,
+  }) => {
     await page.goto('/join');
     const submit = page.getByRole('button', { name: /Katıl|Join/ });
     await expect(submit).toBeDisabled();
-    await page.getByPlaceholder('ABCD').fill('abcd');
-    await expect(page.getByPlaceholder('ABCD')).toHaveValue('ABCD');
+    // A code no TV ever showed: the form says so and stays put.
+    await page.getByPlaceholder('ABCD').fill('zzzz');
+    await expect(page.getByPlaceholder('ABCD')).toHaveValue('ZZZZ');
     await submit.click();
-    await expect(page).toHaveURL(/room=ABCD&seat=p1/);
+    await expect(page.getByRole('alert')).toContainText(/oda yok|no room/i);
+    await expect(page).not.toHaveURL(/room=/);
+
+    // A real room leads to the pick-up screen, and "change the code" leads back
+    // with the letters still in the box.
+    const created = await request.post('/api/rooms');
+    const { code } = (await created.json()) as { code: string };
+    await page.getByPlaceholder('ABCD').fill(code);
+    await submit.click();
+    await expect(page).toHaveURL(new RegExp(`room=${code}&seat=p1`));
     await expect(
       page.getByRole('button', { name: /Kuklayı eline al|Pick up the puppet/ }),
     ).toBeVisible();
+    await page.getByRole('button', { name: /Kodu değiştir|Change the code/ }).click();
+    await expect(page).not.toHaveURL(/room=/);
+    await expect(page.getByPlaceholder('ABCD')).toHaveValue(code);
+
+    // A stale link (QR from a closed TV) is not a trap either.
+    await page.goto('/join?room=ZZZZ&seat=p1');
+    await expect(page.getByRole('alert')).toContainText(/oda yok|no room/i);
+    await expect(
+      page.getByRole('button', { name: /Kuklayı eline al|Pick up the puppet/ }),
+    ).toBeDisabled();
+    await page.getByRole('button', { name: /Kodu değiştir|Change the code/ }).click();
+    await expect(page.getByPlaceholder('ABCD')).toHaveValue('ZZZZ');
   });
 
   test('a phone joins a real room and the TV leaves the lobby', async ({
@@ -41,6 +66,10 @@ test.describe('phone', () => {
     // No buttons on the rod: a double-tap on the line counts it as said.
     await page.locator('.rod').dblclick();
     await expect(tv.locator('.karaoke__count')).toContainText('2 /');
+    // The menu always offers the door.
+    await page.getByRole('button', { name: 'menu' }).click();
+    await page.getByRole('button', { name: /Odadan çık|Leave the room/ }).click();
+    await expect(page.getByPlaceholder('ABCD')).toHaveValue(code);
     await tv.close();
   });
 });

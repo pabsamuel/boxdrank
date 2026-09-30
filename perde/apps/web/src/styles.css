@@ -641,6 +641,18 @@ select {
 .pickup__hint--warn {
   color: var(--saffron);
 }
+.pickup__back {
+  justify-self: center;
+  color: var(--muted);
+}
+.join-form__problem {
+  margin: 0;
+  color: var(--saffron);
+  line-height: 1.45;
+}
+.join-form input[aria-invalid='true'] {
+  border-color: var(--saffron);
+}
 
 .controller {
   gap: 12px;
@@ -773,6 +785,13 @@ select {
   color: #d9ccb0;
   font-size: 0.9rem;
 }
+.menu__leave {
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 245, 214, 0.15);
+  padding-top: 12px;
+  margin-top: 8px;
+  color: var(--muted);
+}
 .menu__license {
   flex-wrap: nowrap;
 }
@@ -831,6 +850,15 @@ select {
   color: var(--muted);
   animation: pulse 2s infinite;
   text-align: center;
+}
+.rod__problem {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  text-align: center;
+}
+.rod__problem p {
+  margin: 0;
 }
 .rod__hint {
   margin: 0;
