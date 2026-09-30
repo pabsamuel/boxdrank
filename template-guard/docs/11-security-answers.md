@@ -94,8 +94,9 @@ values passed as variables (`src/api/queries.ts`).
 
 The app is served only from monday code's domain. The developer's domain is
 `atesensoftware.com`; `https://atesensoftware.com/monday-app-association.json`
-must list Template Guard's client id `76e86d0a8d1894a85116585c83403625`
-(**OPEN** — see the note in STATUS.md).
+lists Template Guard's client id `76e86d0a8d1894a85116585c83403625` (live
+since 30 Sep 2026; the site is Cloudflare Pages, built from
+`pabsamuel/atesensoftware-site`, PR #7).
 
 ## Deleting data on uninstall
 
