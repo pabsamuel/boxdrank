@@ -1,9 +1,11 @@
 import {
   emptyProgress,
   flattenLines,
+  isCustomPuppet,
   matchLine,
   NEUTRAL_POSE,
   PLAYER_SEATS,
+  PuppetSchema,
   type CulturePack,
   type FlatLine,
   type FromControllerMsg,
@@ -11,6 +13,7 @@ import {
   type Plan,
   type Play,
   type Pose,
+  type Puppet,
   type SeatInfo,
   type StageState,
 } from '@perde/shared';
@@ -39,6 +42,8 @@ export interface StageModel {
   /** Names players typed on their phones, kept across plays. */
   names: Record<string, string>;
   hostSeat: string | null;
+  /** Puppets the family drew and sent from their phones (image data inside). */
+  custom: Puppet[];
 }
 
 export type StageEvent =
@@ -49,10 +54,18 @@ export type StageEvent =
   | { type: 'msg'; msg: FromControllerMsg; at: number }
   | {
       type: 'local';
-      action: 'next' | 'prev' | 'toggle-karaoke' | 'lobby' | 'free-play' | 'set-culture';
+      action:
+        'next' | 'prev' | 'toggle-karaoke' | 'lobby' | 'free-play' | 'set-culture' | 'auto-advance';
       cultureId?: string;
       at: number;
     };
+
+/** Find a puppet in the culture pack or among the family's own. */
+export function findPuppet(model: StageModel, puppetId: string): Puppet | undefined {
+  return (
+    model.pack.puppets.find((p) => p.id === puppetId) ?? model.custom.find((p) => p.id === puppetId)
+  );
+}
 
 function seatsFor(
   pack: CulturePack,
@@ -87,7 +100,9 @@ export function createStageModel(cultureId = 'tr', plan: Plan = 'free'): StageMo
       karaoke: true,
       leniency: 'kids',
       plan,
+      voice: true,
       seats,
+      customPuppets: [],
       play: null,
     },
     pack,
@@ -98,6 +113,25 @@ export function createStageModel(cultureId = 'tr', plan: Plan = 'free'): StageMo
     casting: {},
     names,
     hostSeat: null,
+    custom: [],
+  };
+}
+
+type CurrentLine = NonNullable<StageState['play']>['line'];
+
+function lineAt(model: StageModel, index: number): CurrentLine {
+  const play = model.play!;
+  const flat = model.lines[index];
+  if (!flat) return null;
+  const seatFor = Object.entries(model.casting).find(([, ch]) => ch === flat.line.seat)?.[0];
+  const speaker = play.characters.find((c) => c.seat === flat.line.seat)?.name ?? '';
+  return {
+    seat: seatFor,
+    character: flat.line.seat,
+    speaker,
+    text: flat.line.text,
+    hint: flat.line.hint,
+    song: flat.line.song,
   };
 }
 
@@ -108,34 +142,20 @@ function withState(model: StageModel, patch: Partial<StageState>): StageModel {
 function playState(
   model: StageModel,
   lineIndex: number,
-  progress: StageState['play'] extends infer P
-    ? P extends { progress: infer Q }
-      ? Q
-      : never
-    : never,
+  progress: NonNullable<StageState['play']>['progress'],
   spokenLines: number,
   finished: boolean,
 ): StageState['play'] {
   const play = model.play!;
   const flat = model.lines[lineIndex];
-  const seatFor = Object.entries(model.casting).find(([, ch]) => ch === flat?.line.seat)?.[0];
-  const speaker = play.characters.find((c) => c.seat === flat?.line.seat)?.name ?? '';
   return {
     id: play.id,
     title: play.title,
     sectionTitle: flat?.sectionTitle ?? '',
     lineIndex,
     totalLines: model.lines.length,
-    line: flat
-      ? {
-          seat: seatFor,
-          character: flat.line.seat,
-          speaker,
-          text: flat.line.text,
-          hint: flat.line.hint,
-          song: flat.line.song,
-        }
-      : null,
+    line: lineAt(model, lineIndex),
+    next: lineAt(model, lineIndex + 1),
     progress,
     finished,
     spokenLines,
@@ -189,6 +209,8 @@ export function castPlay(
     const ch = casting[s.id];
     if (!ch) return { ...s, character: undefined };
     const c = play.characters.find((x) => x.seat === ch)!;
+    // A family's own drawing keeps playing the part; only pack puppets are swapped.
+    if (isCustomPuppet(s.puppetId)) return { ...s, character: ch, color: c.color ?? s.color };
     const puppet = pack.puppets.find((p) => p.id === c.puppetId)!;
     return {
       ...s,
@@ -199,6 +221,23 @@ export function castPlay(
     };
   });
   return { casting, seats: nextSeats };
+}
+
+/** Add or replace a puppet the family drew; its sender starts holding it. */
+function addCustomPuppet(model: StageModel, seat: string, raw: unknown): StageModel {
+  const parsed = PuppetSchema.safeParse(raw);
+  if (!parsed.success || !isCustomPuppet(parsed.data.id)) return model;
+  const puppet = parsed.data;
+  const custom = [...model.custom.filter((p) => p.id !== puppet.id), puppet].slice(-12);
+  const customPuppets = custom.map((p) => ({
+    id: p.id,
+    name: p.name,
+    seat: p.id === puppet.id ? seat : model.state.customPuppets?.find((c) => c.id === p.id)?.seat,
+  }));
+  const seats = model.state.seats.map((s) =>
+    s.id === seat ? { ...s, puppetId: puppet.id, puppetName: puppet.name, color: puppet.color } : s,
+  );
+  return { ...model, custom, state: { ...model.state, customPuppets, seats, notice: undefined } };
 }
 
 function startPlay(model: StageModel, playId: string | undefined): StageModel {
@@ -240,7 +279,7 @@ function setCulture(model: StageModel, cultureId: string | undefined): StageMode
 }
 
 function setPuppet(model: StageModel, seat: string, puppetId: string | undefined): StageModel {
-  const puppet = model.pack.puppets.find((p) => p.id === puppetId);
+  const puppet = puppetId ? findPuppet(model, puppetId) : undefined;
   if (!puppet) return model;
   if (!isUnlocked(puppet, model.state.plan)) return withState(model, { notice: 'locked' });
   const seats = model.state.seats.map((s) =>
@@ -356,6 +395,8 @@ export function reduceStage(model: StageModel, ev: StageEvent): StageModel {
           return applySpeech(model, m.seat, m.transcript, m.lineIndex, ev.at);
         case 'control':
           return reduceControl(model, m.seat, m.action, m, ev.at, m.cultureId);
+        case 'puppet':
+          return addCustomPuppet(model, m.seat, m.puppet);
       }
     }
   }
@@ -384,7 +425,10 @@ function reduceControl(
     case 'prev':
       return ps ? gotoLine(model, Math.max(0, ps.lineIndex - 1), ps.spokenLines) : model;
     case 'said-it':
+    case 'auto-advance':
       return ps && !ps.finished ? gotoLine(model, ps.lineIndex + 1, ps.spokenLines) : model;
+    case 'toggle-voice':
+      return withState(model, { voice: !(model.state.voice ?? true) });
     case 'start-play':
       return startPlay(model, extras.playId);
     case 'free-play':
@@ -458,7 +502,7 @@ export function visiblePuppets(model: StageModel): VisiblePuppet[] {
     model.play.characters.forEach((c, i) => {
       if (Object.values(model.casting).includes(c.seat)) return;
       if (!speaksHere.has(c.seat)) return;
-      const puppet = model.pack.puppets.find((p) => p.id === c.puppetId);
+      const puppet = findPuppet(model, c.puppetId);
       if (!puppet) return;
       out.push({
         key: `npc:${c.seat}`,

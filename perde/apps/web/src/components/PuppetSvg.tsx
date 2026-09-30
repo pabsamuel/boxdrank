@@ -1,6 +1,7 @@
-import { memo } from 'react';
+import { memo, useId } from 'react';
 import {
   orderParts,
+  polygonPath,
   rodPoint,
   type Gesture,
   type Pose,
@@ -11,8 +12,11 @@ import {
 /**
  * Draws one puppet as nested SVG groups. The whole figure hangs from its rod
  * point and leans there, like a real Karagöz on its stick; individual parts
- * (arm, head, hat) rotate around their own pivots by (rest + gain × axis).
- * Gestures are short time-based overlays.
+ * rotate around their own pivots by (rest + gain × axis).
+ *
+ * Vector parts are paths. Raster parts show a region (polygon) of the
+ * puppet's image; a parent's region has its children's regions cut out, so
+ * a raised arm leaves no ghost behind. Gestures are short time-based overlays.
  */
 
 export interface GestureAnim {
@@ -26,6 +30,8 @@ export interface PuppetSvgProps {
   pose: Pose;
   /** Extra lean from motion (the feet trailing behind a dragged rod), -1..1. */
   swing?: number;
+  /** Walking phase, -1..1, drives 'stride' parts (legs). */
+  stride?: number;
   /** Seconds, for the talking wobble and idle breathing. */
   time: number;
   gesture?: GestureAnim;
@@ -39,11 +45,19 @@ export interface PuppetSvgProps {
   highlight?: boolean;
   /** Degrees of whole-figure lean at pose.lean = 1. */
   leanDegrees?: number;
+  /** Ink outline width for vector parts without their own stroke. */
+  outline?: number;
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
-function axisValue(part: PuppetPart, pose: Pose, talk: number, gesture?: GestureAnim): number {
+function axisValue(
+  part: PuppetPart,
+  pose: Pose,
+  talk: number,
+  stride: number,
+  gesture?: GestureAnim,
+): number {
   switch (part.driver) {
     case 'arm': {
       let v = clamp(pose.arm, -0.2, 1);
@@ -67,32 +81,81 @@ function axisValue(part: PuppetPart, pose: Pose, talk: number, gesture?: Gesture
       if (gesture?.gesture === 'jump') v = Math.max(v, Math.sin(gesture.t * Math.PI));
       return v;
     }
+    case 'stride':
+      return stride;
+    case 'stride-inverse':
+      return -stride;
     default:
       return 0;
   }
 }
 
+interface RenderCtx {
+  puppet: Puppet;
+  childrenOf: Map<string | undefined, PuppetPart[]>;
+  idPrefix: string;
+  outline: number;
+}
+
+/** Clip for a raster part: its own region minus its children's regions (even-odd holes). */
+function clipPathData(part: PuppetPart, ctx: RenderCtx): string {
+  const own = part.polygon
+    ? polygonPath(part.polygon)
+    : polygonPath([
+        [0, 0],
+        [ctx.puppet.width, 0],
+        [ctx.puppet.width, ctx.puppet.height],
+        [0, ctx.puppet.height],
+      ]);
+  const holes = (ctx.childrenOf.get(part.id) ?? [])
+    .filter((c) => c.polygon)
+    .map((c) => polygonPath(c.polygon!));
+  return [own, ...holes].join(' ');
+}
+
 function PartNode({
   part,
-  children,
+  ctx,
   angle,
+  children,
 }: {
   part: PuppetPart;
-  children: React.ReactNode;
+  ctx: RenderCtx;
   angle: number;
+  children: React.ReactNode;
 }) {
   const pivot = part.pivot ?? [0, 0];
   const transform = angle ? `rotate(${angle.toFixed(2)} ${pivot[0]} ${pivot[1]})` : undefined;
+  const raster = !!ctx.puppet.image && (part.polygon || !part.d);
+  const clipId = `${ctx.idPrefix}-${part.id}`;
   return (
     <g transform={transform}>
-      <path
-        d={part.d}
-        fill={part.fill}
-        opacity={part.opacity}
-        stroke={part.stroke}
-        strokeWidth={part.strokeWidth}
-        fillRule="evenodd"
-      />
+      {raster ? (
+        <>
+          <clipPath id={clipId} clipRule="evenodd">
+            <path d={clipPathData(part, ctx)} clipRule="evenodd" />
+          </clipPath>
+          <image
+            href={ctx.puppet.image}
+            x={0}
+            y={0}
+            width={ctx.puppet.width}
+            height={ctx.puppet.height}
+            preserveAspectRatio="none"
+            clipPath={`url(#${clipId})`}
+          />
+        </>
+      ) : (
+        <path
+          d={part.d}
+          fill={part.fill ?? '#000'}
+          opacity={part.opacity}
+          stroke={part.stroke ?? (ctx.outline > 0 ? '#1a1207' : undefined)}
+          strokeWidth={part.strokeWidth ?? (ctx.outline > 0 ? ctx.outline : undefined)}
+          strokeLinejoin="round"
+          fillRule="evenodd"
+        />
+      )}
       {children}
     </g>
   );
@@ -102,6 +165,7 @@ function PuppetSvgInner({
   puppet,
   pose,
   swing = 0,
+  stride = 0,
   time,
   gesture,
   opacity,
@@ -111,7 +175,9 @@ function PuppetSvgInner({
   scale,
   highlight,
   leanDegrees = 28,
+  outline = 0,
 }: PuppetSvgProps) {
+  const idPrefix = useId().replace(/[^a-zA-Z0-9]/g, '');
   const parts = orderParts(puppet);
   const childrenOf = new Map<string | undefined, PuppetPart[]>();
   for (const p of parts) {
@@ -119,14 +185,15 @@ function PuppetSvgInner({
     list.push(p);
     childrenOf.set(p.parent, list);
   }
+  const ctx: RenderCtx = { puppet, childrenOf, idPrefix, outline };
   const talk = pose.talking ? (Math.sin(time * 18) + 1) / 2 : 0;
   const breathe = Math.sin(time * 1.6) * 0.5;
 
   const render = (part: PuppetPart): React.ReactNode => {
-    const v = axisValue(part, pose, talk, gesture);
+    const v = axisValue(part, pose, talk, stride, gesture);
     const angle = (part.rest ?? 0) + (part.gain ?? 0) * v + (part.driver === 'lean' ? breathe : 0);
     return (
-      <PartNode key={part.id} part={part} angle={angle}>
+      <PartNode key={part.id} part={part} ctx={ctx} angle={angle}>
         {(childrenOf.get(part.id) ?? []).map(render)}
       </PartNode>
     );

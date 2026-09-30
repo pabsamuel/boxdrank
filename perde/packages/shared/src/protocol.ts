@@ -92,6 +92,8 @@ export const PlayStateSchema = z.object({
   lineIndex: z.number().int().min(0),
   totalLines: z.number().int().min(0),
   line: CurrentLineSchema.nullable(),
+  /** The line after this one, so a puppeteer can get ready. */
+  next: CurrentLineSchema.nullable().optional(),
   progress: LineProgressSchema.nullable(),
   finished: z.boolean(),
   /** Number of lines passed by speech recognition (not skipped by hand). */
@@ -111,7 +113,13 @@ export const StageStateSchema = z.object({
   karaoke: z.boolean(),
   leniency: z.enum(['kids', 'normal', 'strict']),
   plan: PlanSchema,
+  /** The TV reads the lines of characters nobody holds (speech synthesis). */
+  voice: z.boolean().optional(),
   seats: z.array(SeatInfoSchema),
+  /** Puppets drawn by the family, by id (image data lives on the TV). */
+  customPuppets: z
+    .array(z.object({ id: z.string(), name: z.string(), seat: SeatIdSchema.optional() }))
+    .optional(),
   play: PlayStateSchema.nullable(),
   /** Short status the phones show, e.g. after a rejected licence key. */
   notice: z.string().optional(),
@@ -160,6 +168,8 @@ export const CONTROL_ACTIONS = [
   'set-leniency',
   'said-it',
   'activate-license',
+  'toggle-voice',
+  'auto-advance',
 ] as const;
 
 export type ControlAction = (typeof CONTROL_ACTIONS)[number];
@@ -181,11 +191,18 @@ export const StateMsgSchema = z.object({
 
 export const PingMsgSchema = z.object({ t: z.literal('ping') });
 
+/** A puppet the family drew, sent from the phone to the TV (image inside). */
+export const PuppetMsgSchema = z.object({
+  t: z.literal('puppet'),
+  puppet: z.unknown(),
+});
+
 export const ControllerMsgSchema = z.discriminatedUnion('t', [
   PoseMsgSchema,
   GestureMsgSchema,
   SpeechMsgSchema,
   ControlMsgSchema,
+  PuppetMsgSchema,
 ]);
 export type ControllerMsg = z.infer<typeof ControllerMsgSchema>;
 
@@ -195,6 +212,7 @@ export const ClientMsgSchema = z.discriminatedUnion('t', [
   GestureMsgSchema,
   SpeechMsgSchema,
   ControlMsgSchema,
+  PuppetMsgSchema,
   StateMsgSchema,
   PingMsgSchema,
 ]);
@@ -259,6 +277,7 @@ export const FromControllerMsgSchema = z.discriminatedUnion('t', [
   GestureMsgSchema.extend({ seat: SeatIdSchema }),
   SpeechMsgSchema.extend({ seat: SeatIdSchema }),
   ControlMsgSchema.extend({ seat: SeatIdSchema }),
+  PuppetMsgSchema.extend({ seat: SeatIdSchema }),
 ]);
 export type FromControllerMsg = z.infer<typeof FromControllerMsgSchema>;
 

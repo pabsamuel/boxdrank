@@ -48,8 +48,10 @@ Reuse a running relay for e2e with `PERDE_E2E_PORT=8787`.
   Register new packs in `packages/content/src/index.ts`.
 - `apps/web/src/lib/stage-machine.ts` — the whole game logic as a pure reducer. Test it there.
 - `apps/web/src/pages/Stage.tsx` (TV) · `Join.tsx` (phone) · `Landing.tsx`.
-- `apps/web/src/components/PuppetSvg.tsx` — how a puppet rig becomes SVG; drivers: arm, lean,
-  talk, bob.
+- `apps/web/src/components/PuppetSvg.tsx` — how a puppet rig becomes SVG (vector paths or
+  clipped image regions); drivers: arm, lean, talk, bob, stride. `Backdrop.tsx` is the scenery.
+- `apps/web/src/pages/Draw.tsx` + `lib/cutout.ts` + `packages/shared/src/rig.ts` — draw your own:
+  paper removal, joint guessing, basic rig. `docs/ART.md` for painted artwork files.
 - `apps/relay/src/index.ts` — Worker routes + `Room` Durable Object (WebSocket hibernation).
 - `apps/relay/src/entitlements.ts` — free vs Plus; Lemon Squeezy licence keys.
 

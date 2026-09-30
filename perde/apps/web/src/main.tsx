@@ -6,6 +6,7 @@ import { UiLangContext, initialUiLang, storeUiLang } from './lib/ui';
 import { Landing } from './pages/Landing';
 import { Stage } from './pages/Stage';
 import { Join } from './pages/Join';
+import { Draw } from './pages/Draw';
 import './styles.css';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
           <Route path="/" element={<Landing onToggleLang={toggle} />} />
           <Route path="/stage" element={<Stage />} />
           <Route path="/join" element={<Join onToggleLang={toggle} />} />
+          <Route path="/draw" element={<Draw onToggleLang={toggle} />} />
           <Route path="*" element={<Landing onToggleLang={toggle} />} />
         </Routes>
       </BrowserRouter>

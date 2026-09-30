@@ -16,8 +16,10 @@ That is the whole product. Everything in this repo serves that scene.
 - **The child** (4–9) who will hold a phone anyway and might as well hold a puppet rod.
 - **Teachers and grandparents** as second-order users: a class with four phones, a grandparent
   reading Hacivat's lines because they know them by heart.
-- Later, families in other traditions: the same living room in Manchester with Punch and Judy,
-  in Jakarta with Wayang Kulit, in Munich with Kasperle.
+- Families in other traditions: the same living room in Manchester with Punch and Judy, in
+  Jakarta with Wayang Kulit, in Munich with Kasperle. Perde is global from the first version.
+- **The child who draws.** A figure on paper, one photo, and it walks on the TV with the family's
+  voice. The drawing is a puppet like any other and can play Hacivat tonight.
 
 ## Principles
 

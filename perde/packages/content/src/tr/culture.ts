@@ -20,8 +20,10 @@ export const cultureTr: CultureInput = {
     glow: '#fff5d6',
     ground: '#c9a36a',
     text: '#3b2a14',
-    puppetOpacity: 0.86,
-    blur: 0.6,
+    puppetOpacity: 0.9,
+    blur: 0.4,
+    outline: 2.4,
+    backdrop_scene: 'ottoman-street',
   },
   defaultSeats: [
     { seat: 'karagoz', puppetId: 'karagoz', name: 'Karagöz' },

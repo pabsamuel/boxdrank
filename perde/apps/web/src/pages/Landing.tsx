@@ -78,6 +78,9 @@ export function Landing({ onToggleLang }: { onToggleLang: () => void }) {
             <Link className="btn" to="/join">
               📱 {t('joinWithPhone')}
             </Link>
+            <Link className="btn" to="/draw">
+              ✏️ {t('drawYourOwn')}
+            </Link>
           </div>
           <p className="hero__fine">{copy.fine}</p>
         </div>
@@ -188,7 +191,11 @@ const TR = {
     ],
     [
       'Oyna ve söyle',
-      'Oyun seç ya da serbest oyna. Sıra sendeyken repliği söyle; kelimeler yeşile döndükçe perde ilerler.',
+      'Oyun seç ya da serbest oyna. Sıra sendeyken repliği söyle; kelimeler yeşile döndükçe perde ilerler. Boş kalan karakterleri televizyon seslendirir.',
+    ],
+    [
+      'Kendi kuklanı çiz',
+      'Kâğıda çiz, fotoğrafını çek. Kâğıdı sileriz, eklemlerine dokunursun, çizimin perdede yürür ve konuşur.',
     ],
   ],
   plays: 'oyun',
@@ -232,7 +239,11 @@ const EN: typeof TR = {
     ],
     [
       'Play and speak',
-      'Choose a play or just play freely. When it is your line, say it; as the words turn green the show goes on.',
+      'Choose a play or just play freely. When it is your line, say it; as the words turn green the show goes on. The TV voices the characters nobody holds.',
+    ],
+    [
+      'Draw your own',
+      'Draw on paper, take a photo. We remove the paper, you tap the joints, and your drawing walks and talks on the screen.',
     ],
   ],
   plays: 'plays',

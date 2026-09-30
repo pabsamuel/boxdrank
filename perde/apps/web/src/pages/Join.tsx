@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import {
   NEUTRAL_POSE,
   PLAYER_SEATS,
@@ -26,6 +26,7 @@ import {
   type MotionSource,
   type MotionTuning,
 } from '../lib/motion';
+import { deletePuppet, listPuppets } from '../lib/puppet-store';
 import { createSpeechSession, speechSupported, type SpeechSession } from '../lib/speech';
 import { openControllerSocket, type ConnectionStatus } from '../lib/ws';
 import { useT, useUiLang } from '../lib/ui';
@@ -182,11 +183,21 @@ function Controller({ code, seat, name, onName, step, setStep, onToggleLang }: C
         ? t('anyonesLine')
         : t('theirLine');
 
+  const [mine, setMine] = useState(() => listPuppets());
+  const sendPuppet = useCallback((id: string) => {
+    const p = listPuppets().find((x) => x.id === id);
+    if (p) socketRef.current?.send({ t: 'puppet', puppet: p });
+  }, []);
+
   const onMessage = useCallback((msg: ControllerInbound) => {
     switch (msg.t) {
-      case 'welcome':
+      case 'welcome': {
         setStageOnline(msg.stageConnected);
+        // The family's newest drawing travels with the phone.
+        const newest = listPuppets()[0];
+        if (newest) setTimeout(() => socketRef.current?.send({ t: 'puppet', puppet: newest }), 300);
         break;
+      }
       case 'stage':
         setStageOnline(msg.online);
         break;
@@ -424,7 +435,13 @@ function Controller({ code, seat, name, onName, step, setStep, onToggleLang }: C
         {!stageOnline && <p className="warn">{t('stageOffline')}</p>}
         {ps && !ps.finished && (
           <section className="rod__line">
-            <KaraokeBar play={ps} color={color} compact label={lineLabel} />
+            <KaraokeBar
+              play={ps}
+              color={color}
+              compact
+              label={lineLabel}
+              nextLabel={ps.next?.seat === seat ? t('nextUp') : undefined}
+            />
             {myLine && (
               <p className="rod__listen">
                 {speechOk ? (
@@ -533,6 +550,15 @@ function Controller({ code, seat, name, onName, step, setStep, onToggleLang }: C
           </div>
           <div className="menu__row">
             <span>{me?.puppetName}:</span>
+            {state.customPuppets?.map((p) => (
+              <button
+                key={p.id}
+                className={`btn btn--small ${me?.puppetId === p.id ? 'is-active' : ''}`}
+                onClick={() => control('set-puppet', { puppetId: p.id })}
+              >
+                ✏️ {p.name}
+              </button>
+            ))}
             {pack?.puppets.map((p) => (
               <button
                 key={p.id}
@@ -542,6 +568,37 @@ function Controller({ code, seat, name, onName, step, setStep, onToggleLang }: C
                 {p.name}
               </button>
             ))}
+          </div>
+          <div className="menu__row menu__mine">
+            <Link
+              className="btn btn--small btn--primary"
+              to={`/draw?room=${encodeURIComponent(code)}&seat=${encodeURIComponent(seat)}`}
+            >
+              ✏️ {t('drawYourOwn')}
+            </Link>
+            {mine.length > 0 && <span>{t('myPuppets')}:</span>}
+            {mine.map((p) => (
+              <span key={p.id} className="menu__chip">
+                <button className="btn btn--small" onClick={() => sendPuppet(p.id)}>
+                  {p.name} ↗
+                </button>
+                <button
+                  className="btn btn--ghost btn--small"
+                  aria-label={t('deletePuppet')}
+                  onClick={() => {
+                    deletePuppet(p.id);
+                    setMine(listPuppets());
+                  }}
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="menu__row">
+            <button className="btn btn--small" onClick={() => control('toggle-voice')}>
+              {(state.voice ?? true) ? t('voiceOn') : t('voiceOff')}
+            </button>
           </div>
           <div className="menu__row">
             <span>{t('culture')}:</span>

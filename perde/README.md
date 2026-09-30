@@ -24,7 +24,14 @@ gelir: Punch and Judy hazır, Wayang Kulit ve Kasperle sırada.
    yeşile döndükçe perde ilerler. Konuşma tanıma yoksa "Söyledim" düğmesi var.
 
 Uygulama yüklemek yok; TV'de tarayıcı, telefonda kamera yeter. Dört telefona kadar. Boş kalan
-karakterleri perde kendi oynatır, repliklerini herkes söyleyebilir.
+karakterleri perde kendi oynatır ve **televizyon seslendirir**; sıradaki replik altta görünür.
+
+**Kendi kuklanı çiz** — `/draw`. Kâğıda çiz, fotoğrafını çek; kâğıt telefonda silinir, eklemlere
+dokunursun (tahmin hazır gelir), baş-kol-bacak rig'lenir, çizim sahneye gider ve istediği rolü
+oynar. Çizimler telefonda kalır, girdiğin her televizyona gelir.
+
+Görsel: parşömen dokusu, mürekkep çizgili Osmanlı sokağı, desenli boyalı deri kaftanlar; Canva
+ile üretilmiş tasvir sanatı `docs/ART.md` ile eklenince kuklalar boyalı hale gelir.
 
 ## Hızlı başlangıç
 

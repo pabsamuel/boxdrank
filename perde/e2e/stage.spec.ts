@@ -13,7 +13,9 @@ test.describe('landing', () => {
     // The hero stage stays inside its box instead of covering the page.
     const box = await page.locator('.hero__stage').boundingBox();
     expect(box && box.height < 700).toBeTruthy();
-    await expect(page.locator('.hero__stage svg path').first()).toBeVisible();
+    await expect(page.locator('.hero__stage svg')).toBeVisible();
+    // Puppets are drawn as groups of paths (patterns and clips live in <defs>).
+    expect(await page.locator('.hero__stage svg g path').count()).toBeGreaterThan(10);
     await expect(page.locator('#pricing')).toContainText('Perde Plus');
   });
 });

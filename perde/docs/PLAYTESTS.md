@@ -29,3 +29,16 @@ Template:
   buttonless controller with drag and double-tap, live tuning panel. Roadmap M2 boxes ticked.
 - Next: record phone models, tilt→move latency (phone video at 60 fps counting frames) and
   speech pass counts on the next session; copy tuned values from the panel into `DEFAULT_TUNING`.
+
+## 2026-09-30 — owner, second look at the live build
+
+- Verdict on the visuals: "no design at all", nothing like a real Karagöz tasvir (reference:
+  ornate translucent painted leather, ink outlines, patterned costumes, an Ottoman street in ink
+  and watercolor on parchment).
+- Scope: the product must be global (every puppet tradition), let families draw their own
+  figure and play it with a basic rig (arms, legs), and carry the ready-made Karagöz plays with as
+  much help as possible.
+- Changes made because of this: parchment + inked street backdrop, patterned kaftans with
+  outlines and curled shoes, raster rigs with painted artwork slots, generated tasvir artwork
+  (see `docs/ART.md`), the draw-your-own flow, the TV voicing unclaimed lines, next-line preview,
+  coaching card. Roadmap boxes above.
