@@ -7,15 +7,32 @@ import { z } from 'zod';
  * feet on the bottom edge, so the stage can place them on its ground line.
  */
 
-export const DRIVERS = ['none', 'arm', 'lean', 'talk', 'bob', 'arm-inverse'] as const;
+export const DRIVERS = [
+  'none',
+  'arm',
+  'lean',
+  'talk',
+  'bob',
+  'arm-inverse',
+  'stride',
+  'stride-inverse',
+] as const;
 export const DriverSchema = z.enum(DRIVERS);
 export type Driver = z.infer<typeof DriverSchema>;
 
+export const PointSchema = z.tuple([z.number(), z.number()]);
+export type Point = z.infer<typeof PointSchema>;
+
 export const PuppetPartSchema = z.object({
   id: z.string().regex(/^[a-z0-9-]+$/),
-  /** SVG path data (`d`) in puppet-local coordinates. */
-  d: z.string().min(1),
-  fill: z.string(),
+  /** SVG path data (`d`) in puppet-local coordinates (vector parts). */
+  d: z.string().min(1).optional(),
+  /**
+   * For raster puppets: the region of the puppet's image this part shows, in
+   * local coordinates. Children's regions are cut out of their parent's.
+   */
+  polygon: z.array(PointSchema).min(3).optional(),
+  fill: z.string().optional(),
   opacity: z.number().min(0).max(1).optional(),
   stroke: z.string().optional(),
   strokeWidth: z.number().optional(),
@@ -33,12 +50,30 @@ export type PuppetPart = z.infer<typeof PuppetPartSchema>;
 
 export const PuppetSchema = z
   .object({
-    id: z.string().regex(/^[a-z0-9-]+$/),
+    id: z.string().regex(/^[a-z0-9:-]+$/),
     cultureId: z.string().regex(/^[a-z0-9-]+$/),
     name: z.string().trim().min(1),
     description: z.string().trim().min(1),
     width: z.number().positive(),
     height: z.number().positive(),
+    /**
+     * Raster puppets: a URL or data URL of the artwork (transparent PNG/WebP)
+     * drawn into the width × height box. Parts then use `polygon`.
+     */
+    image: z.string().max(1_500_000).optional(),
+    /**
+     * Optional painted artwork for a vector puppet: used instead of `parts`
+     * once its image has loaded, so packs work before the art files exist.
+     */
+    art: z
+      .object({
+        image: z.string().max(1_500_000),
+        width: z.number().positive(),
+        height: z.number().positive(),
+        rod: PointSchema.optional(),
+        parts: z.array(z.lazy(() => PuppetPartSchema)).min(1),
+      })
+      .optional(),
     /** Suggested karaoke colour for this character. */
     color: z.string(),
     /**
@@ -56,6 +91,20 @@ export const PuppetSchema = z
       ctx.addIssue({ code: 'custom', path: ['parts'], message: 'duplicate part ids' });
     }
     puppet.parts.forEach((p, i) => {
+      if (!p.d && !p.polygon) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['parts', i],
+          message: 'a part needs path data or a polygon',
+        });
+      }
+      if (p.polygon && !puppet.image) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['parts', i, 'polygon'],
+          message: 'polygon parts need a puppet image',
+        });
+      }
       if (p.parent && !ids.has(p.parent)) {
         ctx.addIssue({
           code: 'custom',
@@ -81,6 +130,18 @@ export const PuppetSchema = z
   });
 export type Puppet = z.infer<typeof PuppetSchema>;
 export type PuppetInput = z.input<typeof PuppetSchema>;
+
+/** Puppets a family made themselves carry this prefix; they travel with the phone. */
+export const CUSTOM_PUPPET_PREFIX = 'custom:';
+
+export function isCustomPuppet(id: string): boolean {
+  return id.startsWith(CUSTOM_PUPPET_PREFIX);
+}
+
+/** Polygon → SVG path data. */
+export function polygonPath(points: Point[]): string {
+  return points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x} ${y}`).join(' ') + ' Z';
+}
 
 /** The rod point, with a sensible default for rigs that do not declare one. */
 export function rodPoint(puppet: Puppet): [number, number] {

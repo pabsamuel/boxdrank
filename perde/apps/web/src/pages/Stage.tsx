@@ -2,13 +2,13 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { QRCodeSVG } from 'qrcode.react';
 import { useSearchParams } from 'react-router';
 import { joinUrl, NEUTRAL_POSE, pickLocalized, type StageInbound } from '@perde/shared';
-import { getPack } from '@perde/content';
 import { KaraokeBar } from '../components/KaraokeBar';
 import { StageScene, type ScenePuppet } from '../components/StageScene';
 import { createRoom, getRoom } from '../lib/api';
 import { activate, resolvePlan } from '../lib/entitlements';
 import {
   createStageModel,
+  findPuppet,
   reduceStage,
   visiblePuppets,
   type StageEvent,
@@ -74,6 +74,7 @@ export function Stage() {
       case 'pose':
       case 'gesture':
       case 'speech':
+      case 'puppet':
         dispatch({ type: 'msg', msg, at });
         break;
       case 'error':
@@ -200,6 +201,60 @@ export function Stage() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  // The TV reads the lines of characters nobody holds, then moves on.
+  const line = model.state.play?.line;
+  const lineKey = model.state.play ? `${model.state.play.id}:${model.state.play.lineIndex}` : '';
+  const voiceOn = model.state.voice ?? true;
+  const playLang = model.play?.lang;
+  const finished = model.state.play?.finished ?? false;
+  useEffect(() => {
+    if (typeof speechSynthesis === 'undefined') return;
+    speechSynthesis.cancel();
+    if (!voiceOn || !line || line.seat || !playLang || finished) return;
+    const u = new SpeechSynthesisUtterance(line.text);
+    u.lang = playLang;
+    const voices = speechSynthesis.getVoices();
+    const wanted = playLang.toLowerCase();
+    const match =
+      voices.find((v) => v.lang.replace('_', '-').toLowerCase() === wanted) ??
+      voices.find((v) => v.lang.toLowerCase().startsWith(wanted.slice(0, 2)));
+    if (match) u.voice = match;
+    u.rate = line.song ? 0.85 : 0.95;
+    u.pitch = line.character === 'karagoz' ? 0.8 : 1.1;
+    let cancelled = false;
+    const advance = () => {
+      if (cancelled) return;
+      const current = modelRef.current.state.play;
+      if (current && `${current.id}:${current.lineIndex}` === lineKey) {
+        dispatch({ type: 'local', action: 'auto-advance', at: Date.now() });
+      }
+    };
+    u.onend = () => setTimeout(advance, 350);
+    u.onerror = () => setTimeout(advance, 1200);
+    const timer = setTimeout(() => speechSynthesis.speak(u), 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      speechSynthesis.cancel();
+    };
+  }, [lineKey, voiceOn, line, playLang, finished]);
+
+  // First-run coaching once the first puppeteer picks up a rod.
+  const [coach, setCoach] = useState(false);
+  const wasLobby = useRef(true);
+  useEffect(() => {
+    if (wasLobby.current && model.state.mode !== 'lobby' && !demo) {
+      wasLobby.current = false;
+      const show = setTimeout(() => setCoach(true), 0);
+      const hide = setTimeout(() => setCoach(false), 12_000);
+      return () => {
+        clearTimeout(show);
+        clearTimeout(hide);
+      };
+    }
+    if (model.state.mode === 'lobby') wasLobby.current = true;
+  }, [model.state.mode, demo]);
+
   const pack = model.pack;
   const culture = pack.culture;
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://perde.app';
@@ -208,7 +263,7 @@ export function Stage() {
     () =>
       visiblePuppets(model).map((v) => ({
         key: v.key,
-        puppet: getPack(model.state.cultureId)!.puppets.find((p) => p.id === v.puppetId)!,
+        puppet: findPuppet(model, v.puppetId) ?? model.pack.puppets[0]!,
         npc: v.npc,
         slot: v.slot,
         speaking: v.speaking,
@@ -287,7 +342,18 @@ export function Stage() {
 
       {model.state.karaoke && ps && !ps.finished && (
         <div className="stage__karaoke">
-          <KaraokeBar play={ps} color={speakerColor} />
+          <KaraokeBar play={ps} color={speakerColor} nextLabel={t('nextUp')} />
+        </div>
+      )}
+
+      {coach && (
+        <div className="coach" role="status">
+          <h2>{t('coachTitle')}</h2>
+          <ol>
+            <li>{t('coach1')}</li>
+            <li>{t('coach2')}</li>
+            <li>{t('coach3')}</li>
+          </ol>
         </div>
       )}
 

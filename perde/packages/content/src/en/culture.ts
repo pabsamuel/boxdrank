@@ -22,6 +22,8 @@ export const cultureEn: CultureInput = {
     text: '#fff6e5',
     puppetOpacity: 1,
     blur: 0,
+    outline: 2,
+    backdrop_scene: 'seaside-booth',
   },
   defaultSeats: [
     { seat: 'punch', puppetId: 'punch', name: 'Mr Punch' },

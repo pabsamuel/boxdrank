@@ -120,6 +120,77 @@ describe('stage machine', () => {
     expect(m.state.mode).toBe('play');
   });
 
+  it('keeps a family drawing on its seat when a play is cast, and offers it to the sender', () => {
+    let m = join(join(createStageModel(), 'p1'), 'p2');
+    const drawing = {
+      id: 'custom:kedi',
+      cultureId: 'atelier',
+      name: 'Kedi',
+      description: 'Drawn at home.',
+      width: 100,
+      height: 200,
+      image: 'data:image/png;base64,AAAA',
+      color: '#f2c94c',
+      rod: [50, 40],
+      parts: [
+        {
+          id: 'body',
+          polygon: [
+            [0, 0],
+            [100, 0],
+            [100, 200],
+            [0, 200],
+          ],
+          pivot: [50, 40],
+          driver: 'lean',
+          gain: 2,
+        },
+        {
+          id: 'arm',
+          polygon: [
+            [60, 50],
+            [95, 50],
+            [95, 60],
+            [60, 60],
+          ],
+          parent: 'body',
+          pivot: [60, 55],
+          driver: 'arm',
+          gain: -100,
+        },
+      ],
+    };
+    m = reduceStage(m, { type: 'msg', msg: { t: 'puppet', seat: 'p2', puppet: drawing }, at: t0 });
+    expect(m.custom.map((p) => p.id)).toEqual(['custom:kedi']);
+    expect(m.state.customPuppets).toEqual([{ id: 'custom:kedi', name: 'Kedi', seat: 'p2' }]);
+    expect(m.state.seats[1]!.puppetId).toBe('custom:kedi');
+    m = ctl(m, 'p1', 'start-play', { playId: 'giris' });
+    // p1 keeps Karagöz; p2's cat plays Hacivat instead of being swapped for the Hacivat rig.
+    expect(m.casting).toEqual({ p1: 'karagoz', p2: 'hacivat' });
+    expect(m.state.seats[1]!.puppetId).toBe('custom:kedi');
+    expect(visiblePuppets(m).map((v) => v.puppetId)).toContain('custom:kedi');
+    // Garbage is ignored.
+    const before = m;
+    m = reduceStage(m, {
+      type: 'msg',
+      msg: { t: 'puppet', seat: 'p2', puppet: { nope: true } },
+      at: t0,
+    });
+    expect(m).toBe(before);
+  });
+
+  it('exposes the next line and lets the TV auto-advance unclaimed lines', () => {
+    let m = join(createStageModel(), 'p1');
+    m = ctl(m, 'p1', 'start-play', { playId: 'giris' });
+    expect(m.state.play?.next?.text).toContain('Off');
+    expect(m.state.voice).toBe(true);
+    m = reduceStage(m, { type: 'local', action: 'auto-advance', at: t0 });
+    expect(m.state.play?.lineIndex).toBe(1);
+    expect(m.state.play?.spokenLines).toBe(0);
+    m = ctl(m, 'p1', 'toggle-voice');
+    expect(m.state.voice).toBe(false);
+  });
+
   it('castPlay prefers matching puppets', () => {
     const m = join(join(createStageModel(), 'p1'), 'p2');
     const play = m.pack.plays.find((p) => p.id === 'giris')!;

@@ -45,9 +45,15 @@ current line is compared with `matchLine`; on pass the line advances and `spoken
 
 ## Rendering (`components/StageScene.tsx`, `PuppetSvg.tsx`)
 
-Puppets are trees of SVG paths hanging from a `rod` point: the whole figure leans and swings
-there, like a Karagöz on its stick. Each part may additionally rotate around its own pivot driven
-by one pose axis: `arm`, `lean`, `talk`, `bob` (plus `arm-inverse` for two-armed booth puppets).
+Puppets are trees of parts hanging from a `rod` point: the whole figure leans and swings there,
+like a Karagöz on its stick. A part is either an SVG path (vector rigs, with an ink outline from
+the culture's `stage.outline` and painted-leather `<pattern>` fills) or a `polygon` region of the
+puppet's `image` (raster rigs: painted artwork, or a family's drawing). A raster parent's region
+has its children's regions cut out with an even-odd clip, so a raised arm leaves no ghost. A
+vector puppet may carry `art` (image + polygon parts); the scene preloads it and switches to it
+once the file exists, so packs work before the artwork lands. Each part may rotate around its
+own pivot driven by one pose axis: `arm`, `lean`, `talk`, `bob`, `stride` (legs, from the
+puppet's walking phase) (plus `arm-inverse`/`stride-inverse` for the opposite limb).
 The scene follows every puppet's target pose tightly each frame, faces it the way it walks (a
 `turn` gesture flips it on the spot), and plays short gesture animations (wave, jump, spin, bow,
 nod, shake, turn). The culture's `stage` block decides look:
@@ -65,6 +71,25 @@ translucent + blurred on a lit muslin for shadow theatre, opaque in a striped bo
   adds the swing of a dragged rod (feet trailing) from the puppet's own velocity.
 - `createSpeechSession` wraps `webkitSpeechRecognition` with restart-on-end and a transcript
   buffer that resets when the line changes. Firefox has no API → "I said it" button.
+
+## Draw your own (`pages/Draw.tsx`, `lib/cutout.ts`, `shared/rig.ts`)
+
+The phone photographs a drawing. `cutout.ts` estimates the paper colour from the border, marks
+pixels that differ, keeps the largest blob, fills its holes, feathers the edge and crops: a
+transparent PNG, entirely on-device. `rig.ts` guesses seven joints from the mask (head, neck,
+shoulder, hand, hips, feet) for the family to confirm or re-tap, then builds a basic rig: head
+above the neck, a capsule arm from shoulder to hand with the width measured on the mask, two
+legs that stride, everything else the body, rod at the neck. The puppet (image inside, ≈200 kB)
+is saved on the phone and sent to the TV over the relay as a `puppet` message; the TV keeps it
+for the session, offers it in the seat's puppet list, and lets it play any part in a play
+without swapping it for the pack's figure.
+
+## Assisted play
+
+Lines of characters nobody holds are read by the TV with the Web Speech Synthesis voice of
+the play's language, then advanced (`auto-advance`, not counted as spoken). The next line is
+shown under the current one on the TV and on the phone whose turn is next. A coaching card
+appears on the TV when the first rod is picked up.
 
 ## Relay (`apps/relay/src/index.ts`)
 

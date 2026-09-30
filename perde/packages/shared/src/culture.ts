@@ -22,6 +22,10 @@ export const StageLookSchema = z.object({
   /** Puppets on a shadow screen are translucent; booth puppets are opaque. */
   puppetOpacity: z.number().min(0).max(1),
   blur: z.number().min(0).max(4),
+  /** Ink outline width drawn around vector parts (0 = none). */
+  outline: z.number().min(0).max(8).default(0),
+  /** Painted scenery behind the puppets, by name (see StageScene). */
+  backdrop_scene: z.enum(['none', 'ottoman-street', 'seaside-booth']).default('none'),
 });
 
 export const CultureSchema = z.object({

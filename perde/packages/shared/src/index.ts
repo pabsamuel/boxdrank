@@ -5,3 +5,4 @@ export * from './culture';
 export * from './matcher';
 export * from './room-core';
 export * from './i18n';
+export * from './rig';

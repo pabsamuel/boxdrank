@@ -52,6 +52,27 @@ eyledin viran! / Var git sahibine haber ver heman!" and the apology "sürç-i li
 7. Look at it: `pnpm build && pnpm dev:relay`, then `/stage?demo=1&culture=<id>` or set the puppet
    from the phone menu. `pnpm screenshots` refreshes the docs images.
 
+## Painted artwork for a puppet
+
+A vector rig can carry painted artwork that replaces it once the file exists:
+
+```ts
+art: {
+  image: '/art/tr/karagoz.png',   // transparent PNG in apps/web/public/art/<culture>/
+  width: 1000, height: 1980,      // the box the image is drawn into (its aspect ratio)
+  rod: [500, 520],                // where the rod holds it, in that box
+  parts: [
+    { id: 'body', polygon: [[0,0],[1000,0],[1000,1980],[0,1980]], pivot: [500,520], driver: 'lean', gain: 2 },
+    { id: 'head', polygon: [...], parent: 'body', pivot: [520,525], driver: 'talk', gain: 4 },
+    { id: 'arm',  polygon: [...], parent: 'body', pivot: [625,620], driver: 'arm', gain: -100 },
+  ],
+}
+```
+
+Polygons are regions of the image; a child's region is cut out of its parent's, so keep the
+arm polygon a little generous around the joint. `docs/ART.md` has the generated Karagöz and
+Hacivat files and where to put them.
+
 ## Adding a tradition (culture pack)
 
 1. `packages/content/src/<id>/culture.ts`: id, names (tr/en), tradition, region, `lang`
