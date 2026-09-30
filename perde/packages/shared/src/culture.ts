@@ -26,6 +26,13 @@ export const StageLookSchema = z.object({
   outline: z.number().min(0).max(8).default(0),
   /** Painted scenery behind the puppets, by name (see StageScene). */
   backdrop_scene: z.enum(['none', 'ottoman-street', 'seaside-booth']).default('none'),
+  /**
+   * The göstermelik: an ornament shown on the screen before the play and
+   * lifted, with a whistle, when the first puppeteer steps up.
+   */
+  showpiece: z
+    .object({ image: z.string(), width: z.number().positive(), height: z.number().positive() })
+    .optional(),
 });
 
 export const CultureSchema = z.object({

@@ -4,6 +4,7 @@
 //   node scripts/art-tiles.mjs stitch <tilesDir> <workDir>  # 600 px Canva tile renders → full PNG/JPG
 //   node scripts/art-tiles.mjs grid <workDir> <gridDir>      # coordinate grids for rig polygons
 //   node scripts/art-tiles.mjs parts <workDir> <outDir>     # body (coat painted in) + arm layer .webp
+//   node scripts/art-tiles.mjs webp <workDir> <outDir> <name…> # plain .webp for set pieces
 //
 // Everything runs in headless Chromium (canvas), so no image library is needed.
 // PERDE_CHROMIUM_PATH points at the browser when Playwright's own download is unavailable.
@@ -59,6 +60,15 @@ const JOBS = [
     prefix: 'b',
     cols: [0, 600, 1080],
     rows: [0, 344],
+  },
+  {
+    name: 'gostermelik',
+    w: 1088,
+    h: 1456,
+    key: true,
+    prefix: 'g',
+    cols: [0, 488],
+    rows: [0, 600, 856],
   },
 ];
 
@@ -384,10 +394,39 @@ async function parts(pngDir, outDir) {
   });
 }
 
-const [cmd, a, b] = process.argv.slice(2);
+/** Plain WebP conversion for pieces that are not rigged figures (the göstermelik). */
+async function webp(pngDir, outDir, names) {
+  mkdirSync(outDir, { recursive: true });
+  await withPage(async (page) => {
+    for (const name of names) {
+      const url = await page.evaluate(
+        async (data) => {
+          const img = new Image();
+          await new Promise((res, rej) => {
+            img.onload = res;
+            img.onerror = rej;
+            img.src = data;
+          });
+          const c = document.createElement('canvas');
+          c.width = img.width;
+          c.height = img.height;
+          c.getContext('2d').drawImage(img, 0, 0);
+          return c.toDataURL('image/webp', 0.9);
+        },
+        dataUrl(`${pngDir}/${name}.png`, 'image/png'),
+      );
+      const buf = fromDataUrl(url);
+      writeFileSync(`${outDir}/${name}.webp`, buf);
+      console.log(name, 'webp', buf.length, 'bytes');
+    }
+  });
+}
+
+const [cmd, a, b, ...rest] = process.argv.slice(2);
 if (cmd === 'stitch' && a && b) await stitch(a, b);
 else if (cmd === 'grid' && a && b) await grid(a, b);
 else if (cmd === 'parts' && a && b) await parts(a, b);
+else if (cmd === 'webp' && a && b && rest.length) await webp(a, b, rest);
 else {
   console.error(
     'usage: art-tiles.mjs stitch <tilesDir> <workDir> | grid <workDir> <gridDir> | parts <workDir> <outDir>',

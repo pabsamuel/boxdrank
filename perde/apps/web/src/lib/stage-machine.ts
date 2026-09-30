@@ -101,6 +101,7 @@ export function createStageModel(cultureId = 'tr', plan: Plan = 'free'): StageMo
       leniency: 'kids',
       plan,
       voice: true,
+      sound: true,
       seats,
       customPuppets: [],
       play: null,
@@ -429,6 +430,8 @@ function reduceControl(
       return ps && !ps.finished ? gotoLine(model, ps.lineIndex + 1, ps.spokenLines) : model;
     case 'toggle-voice':
       return withState(model, { voice: !(model.state.voice ?? true) });
+    case 'toggle-sound':
+      return withState(model, { sound: !(model.state.sound ?? true) });
     case 'start-play':
       return startPlay(model, extras.playId);
     case 'free-play':

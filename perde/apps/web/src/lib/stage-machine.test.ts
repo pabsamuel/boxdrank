@@ -189,6 +189,9 @@ describe('stage machine', () => {
     expect(m.state.play?.spokenLines).toBe(0);
     m = ctl(m, 'p1', 'toggle-voice');
     expect(m.state.voice).toBe(false);
+    expect(m.state.sound).toBe(true);
+    m = ctl(m, 'p1', 'toggle-sound');
+    expect(m.state.sound).toBe(false);
   });
 
   it('castPlay prefers matching puppets', () => {

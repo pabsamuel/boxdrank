@@ -379,6 +379,16 @@ select {
   color: var(--paper);
   backdrop-filter: blur(6px);
 }
+.chip--action {
+  cursor: pointer;
+  border: 1px solid rgba(255, 226, 122, 0.6);
+  background: rgba(60, 40, 10, 0.75);
+  color: var(--paper);
+  font: inherit;
+}
+.lobby__start {
+  margin-top: 0.6vh;
+}
 .chip--muted {
   opacity: 0.8;
 }

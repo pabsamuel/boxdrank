@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router';
 import { joinUrl, NEUTRAL_POSE, pickLocalized, type StageInbound } from '@perde/shared';
 import { KaraokeBar } from '../components/KaraokeBar';
 import { StageScene, type ScenePuppet } from '../components/StageScene';
+import { playNareke, playSting, playTef, unlockSound, watchSound } from '../lib/sound';
 import { createRoom, getRoom } from '../lib/api';
 import { activate, resolvePlan } from '../lib/entitlements';
 import {
@@ -190,6 +191,7 @@ export function Stage() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const at = Date.now();
+      unlockSound();
       if (e.key === 'f') document.documentElement.requestFullscreen?.().catch(() => undefined);
       else if (e.key === 'n' || e.key === 'ArrowRight')
         dispatch({ type: 'local', action: 'next', at });
@@ -255,6 +257,57 @@ export function Stage() {
     if (model.state.mode === 'lobby') wasLobby.current = true;
   }, [model.state.mode, demo]);
 
+  // Sound: browsers need one tap before audio may start; the TV asks for it.
+  const soundOn = model.state.sound ?? true;
+  const [audioReady, setAudioReady] = useState(true);
+  useEffect(() => watchSound(setAudioReady), []);
+  const unlockAll = () => {
+    unlockSound();
+    document.documentElement.requestFullscreen?.().catch(() => undefined);
+  };
+
+  // The göstermelik hangs while the room waits; the nareke lifts it when the
+  // first puppeteer steps up, and the tef greets them.
+  const mode = model.state.mode;
+  const [liftedAt, setLiftedAt] = useState<number | null>(null);
+  const prevMode = useRef(mode);
+  useEffect(() => {
+    const was = prevMode.current;
+    prevMode.current = mode;
+    if (was === 'lobby' && mode !== 'lobby') {
+      const id = setTimeout(() => {
+        setLiftedAt(performance.now());
+        if (soundOn) {
+          playNareke();
+          setTimeout(() => playTef('entrance'), 1100);
+        }
+      }, 0);
+      return () => clearTimeout(id);
+    }
+    if (mode === 'lobby' && was !== 'lobby') {
+      const id = setTimeout(() => setLiftedAt(null), 0);
+      return () => clearTimeout(id);
+    }
+    return undefined;
+  }, [mode, soundOn]);
+
+  // A tef roll when a section turns, a sting when the curtain falls.
+  const sectionKey = model.state.play
+    ? `${model.state.play.id}:${model.state.play.sectionTitle}`
+    : '';
+  const prevSection = useRef(sectionKey);
+  useEffect(() => {
+    const was = prevSection.current;
+    prevSection.current = sectionKey;
+    if (!sectionKey || !soundOn) return;
+    if (was && was.split(':')[0] === sectionKey.split(':')[0]) playTef('section');
+    else playTef('hit');
+  }, [sectionKey, soundOn]);
+  const playFinished = !!model.state.play?.finished;
+  useEffect(() => {
+    if (playFinished && soundOn) playSting();
+  }, [playFinished, soundOn]);
+
   const pack = model.pack;
   const culture = pack.culture;
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://perde.app';
@@ -284,8 +337,13 @@ export function Stage() {
     <div
       className="stage"
       style={{ background: culture.stage.kind === 'booth' ? '#1c1a17' : culture.stage.backdrop }}
+      onClick={unlockSound}
     >
-      <StageScene culture={culture} puppets={scenePuppets} />
+      <StageScene
+        culture={culture}
+        puppets={scenePuppets}
+        showpiece={{ shown: mode === 'lobby' || liftedAt !== null, liftedAt }}
+      />
 
       <div className="stage__chrome">
         <div className="chip">
@@ -293,6 +351,11 @@ export function Stage() {
           <span className="chip__code">{code ?? '····'}</span>
           <span className={`dot dot--${status}`} title={status} />
         </div>
+        {!audioReady && soundOn && mode !== 'lobby' && (
+          <button className="chip chip--action" onClick={unlockAll}>
+            🔇 {t('tapForSound')}
+          </button>
+        )}
         {ps && (
           <div className="chip chip--muted">
             {ps.title} · {ps.sectionTitle}
@@ -328,6 +391,11 @@ export function Stage() {
           </div>
           <p className="lobby__heritage">{pickLocalized(culture.heritage, uiLang)}</p>
           <p className="lobby__waiting">{t('waitingForPuppeteers')}</p>
+          {(!audioReady || !document.fullscreenElement) && (
+            <button className="btn btn--primary lobby__start" onClick={unlockAll}>
+              🔊 {t('startShow')}
+            </button>
+          )}
         </div>
       )}
 

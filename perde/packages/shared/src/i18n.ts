@@ -120,6 +120,10 @@ const dict = {
   deletePuppet: { tr: 'Sil', en: 'Delete' },
   voiceOn: { tr: 'TV boş karakterleri okur: açık', en: 'TV reads unclaimed lines: on' },
   voiceOff: { tr: 'TV boş karakterleri okur: kapalı', en: 'TV reads unclaimed lines: off' },
+  soundOn: { tr: 'Sahne sesleri: açık', en: 'Stage sounds: on' },
+  soundOff: { tr: 'Sahne sesleri: kapalı', en: 'Stage sounds: off' },
+  startShow: { tr: 'Sesi aç · Tam ekran', en: 'Sound on · Fullscreen' },
+  tapForSound: { tr: 'Ses için ekrana tıkla', en: 'Click the screen for sound' },
   nextUp: { tr: 'Sıradaki', en: 'Next' },
   coachTitle: { tr: 'Telefonun çubuk oldu', en: 'Your phone is the rod' },
   coach1: {

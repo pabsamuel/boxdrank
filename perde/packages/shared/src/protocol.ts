@@ -118,6 +118,8 @@ export const StageStateSchema = z.object({
   plan: PlanSchema,
   /** The TV reads the lines of characters nobody holds (speech synthesis). */
   voice: z.boolean().optional(),
+  /** Stage sounds on the TV: the nareke, the tef, the curtain. */
+  sound: z.boolean().optional(),
   seats: z.array(SeatInfoSchema),
   /** Puppets drawn by the family, by id (image data lives on the TV). */
   customPuppets: z
@@ -172,6 +174,7 @@ export const CONTROL_ACTIONS = [
   'said-it',
   'activate-license',
   'toggle-voice',
+  'toggle-sound',
   'auto-advance',
 ] as const;
 

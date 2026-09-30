@@ -63,7 +63,14 @@ export interface StageSceneProps {
   puppets: ScenePuppet[];
   /** Highlight the puppet whose line it is. */
   highlightSpeaking?: boolean;
+  /**
+   * The göstermelik: shown while the room waits, lifted off the top of the
+   * screen once `liftedAt` (a performance.now() stamp) is set.
+   */
+  showpiece?: { shown: boolean; liftedAt: number | null };
 }
+/** How long the göstermelik takes to leave the screen, in ms. */
+const LIFT_MS = 1400;
 
 interface Live {
   pose: Pose;
@@ -123,7 +130,12 @@ function withArt(puppet: Puppet, loaded: Set<string>): Puppet {
   };
 }
 
-export function StageScene({ culture, puppets, highlightSpeaking = true }: StageSceneProps) {
+export function StageScene({
+  culture,
+  puppets,
+  highlightSpeaking = true,
+  showpiece,
+}: StageSceneProps) {
   const [frame, setFrame] = useState<Frame>({ time: 0, nowMs: 0, live: new Map() });
   const [loadedArt, setLoadedArt] = useState<Set<string>>(() => new Set());
   const puppetsRef = useRef(puppets);
@@ -441,6 +453,15 @@ export function StageScene({ culture, puppets, highlightSpeaking = true }: Stage
         </>
       )}
 
+      {!booth && culture.stage.showpiece && showpiece?.shown && (
+        <Showpiece
+          art={culture.stage.showpiece}
+          liftedAt={showpiece.liftedAt}
+          time={time}
+          nowMs={nowMs}
+        />
+      )}
+
       <g clipPath={booth ? undefined : 'url(#perde-screen-clip)'}>
         {[...puppets]
           .sort((a, b) => Number(a.speaking) - Number(b.speaking))
@@ -565,6 +586,51 @@ function ScreenFrame() {
       />
       <path d={d} fill="#6e1f1f" stroke="#2b0c0c" strokeWidth="3" strokeLinejoin="round" />
       <path d={d} fill="none" stroke="#c9a24b" strokeWidth="2" opacity="0.8" />
+    </g>
+  );
+}
+
+/** The ornament hung on the screen before the play, on its own rod, swaying a little. */
+function Showpiece({
+  art,
+  liftedAt,
+  time,
+  nowMs,
+}: {
+  art: { image: string; width: number; height: number };
+  liftedAt: number | null;
+  time: number;
+  nowMs: number;
+}) {
+  const h = SCREEN.h * 0.6;
+  const w = (art.width / art.height) * h;
+  const cx = SCREEN.x + SCREEN.w / 2;
+  const bottom = GROUND_Y + 8;
+  const t = liftedAt === null ? 0 : Math.min(1, Math.max(0, (nowMs - liftedAt) / LIFT_MS));
+  if (t >= 1) return null;
+  const lift = t * t * (bottom + h * 0.2);
+  const sway = Math.sin(time * 1.1) * 1.2 + (t > 0 ? Math.sin(t * 18) * 2 * (1 - t) : 0);
+  const rodW = 9;
+  return (
+    <g clipPath="url(#perde-screen-clip)">
+      <g
+        transform={`translate(${cx} ${bottom - lift}) rotate(${sway.toFixed(2)})`}
+        style={{ mixBlendMode: 'multiply', filter: 'url(#perde-pressed)' }}
+      >
+        <image href={art.image} x={-w / 2} y={-h} width={w} height={h} preserveAspectRatio="none" />
+        <g opacity="0.78">
+          <line
+            x1={0}
+            y1={-h * 0.08}
+            x2={-16}
+            y2={STAGE_H}
+            stroke={SHADOW_INK}
+            strokeWidth={rodW}
+            strokeLinecap="round"
+          />
+          <circle cx={0} cy={-h * 0.08} r={rodW * 0.9} fill={SHADOW_INK} />
+        </g>
+      </g>
     </g>
   );
 }

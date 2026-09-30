@@ -24,6 +24,7 @@ export const cultureTr: CultureInput = {
     blur: 0.4,
     outline: 2.4,
     backdrop_scene: 'ottoman-street',
+    showpiece: { image: '/art/tr/gostermelik.webp', width: 1088, height: 1456 },
   },
   defaultSeats: [
     { seat: 'karagoz', puppetId: 'karagoz', name: 'Karagöz' },
