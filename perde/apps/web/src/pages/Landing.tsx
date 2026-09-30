@@ -27,7 +27,7 @@ export function Landing({ onToggleLang }: { onToggleLang: () => void }) {
     const h = pack.puppets.find((p) => p.id === 'hacivat')!;
     const pk: Pose = {
       ...NEUTRAL_POSE,
-      x: -0.5 + Math.sin(now * 0.7) * 0.15,
+      x: Math.sin(now * 0.7) * 0.15,
       lean: Math.sin(now * 2.1) * 0.5,
       arm: (Math.sin(now * 3) + 1) / 2,
       y: Math.max(0, Math.sin(now * 2.6)) * 0.4,
@@ -35,7 +35,7 @@ export function Landing({ onToggleLang }: { onToggleLang: () => void }) {
     };
     const ph: Pose = {
       ...NEUTRAL_POSE,
-      x: 0.5 + Math.sin(now * 0.5 + 1) * 0.1,
+      x: Math.sin(now * 0.5 + 1) * 0.1,
       lean: Math.sin(now * 1.3 + 2) * 0.3,
       arm: (Math.sin(now * 1.7 + 1) + 1) / 2,
       talking: Math.sin(now) <= 0,

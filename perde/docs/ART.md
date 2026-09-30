@@ -1,8 +1,8 @@
 # Artwork
 
 Perde's stage draws vector rigs by default and switches to painted artwork the moment the image
-file exists (`art` on a puppet, see `CONTENT_GUIDE.md`). The Turkish pack's Karagöz and Hacivat
-are painted; the files live in `apps/web/public/art/tr/`:
+file exists (`art` on a puppet, see `CONTENT_GUIDE.md`). The Turkish pack's Karagöz, Hacivat,
+Çelebi and Zenne are painted; the files live in `apps/web/public/art/tr/`:
 
 | file               | what                                            |
 | ------------------ | ----------------------------------------------- |
@@ -10,6 +10,10 @@ are painted; the files live in `apps/web/public/art/tr/`:
 | `karagoz-arm.webp` | the arm alone, same box, drawn as a layer       |
 | `hacivat.webp`     | body                                            |
 | `hacivat-arm.webp` | arm layer                                       |
+| `celebi.webp`      | body                                            |
+| `celebi-arm.webp`  | the forearm with the rose                       |
+| `zenne.webp`       | body                                            |
+| `zenne-arm.webp`   | the forearm with the fan                        |
 
 Rigs (`packages/content/src/tr/puppets.ts`, `art:` blocks) use a 1000 × 1980 box; the images are
 stretched to it (`preserveAspectRatio="none"`), so any resolution with that ratio works.
@@ -20,12 +24,14 @@ Generated with Canva's image generator in the traditional painted-leather style,
 removed, then placed on the export sheet design **`DAHWpy4YgoE`** ("Perde tasvir export sheet")
 in the owner's Canva account:
 
-| page | content                                         |
-| ---- | ----------------------------------------------- |
-| 1–3  | Karagöz, Hacivat, Ottoman street backdrop, full |
-| 7–24 | 600 × 600 windows of the three images (tiles)   |
+| page  | content                                         |
+| ----- | ----------------------------------------------- |
+| 1–3   | Karagöz, Hacivat, Ottoman street backdrop, full |
+| 7–24  | 600 × 600 windows of the three images (tiles)   |
+| 25–36 | 600 × 600 windows of Çelebi and Zenne           |
 
-Media ids: Karagöz `MAHWo1QILio`, Hacivat `MAHWoxUTikw`, backdrop `MAHWouzoZTg`.
+Media ids: Karagöz `MAHWo1QILio`, Hacivat `MAHWoxUTikw`, Çelebi `MAHWqJIf5ws`, Zenne
+`MAHWqAn_dws`, backdrop `MAHWouzoZTg`.
 
 ## Getting pixels out of Canva from a session
 

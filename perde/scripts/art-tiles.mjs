@@ -11,7 +11,7 @@
 import { chromium } from '@playwright/test';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
-const FIGURES = ['karagoz', 'hacivat'];
+const FIGURES = ['karagoz', 'hacivat', 'celebi', 'zenne'];
 const ART_BOX = { w: 1000, h: 1980 };
 
 const JOBS = [
@@ -30,6 +30,24 @@ const JOBS = [
     h: 1776,
     key: true,
     prefix: 'h',
+    cols: [0, 296],
+    rows: [0, 600, 1176],
+  },
+  {
+    name: 'celebi',
+    w: 896,
+    h: 1776,
+    key: true,
+    prefix: 'c',
+    cols: [0, 296],
+    rows: [0, 600, 1176],
+  },
+  {
+    name: 'zenne',
+    w: 896,
+    h: 1776,
+    key: true,
+    prefix: 'z',
     cols: [0, 296],
     rows: [0, 600, 1176],
   },
@@ -239,6 +257,31 @@ const ARMS = {
       [200, 700],
     ],
   },
+  celebi: {
+    dx: 150,
+    polygon: [
+      [590, 760],
+      [700, 530],
+      [850, 540],
+      [840, 700],
+      [760, 940],
+      [620, 930],
+      [590, 850],
+    ],
+  },
+  zenne: {
+    dx: 150,
+    polygon: [
+      [540, 600],
+      [620, 480],
+      [860, 500],
+      [860, 690],
+      [720, 760],
+      [680, 860],
+      [560, 870],
+      [520, 760],
+    ],
+  },
 };
 
 /**
@@ -311,6 +354,8 @@ async function parts(pngDir, outDir) {
                 [dx * 1.5, 0],
                 [dx * 2, 0],
                 [0, 160],
+                [0, 320],
+                [0, 480],
                 [dx, 160],
                 [0, -160],
               ]) {
