@@ -154,7 +154,7 @@ export function Stage() {
           t: 'pose',
           seat: 'p1',
           pose: {
-            x: -0.5 + Math.sin(s * 0.6) * 0.2,
+            x: Math.sin(s * 0.6) * 0.2,
             y: Math.max(0, Math.sin(s * 2.2)) * 0.3,
             lean: Math.sin(s * 1.7) * 0.5,
             arm: (Math.sin(s * 2.5) + 1) / 2,
@@ -169,7 +169,7 @@ export function Stage() {
           t: 'pose',
           seat: 'p2',
           pose: {
-            x: 0.5 + Math.sin(s * 0.4 + 1) * 0.15,
+            x: Math.sin(s * 0.4 + 1) * 0.15,
             y: 0,
             lean: Math.sin(s * 1.1 + 2) * 0.3,
             arm: (Math.sin(s * 1.4 + 1) + 1) / 2,

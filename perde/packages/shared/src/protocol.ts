@@ -16,7 +16,10 @@ export type Gesture = z.infer<typeof GestureSchema>;
 
 /** A puppet's pose, every axis normalised to -1..1. */
 export const PoseSchema = z.object({
-  /** Horizontal position across the stage: -1 far left, 1 far right. */
+  /**
+   * Horizontal travel from the seat's home spot on the stage, in stage half-widths:
+   * -1 a full stage-half to the left, 1 to the right. The TV adds the home spot.
+   */
   x: z.number().min(-1).max(1),
   /** Vertical bob: 0 on the ground, 1 a full hop. */
   y: z.number().min(-1).max(1),

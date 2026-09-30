@@ -160,7 +160,12 @@ export function StageScene({ culture, puppets, highlightSpeaking = true }: Stage
       const kd = 1 - Math.exp(-dt / DRIFT_TAU);
       for (const p of puppetsRef.current) {
         const cur = live.get(p.key) ?? fresh(p.slot);
-        let target = p.target;
+        // A phone's x is relative to the seat's home spot, so four figures that
+        // have not moved yet stand apart instead of in one pile at the centre.
+        let target: Pose = {
+          ...p.target,
+          x: Math.max(-1, Math.min(1, slotX(p.slot) + p.target.x)),
+        };
         if (p.npc) {
           // Idle life for characters nobody holds: gentle sway, talk when it is their line.
           const sway = Math.sin(now * 1.3 + p.slot) * 0.15;
