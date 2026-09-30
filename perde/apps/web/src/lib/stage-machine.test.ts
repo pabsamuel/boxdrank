@@ -54,8 +54,11 @@ describe('stage machine', () => {
     expect(m.state.seats[1]!.puppetId).toBe('hacivat');
     const visible = visiblePuppets(m);
     expect(visible.filter((v) => !v.npc)).toHaveLength(2);
-    // Section 1 of Salıncak has only Karagöz and Hacivat lines: no NPC yet.
-    expect(visible.filter((v) => v.npc)).toHaveLength(0);
+    // Section 1 of Salıncak has only Karagöz and Hacivat lines: the uncast
+    // characters exist but wait in the wing.
+    const npcs = visible.filter((v) => v.npc);
+    expect(npcs).toHaveLength(2);
+    expect(npcs.every((v) => v.offstage)).toBe(true);
   });
 
   it('advances lines by speech, only for the cast seat, dropping stale transcripts', () => {
@@ -192,6 +195,20 @@ describe('stage machine', () => {
     expect(m.state.sound).toBe(true);
     m = ctl(m, 'p1', 'toggle-sound');
     expect(m.state.sound).toBe(false);
+  });
+
+  it('keeps a figure in the wing until its first line in the section', () => {
+    let m = join(join(createStageModel(), 'p1'), 'p2');
+    m = ctl(m, 'p1', 'start-play', { playId: 'giris' });
+    const at = (key: string) => visiblePuppets(m).find((v) => v.key === key)!;
+    // Hacivat opens; Karagöz waits in the wing and then drops in.
+    expect(at('p2').offstage).toBe(false);
+    expect(at('p1').offstage).toBe(true);
+    expect(at('p1').entrance).toBe('drop');
+    let guard = 0;
+    while (m.state.play?.line?.seat !== 'karagoz' && guard++ < 20) m = ctl(m, 'p1', 'next');
+    expect(at('p1').offstage).toBe(false);
+    expect(at('p2').offstage).toBe(false);
   });
 
   it('castPlay prefers matching puppets', () => {

@@ -118,3 +118,11 @@ paints the coat in from beside the sleeve) and give the arm part `image: '/art/<
 A culture may name an ornament (`{ image, width, height }`) that hangs on the screen while the
 room waits and is lifted, with the nareke whistle, when the first puppeteer steps up. Karagöz
 shows use a vase of flowers, a ship, a cypress; it is scenery, not a character, so it has no rig.
+
+### Entrances (`entrance` on a play character)
+
+A figure waits in the wing until its first line in each section, then comes on. By default it
+walks in from the nearer wing (and walks off when a section ends without it); `entrance: 'drop'`
+makes it fall onto its spot from above with a small bounce, which is how Karagöz has always
+arrived ("Hop! Düştüm, kalktım, işte geldim."). A phone still moves a figure that is on stage;
+in the wing the phone's motion is ignored until the cue.

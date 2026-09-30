@@ -20,7 +20,7 @@ export const giris: PlayInput = {
     'Anonim halk metni (mukaddime ve klasik muhavere kalıpları). Perde için kısaltılmış, yumuşatılmış özgün uyarlama.',
   characters: [
     { seat: 'hacivat', name: 'Hacivat', puppetId: 'hacivat', color: '#2e8b57' },
-    { seat: 'karagoz', name: 'Karagöz', puppetId: 'karagoz', color: '#c8102e' },
+    { seat: 'karagoz', name: 'Karagöz', puppetId: 'karagoz', color: '#c8102e', entrance: 'drop' },
   ],
   sections: [
     {

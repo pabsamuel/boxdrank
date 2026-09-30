@@ -44,6 +44,11 @@ const SWING_GAIN = 0.22;
 const SWING_TAU = 0.12;
 /** Facing follows velocity smoothed over this long, so a snap to a new spot cannot flip a figure. */
 const DRIFT_TAU = 0.25;
+/** Seconds for a walk to or from the wing to close most of the distance. */
+const WALK_TAU = 0.6;
+/** Where the wings are, in stage half-widths; just past the clipped edge. */
+const WING_X = 1.9;
+const DROP_MS = 800;
 const TURN_SPEED = 0.4;
 /** Stride cycles per stage-width walked. */
 const STRIDE_PER_WIDTH = 5;
@@ -56,6 +61,10 @@ export interface ScenePuppet {
   speaking: boolean;
   target: Pose;
   gesture?: { gesture: Gesture; at: number };
+  /** Waiting in the wing (off the edge of the screen) until its cue. */
+  offstage?: boolean;
+  /** How it comes on at its cue: walking in from the wing, or dropping from above. */
+  entrance?: 'walk' | 'drop';
 }
 
 export interface StageSceneProps {
@@ -85,6 +94,12 @@ interface Live {
   drift: number;
   /** Timestamp of the 'turn' gesture already applied, so it flips once. */
   turnedAt: number;
+  /** Where it was last frame: in the wing or on the screen. */
+  offstage: boolean;
+  /** Walking to or from the wing: the pose follows slowly so the legs stride. */
+  walking: boolean;
+  /** performance.now() when a drop from above began, 0 when not dropping. */
+  droppedAt: number;
 }
 
 interface Frame {
@@ -105,15 +120,22 @@ function slotX(slot: number): number {
   return positions[slot % positions.length]!;
 }
 
-function fresh(slot: number): Live {
+function wingX(slot: number): number {
+  return slotX(slot) < 0 ? -WING_X : WING_X;
+}
+
+function fresh(slot: number, offstage = false): Live {
   return {
-    pose: { ...NEUTRAL_POSE, x: slotX(slot) },
+    pose: { ...NEUTRAL_POSE, x: offstage ? wingX(slot) : slotX(slot) },
     facing: slotX(slot) < 0 ? 'right' : 'left',
     swing: 0,
     phase: 0,
     speed: 0,
     drift: 0,
     turnedAt: 0,
+    offstage,
+    walking: false,
+    droppedAt: 0,
   };
 }
 
@@ -171,7 +193,8 @@ export function StageScene({
       const ks = 1 - Math.exp(-dt / SWING_TAU);
       const kd = 1 - Math.exp(-dt / DRIFT_TAU);
       for (const p of puppetsRef.current) {
-        const cur = live.get(p.key) ?? fresh(p.slot);
+        const offstage = !!p.offstage;
+        const cur = live.get(p.key) ?? fresh(p.slot, offstage);
         // A phone's x is relative to the seat's home spot, so four figures that
         // have not moved yet stand apart instead of in one pile at the centre.
         let target: Pose = {
@@ -189,8 +212,22 @@ export function StageScene({
             talking: p.speaking,
           };
         }
+        // Cues: into the wing and back. A walk follows slowly so the legs stride;
+        // a drop lands on the home spot from above.
+        let walking = cur.walking;
+        let droppedAt = cur.droppedAt;
+        if (offstage !== cur.offstage) {
+          if (!offstage && p.entrance === 'drop') {
+            droppedAt = nowMs;
+            walking = false;
+            cur.pose = { ...cur.pose, x: target.x };
+          } else walking = true;
+        }
+        if (offstage) target = { ...target, x: wingX(p.slot), y: 0 };
+        if (walking && Math.abs(target.x - cur.pose.x) < 0.01) walking = false;
+        const kx = walking ? 1 - Math.exp(-dt / WALK_TAU) : k;
         const next: Pose = {
-          x: lerp(cur.pose.x, target.x, k),
+          x: lerp(cur.pose.x, target.x, kx),
           y: lerp(cur.pose.y, target.y, k),
           lean: lerp(cur.pose.lean, target.lean, k),
           arm: lerp(cur.pose.arm, target.arm, k),
@@ -214,7 +251,18 @@ export function StageScene({
           facing = facing === 'left' ? 'right' : 'left';
           turnedAt = p.gesture.at;
         }
-        live.set(p.key, { pose: next, facing, swing, phase, speed, drift, turnedAt });
+        live.set(p.key, {
+          pose: next,
+          facing,
+          swing,
+          phase,
+          speed,
+          drift,
+          turnedAt,
+          offstage,
+          walking,
+          droppedAt,
+        });
       }
       for (const key of [...live.keys()])
         if (!puppetsRef.current.some((p) => p.key === key)) live.delete(key);
@@ -466,8 +514,16 @@ export function StageScene({
         {[...puppets]
           .sort((a, b) => Number(a.speaking) - Number(b.speaking))
           .map((p) => {
-            const live = frame.live.get(p.key) ?? fresh(p.slot);
+            const live = frame.live.get(p.key) ?? fresh(p.slot, !!p.offstage);
             const px = STAGE_W / 2 + live.pose.x * (STAGE_W / 2 - 220);
+            // A drop from above: falls with gravity, lands with a small bounce.
+            let drop = 0;
+            if (live.droppedAt) {
+              const t = Math.min(1, (nowMs - live.droppedAt) / DROP_MS);
+              const fall = t < 0.7 ? 1 - (t / 0.7) ** 2 : 0;
+              const bounce = t >= 0.7 ? Math.sin(((t - 0.7) / 0.3) * Math.PI) * 0.06 : 0;
+              drop = -(fall + bounce) * (groundY + 200);
+            }
             let gestureAnim: GestureAnim | undefined;
             if (p.gesture && p.gesture.gesture !== 'none') {
               const dur = GESTURE_MS[p.gesture.gesture];
@@ -497,7 +553,7 @@ export function StageScene({
                 gesture={gestureAnim}
                 opacity={culture.stage.puppetOpacity}
                 x={px}
-                y={groundY}
+                y={groundY + drop}
                 scale={(booth ? 1.55 : 1.25) * (NOMINAL_H / rig.height)}
                 filter={filter}
                 blend={booth ? undefined : 'multiply'}

@@ -43,7 +43,7 @@ work; don't tick ahead.
 - [x] Draw your own puppet on the phone: photo → paper removed on-device → tap the joints (guessed first) → head, arm and legs rigged → lives on the phone and travels to any TV
 - [x] The TV reads the lines of characters nobody holds (speech synthesis) and moves on; the next line shows under the current one; a coaching card appears when the first rod is picked up
 - [ ] Speech: log pass/fail per line in the browser console and collect a first accuracy table
-- [ ] Puppet entrances/exits (walk in from the wing, walk off when the section ends)
+- [x] Puppet entrances/exits (walk in from the wing, walk off when the section ends); Karagöz drops in from above
 - [x] Sound: tef (tambourine) hit on entrance and a curtain sting, synthesized with WebAudio
 - [x] The show opens like a real one: a painted göstermelik hangs in the lobby and lifts with the nareke whistle; the TV asks for one tap to unlock sound and fullscreen
 - [ ] TV keyboard/remote help overlay (`?`), fullscreen prompt on load
@@ -62,7 +62,7 @@ work; don't tick ahead.
 - [ ] Plays: Kanlı Kavak (softened), Yalova Safası, Ters Evlenme, Ağalık
 - [ ] Puppets: Beberuhi, Laz, Kastamonulu, Arnavut, Bebe Ruhi's frog
 - [ ] The classic semai as an actual sung intro with a short melody (WebAudio)
-- [ ] Section titles on the TV between fasıl parts
+- [x] Section titles on the TV between fasıl parts
 - [ ] Free-play props: a swing, a boat, a shop counter as scenery layers per play
 
 ## M5 — Other traditions

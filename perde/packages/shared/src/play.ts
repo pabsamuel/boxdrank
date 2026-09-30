@@ -47,6 +47,8 @@ export const PlayCharacterSchema = z.object({
   puppetId: z.string(),
   /** CSS colour used for this character's name in the karaoke bar. */
   color: z.string().optional(),
+  /** How the figure first appears in a section: walks in from the wing, or drops from above. */
+  entrance: z.enum(['walk', 'drop']).optional(),
 });
 export type PlayCharacter = z.infer<typeof PlayCharacterSchema>;
 
@@ -120,6 +122,21 @@ export function flattenLines(play: Play): FlatLine[] {
     }
   });
   return out;
+}
+
+/**
+ * Whether a character is on the screen at a line: from its first line in the
+ * current section to the end of that section. Before that it waits in the wing.
+ */
+export function onStageAt(lines: FlatLine[], seat: string, lineIndex: number): boolean {
+  const here = lines[lineIndex];
+  if (!here) return true;
+  for (let i = lineIndex; i >= 0; i--) {
+    const l = lines[i]!;
+    if (l.sectionIndex !== here.sectionIndex) return false;
+    if (l.line.seat === seat) return true;
+  }
+  return false;
 }
 
 export function countLines(play: Play): number {
