@@ -42,3 +42,14 @@ Template:
   outlines and curled shoes, raster rigs with painted artwork slots, generated tasvir artwork
   (see `docs/ART.md`), the draw-your-own flow, the TV voicing unclaimed lines, next-line preview,
   coaching card. Roadmap boxes above.
+
+## 2026-09-30 — owner, phone join
+
+- Typed a wrong room code on the phone and could not get back: the phone sat on "waiting for
+  the TV" with no button, the menu would not open without stage state, and the code stayed in
+  the URL so even a reload skipped the form.
+- Changes made because of this: the form asks the relay whether the code exists before moving
+  on and says so inline; the pick-up screen and the waiting screen carry "change the code"; the
+  menu opens without stage state and always ends with "leave the room"; the room code lives in
+  the URL, so the phone's back button also works. e2e covers the wrong code, the stale QR link and
+  leaving from the menu.

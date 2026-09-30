@@ -54,7 +54,6 @@ const dict = {
   premium: { tr: 'Perde Plus', en: 'Perde Plus' },
   locked: { tr: 'Perde Plus ile açılır', en: 'Unlocks with Perde Plus' },
   seatTaken: { tr: 'Bu koltuk dolu', en: 'This seat is taken' },
-  roomNotFound: { tr: 'Oda bulunamadı', en: 'Room not found' },
   enterCode: { tr: 'Televizyondaki kodu gir', en: 'Enter the code on the TV' },
   join: { tr: 'Katıl', en: 'Join' },
   spokenLines: { tr: 'söylenen replik', en: 'lines spoken' },
@@ -81,6 +80,17 @@ const dict = {
   tuningCopy: { tr: 'Ayarları kopyala', en: 'Copy settings' },
   tuningLive: { tr: 'Canlı değerler', en: 'Live readings' },
   waitingForStage: { tr: 'Televizyonu bekliyorum…', en: 'Waiting for the TV…' },
+  checking: { tr: 'Kontrol ediliyor…', en: 'Checking…' },
+  roomNotFound: {
+    tr: 'Bu kodda bir oda yok. Televizyondaki dört harfi kontrol et.',
+    en: 'There is no room with this code. Check the four letters on the TV.',
+  },
+  roomNoStage: {
+    tr: 'Bu odanın televizyonu bağlı değil. TV sekmesi açık mı?',
+    en: "This room's TV is not connected. Is the TV tab still open?",
+  },
+  changeCode: { tr: 'Kodu değiştir', en: 'Change the code' },
+  leaveRoom: { tr: 'Odadan çık', en: 'Leave the room' },
   drawYourOwn: { tr: 'Kendi kuklanı çiz', en: 'Draw your own puppet' },
   drawIntro: {
     tr: 'Kâğıda bir figür çiz, fotoğrafını çek. Kâğıdı silip figürü sahneye çıkarırız.',
