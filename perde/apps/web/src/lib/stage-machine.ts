@@ -16,6 +16,7 @@ import {
   type Puppet,
   type SeatInfo,
   type StageState,
+  onStageAt,
 } from '@perde/shared';
 import { getPack, isUnlocked, packs } from '@perde/content';
 
@@ -481,12 +482,18 @@ export interface VisiblePuppet {
   /** Preferred x when no controller drives it. */
   slot: number;
   speaking: boolean;
+  /** Waiting in the wing: its character has not entered the current section yet. */
+  offstage: boolean;
+  entrance?: 'walk' | 'drop';
 }
 
 export function visiblePuppets(model: StageModel): VisiblePuppet[] {
   const out: VisiblePuppet[] = [];
   const ps = model.state.play;
   const currentChar = ps?.line?.character;
+  const inPlay = !!ps && !!model.play && !ps.finished;
+  const entranceOf = (seat: string | undefined) =>
+    model.play?.characters.find((c) => c.seat === seat)?.entrance;
   model.state.seats.forEach((s, i) => {
     if (s.connected)
       out.push({
@@ -496,15 +503,13 @@ export function visiblePuppets(model: StageModel): VisiblePuppet[] {
         npc: false,
         slot: i,
         speaking: s.character === currentChar && !!currentChar,
+        offstage: inPlay && !!s.character && !onStageAt(model.lines, s.character, ps.lineIndex),
+        entrance: entranceOf(s.character),
       });
   });
-  if (ps && model.play && !ps.finished) {
-    const sectionIndex = model.lines[ps.lineIndex]?.sectionIndex;
-    const section = model.play.sections[sectionIndex ?? -1];
-    const speaksHere = new Set(section?.lines.map((l) => l.seat));
+  if (inPlay && model.play) {
     model.play.characters.forEach((c, i) => {
       if (Object.values(model.casting).includes(c.seat)) return;
-      if (!speaksHere.has(c.seat)) return;
       const puppet = findPuppet(model, c.puppetId);
       if (!puppet) return;
       out.push({
@@ -514,6 +519,8 @@ export function visiblePuppets(model: StageModel): VisiblePuppet[] {
         npc: true,
         slot: 4 + i,
         speaking: c.seat === currentChar,
+        offstage: !onStageAt(model.lines, c.seat, ps.lineIndex),
+        entrance: c.entrance,
       });
     });
   }

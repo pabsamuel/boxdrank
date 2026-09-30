@@ -124,6 +124,7 @@ const dict = {
   soundOff: { tr: 'Sahne sesleri: kapalı', en: 'Stage sounds: off' },
   startShow: { tr: 'Sesi aç · Tam ekran', en: 'Sound on · Fullscreen' },
   tapForSound: { tr: 'Ses için ekrana tıkla', en: 'Click the screen for sound' },
+  sectionLabel: { tr: 'Bölüm', en: 'Part' },
   nextUp: { tr: 'Sıradaki', en: 'Next' },
   coachTitle: { tr: 'Telefonun çubuk oldu', en: 'Your phone is the rod' },
   coach1: {

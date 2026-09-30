@@ -296,12 +296,22 @@ export function Stage() {
     ? `${model.state.play.id}:${model.state.play.sectionTitle}`
     : '';
   const prevSection = useRef(sectionKey);
+  const [sectionCard, setSectionCard] = useState<string | null>(null);
   useEffect(() => {
     const was = prevSection.current;
     prevSection.current = sectionKey;
-    if (!sectionKey || !soundOn) return;
-    if (was && was.split(':')[0] === sectionKey.split(':')[0]) playTef('section');
-    else playTef('hit');
+    if (!sectionKey) return;
+    const samePlay = !!was && was.split(':')[0] === sectionKey.split(':')[0];
+    if (soundOn) playTef(samePlay ? 'section' : 'hit');
+    if (!samePlay) return;
+    // A title card between the parts of a play.
+    const title = sectionKey.slice(sectionKey.indexOf(':') + 1);
+    const show = setTimeout(() => setSectionCard(title), 0);
+    const hide = setTimeout(() => setSectionCard(null), 2800);
+    return () => {
+      clearTimeout(show);
+      clearTimeout(hide);
+    };
   }, [sectionKey, soundOn]);
   const playFinished = !!model.state.play?.finished;
   useEffect(() => {
@@ -322,6 +332,8 @@ export function Stage() {
         speaking: v.speaking,
         target: model.poses[v.key] ?? NEUTRAL_POSE,
         gesture: model.gestures[v.key],
+        offstage: v.offstage,
+        entrance: v.entrance,
       })),
     [model],
   );
@@ -396,6 +408,13 @@ export function Stage() {
               🔊 {t('startShow')}
             </button>
           )}
+        </div>
+      )}
+
+      {sectionCard && ps && !ps.finished && (
+        <div className="section-card" role="status">
+          <small>{t('sectionLabel')}</small>
+          <h2>{sectionCard}</h2>
         </div>
       )}
 

@@ -14,7 +14,7 @@ export const kayik: PlayInput = {
   source: 'Klasik Karagöz faslı "Kayık"ın (anonim) çocuklar için kısaltılmış özgün uyarlaması.',
   characters: [
     { seat: 'hacivat', name: 'Hacivat', puppetId: 'hacivat', color: '#2e8b57' },
-    { seat: 'karagoz', name: 'Karagöz', puppetId: 'karagoz', color: '#c8102e' },
+    { seat: 'karagoz', name: 'Karagöz', puppetId: 'karagoz', color: '#c8102e', entrance: 'drop' },
     { seat: 'celebi', name: 'Çelebi', puppetId: 'celebi', color: '#1f4e8c' },
     { seat: 'zenne', name: 'Zenne', puppetId: 'zenne', color: '#d9578a' },
   ],
