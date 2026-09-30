@@ -53,3 +53,15 @@ Template:
   menu opens without stage state and always ends with "leave the room"; the room code lives in
   the URL, so the phone's back button also works. e2e covers the wrong code, the stale QR link and
   leaving from the menu.
+
+## 2026-09-30 — owner, third look at the live build
+
+- Verdict: the Karagöz figures still looked wrong and the screen did not feel like a shadow play at
+  all; "use the Canva artwork or make it there, and let the little stick show".
+- Blocker found on the way: no cloud environment can reach canva.com, so the generated artwork was
+  fetched as 600 px page renders through the Canva connector and stitched (`docs/ART.md`).
+- Changes made because of this: the stage is now a cloth in a dark room (wooden frame, red
+  valance, lamp low behind the cloth with a flicker, weave and folds), figures blend into the
+  cloth like backlit leather and go soft when they are not the one speaking, every figure hangs
+  from a visible rod, the painted Karagöz and Hacivat are on stage with a separate arm layer over
+  a complete coat, and facing no longer flips on a snap.

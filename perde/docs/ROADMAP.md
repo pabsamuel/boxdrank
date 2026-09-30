@@ -36,7 +36,8 @@ work; don't tick ahead.
 - [ ] Tune the default gains from real-device numbers (copy them from the tuning panel into `DEFAULT_TUNING`)
 - [x] Look like the real thing: parchment grain, hand-inked Ottoman street backdrop, patterned painted-leather kaftans with ink outlines, curled çarık shoes, striped seaside booth for Punch
 - [x] Raster puppet rigs: an image plus part polygons with pivots; a parent's region has its children cut out (no ghost arms). Packs can carry painted artwork (`art`) that replaces the vector rig once its file loads
-- [ ] Drop the generated Karagöz, Hacivat and backdrop artwork into `apps/web/public/art/tr/` (`docs/ART.md`)
+- [x] Drop the generated Karagöz, Hacivat and backdrop artwork into `apps/web/public/art/tr/` (`docs/ART.md`)
+- [x] Shadow-screen look: dark room, wooden frame and valance, lamp behind the cloth, visible rods, layered arms
 - [x] Draw your own puppet on the phone: photo → paper removed on-device → tap the joints (guessed first) → head, arm and legs rigged → lives on the phone and travels to any TV
 - [x] The TV reads the lines of characters nobody holds (speech synthesis) and moves on; the next line shows under the current one; a coaching card appears when the first rod is picked up
 - [ ] Speech: log pass/fail per line in the browser console and collect a first accuracy table

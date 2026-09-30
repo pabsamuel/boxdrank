@@ -47,6 +47,12 @@ export interface PuppetSvgProps {
   leanDegrees?: number;
   /** Ink outline width for vector parts without their own stroke. */
   outline?: number;
+  /** CSS filter for the whole figure, e.g. 'url(#perde-lifted)'. Wins over `highlight`. */
+  filter?: string;
+  /** Blend the figure into the screen like backlit leather. */
+  blend?: 'multiply';
+  /** Draw the stick that holds the figure, from the rod point off the bottom of the screen. */
+  rod?: { color: string; opacity: number; slantDeg?: number };
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -108,7 +114,7 @@ function clipPathData(part: PuppetPart, ctx: RenderCtx): string {
         [0, ctx.puppet.height],
       ]);
   const holes = (ctx.childrenOf.get(part.id) ?? [])
-    .filter((c) => c.polygon)
+    .filter((c) => c.polygon && !c.image)
     .map((c) => polygonPath(c.polygon!));
   return [own, ...holes].join(' ');
 }
@@ -126,7 +132,8 @@ function PartNode({
 }) {
   const pivot = part.pivot ?? [0, 0];
   const transform = angle ? `rotate(${angle.toFixed(2)} ${pivot[0]} ${pivot[1]})` : undefined;
-  const raster = !!ctx.puppet.image && (part.polygon || !part.d);
+  const image = part.image ?? ctx.puppet.image;
+  const raster = !!image && (part.polygon || !part.d);
   const clipId = `${ctx.idPrefix}-${part.id}`;
   return (
     <g transform={transform}>
@@ -136,7 +143,7 @@ function PartNode({
             <path d={clipPathData(part, ctx)} clipRule="evenodd" />
           </clipPath>
           <image
-            href={ctx.puppet.image}
+            href={image}
             x={0}
             y={0}
             width={ctx.puppet.width}
@@ -176,6 +183,9 @@ function PuppetSvgInner({
   highlight,
   leanDegrees = 28,
   outline = 0,
+  filter,
+  blend,
+  rod,
 }: PuppetSvgProps) {
   const idPrefix = useId().replace(/[^a-zA-Z0-9]/g, '');
   const parts = orderParts(puppet);
@@ -219,13 +229,35 @@ function PuppetSvgInner({
   const w = puppet.width;
   const h = puppet.height;
   const transform = `translate(${x} ${y - hop}) scale(${scale}) rotate(${spin} 0 ${-h / 2}) scale(${flip} 1) translate(${-w / 2} ${-h}) rotate(${leanAngle.toFixed(2)} ${rx} ${ry})`;
+  // The stick is rigid to the figure: it turns with the lean and runs off the
+  // bottom edge to the hand nobody sees. Its shadow shows through the leather.
+  const rodLen = h * 1.7;
+  const rodAngle = ((rod?.slantDeg ?? 9) * Math.PI) / 180;
+  const rodW = h * 0.018;
   return (
     <g
       transform={transform}
       opacity={opacity}
-      style={{ filter: highlight ? 'url(#perde-glow)' : undefined }}
+      style={{
+        filter: filter ?? (highlight ? 'url(#perde-glow)' : undefined),
+        mixBlendMode: blend,
+      }}
     >
       {(childrenOf.get(undefined) ?? []).map(render)}
+      {rod && (
+        <g opacity={rod.opacity}>
+          <line
+            x1={rx}
+            y1={ry}
+            x2={rx - Math.sin(rodAngle) * rodLen}
+            y2={ry + Math.cos(rodAngle) * rodLen}
+            stroke={rod.color}
+            strokeWidth={rodW}
+            strokeLinecap="round"
+          />
+          <circle cx={rx} cy={ry} r={rodW * 0.95} fill={rod.color} />
+        </g>
+      )}
     </g>
   );
 }

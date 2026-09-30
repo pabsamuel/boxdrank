@@ -105,3 +105,10 @@ Hacivat files and where to put them.
 
 Credit sources in `source`, keep names in their own spelling, and never make a tradition the
 butt of another tradition's joke.
+
+### Layered parts (`image` on a part)
+
+A raster part may carry its own `image`, drawn in the same box as the puppet's image. Such a
+part is a layer over its parent and nothing is cut out of the parent, which is how a leather arm
+sits over a complete coat. Make the body image whole under the arm (`scripts/art-tiles.mjs parts`
+paints the coat in from beside the sleeve) and give the arm part `image: '/art/<culture>/<id>-arm.webp'`.

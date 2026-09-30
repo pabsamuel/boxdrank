@@ -4,17 +4,29 @@ import { Backdrop } from './Backdrop';
 import { PuppetSvg, type GestureAnim } from './PuppetSvg';
 
 /**
- * The picture on the TV: parchment, painted scenery, a ground line and the
- * puppets. Poses arrive as targets and are followed tightly every frame; a
- * dragged rod makes the figure's feet trail, legs stride while it walks, a
- * 'turn' flips it on the spot. Puppets with painted artwork use it once the
- * image has loaded; until then their vector rig shows.
+ * The picture on the TV. A shadow screen is a cloth lit from behind by a lamp
+ * in a dark room: the figures are translucent leather pressed against it, the
+ * rods that hold them show as dark lines running off the bottom edge, and the
+ * lamp flickers. A booth (Punch and Judy) is opaque and front-lit.
+ *
+ * Poses arrive as targets and are followed tightly every frame; a dragged rod
+ * makes the figure's feet trail, legs stride while it walks, a 'turn' flips it
+ * on the spot. Puppets with painted artwork use it once the image has loaded;
+ * until then their vector rig shows.
  */
 
 export const STAGE_W = 1600;
 export const STAGE_H = 900;
 const GROUND_Y = 735;
 const BOOTH_BOARD_Y = 700;
+/** The cloth inside the frame, in stage units. */
+const SCREEN = { x: 70, y: 40, w: 1460, h: 790 };
+/**
+ * Vector rigs are authored 200 × 400; painted artwork and family drawings come
+ * in their own pixel size and are scaled to the same stage height.
+ */
+const NOMINAL_H = 400;
+const SHADOW_INK = '#1d1208';
 const GESTURE_MS: Record<Gesture, number> = {
   none: 0,
   wave: 1400,
@@ -30,6 +42,9 @@ const FOLLOW_TAU = 0.045;
 /** How much a dragged rod makes the feet trail (lean per stage-width/second). */
 const SWING_GAIN = 0.22;
 const SWING_TAU = 0.12;
+/** Facing follows velocity smoothed over this long, so a snap to a new spot cannot flip a figure. */
+const DRIFT_TAU = 0.25;
+const TURN_SPEED = 0.4;
 /** Stride cycles per stage-width walked. */
 const STRIDE_PER_WIDTH = 5;
 
@@ -59,6 +74,8 @@ interface Live {
   phase: number;
   /** Last velocity, to fade the stride out when standing. */
   speed: number;
+  /** Smoothed signed velocity; facing follows this so a one-frame snap cannot flip a figure. */
+  drift: number;
   /** Timestamp of the 'turn' gesture already applied, so it flips once. */
   turnedAt: number;
 }
@@ -88,6 +105,7 @@ function fresh(slot: number): Live {
     swing: 0,
     phase: 0,
     speed: 0,
+    drift: 0,
     turnedAt: 0,
   };
 }
@@ -115,7 +133,11 @@ export function StageScene({ culture, puppets, highlightSpeaking = true }: Stage
 
   // Preload painted artwork; a missing file simply leaves the vector rig on stage.
   useEffect(() => {
-    const urls = new Set(puppets.map((p) => p.puppet.art?.image).filter((u): u is string => !!u));
+    const urls = new Set(
+      puppets
+        .flatMap((p) => [p.puppet.art?.image, ...(p.puppet.art?.parts.map((pt) => pt.image) ?? [])])
+        .filter((u): u is string => !!u),
+    );
     for (const url of urls) {
       if (loadedArt.has(url)) continue;
       const img = new Image();
@@ -135,6 +157,7 @@ export function StageScene({ culture, puppets, highlightSpeaking = true }: Stage
       last = nowMs;
       const k = 1 - Math.exp(-dt / FOLLOW_TAU);
       const ks = 1 - Math.exp(-dt / SWING_TAU);
+      const kd = 1 - Math.exp(-dt / DRIFT_TAU);
       for (const p of puppetsRef.current) {
         const cur = live.get(p.key) ?? fresh(p.slot);
         let target = p.target;
@@ -162,18 +185,19 @@ export function StageScene({ culture, puppets, highlightSpeaking = true }: Stage
           ? 0
           : lerp(cur.swing, Math.max(-0.7, Math.min(0.7, vx * SWING_GAIN)), ks);
         const speed = lerp(cur.speed, Math.min(1, Math.abs(vx)), ks);
+        const drift = lerp(cur.drift, Math.max(-1.5, Math.min(1.5, vx)), kd);
         const phase = cur.phase + Math.abs(next.x - cur.pose.x) * STRIDE_PER_WIDTH * Math.PI * 2;
         // Face the way you walk; a 'turn' gesture flips on the spot.
         let facing = cur.facing;
         let turnedAt = cur.turnedAt;
         if (p.npc) facing = slotX(p.slot) < 0 ? 'right' : 'left';
-        else if (vx > 0.35) facing = 'right';
-        else if (vx < -0.35) facing = 'left';
+        else if (drift > TURN_SPEED) facing = 'right';
+        else if (drift < -TURN_SPEED) facing = 'left';
         if (p.gesture?.gesture === 'turn' && p.gesture.at !== cur.turnedAt) {
           facing = facing === 'left' ? 'right' : 'left';
           turnedAt = p.gesture.at;
         }
-        live.set(p.key, { pose: next, facing, swing, phase, speed, turnedAt });
+        live.set(p.key, { pose: next, facing, swing, phase, speed, drift, turnedAt });
       }
       for (const key of [...live.keys()])
         if (!puppetsRef.current.some((p) => p.key === key)) live.delete(key);
@@ -187,6 +211,9 @@ export function StageScene({ culture, puppets, highlightSpeaking = true }: Stage
   const booth = culture.stage.kind === 'booth';
   const groundY = booth ? BOOTH_BOARD_Y : GROUND_Y;
   const { time, nowMs } = frame;
+  // The lamp breathes: slow drift plus a quick candle flutter.
+  const flicker =
+    0.1 + 0.05 * Math.sin(time * 1.7) * Math.sin(time * 0.9) + 0.03 * Math.sin(time * 19.3);
 
   return (
     <svg
@@ -197,17 +224,33 @@ export function StageScene({ culture, puppets, highlightSpeaking = true }: Stage
       aria-label={culture.tradition}
     >
       <defs>
+        {/* Lamp behind the cloth: brightest low and centre, warm at the edges. */}
+        <radialGradient id="perde-lamp" cx="50%" cy="76%" r="78%">
+          <stop offset="0%" stopColor="#fffaea" />
+          <stop offset="38%" stopColor={culture.stage.glow} />
+          <stop offset="78%" stopColor={culture.stage.backdrop} />
+          <stop offset="100%" stopColor="#cdb289" />
+        </radialGradient>
+        <radialGradient id="perde-lamp-flare" cx="50%" cy="80%" r="55%">
+          <stop offset="0%" stopColor="#fff4cf" />
+          <stop offset="100%" stopColor="#fff4cf" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="perde-vignette" cx="50%" cy="60%" r="72%">
+          <stop offset="55%" stopColor="#3a2410" stopOpacity="0" />
+          <stop offset="100%" stopColor="#3a2410" stopOpacity="0.5" />
+        </radialGradient>
         <radialGradient id="perde-glow-grad" cx="50%" cy="58%" r="60%">
           <stop offset="0%" stopColor={culture.stage.glow} />
           <stop offset="100%" stopColor={culture.stage.backdrop} />
         </radialGradient>
-        <filter id="perde-soft" x="-10%" y="-10%" width="120%" height="120%">
-          <feGaussianBlur stdDeviation={culture.stage.blur} />
-        </filter>
-        <filter id="perde-glow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="0" stdDeviation="14" floodColor="#ffffff" floodOpacity="0.9" />
-        </filter>
-        {/* Parchment grain and a hand-drawn wobble for the inked scenery. */}
+        <clipPath id="perde-screen-clip">
+          <rect x={SCREEN.x} y={SCREEN.y} width={SCREEN.w} height={SCREEN.h} />
+        </clipPath>
+        {/* Cloth: fine weave, grain and the broad soft folds of hung muslin. */}
+        <pattern id="perde-weave" width="6" height="6" patternUnits="userSpaceOnUse">
+          <path d="M0 3 H6" stroke="#7a5a2a" strokeWidth="0.8" opacity="0.5" />
+          <path d="M3 0 V6" stroke="#7a5a2a" strokeWidth="0.8" opacity="0.35" />
+        </pattern>
         <filter id="perde-grain" x="0" y="0" width="100%" height="100%">
           <feTurbulence
             type="fractalNoise"
@@ -221,6 +264,37 @@ export function StageScene({ culture, puppets, highlightSpeaking = true }: Stage
             type="matrix"
             values="0 0 0 0 0.35  0 0 0 0 0.25  0 0 0 0 0.1  0 0 0 0.16 0"
           />
+        </filter>
+        <filter id="perde-folds" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.0035 0.012" numOctaves="3" seed="11" />
+          <feColorMatrix
+            type="matrix"
+            values="0 0 0 0 1  0 0 0 0 0.97  0 0 0 0 0.88  0 0 0 0.9 -0.35"
+          />
+        </filter>
+        {/* A figure pressed flat against the cloth is sharp; one held away from it goes soft. */}
+        <filter id="perde-pressed" x="-15%" y="-10%" width="130%" height="125%">
+          <feDropShadow dx="2" dy="2" stdDeviation="1.4" floodColor="#2a1a08" floodOpacity="0.35" />
+        </filter>
+        <filter id="perde-lifted" x="-20%" y="-10%" width="140%" height="130%">
+          <feGaussianBlur stdDeviation={Math.max(0.6, culture.stage.blur * 2.2)} result="soft" />
+          <feDropShadow
+            in="soft"
+            dx="6"
+            dy="4"
+            stdDeviation="4"
+            floodColor="#2a1a08"
+            floodOpacity="0.3"
+          />
+        </filter>
+        <filter id="perde-soft" x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur stdDeviation={culture.stage.blur} />
+        </filter>
+        <filter id="perde-set-piece" x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur stdDeviation="1.6" />
+        </filter>
+        <filter id="perde-glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="0" stdDeviation="14" floodColor="#ffffff" floodOpacity="0.9" />
         </filter>
         <filter id="perde-ink-wobble" x="-2%" y="-2%" width="104%" height="104%">
           <feTurbulence
@@ -241,6 +315,11 @@ export function StageScene({ culture, puppets, highlightSpeaking = true }: Stage
         <pattern id="perde-stripes" width="80" height="80" patternUnits="userSpaceOnUse">
           <rect width="40" height="80" fill="#f4f1e6" />
           <rect x="40" width="40" height="80" fill={culture.stage.backdrop} />
+        </pattern>
+        <pattern id="perde-wood" width="180" height="14" patternUnits="userSpaceOnUse">
+          <rect width="180" height="14" fill="#2b1a10" />
+          <path d="M0 4 Q45 2 90 5 T180 4" stroke="#3a2617" strokeWidth="1.2" fill="none" />
+          <path d="M0 10 Q60 12 120 9 T180 11" stroke="#1d110a" strokeWidth="1" fill="none" />
         </pattern>
         {/* Painted-leather patterns for vector puppets. */}
         <pattern id="perde-pat-karagoz" width="16" height="16" patternUnits="userSpaceOnUse">
@@ -315,22 +394,49 @@ export function StageScene({ culture, puppets, highlightSpeaking = true }: Stage
         </>
       ) : (
         <>
-          <rect width={STAGE_W} height={STAGE_H} fill="url(#perde-glow-grad)" />
-          <rect width={STAGE_W} height={STAGE_H} filter="url(#perde-grain)" opacity="0.9" />
-          <Backdrop culture={culture} />
-          <line
-            x1="0"
-            y1={GROUND_Y + 2}
-            x2={STAGE_W}
-            y2={GROUND_Y + 2}
-            stroke={culture.stage.ground}
-            strokeWidth="5"
-            opacity="0.45"
-          />
+          {/* The dark room, then the lit cloth. */}
+          <rect width={STAGE_W} height={STAGE_H} fill="#120c07" />
+          <g clipPath="url(#perde-screen-clip)">
+            <rect
+              x={SCREEN.x}
+              y={SCREEN.y}
+              width={SCREEN.w}
+              height={SCREEN.h}
+              fill="url(#perde-lamp)"
+            />
+            <rect
+              x={SCREEN.x}
+              y={SCREEN.y}
+              width={SCREEN.w}
+              height={SCREEN.h}
+              filter="url(#perde-folds)"
+              opacity="0.55"
+            />
+            <rect
+              x={SCREEN.x}
+              y={SCREEN.y}
+              width={SCREEN.w}
+              height={SCREEN.h}
+              fill="url(#perde-weave)"
+              opacity="0.22"
+            />
+            <rect
+              x={SCREEN.x}
+              y={SCREEN.y}
+              width={SCREEN.w}
+              height={SCREEN.h}
+              filter="url(#perde-grain)"
+              opacity="0.6"
+            />
+            {/* Set pieces are leather too: translucent, a little soft, never in the middle. */}
+            <g opacity="0.62" style={{ mixBlendMode: 'multiply', filter: 'url(#perde-set-piece)' }}>
+              <Backdrop culture={culture} />
+            </g>
+          </g>
         </>
       )}
 
-      <g filter={culture.stage.blur > 0 ? 'url(#perde-soft)' : undefined}>
+      <g clipPath={booth ? undefined : 'url(#perde-screen-clip)'}>
         {[...puppets]
           .sort((a, b) => Number(a.speaking) - Number(b.speaking))
           .map((p) => {
@@ -343,6 +449,14 @@ export function StageScene({ culture, puppets, highlightSpeaking = true }: Stage
               if (t >= 0 && t <= 1) gestureAnim = { gesture: p.gesture.gesture, t };
             }
             const rig = withArt(p.puppet, loadedArt);
+            const speaking = highlightSpeaking && p.speaking;
+            const filter = booth
+              ? speaking
+                ? 'url(#perde-glow)'
+                : undefined
+              : speaking
+                ? 'url(#perde-pressed)'
+                : 'url(#perde-lifted)';
             return (
               <PuppetSvg
                 key={p.key}
@@ -358,14 +472,16 @@ export function StageScene({ culture, puppets, highlightSpeaking = true }: Stage
                 opacity={culture.stage.puppetOpacity}
                 x={px}
                 y={groundY}
-                scale={booth ? 1.55 : 1.25}
-                highlight={highlightSpeaking && p.speaking}
+                scale={(booth ? 1.55 : 1.25) * (NOMINAL_H / rig.height)}
+                filter={filter}
+                blend={booth ? undefined : 'multiply'}
+                rod={booth ? undefined : { color: SHADOW_INK, opacity: 0.78 }}
               />
             );
           })}
       </g>
 
-      {booth && (
+      {booth ? (
         <>
           <rect
             x="200"
@@ -376,7 +492,74 @@ export function StageScene({ culture, puppets, highlightSpeaking = true }: Stage
           />
           <rect x="200" y={BOOTH_BOARD_Y - 30} width={STAGE_W - 400} height="26" fill="#3a1b0a" />
         </>
+      ) : (
+        <>
+          {/* Light on top of everything: the lamp's flare and the falloff at the edges. */}
+          <g clipPath="url(#perde-screen-clip)" style={{ pointerEvents: 'none' }}>
+            <rect
+              x={SCREEN.x}
+              y={SCREEN.y}
+              width={SCREEN.w}
+              height={SCREEN.h}
+              fill="url(#perde-lamp-flare)"
+              opacity={flicker}
+            />
+            <rect
+              x={SCREEN.x}
+              y={SCREEN.y}
+              width={SCREEN.w}
+              height={SCREEN.h}
+              fill="url(#perde-vignette)"
+              style={{ mixBlendMode: 'multiply' }}
+            />
+          </g>
+          <ScreenFrame />
+        </>
       )}
     </svg>
+  );
+}
+
+/** The wooden frame around the cloth and the red valance hanging from its top. */
+function ScreenFrame() {
+  const { x, y, w, h } = SCREEN;
+  const scallop = 112;
+  const n = Math.round(w / scallop);
+  const sw = w / n;
+  let d = `M${x + w} ${y - 6} V${y + 30}`;
+  for (let i = 0; i < n; i++) {
+    const cx = x + w - sw * i;
+    d += ` Q${cx - sw / 2} ${y + 62} ${cx - sw} ${y + 30}`;
+  }
+  d += ` V${y - 6} Z`;
+  return (
+    <g>
+      <path
+        d={`M0 0 H${STAGE_W} V${STAGE_H} H0 Z M${x} ${y} V${y + h} H${x + w} V${y} Z`}
+        fill="url(#perde-wood)"
+        fillRule="evenodd"
+      />
+      <rect
+        x={x - 8}
+        y={y - 8}
+        width={w + 16}
+        height={h + 16}
+        fill="none"
+        stroke="#6b4a22"
+        strokeWidth="6"
+      />
+      <rect
+        x={x + 1}
+        y={y + 1}
+        width={w - 2}
+        height={h - 2}
+        fill="none"
+        stroke="#b8924a"
+        strokeWidth="2"
+        opacity="0.55"
+      />
+      <path d={d} fill="#6e1f1f" stroke="#2b0c0c" strokeWidth="3" strokeLinejoin="round" />
+      <path d={d} fill="none" stroke="#c9a24b" strokeWidth="2" opacity="0.8" />
+    </g>
   );
 }
