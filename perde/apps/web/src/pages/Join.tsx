@@ -699,6 +699,9 @@ function Controller({ code, seat, name, onName, onLeave, onToggleLang }: Control
                 <button className="btn btn--small" onClick={() => control('toggle-voice')}>
                   {(state.voice ?? true) ? t('voiceOn') : t('voiceOff')}
                 </button>
+                <button className="btn btn--small" onClick={() => control('toggle-sound')}>
+                  {(state.sound ?? true) ? t('soundOn') : t('soundOff')}
+                </button>
               </div>
               <div className="menu__row">
                 <span>{t('culture')}:</span>

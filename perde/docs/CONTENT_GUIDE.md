@@ -112,3 +112,9 @@ A raster part may carry its own `image`, drawn in the same box as the puppet's i
 part is a layer over its parent and nothing is cut out of the parent, which is how a leather arm
 sits over a complete coat. Make the body image whole under the arm (`scripts/art-tiles.mjs parts`
 paints the coat in from beside the sleeve) and give the arm part `image: '/art/<culture>/<id>-arm.webp'`.
+
+### The göstermelik (`stage.showpiece`)
+
+A culture may name an ornament (`{ image, width, height }`) that hangs on the screen while the
+room waits and is lifted, with the nareke whistle, when the first puppeteer steps up. Karagöz
+shows use a vase of flowers, a ship, a cypress; it is scenery, not a character, so it has no rig.

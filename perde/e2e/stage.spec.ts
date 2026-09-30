@@ -28,6 +28,8 @@ test.describe('stage', () => {
     await expect(page.locator('.seat')).toHaveCount(4);
     await expect(page.locator('.seat svg')).toHaveCount(4);
     await expect(page.locator('.lobby__title')).toContainText(/Karagöz/);
+    // The göstermelik hangs on the screen until the first puppeteer steps up.
+    await expect(page.locator('image[href*="gostermelik"]')).toHaveCount(1);
   });
 
   test('demo mode runs the opening play with karaoke lines', async ({ page }) => {

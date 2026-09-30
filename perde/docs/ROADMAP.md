@@ -44,7 +44,8 @@ work; don't tick ahead.
 - [x] The TV reads the lines of characters nobody holds (speech synthesis) and moves on; the next line shows under the current one; a coaching card appears when the first rod is picked up
 - [ ] Speech: log pass/fail per line in the browser console and collect a first accuracy table
 - [ ] Puppet entrances/exits (walk in from the wing, walk off when the section ends)
-- [ ] Sound: tef (tambourine) hit on entrance and a curtain sting, synthesized with WebAudio
+- [x] Sound: tef (tambourine) hit on entrance and a curtain sting, synthesized with WebAudio
+- [x] The show opens like a real one: a painted göstermelik hangs in the lobby and lifts with the nareke whistle; the TV asks for one tap to unlock sound and fullscreen
 - [ ] TV keyboard/remote help overlay (`?`), fullscreen prompt on load
 - [ ] Reconnect UX: phone shows "reconnecting…" and re-sends its pose; TV survives a reload
 
