@@ -1123,3 +1123,23 @@ enough — every scheduled run was still rejected, so the scheduler's request
 carries nothing our secrets verify. On monday code the route is now trusted
 (`trustCronRoute`), because the platform answers 403 to any public call to
 `/mndy-cronjob/*` before it reaches the app. Self-hosted, the secret applies.
+
+## ADR-037 — The lifecycle webhook trusts nothing it is sent (30 Sep 2026)
+
+Found by reading Automation Watchdog's live-verified platform facts, before any
+real uninstall or payment reached this app:
+
+- monday signs lifecycle/billing webhooks with the **Client Secret**; the route
+  verified with the Signing Secret, so every real event would have been
+  rejected — no uninstall purge, no upgrade to Pro.
+- The event is in the **body**, which the signature does not cover; the route
+  read it from the JWT.
+- The board view's session token is signed with the same Client Secret, so a
+  valid signature does not prove monday sent the request.
+
+`src/billing/webhook.ts` now: verifies with the Client Secret (Signing Secret
+as fallback); reads the event from the body; requires signed claims that name
+an account to match it; deletes on uninstall only once monday reports the
+stored token dead (retry on unknown); and never takes a plan from the body —
+it reads `app_subscription` with the account's own token. A forged uninstall
+changes nothing and a forged "subscription created" cannot grant Pro.

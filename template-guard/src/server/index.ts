@@ -23,6 +23,7 @@ import {
   type OAuthConfig,
 } from './oauth.js';
 import { isAuthorisedCronCaller } from './cron-auth.js';
+import { handleLifecycleWebhook } from '../billing/webhook.js';
 import { SIDEKICK_PATH, answerSidekick, readInputs, verifySidekickRequest } from './sidekick.js';
 import { InMemoryStorage, TokenCipher, type Storage } from './storage.js';
 import { SqliteStorage } from './sqlite-storage.js';
@@ -31,12 +32,6 @@ import { FallbackSink, MondayNotificationSink, WebhookSink } from '../drift/sink
 import { mondayCors, rateLimit, requireHttps, securityHeaders } from './security.js';
 import { EnvConfig, MondayCodeConfig, type Config } from './config.js';
 import { MondayCodeStorage, type AccountStore, type SecureStore } from './monday-code-storage.js';
-import {
-  SubscriptionError,
-  parseSubscriptionEvent,
-  planFromEvent,
-  verifySubscriptionToken,
-} from '../billing/subscription.js';
 
 /**
  * The backend.
@@ -491,48 +486,21 @@ export function createServer(deps: ServerDeps) {
    * anything is read out of it.
    */
   app.post('/webhooks/subscription', async (req, res) => {
-    const body = req.body as { challenge?: string; token?: string };
-
-    // monday verifies a new webhook URL by posting a challenge to echo back.
-    if (body?.challenge) {
-      res.json({ challenge: body.challenge });
-      return;
-    }
-
     try {
-      const token = body?.token ?? req.header('Authorization')?.replace(/^Bearer\s+/i, '');
-      if (!token) throw new SubscriptionError('Subscription webhook carried no token.', 'unverified');
-
-      const payload = verifySubscriptionToken(token, deps.signingSecret);
-      const event = parseSubscriptionEvent(payload);
-
-      if (event.type === 'uninstall') {
-        // "Everything is deleted on uninstall" is a listing claim, so it runs
-        // here rather than in a cleanup job somebody remembers to write.
-        await deps.storage.deleteAccount(event.accountId);
-        console.log(`[template-guard] uninstall account=${event.accountId} -> purged`);
-        res.json({ ok: true, purged: true });
-        return;
+      const outcome = await handleLifecycleWebhook(req.header('Authorization'), req.body, {
+        storage: deps.storage,
+        decrypt: (t) => deps.cipher.decrypt(t),
+        clientSecret: deps.oauth.clientSecret,
+        signingSecret: deps.signingSecret,
+        paidPlanIds: deps.paidPlanIds ?? [],
+      });
+      if (outcome.status >= 400) {
+        console.error(`[template-guard] lifecycle webhook answered ${outcome.status}: ${String(outcome.body.error ?? '')}`);
       }
-
-      const plan = planFromEvent(event, deps.paidPlanIds ?? []);
-      await deps.storage.savePlan(plan);
-
-      console.log(
-        `[template-guard] subscription ${event.type} account=${event.accountId} -> ${plan.planId}`,
-      );
-      res.json({ ok: true });
+      res.status(outcome.status).json(outcome.body);
     } catch (err) {
-      if (err instanceof SubscriptionError) {
-        // Logged in full and answered with a status monday will retry on for
-        // anything that is not an authentication failure. A silently-accepted
-        // billing event is an account on the wrong plan.
-        console.error(`[template-guard] subscription webhook rejected (${err.reason}): ${err.message}`);
-        res.status(err.reason === 'unverified' ? 401 : 400).json({ error: err.message, kind: err.reason });
-        return;
-      }
-      console.error('[template-guard] subscription webhook failed', err);
-      res.status(500).json({ error: 'Could not record this subscription change.' });
+      console.error('[template-guard] lifecycle webhook failed', err instanceof Error ? err.message : err);
+      res.status(500).json({ error: 'Could not record this change.' });
     }
   });
 
