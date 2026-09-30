@@ -32,6 +32,12 @@ export const PuppetPartSchema = z.object({
    * local coordinates. Children's regions are cut out of their parent's.
    */
   polygon: z.array(PointSchema).min(3).optional(),
+  /**
+   * A separate image for this part, drawn in the same box as the puppet's
+   * image. A part with its own image is a layer on top of its parent (nothing
+   * is cut out of the parent), like a leather arm pinned over a complete coat.
+   */
+  image: z.string().max(1_500_000).optional(),
   fill: z.string().optional(),
   opacity: z.number().min(0).max(1).optional(),
   stroke: z.string().optional(),
