@@ -52,3 +52,65 @@ RAPOR: her adımın sonucu, bütün sayfa başlıkları/metinleri ve log satırl
 - The two-account half needs a second monday account under the same email.
   If step 6 lists none, creating one is Samet's call (a free account, his
   name on monday's terms).
+
+## Run 1, 1 Oct 2026: result
+
+- **Uninstall works end to end.** The Webhooks tab has
+  `https://live1-service-36993937-ca48573e.eu.monday.app/monday/lifecycle`.
+  - Path: Profil → Yönetim → Uygulamalar → "…" → Uninstall. Mouse clicks did
+    not open the menu; Enter did.
+  - Then: a reason screen with no "Testing" option ("Başka bir şey" plus
+    text), and a confirmation box.
+  - monday then showed "Automation Watchdog başarıyla kaldırıldı" at
+    ~11:47:40.
+  - The log at 11:47:42: `uninstalled for account 36993937`.
+- **The install link installs, and nothing more.** monday's install page
+  asked for four permissions:
+  - "Read your profile information"
+  - "Read all of your boards data"
+  - "Read the profile information of the users in your account"
+  - "Read general information about your account"
+
+  After Install, monday went to its own `…/admin/installedApps/manage`. The
+  app is listed there, installed "Oct 1, 2026".
+- No `installed for …` line. That is by design, and my prompt expected the
+  wrong thing:
+  - The server ignores every lifecycle event except `uninstall`
+    (`lifecycle()` answers 200 and returns).
+  - The token comes only from "Set up email alerts" in the board view, the
+    app's own OAuth.
+- **Until that step, the account has no alerts.** The uninstall deleted its
+  record.
+- Samet has two accounts under one login: `sametatesen2s-team-company` (id
+  36993937) and `sametatesen2s-team-squad`. The two-account half needs no
+  new account.
+
+## Prompt, run 2 (Claude-in-Chrome)
+
+```
+Automation Watchdog testinin devamı. Tek rapor ver. Samet bu testte iki hesabında da Automation Watchdog kurup kaldırmana açıkça izin verdi.
+
+KURALLAR: Hiçbir gizli değeri (API token, Client Secret, Signing Secret) açma, kopyalama, gösterme. Regenerate'e basma. Şifre veya 2FA isterse dur, bana sor. Ödeme yapma. YENİ monday hesabı AÇMA. Automation Inventory'ye ve otomasyonlara DOKUNMA. Açılır menülerde fare çalışmazsa Enter/klavye kullan. Her adımda ekran görüntüsü al. Bir adım beklenenden farklı giderse orada dur ve olanı yaz.
+
+A) sametatesen2s-team-company hesabında:
+1) "Automation Actor Test" board'unu aç. Automation Watchdog görünüm sekmesi yoksa "+" (Görünüm ekle) → Uygulamalar → Automation Watchdog ile ekle. Board yüklenmezse F5, sonra Ctrl+Shift+R dene.
+2) En üstteki şeridin metnini kelimesi kelimesine yaz ("Email alerts are not set up for this account" bekleniyor).
+3) "Set up email alerts" linkine bas. monday'in izin sayfası açılırsa istenen izinleri yaz ve onayla. Açılan sayfanın başlığını ve metnini kelimesi kelimesine yaz ("Automation Watchdog is installed" bekleniyor).
+4) Developer Center → Automation Watchdog → monday Üzerinde Barındır → Günlükler (Son 30 dakika): "installed for account 36993937" satırı geldi mi? Yeni satırları saatleriyle kelimesi kelimesine yaz.
+5) Board view'ı yenile; şeridin yeni metnini yaz.
+
+B) İkinci hesap, sametatesen2s-team-squad:
+6) Profil resmi → "Hesapları değiştir" → sametatesen2s-team-squad'a geç.
+7) Bu linki aç: https://auth.monday.com/oauth2/authorize?client_id=9fcd68cae356c7fed3eacf09a0f9df81&response_type=install — sayfanın üstünde seçili hesabın sametatesen2s-team-squad olduğunu kontrol et (değilse orada değiştir), Install'a bas. Sonrasında açılan sayfanın adresini ve metnini yaz.
+8) Bu hesapta bir board aç (varsa ilkini). Hiç board yoksa dur ve yaz. Board'a Automation Watchdog görünümünü ekle, şeridi yaz, "Set up email alerts"a bas, onayla, açılan sayfanın başlığını ve metnini yaz.
+9) Günlükler: yeni "installed for account ..." satırını yaz. Hesap numarası 36993937'den FARKLI olmalı.
+10) TEMİZLİK, aynı hesapta (team-squad): Profil → Yönetim → Uygulamalar → Automation Watchdog → "…" → Uninstall ("Başka bir şey" → "Testing"). 1 dakika sonra Günlükler: "uninstalled for account <team-squad numarası>" satırını yaz.
+11) sametatesen2s-team-company'ye geri geç. "Automation Actor Test" board'undaki Automation Watchdog şeridinin metnini tekrar yaz. 5. adımdakiyle aynı olmalı; team-squad'dan kaldırmak bu hesabı etkilememeli.
+
+RAPOR: her adımın sonucu, bütün sayfa metinleri ve log satırları kelimesi kelimesine, iki hesabın numaraları, ekran görüntülerinin adları.
+```
+
+What run 2 proves:
+- A: the reinstall really completes, and alerts are back on Samet's account.
+- B: two accounts under one email are two separate installs; removing one
+  leaves the other alone.
