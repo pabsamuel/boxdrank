@@ -80,11 +80,37 @@ ever shipping here. See `NEXT-GATE0.md`.
 
 ## Commercial terms — *from the original brief, 3 Sep 2026, UNVERIFIED*
 
-- **ASSUMPTION:** 0% platform cut until $200k lifetime revenue.
-- **ASSUMPTION:** monday bills the customer; payout via Payoneer, works in Türkiye.
+- **FACT** (`apps/docs/subscriptions-payments-and-billing`, updated 8 Jul
+  2026, read 1 Oct): no revenue share until an app reaches $200,000 lifetime
+  revenue; after that 85% to the developer, 15% to monday. The Listing Terms
+  (28 Aug 2024) let monday change the rate "at its sole discretion" and deduct
+  processing charges, refunds and withholding tax.
+- **FACT** (same page, and `implementing-monetization`, updated 30 Jan 2026):
+  "Developers receive monthly payouts via Payoneer in USD." A Payoneer account
+  is required (monday staff, community, Jan 2025). monday charges the customer
+  VAT; it is not in the payout.
+- **FACT, how payment works:**
+  - Vendor registration in **Zip**: "After submitting your app for marketplace
+    approval, you will automatically receive an email from Zip". No payment
+    until it is done. One registration per developer, not per app.
+  - Payoneer: created or connected through monday's partner link, from the
+    Payoneer guide linked in `implementing-monetization`.
+  - Each month, a **PDF invoice in USD** on a monday "payments board".
+    Under $50, wait and combine months.
+  - Paid "within up to 60 days" of finance approving the invoice. "There is no
+    fixed payment date."
+  - The payments-board invitation comes in the first week of the month after
+    approval, only if the app has active purchases.
+- **FACT** (monday staff, community, Feb 2025): "you do not need to be a
+  registered business, unless you are located in Israel." Individuals still
+  invoice monthly.
+- **UNKNOWN:** anything specific to Türkiye; which tax form, if any, Zip or
+  Payoneer collect; what Turkish law needs for an individual to issue a USD
+  invoice abroad. That last one is a question for an accountant, at first
+  revenue.
 - **ASSUMPTION:** monday code hosting currently free.
 - **ASSUMPTION:** ~869 marketplace apps vs 250,000+ customers.
-- **UNKNOWN:** all four. Re-verify before relying on any of them for a future idea.
+- **UNKNOWN:** the last two. Re-verify before relying on them for a future idea.
 
 These were verified by Samet on 3 Sep 2026 and are 13 days old. That is fine for
 now and stale by December.

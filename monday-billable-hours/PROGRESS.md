@@ -245,7 +245,11 @@ capabilities, your submission will be rejected.")
 Submission
 - [x] Published from the Share tab (28 Sep): `…/oauth2/authorize?client_id=…&response_type=install`
 - [x] Submission form sent — **28 Sep 2026**; monday: "We received your monday apps marketplace submission. You will be contacted shortly to start the review process" (initial response promised within 72 business hours)
-- [ ] Payoneer account and vendor registration
+- [ ] Payoneer account and vendor registration. FACT, 1 Oct (`PLATFORM.md`):
+      Payoneer is required, and vendor registration is through **Zip**, whose
+      email comes after submission. Gmail had no Zip email on 1 Oct, three
+      days after both apps were submitted. Registration is one-time, for both
+      apps
 - [ ] Approved
 
 ## 6. Market check — 2/2
