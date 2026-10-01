@@ -212,6 +212,11 @@ Product and UI/UX
       is not installing; `force_install_if_needed` now asks monday to install
       first). A failed alert email also left no run log, so the view said
       checks had never run; fixed. To redo after the next deploy
+      - 1 Oct (`REINSTALL-TEST.md`): uninstall verified live; the webhook
+        deleted the record in 2 s. The reinstall found a third bug: on an
+        account with nothing to watch yet, the view hid the run strip and its
+        "Set up email alerts" link, so a new install could never set up
+        alerts. Fixed with a browser check; waits for Samet's push
 
 Privacy and security
 - [x] Tokens and the installer's address in monday `SecureStorage`; the OAuth

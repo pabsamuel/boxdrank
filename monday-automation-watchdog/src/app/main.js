@@ -364,6 +364,10 @@ function render() {
   }
 
   if (state.results.length === 0) {
+    // The run status first, here too: a new account has nothing to watch yet,
+    // and its strip holds the only "Set up email alerts" link. Returning
+    // before it hid that link from every fresh install (found 1 Oct 2026).
+    app.append(renderRunStatus());
     app.append(
       el(
         'p',

@@ -114,3 +114,24 @@ What run 2 proves:
 - A: the reinstall really completes, and alerts are back on Samet's account.
 - B: two accounts under one email are two separate installs; removing one
   leaves the other alone.
+
+## Run 2, 1 Oct 2026: stopped at A2, and a real bug
+
+- The Watchdog view on "Automation Actor Test" showed only "Nothing repeats
+  often enough to watch yet…": no run strip and no "Set up email alerts" link.
+- **Cause (FACT, `src/app/main.js`):** `render()` returned before
+  `renderRunStatus()` whenever there were no results.
+  - Since 541cb77 (28 Sep, "board view ignores people"), Samet's account has
+    none: its four patterns were people.
+  - So the strip, and the only setup link, were hidden. This hits **any new
+    account, a reviewer's included**: it could never set up alerts.
+- The Chrome agent's guess, that the new code was not deployed, was wrong:
+  - v4 is live, with every Watchdog code commit (the last was 28 Sep 02:08
+    UTC, before Samet's pushes).
+  - The 30 Sep 18:10 log lines are a server restart, not a deploy.
+- **Fix:** the empty-results branch draws the run strip first.
+  - `test/browser/verify-empty-view.mjs` checks it in a fake monday with an
+    empty account. 3 of its checks fail on the old code; all pass on the new.
+  - `npm test`: 266/266. `check:deploy`: ready.
+- Live only after Samet pushes it to v4 (`-f`). Then run 2 again from A1.
+
