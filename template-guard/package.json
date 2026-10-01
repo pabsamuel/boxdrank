@@ -1,0 +1,43 @@
+{
+  "name": "template-guard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "monday.com marketplace app that detects configuration silently lost when a template board is duplicated.",
+  "scripts": {
+    "dev": "vite",
+    "dev:server": "tsx watch src/server/index.ts",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify:live": "tsx scripts/verify-live.ts",
+    "deploy:monday": "mapps code:push",
+    "deploy:monday:scan": "mapps code:push -s",
+    "monday:logs": "mapps code:logs",
+    "monday:report": "mapps code:report",
+    "start": "tsx src/server/index.ts"
+  },
+  "dependencies": {
+    "@mondaycom/apps-sdk": "^3.3.2",
+    "express": "^4.21.2",
+    "monday-sdk-js": "^0.5.6",
+    "monday-ui-react-core": "^2.146.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsx": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
