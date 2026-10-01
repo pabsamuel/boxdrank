@@ -8,8 +8,8 @@ with a note.
 
 | | Done | Note |
 |---|---|---|
-| **Code that can be written from here** | **61 / 68 — 90%** | Verified against a live account |
-| **Distance to a product someone pays for** | **58 / 68 — 85%** | Recounted 27 Sep against monday's real review checklist; customer-validation items removed by the owner 28 Sep; AI requirement added 28 Sep |
+| **Code that can be written from here** | **62 / 68 — 91%** | Verified against a live account |
+| **Distance to a product someone pays for** | **59 / 68 — 87%** | Recounted 27 Sep against monday's real review checklist; customer-validation items removed by the owner 28 Sep; AI requirement added 28 Sep |
 
 ---
 
@@ -140,7 +140,7 @@ review.
 - [x] The token cannot leave the process: the endpoint is validated before the
       token is attached, and every response is scrubbed of it before parsing
 
-## 5. Marketplace — 21/28
+## 5. Marketplace — 22/28
 
 *Rewritten 27 Sep.* This section had five items. monday's own review checklist,
 read on 27 Sep from `developer.monday.com/apps/docs/*.md` (app-listing-page,
@@ -173,10 +173,12 @@ Documentation, support and money
       `LISTING.md`); not yet submitted in the Developer Center
 - [x] Subscription checked at runtime and enforced in code, with the payment
       prompt from the SDK — off until pricing exists (`WATCHDOG_BILLING`)
-- [ ] Support email on a domain the owner controls, and a website link —
+- [x] Support email on a domain the owner controls, and a website link —
       `https://atesensoftware.com` is **live** (27 Sep, HTTPS, SSL Labs A+);
       `support@atesensoftware.com` forwards to Gmail by Cloudflare Email
-      Routing, configured but not yet proven with one test message
+      Routing. Proven 1 Oct from Gmail: mail sent only to
+      `support@atesensoftware.com` by outside senders (Zoho Marketplace,
+      29 Sep 21:25 UTC, after the move to Cloudflare) is in the inbox
 - [x] `monday-app-association.json` on that domain, and an install button on
       the website — live, with the right client id
 - [x] How-to-use page, embeddable in monday, linked from the app —
