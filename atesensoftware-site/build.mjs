@@ -83,6 +83,16 @@ const APPS = [
   },
 ];
 
+/**
+ * Apps whose pages (privacy, terms, how-to) live on the app's own monday code
+ * URL, so this site builds nothing for them — they are listed here only for
+ * the domain proof. Template Guard: App ID 12248804, branch
+ * claude/template-guard-monday-app-bm0xxv, submitted 29 Sep 2026.
+ */
+const DOMAIN_PROOF_ONLY = [
+  { name: 'Template Guard', clientId: '76e86d0a8d1894a85116585c83403625' },
+];
+
 /** Apps that exist in monday's Developer Center: they prove the domain. */
 const REGISTERED = APPS.filter((app) => app.clientId);
 /** Apps whose install link works: they get a card on the home page. */
@@ -270,7 +280,7 @@ for (const app of APPS) {
 // domain ownership with this file at https://<domain>/monday-app-association.json.
 await writeFile(
   `${out}monday-app-association.json`,
-  `${JSON.stringify({ apps: REGISTERED.map((app) => ({ clientID: app.clientId })) }, null, 2)}\n`,
+  `${JSON.stringify({ apps: [...REGISTERED, ...DOMAIN_PROOF_ONLY].map((app) => ({ clientID: app.clientId })) }, null, 2)}\n`,
 );
 
 // Netlify reads `_headers` from the publish directory (docs: manage/routing/
