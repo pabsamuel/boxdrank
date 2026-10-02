@@ -15,7 +15,7 @@ and the percentage restarts on the longer list.
 - [x] 2. monday's own Inbox, My Work and search: what they do, from the help
       centre, then checked once on Samet's account.
 - [x] 3. Marketplace apps that list, search or export updates.
-- [ ] 4. For the record only; it cannot change a NO-GO. Demand: at least three distinct people besides Patrick asking for
+- [x] 4. Stopped after the NO-GO; it could not change it. Demand: at least three distinct people besides Patrick asking for
       it publicly.
 - [x] 5. Gate decision: **NO-GO**. Gate decision, by the rules fixed in `GATE0.md` before the results.
 - [x] 6. Not applicable: NO-GO.

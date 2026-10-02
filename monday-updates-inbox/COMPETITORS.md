@@ -39,6 +39,6 @@ No direct, account-wide searchable updates inbox was found. The closest:
 
 ## Demand
 
-Second research agent still running on 2 Oct; its result is added here when
-it arrives. It does not change the gate: check 2 already decides it
-(`GATE0.md`).
+Not researched. The demand search was stopped on 2 Oct once check 2 had
+decided the gate, because no demand could reverse a NO-GO (`GATE0.md`).
+Redo it for whichever backlog idea gets a gate.
