@@ -1,6 +1,17 @@
 # Gate 0: kill checks for Updates Inbox
 
-> **Result: PENDING** (started 2 Oct 2026).
+> **Result, 2 Oct 2026: NO-GO**, by the first rule written before the results.
+> - monday's Update Feed has a tab of "All Updates of Your Account", from every
+>   board, even unfollowed ones.
+> - Search Everything already searches update text across the account, with a
+>   date filter and saved searches.
+> - Both are documented in the Help Center, updated 15 Sep 2026
+>   (`COMPETITORS.md`).
+> - The one thing that could reverse this: Samet opens his Inbox and finds that
+>   tab is not there. Otherwise the project stops here.
+> - Check 1 (the playground) is no longer needed.
+> - Narrower ideas that came out of the research are in `BACKLOG.md`. Each
+>   needs its own gate; they are not this project renamed.
 
 Four checks. Any one of them can stop the project before a line of app code
 is written. Automation Inventory went from GO to submitted in one day because

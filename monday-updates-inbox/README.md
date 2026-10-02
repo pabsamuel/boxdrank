@@ -3,9 +3,10 @@
 A monday.com marketplace app idea: one searchable, filterable list of the
 updates across every item, board and workspace the user can see.
 
-**Status, 2 Oct 2026: Gate 0 started; no app code. 0 / 6 = 0%** (`PROGRESS.md`).
-- **Next:** `GATE0.md`. Samet runs check 1 (the API playground). Research
-  covers checks 2–4.
+**Status, 2 Oct 2026: NO-GO at Gate 0. The project stops; no app code was
+written** (`GATE0.md`).
+- monday's own Inbox has an "All Updates of Your Account" tab, and Search
+  Everything searches update text across the account (`COMPETITORS.md`).
 
 ## Why this one
 
