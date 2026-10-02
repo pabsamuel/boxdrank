@@ -216,7 +216,8 @@ Product and UI/UX
         deleted the record in 2 s. The reinstall found a third bug: on an
         account with nothing to watch yet, the view hid the run strip and its
         "Set up email alerts" link, so a new install could never set up
-        alerts. Fixed with a browser check; waits for Samet's push
+        alerts. Fixed with a browser check, and live since 2 Oct (checked
+        byte for byte). Run 2 of the test is next
 
 Privacy and security
 - [x] Tokens and the installer's address in monday `SecureStorage`; the OAuth

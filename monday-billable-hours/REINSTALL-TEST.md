@@ -133,5 +133,8 @@ What run 2 proves:
   - `test/browser/verify-empty-view.mjs` checks it in a fake monday with an
     empty account. 3 of its checks fail on the old code; all pass on the new.
   - `npm test`: 266/266. `check:deploy`: ready.
-- Live only after Samet pushes it to v4 (`-f`). Then run 2 again from A1.
+- **Live, 2 Oct 2026.** Samet pushed it to v4. Checked from here: the Live
+  URL's `/view/main.js` hashes like this build (`9f4aec…`), not the old one
+  (`c0a10b…`). `/health`: mail verified, sidekick on. Next: run 2 again from
+  A1.
 
