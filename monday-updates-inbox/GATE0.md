@@ -7,8 +7,9 @@
 >   date filter and saved searches.
 > - Both are documented in the Help Center, updated 15 Sep 2026
 >   (`COMPETITORS.md`).
-> - The one thing that could reverse this: Samet opens his Inbox and finds that
->   tab is not there. Otherwise the project stops here.
+> - The one thing that could reverse this was that tab not existing. It
+>   exists on Samet's account (2 Oct, labelled "Tüm hesaplar" in Turkish;
+>   `COMPETITORS.md`). The project stops here.
 > - Check 1 (the playground) is no longer needed.
 > - Narrower ideas that came out of the research are in `BACKLOG.md`. Each
 >   needs its own gate; they are not this project renamed.

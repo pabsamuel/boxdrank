@@ -15,6 +15,13 @@ with its source, unless marked otherwise.
 | **Bell notifications** | "Filter by person"; search back 6 months or 1,250 notifications | …/articles/360015535060 |
 | **sidekick / AI** | Per-item "Summarize entire thread"; sidekick reads updates; the official agent template "Morning Coffee Summarizer": "Gather urgent updates and mentions across your boards, delivered every day" | …/articles/26701503726610 (22 Sep 2026); monday.com/w/ai-templates/ai-agents/morning-coffee-summarizer |
 
+**Seen on Samet's account, 2 Oct 2026** (Turkish interface, Claude-in-Chrome,
+nothing clicked): the Inbox tabs are "Tüm Güncellemeler", "Bahsedilmeler",
+"Yer imlerine eklendi", "Tüm hesaplar" and "Planlandı" (tagged "Yeni").
+INFERENCE: "Tüm hesaplar" is the Turkish label of "All Updates of Your
+Account". The other tabs match the help article one for one, and the article
+also mentions the Scheduled tab.
+
 Gaps that are documented:
 - The feed shows 6 months only.
 - The Activity Log "does not track any updates".
