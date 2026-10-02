@@ -138,3 +138,32 @@ What run 2 proves:
   (`c0a10b…`). `/health`: mail verified, sidekick on. Next: run 2 again from
   A1.
 
+
+## Run 2 again, 2 Oct 2026: A passed; B stopped at step 8
+
+**A, `sametatesen2s-team-company` (36993937): the reinstall works.**
+- The strip showed "Email alerts are not set up for this account" and the
+  "Set up email alerts" link.
+- The link went through monday's authorize page without asking (the app was
+  already installed), to `/oauth/callback`.
+- The page read "Automation Watchdog is installed. Alerts will go to
+  sa…@gmail.com when an automation that used to run regularly goes quiet.",
+  then returned to `https://sametatesen2s-team-company.monday.com/`.
+- Log, Istanbul time:
+  - `05:13:56 install callback: state present, cookie present`
+  - `05:13:58 installed for account 36993937`
+- After a reload, the strip read "Scheduled checks are not running yet". The
+  uninstall removed the account's run history too. INFERENCE: the next daily
+  check (09:00 Türkiye) turns it into "Last checked … ago".
+
+**B, `sametatesen2s-team-squad`:**
+- Installed from the share link, with the same four permissions. monday then
+  went to `…/admin/installedApps/manage` ("Yüklü (4)", Automation Watchdog,
+  Oct 2, 2026).
+- Stopped at step 8: the account has no board, only a doc ("Welcome to your
+  developer account") and a Vibe app page.
+- Watchdog stays installed there until step 10.
+
+Also seen:
+- "Hesapları değiştir" opens on hover, not on click.
+- The install page lets the account be changed at the top right.
