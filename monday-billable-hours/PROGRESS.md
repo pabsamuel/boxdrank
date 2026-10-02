@@ -8,8 +8,8 @@ with a note.
 
 | | Done | Note |
 |---|---|---|
-| **Code that can be written from here** | **62 / 68 — 91%** | Verified against a live account |
-| **Distance to a product someone pays for** | **59 / 68 — 87%** | Recounted 27 Sep against monday's real review checklist; customer-validation items removed by the owner 28 Sep; AI requirement added 28 Sep |
+| **Code that can be written from here** | **63 / 68 — 93%** | Verified against a live account |
+| **Distance to a product someone pays for** | **60 / 68 — 88%** | Recounted 27 Sep against monday's real review checklist; customer-validation items removed by the owner 28 Sep; AI requirement added 28 Sep |
 
 ---
 
@@ -140,7 +140,7 @@ review.
 - [x] The token cannot leave the process: the endpoint is validated before the
       token is attached, and every response is scrubbed of it before parsing
 
-## 5. Marketplace — 22/28
+## 5. Marketplace — 23/28
 
 *Rewritten 27 Sep.* This section had five items. monday's own review checklist,
 read on 27 Sep from `developer.monday.com/apps/docs/*.md` (app-listing-page,
@@ -205,7 +205,8 @@ Product and UI/UX
 - [x] Light, dark and night mode, from monday's context
 - [x] Back to monday after authorizing (found on the product checklist while
       writing the security answers; the install page did not do it)
-- [ ] Uninstall and reinstall verified; two accounts sharing one email verified
+- [x] Uninstall and reinstall verified; two accounts sharing one email verified
+      (1–2 Oct 2026, `REINSTALL-TEST.md`)
       — the first attempt (28 Sep) found two real bugs, both fixed with tests:
       an install from monday's own link was refused for carrying no state,
       and the app was never actually installed on the account (authorizing

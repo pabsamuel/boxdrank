@@ -167,3 +167,27 @@ What run 2 proves:
 Also seen:
 - "Hesapları değiştir" opens on hover, not on click.
 - The install page lets the account be changed at the top right.
+
+## B finished, 2 Oct 2026: passed. The item is done
+
+- **team-squad (37044638):**
+  - A board, "Watchdog two-account test" (`/boards/5105321690`), made by
+    hand. monday adds sample items itself.
+  - The Watchdog view showed "Email alerts are not set up for this account"
+    with the link.
+  - monday's "Authorize Automation Watchdog" page asked for the same four
+    permissions.
+  - The app's own page then read "Automation Watchdog is installed".
+  - Log: `05:26:54 install callback: state present, cookie present`, then
+    `05:26:56 installed for account 37044638`.
+- **Uninstalled from team-squad:** `05:29:15 uninstalled for account
+  37044638`.
+- **team-company (36993937), afterwards:** the strip still read "Scheduled
+  checks are not running yet", not "not set up". Removing one account's
+  install left the other's alone.
+- So one email in two accounts gives two separate installs, keyed by account
+  id, each with its own uninstall (`SECURITY-ANSWERS.md`, "Users with several
+  accounts?").
+- Left behind: the empty test board in team-squad.
+- Still to see: after the next 09:00 check, team-company's strip should read
+  "Last checked … ago".
