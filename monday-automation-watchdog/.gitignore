@@ -1,0 +1,9 @@
+node_modules/
+dist/
+
+# Local run state: board ids, actor ids and API error strings. Untracked, and
+# one `git add .` away from being committed into a public repository.
+.watchdog-state/
+
+# `mapps code:push -s` writes its scan report here.
+security-scan-*.json

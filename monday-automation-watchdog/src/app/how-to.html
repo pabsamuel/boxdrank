@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>How to use Automation Watchdog</title>
+    <!--
+      The how-to-use page monday's review asks for: embeddable in an iframe on
+      *.monday.com, installation and first-use instructions with images, and no
+      navigation to other pages. Static on purpose: no scripts, no external
+      requests, nothing for a scan to find.
+    -->
+    <style>
+      :root {
+        --bg: #ffffff; --surface: #f6f7fb; --border: #dcdfea;
+        --text: #1c1f3b; --muted: #676879; --accent: #0073ea;
+        --silent: #d83a52; --late: #d9911a; --dormant: #8b8fa3; --healthy: #16a34a;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #181b34; --surface: #20223f; --border: #33365a;
+          --text: #edeef5; --muted: #a4a7bd; --accent: #6c9fff;
+          --silent: #ff6b7f; --late: #f0ad4e; --dormant: #9aa0b5; --healthy: #4ade80;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; padding: 28px 16px 56px; background: var(--bg); color: var(--text);
+        font: 15px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      }
+      main { max-width: 780px; margin: 0 auto; }
+      h1 { font-size: 26px; margin: 0 0 6px; }
+      h2 { font-size: 19px; margin: 34px 0 10px; }
+      p { margin: 0 0 12px; }
+      .lead { color: var(--muted); font-size: 16px; }
+      ol, ul { padding-left: 22px; margin: 0 0 14px; }
+      li { margin-bottom: 7px; }
+      img {
+        display: block; width: 100%; height: auto; margin: 8px 0 18px;
+        border: 1px solid var(--border); border-radius: 8px;
+      }
+      .caption { font-size: 13px; color: var(--muted); margin-top: -10px; }
+      table { width: 100%; border-collapse: collapse; margin: 0 0 14px; font-size: 14px; }
+      th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+      th { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+      .pill { font-size: 11.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; color: #fff; white-space: nowrap; }
+      .silent { background: var(--silent); } .late { background: var(--late); }
+      .dormant { background: var(--dormant); } .healthy { background: var(--healthy); }
+      .note { padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>How to use Automation Watchdog</h1>
+      <p class="lead">
+        Automation Watchdog notices when a monday automation that used to act regularly has gone quiet, and
+        emails you. monday switches automations off in several situations and, for some of them, tells no one.
+      </p>
+
+      <h2>Before you start</h2>
+      <ul>
+        <li>You need to be an admin or a member of the monday account. Viewers cannot use the app, because monday does not let viewer accounts use its API.</li>
+        <li>Your automations need a few weeks of history. The app learns each one's normal rhythm from the last 60 days of board activity.</li>
+        <li>An automation has to act at least seven times in those 60 days, roughly weekly or more, before it can be watched.</li>
+        <li>The app only reads. It never changes a board, an item or an automation.</li>
+      </ul>
+
+      <h2>Install and first use</h2>
+      <ol>
+        <li>Install Automation Watchdog from the monday marketplace.</li>
+        <li>Add it as a board view on any one board. It covers every board you can see, so one board is enough.</li>
+        <li>The first time it opens, a short welcome page explains the statuses. Click <strong>Show my automations</strong>.</li>
+        <li>
+          The view reads the last 60 days of activity and lists every automation that repeats, with a status for each.
+          A large account can take a minute; the view shows its progress while it reads.
+        </li>
+        <li>
+          Click <strong>Set up email alerts</strong>. A new tab opens monday's authorization page. Approve the
+          read-only access, and the page confirms where alerts will be sent.
+        </li>
+      </ol>
+
+      <img src="./assets/board-view.png" alt="The board view: a banner saying one automation has stopped, counts by status, and one row per automation with its normal rhythm." width="1260" height="868" />
+      <p class="caption">The board view. Stopped automations come first, and every row says what its normal rhythm was.</p>
+
+      <h2>What the statuses mean</h2>
+      <table>
+        <thead>
+          <tr><th>Status</th><th>Meaning</th><th>Email?</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="pill silent">Stopped</span></td><td>Acted on a regular rhythm, and has been quiet far longer than its normal gap.</td><td>Yes</td></tr>
+          <tr><td><span class="pill late">Overdue</span></td><td>Past its usual gap, but not yet long enough to call it stopped.</td><td>No</td></tr>
+          <tr><td><span class="pill dormant">Switched off</span></td><td>Quiet for more than 30 days. Treated as retired on purpose rather than broken.</td><td>No</td></tr>
+          <tr><td><span class="pill healthy">Running</span></td><td>Acting on its normal rhythm.</td><td>No</td></tr>
+        </tbody>
+      </table>
+      <p>Weekends and other days an automation never acts on are allowed for, so a quiet Saturday is not an alarm.</p>
+
+      <h2>Email alerts</h2>
+      <p>
+        Once alerts are set up, a check runs once a day. You get one email when an automation stops, a reminder
+        if it is still stopped three days later, and a note when it starts working again. You do not need to keep
+        the board view open.
+      </p>
+      <img src="./assets/alert-email.png" alt="An alert email listing an automation that has stopped, its normal rhythm, and how long it has been quiet." width="1260" height="588" />
+      <p class="caption">An alert email.</p>
+
+      <h2>Muting an alert</h2>
+      <p>
+        If you already know about a stopped automation, mute it from its row: for a day, a week, 90 days, or until
+        it works again. A mute never lasts forever, and every email says how many alerts are muted, so a mute
+        cannot quietly become a blind spot.
+      </p>
+
+      <h2>What it cannot see</h2>
+      <ul>
+        <li>An automation that acts too rarely to have a rhythm. Something that runs once a month will not be flagged when it stops.</li>
+        <li>An automation that has never acted. With no history, there is nothing to compare against.</li>
+      </ul>
+
+      <h2>Your data</h2>
+      <p class="note">
+        The app asks monday for read-only access: boards, users, your own profile and the account id. It reads
+        board activity to learn rhythms, and does not read item names, column values, updates or files. The
+        access token and the address alerts go to are kept in monday's encrypted secure storage, and are deleted
+        when the app is uninstalled. The full privacy policy is linked on the app's marketplace listing.
+      </p>
+
+      <h2>Support</h2>
+      <p>Write to <strong>support@atesensoftware.com</strong>.</p>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,38 @@
+# What `mapps code:push` leaves out of the upload.
+#
+# The CLI uses this file *instead of* .gitignore when it exists, and it finds
+# .gitignore with a `**/.gitignore` glob that takes the first match — which can
+# be one inside a dependency. This file makes the upload deterministic.
+# node_modules, .git, .env and local-secure-storage.db.json are always excluded
+# by the CLI itself (monday-apps-cli, src/services/files-service.ts).
+
+# Rebuilt by `npm start` on the server; uploading a stale copy would hide a
+# broken build.
+dist/
+
+# Local runs of the CLI runner. Board ids, actor ids, API error strings.
+.watchdog-state/
+
+# Not needed to run. listing/ holds the marketplace images, made by
+# scripts/make-assets.js and uploaded to the listing by hand.
+test/
+docs/
+listing/
+
+# Scripts that render the listing images and video on the owner's machine.
+# The server never loads them. asset-kit.js fetches the local demo server at
+# http://127.0.0.1, which monday's security scan flagged as its one warning
+# ("Unencrypted request over HTTP detected", Opengrep rule
+# react-insecure-request, scans of 28 Sep 2026). Literal paths, so the CLI
+# honours them.
+scripts/asset-kit.js
+scripts/make-assets.js
+scripts/make-video.js
+
+# Patterns with wildcards do nothing here. FACT (monday-apps-cli,
+# src/services/files-service.ts, alignPatternsForArchive, read 27 Sep 2026):
+# each line is kept only if `fs.existsSync(directory + line)` is true, so
+# `*.png` or `security-scan-*.json` names no real path and is dropped. Only
+# literal paths that exist work. The security scan report that
+# `mapps code:push -s` writes is therefore uploaded; it holds scan findings,
+# not secrets.

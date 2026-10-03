@@ -1,0 +1,55 @@
+{
+  "_comment": "Captured from a live monday developer account on 21 Sep 2026. Kept so the adapter's assumptions are pinned against real data rather than a guess. The created_at values are 100-nanosecond ticks.",
+  "data": {
+    "boards": [
+      {
+        "id": "5104568796",
+        "name": "Welcome to your developer account",
+        "activity_logs": [
+          {
+            "id": "548f3ebb-9813-4f6b-8898-ef73ed4280c4",
+            "event": "update_column_value",
+            "entity": "pulse",
+            "user_id": "117040353",
+            "created_at": "17899565625638124"
+          },
+          {
+            "id": "4510e762-8141-4e26-9df0-4eebffe691e7",
+            "event": "board_workspace_id_changed",
+            "entity": "board",
+            "user_id": "117040353",
+            "created_at": "17899565599917408"
+          },
+          {
+            "id": "01d0b6ac-31b0-4c49-b35d-a8c313f8773f",
+            "event": "update_board_name",
+            "entity": "board",
+            "user_id": "117040353",
+            "created_at": "17899565599670686"
+          },
+          {
+            "id": "a3fc880d-8c74-4992-9d60-f54b83a10dc2",
+            "event": "create_column",
+            "entity": "board",
+            "user_id": "117040353",
+            "created_at": "17899565599616742"
+          },
+          {
+            "id": "a0dd7b03-1a79-401a-b65c-de22f89202c9",
+            "event": "create_column",
+            "entity": "board",
+            "user_id": "117040353",
+            "created_at": "17899565599562702"
+          },
+          {
+            "id": "bcaa2606-2e66-4bc6-9ee6-9af23c464f35",
+            "event": "create_group",
+            "entity": "board",
+            "user_id": "117040353",
+            "created_at": "17899565599500530"
+          }
+        ]
+      }
+    ]
+  }
+}
