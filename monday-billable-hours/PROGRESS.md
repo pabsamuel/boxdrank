@@ -257,6 +257,12 @@ Submission
       email comes after submission. Gmail had no Zip email on 1 Oct, three
       days after both apps were submitted. Registration is one-time, for both
       apps
+      - FACT (Payoneer, 2 Oct 2026): a new Payoneer application was refused
+        because "Payoneer only allows one account per customer … you already
+        have an existing Payoneer account!" So when monday or Zip asks,
+        **connect the existing account**: sign in and don't apply again. If
+        the sign-in is lost, use Payoneer's account-recovery FAQ from that
+        email. The customer id is in the email, not here
 - [ ] Approved
 
 ## 6. Market check — 2/2
