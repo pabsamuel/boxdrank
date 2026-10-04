@@ -325,3 +325,22 @@ working rule for Claude on this project, in any wording. Removed from
 note and past decision. They are data. Only the instruction to stop or wait on
 them is gone.
 
+
+## 2026-10-04 — Payouts go through Samet's existing Payoneer account
+
+**Decision (Samet, 4 Oct):** marketplace payouts use Payoneer. Samet already
+has a Payoneer account (Payoneer refused a second one on 2 Oct, "only allows
+one account per customer"). **No new or duplicate Payoneer account.**
+
+**How it is carried out:**
+- Any sign-in, identity or bank details, KYC or security approval goes on
+  Samet's list (`SAMET-TODO.md`). Claude does not wait on it and moves on to
+  other work.
+- No agent acts on password, payment or security screens.
+
+**What this is not:** a decision to buy a monday plan or to ask for a trial
+extension. Which account the 3 Oct "trial ends tomorrow" email means is still
+unconfirmed; Samet checks it by hand.
+
+**What would reverse it:** monday stops paying through Payoneer, or the
+existing account cannot be recovered.
