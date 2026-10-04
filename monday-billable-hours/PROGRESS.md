@@ -171,6 +171,9 @@ Documentation, support and money
 - [ ] Pricing chosen and submitted as a pricing version — **chosen 27 Sep**:
       seat-based, $1 a seat a month, Optimized, 14-day trial (reasons in
       `LISTING.md`); not yet submitted in the Developer Center
+      - Every field, checked against monday's docs (4 Oct), and a Chrome
+        prompt that fills it in: `PRICING-VERSION.md`. Waits for the Pricing &
+        Plans tab
 - [x] Subscription checked at runtime and enforced in code, with the payment
       prompt from the SDK — off until pricing exists (`WATCHDOG_BILLING`)
 - [x] Support email on a domain the owner controls, and a website link —

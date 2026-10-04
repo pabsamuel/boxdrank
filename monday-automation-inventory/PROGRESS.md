@@ -190,4 +190,5 @@ Order: Gate 0 decides whether the listing and the submission get done.
       - Answers as sent: `SUBMISSION.md` (region EMEA; features Custom
         Object, Board View, AI Skills; mobile No; LLM "AI monday Credits").
 - [ ] 29. Pricing version submitted, once the Pricing & Plans tab appears.
+      Ready to paste: `../monday-billable-hours/PRICING-VERSION.md` (4 Oct).
 - [ ] 30. Approved by monday.
