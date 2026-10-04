@@ -264,6 +264,17 @@ Submission
         the sign-in is lost, use Payoneer's account-recovery FAQ from that
         email. The customer id is in the email, not here
 - [ ] Approved
+- **Risk, 4 Oct 2026:** monday emailed "Your trial ends tomorrow. … Your
+  automations will stop running … Your integrations will disconnect." on
+  3 Oct, to both `sametatesen2@gmail.com` and `sametatesen2+@gmail.com`.
+  Which account it means is UNKNOWN. If it is `sametatesen2s-team-company`
+  (36993937), the account that owns both apps and their monday code services,
+  what happens to the apps is UNKNOWN. Both answered 200 on `/health` on
+  4 Oct 06:30 UTC.
+  - FACT (`apps/docs/intro`, read 4 Oct): "If you're currently on a trial and
+    need more time, you can contact our support team to request a trial
+    extension."
+  - Free developer accounts exist (team-squad is one).
 
 ## 6. Market check — 2/2
 

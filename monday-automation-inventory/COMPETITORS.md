@@ -144,3 +144,16 @@ their content could not be read: the pages now return 404.
    automations may not appear in the results". The listing must not promise
    every older automation.
    - FACT: one was returned on Samet's test board.
+
+## Patrick Fallon (BotSquad), 4 Oct 2026: he competes
+
+FACT, his reply to the demo link (email, 4 Oct 2026): "I've actually got my
+own solution in this space for helping users keep track of their automations
+on monday, so we're at least to some extent in competition with each other.
+Probably best I leave you to it from here".
+- What his solution is: UNKNOWN. Neither botsquad.co.nz (4 Oct) nor a web
+  search shows it; the site shows consulting, an installable CRM template
+  "complete with all automations", and a "MondayWiki" community.
+- INFERENCE: the person who described the pain most clearly sells something
+  for it. That supports the pain; it also means no endorsement from him.
+  Check the marketplace by hand for a BotSquad listing before launch.
