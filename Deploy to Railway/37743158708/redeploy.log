@@ -1,0 +1,64 @@
+
+──────── link the existing project ────────
+> Select a workspace pabsamuel's Projects
+> Select a project global-emotes
+> Select an environment production
+> Select a service api
+{
+  "projectId": "44f08990-122d-4f57-b9aa-d0c9a3e9486e",
+  "projectName": "global-emotes",
+  "environmentId": "706690e6-545c-44c7-ad32-c118f3811c7d",
+  "environmentName": "production",
+  "serviceId": "28676b34-c88d-4e28-87fb-37ef50597a6b",
+  "serviceName": "api"
+}
+
+──────── deploy api ────────
+Indexing...
+Uploading...
+  Deployment: https://railway.com/project/44f08990-122d-4f57-b9aa-d0c9a3e9486e/service/28676b34-c88d-4e28-87fb-37ef50597a6b?id=bdfc828d-76b8-47b8-840f-dfa89c0e68f0
+CI mode enabled
+fetched snapshot sha256:8fe322d65f68d45f8e1076098e27b89e651e1d44c744bb8dbd2a060eb2e6afb2 (302 kB bytes)
+fetching snapshot
+unpacking archive
+[internal] load build definition from Dockerfile
+[internal] load metadata for docker.io/library/node:22-alpine
+[internal] load .dockerignore
+[deps 6/6] RUN pnpm install --frozen-lockfile --filter @global-emotes/api...
+[deps 5/6] COPY packages ./packages
+[deps 4/6] COPY apps/worker/package.json apps/worker/
+[deps 3/6] COPY apps/web/package.json apps/web/
+[deps 2/6] COPY apps/api/package.json apps/api/
+[deps 1/6] COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+[internal] load build context
+[base 3/3] WORKDIR /repo
+[base 2/3] RUN corepack enable
+[base 1/3] FROM docker.io/library/node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402
+[runtime 3/3] COPY --chmod=0755 infrastructure/docker/api-entrypoint.sh ./entrypoint.sh
+[runtime 2/3] COPY apps/api ./apps/api
+[runtime 1/3] COPY --from=deps /repo /repo
+scheduling build on Metal builder "builder-hzwfzq"
+Deploy complete
+new deployment: bdfc828d-76b8-47b8-840f-dfa89c0e68f0
+
+──────── public domain ────────
+::notice title=API domain::https://api-production-844a7.up.railway.app
+::notice title=Deployed::Build uploaded. Railway rolls the new version out and its entrypoint applies the migrations; the wait below blocks until that version is serving.
+──────── smoke test ────────
+──────── wait for the new deployment ────────
+  serving deployment bdfc828d-76b8-47b8-840f-dfa89c0e68f0
+smoke: api=https://api-production-844a7.up.railway.app web=<not deployed, skipping>
+
+1. API health
+  [32mPASS[0m  200, ok:true
+2. OpenAPI spec
+  [32mPASS[0m  200
+3. Database (public creator lookup)
+  [32mPASS[0m  404 — query ran, DB connected and migrated
+4. Web app
+  [33mSKIP[0m  no web URL given
+
+Checks passed — the deployment is live.
+Next: log in with a magic link (needs the SMTP_* variables set), then
+create a pack and upload a PNG to exercise the asset pipeline.
+::notice title=LIVE::https://api-production-844a7.up.railway.app -- health, OpenAPI and a database-backed lookup all pass.
