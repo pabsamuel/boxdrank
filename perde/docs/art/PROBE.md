@@ -89,7 +89,7 @@ they may need to be re-exported from Canva before retrying.
   page 3 backdrop 1680 × 944). Fresh PNG/JPG exports were generated successfully.
 - Downloading the fresh export URLs from the container still fails the same way:
   curl exit 22, HTTP 403 from the proxy, `no rule or allowlist entry allows host
-  "export-download.canva.com"`. `media.canva.com` is blocked as well.
+"export-download.canva.com"`. `media.canva.com` is blocked as well.
 - The connector delivers page thumbnails into the session, but only at 317 px wide
   (83 kB), far below the 896 × 1776 / 1680 × 944 the stage needs, so they were not
   committed.
