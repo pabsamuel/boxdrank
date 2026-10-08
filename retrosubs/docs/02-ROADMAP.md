@@ -11,6 +11,8 @@
 | **6** | iOS / companion-device architecture | 📄 designed, not built |
 | **7** | Desktop client (Discord/Zoom/Meet/Teams loopback), more themes | 📄 backlog |
 
+| **5d** | Export (photo + clip), free/Pro split, monetisation plan | ✅ `docs/05-MONETIZATION.md` |
+
 ## Definition of done for the MVP
 Install the APK → grant mic + overlay → tap **START** → switch to WhatsApp/Discord/anything →
 speak → a nostalgic dialogue box types what was said, within a second.

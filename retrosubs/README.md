@@ -43,6 +43,12 @@ the app below floats over other apps.
 | Switch to WhatsApp / Discord / Meet / anything | The box stays on top. Drag it with `⠿`, flip top/bottom with `⇅`, collapse with `▁`, pause with `❚❚`, close with `✕`. |
 | Speak | Text appears progressively, ~300–800 ms behind the voice. |
 
+### Paylas: foto ve video
+
+**AYAR → FOTO CEK** ekrandaki kutuyu (kamerasıyla birlikte) PNG olarak verir, **VIDEO KAYDET**
+klip alır; ikisi de telefonun paylaş menüsüne düşer. Ücretsiz sürümde köşede küçük bir
+`retrosubs` filigranı olur, **PRO KOD** girilince kalkar. Ayrıntı: `docs/05-MONETIZATION.md`.
+
 ### Two engines
 
 | Engine | What it does |
