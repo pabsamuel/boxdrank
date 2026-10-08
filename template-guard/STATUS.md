@@ -1,6 +1,6 @@
 # Status — how much of this is done
 
-**Updated:** 29 Sep 2026 · 266 tests passing · **Live on monday code (app 12248804, v1 published) and submitted to the marketplace on 29 Sep 2026** · typecheck clean · production build clean
+**Updated:** 8 Oct 2026 · 291 tests passing · **Live on monday code (app 12248804), submitted 29 Sep, first live Pro sweep ran 8 Oct** · typecheck clean · production build clean
 
 Two numbers, because they are genuinely different and mixing them would be the
 kind of comfortable lie this project is supposed to be allergic to.
@@ -9,6 +9,15 @@ kind of comfortable lie this project is supposed to be allergic to.
 |---|---|
 | **The build** — everything specified that can be built without a live monday account | **100%** |
 | **Shipping** — live on the marketplace, taking money | **~99%** — submitted; waiting on monday's review, then Pro plan + `MONDAY_PAID_PLAN_IDS` |
+
+**8 Oct 2026 — found and fixed before any customer hit them:** marketplace /
+Share-link installs were refused (ADR-039); Pro alerts could not be delivered
+(no notifications:write → email instead, ADR-038); the same drift would have
+alerted every 6 hours (now once per drift); a log-only alert counted as
+delivered. Eleven monday partner agencies were emailed (docs/12-outreach.md).
+
+**Waiting on the owner:** a Gmail app password set as the `SMTP_URL` secret
+(see ADR-038) — the only step between Pro alerts and a real inbox.
 
 What remains is monday's review. After approval: create the Pro plan ($39/mo
 per account, 14-day trial) and put its id in `MONDAY_PAID_PLAN_IDS`. Watch the
