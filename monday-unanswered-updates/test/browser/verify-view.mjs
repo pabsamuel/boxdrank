@@ -147,6 +147,8 @@ await inMonday({ theme: 'dark' }, async ({ page, frame, errors }) => {
   expect((await frame.locator('#app > .meta').innerText()).startsWith('1 update with no person as author'), 'and says one was left out');
   await frame.locator('select.age').selectOption('1');
   expect((await texts(frame)).length === 4 && (await chip(frame, 'Mine').innerText()) === 'Mine (2)', 'the age filter brings in the 1-day-old one, and the counts follow');
+  await frame.locator('select.age').selectOption('0');
+  expect((await frame.locator('select.age option:checked').innerText()) === 'Any age' && (await texts(frame)).length === 4, 'Any age lists every unanswered one');
   await frame.locator('select.age').selectOption('7');
   expect(JSON.stringify(await texts(frame)) === JSON.stringify(['Who owns this lead?']), 'at 7 days only the 10-day-old one is left');
   await frame.locator('select.age').selectOption('2');

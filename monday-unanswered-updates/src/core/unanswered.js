@@ -26,8 +26,8 @@ export const LOOKBACK_DAYS = 30;
 /** The default "no reply for N days" (SPEC.md). */
 export const DEFAULT_DAYS = 2;
 
-/** The age filter's choices, in days. */
-export const AGE_OPTIONS = [1, 2, 3, 7, 14];
+/** The age filter's choices, in days. 0 is "any age": everything not answered yet. */
+export const AGE_OPTIONS = [0, 1, 2, 3, 7, 14];
 
 /** The views, in the order the board view shows them. "Mine" is the default (SPEC.md). */
 export const VIEW_OPTIONS = [

@@ -15,7 +15,7 @@ Sources:
 
 - **Root query:** `updates(limit: Int = 25, page: Int = 1, ids: [ID!],
   from_date: String, to_date: String): [Update!]`. It is the same in 2026-07
-  (the current default) and 2026-10.
+  and 2026-10.
 - The docs: "Can be queried directly at the root (returns all updates across
   an account)". Results come "in reverse chronological order".
 - `limit`: "The default is 25, and the maximum is 100."
@@ -36,11 +36,40 @@ Sources:
 - **Nested queries:** `Board.updates` takes `board_updates_only` and dates.
   `Item.updates` takes only `limit`, `page` and `ids`.
 
-UNKNOWN until the playground run (`GATE0.md` 1):
-- whether the root query is limited to boards the token's user can see;
-- whether `item { board }` resolves at the root;
-- how many pages a real account has;
-- how long a page takes.
+UNKNOWN until the live check (`PLAYGROUND.md`):
+- whether `item { board }` and `creator` resolve at the root;
+- how a user mention appears in `body`;
+- how an update written by an automation appears;
+- how many pages a real account has, and how long a page takes.
+
+## Added 8 Oct 2026, while building: FACT
+
+- **Versions** (`api-reference/docs/api-versioning.md`, read 8 Oct): the
+  table gives 2026-10 as "Current (default)" from 1 Oct 2026 and 2026-07 as
+  maintenance from the same day. The page's own header still lists 2026-07 as
+  current. The app pins 2026-10; `Update`, `Reply` and the root query are
+  identical in both (schema diff, 8 Oct).
+- **Scopes** (`apps/docs/oauth.md`, updated 7 Jul 2026): `updates:read` is
+  "Read updates and replies the user can see"; so the root query follows the
+  user's own access. `boards:read` is "Read a user's board data";
+  `users:read` "Read profile information of the account's users".
+  `items.md` requires `boards:read`, `users.md` `users:read`.
+- **Root `replies` query** (schema 2026-07 and 2026-10): `replies(limit,
+  page, board_ids: [ID!]!, created_at_from, created_at_to): [Reply!]`. Not
+  used: replies come nested in each update.
+- **`Item.board` is nullable**, `Item.url` is `String!`; `Update.creator_id`
+  and `Reply.creator_id` are `String`, nullable (schema 2026-10).
+- **`openItemCard`** (`apps/docs/mondayexecute.md`, updated 23 Oct 2025):
+  "opens a modal with information from the selected item. Users can also
+  create an update or delete the item from the modal." Parameters `itemId`
+  (Integer, required) and `kind` ("updates" or "columns", default
+  "columns"). The view's Reply button uses `kind: "updates"`. UNKNOWN whether
+  it works from an Object, outside a board; the live test checks it.
+- **`complexity { query before after reset_in_x_seconds }`** is a root field
+  (schema 2026-10); the live check asks for it.
+- **User context**: `context.user.id` in the view (`apps/docs/mondayget`);
+  `userId` in the action block's JWT (`apps/docs/authorization-header`).
+  The app needs no `me:read`.
 
 ## Reading monday's docs
 

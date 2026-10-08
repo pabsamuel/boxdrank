@@ -211,7 +211,7 @@ function renderList(app) {
     select(
       'age',
       'No answer for',
-      AGE_OPTIONS.map((days) => [String(days), `No answer for ${plural(days, 'day')} or more`]),
+      AGE_OPTIONS.map((days) => [String(days), days === 0 ? 'Any age' : `No answer for ${plural(days, 'day')} or more`]),
       String(state.minDays),
       (value) => {
         state.minDays = Number(value);
@@ -260,8 +260,9 @@ function renderList(app) {
 function emptyText() {
   if (state.rows.length === 0) return `Every update of the last ${LOOKBACK_DAYS} days on the boards you can see has an answer.`;
   if (state.view !== 'all' && state.userId === null) return 'monday did not say who you are, so this view is empty. Choose All.';
-  if (state.view === 'mine') return `None of your updates has waited ${plural(state.minDays, 'day')} or more.`;
-  if (state.view === 'mentions') return `No update that @mentions you has waited ${plural(state.minDays, 'day')} or more.`;
+  const waited = state.minDays === 0 ? 'is waiting for an answer' : `has waited ${plural(state.minDays, 'day')} or more`;
+  if (state.view === 'mine') return `None of your updates ${waited}.`;
+  if (state.view === 'mentions') return `No update that @mentions you ${waited}.`;
   return 'No update matches.';
 }
 
