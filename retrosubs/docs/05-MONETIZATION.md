@@ -40,9 +40,12 @@ Klasik ve işleyen model.
 1. **stripe.com** → hesap aç → **Payment Links** → "RetroSubs Pro", tek seferlik 4,99 $.
 2. Ödeme sonrası yönlendirme sayfasına (**after payment → confirmation page**) şu metni yaz:
    `PRO kodun: RETROSUBS-PRO-2026 — uygulamada AYAR > PRO KOD alanına yapıştır.`
-3. `retrosubs/web/index.html` içinde `PRO KOD` alanının yanına ödeme linkini koy (aşağıdaki
-   "yapılacak" maddesi) ya da bana söyle, ben koyayım.
+3. Linki `retrosubs/web/config.json` içindeki `buyUrl` alanına yapıştır — GitHub'ın telefon
+   tarayıcısındaki düzenleyicisinden, koda dokunmadan. Uygulama bu dosyayı her açılışta
+   okur, **SATIN AL** butonu kendiliğinden gelir.
 4. Linki paylaş. Satış olduğunda Stripe sana mail atar, kod otomatik gider.
+
+Adım adım, ekran ekran anlatımı: **[`../SATIS-KURULUMU.md`](../SATIS-KURULUMU.md)**.
 
 Bu haliyle **gerçek para alırsın**. Tek kusuru: kod herkeste aynı, paylaşılabilir.
 
@@ -102,7 +105,8 @@ Uygulama **başkalarının konuşmasını** yazıya döküyor ve kaydedebiliyor.
 
 ## 7. Yapılacaklar (kodda hazır, senin kararın bekleniyor)
 
-- [ ] Stripe Payment Link'i oluştur, linki `index.html` içindeki PRO alanına ekle.
+- [ ] Stripe Payment Link'i oluştur, linki `web/config.json` → `buyUrl` alanına yapıştır
+      (`SATIS-KURULUMU.md`).
 - [ ] Gizlilik metni sayfası (tek paragraf yeter: hiçbir ses/metin cihazdan çıkmıyor).
 - [ ] Play Store listesi (25 $), ekran görüntüleri uygulamadan FOTO CEK ile alınabilir.
 - [ ] Satış düzenliyse: Worker + imzalı lisans (bölüm 3).

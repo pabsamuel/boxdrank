@@ -44,9 +44,14 @@ _This container cannot reach `dl.google.com`, so the Android SDK and Google Mave
 locally: CI is the build and the verification._
 
 ## Next action
+Everything in the product is done. What is left is one thing only a human can do, and it is
+written out step by step, in Turkish, phone-friendly, in **[`SATIS-KURULUMU.md`](SATIS-KURULUMU.md)**:
+
 1. Open https://pabsamuel.github.io/boxdrank/ and check the version chip reads the latest build.
-2. Create a Stripe Payment Link and paste it into `BUY_URL` in `retrosubs/web/index.html`
-   (`docs/05-MONETIZATION.md` has the 15-minute version of this).
+2. Create the Stripe account and the Payment Link (needs an identity and a bank account, so it
+   cannot be automated), then paste the link into `retrosubs/web/config.json` from GitHub's
+   mobile web editor. No code change: the app reads that file at runtime and the **SATIN AL**
+   button appears by itself. `docs/05-MONETIZATION.md` has the reasoning behind the pricing.
 3. Share a clip. The watermark is the distribution.
 
 For the Android app (the only build that can float over WhatsApp), install the APK from the
