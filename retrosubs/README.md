@@ -50,7 +50,12 @@ the app below floats over other apps.
 Tek mikrofonla iki sesi birbirinden ayirmak mumkun degil — bu yuzden kim konustuguna sen
 karar veriyorsun, uygulama tahmin etmiyor.
 
-### Paylas: foto ve video
+### Paylas: foto, video, yazi
+
+**AYAR → YAZIYI KAYDET** konusmanin tam dokumunu saat damgasi ve konusan isimleriyle `.txt`
+olarak verir. Dokumanin tamami bellekte durur, hicbir yere gonderilmez.
+
+
 
 **AYAR → FOTO CEK** ekrandaki kutuyu (kamerasıyla birlikte) PNG olarak verir, **VIDEO KAYDET**
 klip alır; ikisi de telefonun paylaş menüsüne düşer. Ücretsiz sürümde köşede küçük bir
