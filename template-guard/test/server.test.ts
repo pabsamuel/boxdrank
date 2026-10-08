@@ -177,14 +177,16 @@ describe('the OAuth install flow', () => {
     expect(setCookie).toContain(encodeURIComponent(location.searchParams.get('state') ?? 'x'));
   });
 
-  it('refuses a callback whose state has no matching cookie', async () => {
+  it('refuses a callback whose state does not match our cookie', async () => {
     // The attack this stops: someone starts an install, gets a genuinely
-    // signed state, and has a victim's browser complete their authorization.
+    // signed state, and has a victim's browser — which holds its own cookie
+    // from its own install attempt — complete their authorization.
     const install = await fetch(`${base}/auth/install`, { redirect: 'manual' });
     const state = new URL(install.headers.get('location') ?? '').searchParams.get('state') ?? '';
 
     const res = await fetch(`${base}/auth/callback?code=abc&state=${encodeURIComponent(state)}`, {
       redirect: 'manual',
+      headers: { Cookie: 'tg_state=a-different-state' },
     });
     expect(res.status).toBe(403);
     expect((await res.json()) as { error: string }).toMatchObject({
@@ -192,8 +194,11 @@ describe('the OAuth install flow', () => {
     });
   });
 
-  it('refuses a callback with no state at all', async () => {
-    const res = await fetch(`${base}/auth/callback?code=abc`, { redirect: 'manual' });
+  it('refuses a callback with our cookie but no state', async () => {
+    const res = await fetch(`${base}/auth/callback?code=abc`, {
+      redirect: 'manual',
+      headers: { Cookie: 'tg_state=whatever' },
+    });
     expect(res.status).toBe(403);
   });
 

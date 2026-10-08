@@ -19,11 +19,13 @@ shared and installs before marketplace approval) and a free partner licence.
 | Automation Consultants | UK | info@automation-consultants.com | 8 Oct 2026 | — |
 | Work Perfect | AU/NZ | contactus@workperfect.io | 8 Oct 2026 | — |
 | Fruition | AU/US/UK | contact@fruitionservices.io | 8 Oct 2026 | — |
-| Ability Ops | US | info@abilityops.com | draft in Gmail, not sent | — |
-| The SaaSy People | UK | hello@thesaasypeople.com | draft in Gmail, not sent | — |
+| Ability Ops | US | info@abilityops.com | 8 Oct 2026 | — |
+| The SaaSy People | UK | hello@thesaasypeople.com | 8 Oct 2026 | — |
+| upstream | AU | sales.au@upstreamtech.io | 8 Oct 2026 | — |
+| Empyra | US | info@empyra.com | 8 Oct 2026 | — |
+| OrangeDot Digital | ? | sales@orangedotdigital.com | 8 Oct 2026 | — |
 
-Spares, not contacted: upstream (AU) sales.au@upstreamtech.io; Empyra (US)
-info@empyra.com; OrangeDot Digital sales@orangedotdigital.com.
+Work Perfect sent an automatic "we'll come back to you" reply (8 Oct).
 
 Earlier conversations (other apps, relevant market signal): Patrick Fallon
 (BotSquad) — the bigger monday pain is not being able to *see* automations;

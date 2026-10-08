@@ -127,6 +127,31 @@ export function stateMatchesCookie(state: string, cookieValue: string | null): b
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
+/**
+ * Who started the install this callback finishes, or null to refuse it.
+ *
+ *  - **Our cookie is present** → we started it at `/auth/install`, so the
+ *    signed state must match that cookie (ADR-024: stops a signed state being
+ *    carried into someone else's browser).
+ *  - **No cookie of ours** → monday started it: the marketplace Install button
+ *    and the Share tab's link go straight to monday, which redirects here with
+ *    a code and possibly a state of its own. Refusing these refused every real
+ *    install (found 8 Oct 2026; Automation Watchdog hit the same and fixed it).
+ *    Accepting them is safe because nothing is bound to the browser: the
+ *    token, account and installer all come from monday's answer for the code,
+ *    so a forged callback can only complete the forger's own install.
+ */
+export function classifyCallback(
+  secret: string,
+  state: string | undefined,
+  cookie: string | null,
+): 'ours' | 'monday' | null {
+  if (cookie) {
+    return state && verifyState(secret, state) && stateMatchesCookie(state, cookie) ? 'ours' : null;
+  }
+  return 'monday';
+}
+
 /** Reads one cookie out of a raw `Cookie` header, without a dependency. */
 export function readCookie(header: string | undefined, name: string): string | null {
   if (!header) return null;

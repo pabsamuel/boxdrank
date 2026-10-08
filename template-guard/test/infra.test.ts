@@ -8,7 +8,7 @@ import { parseSettings, toColumnSnapshot } from '../src/snapshot/capture.js';
 import { assertNoItemData, TokenCipher } from '../src/server/storage.js';
 import { assertNoPaidPreviewDependency, canAddTemplate, PLANS } from '../src/billing/tiers.js';
 import { isWorthReporting, notificationFor } from '../src/drift/monitor.js';
-import { createState, verifyState, readCookie, stateMatchesCookie, STATE_MAX_AGE_MS, REQUIRED_SCOPES } from '../src/server/oauth.js';
+import { classifyCallback, createState, verifyState, readCookie, stateMatchesCookie, STATE_MAX_AGE_MS, REQUIRED_SCOPES } from '../src/server/oauth.js';
 import { diffBoards } from '../src/diff/diff.js';
 import { countBySeverity } from '../src/diff/types.js';
 import { column, cleanCopy, copyWith, templateBoard, TEMPLATE_BOARD_ID } from './fixtures/boards.js';
@@ -353,5 +353,20 @@ describe('readCookie', () => {
   it('decodes a percent-encoded value and refuses a malformed one', () => {
     expect(readCookie('tg_state=a%2Eb', 'tg_state')).toBe('a.b');
     expect(readCookie('tg_state=%E0%A4%A', 'tg_state')).toBeNull();
+  });
+});
+
+describe('classifyCallback — who started the install', () => {
+  it('accepts an install monday started (marketplace, Share link): no cookie of ours', () => {
+    expect(classifyCallback('secret', undefined, null)).toBe('monday');
+    expect(classifyCallback('secret', 'mondays-own-state', null)).toBe('monday');
+  });
+
+  it('accepts an install we started only when the signed state matches our cookie', () => {
+    const state = createState('secret');
+    expect(classifyCallback('secret', state, state)).toBe('ours');
+    expect(classifyCallback('secret', state, 'other')).toBeNull();
+    expect(classifyCallback('secret', undefined, state)).toBeNull();
+    expect(classifyCallback('other-secret', state, state)).toBeNull();
   });
 });

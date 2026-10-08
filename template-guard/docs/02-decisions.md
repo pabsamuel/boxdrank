@@ -1166,3 +1166,20 @@ failed delivery, so it is retried next sweep. Messages now name the board
 instead of its id.
 
 Also new: `COMPLIMENTARY_PRO_ACCOUNTS` (partner licences, live testing).
+
+## ADR-039 — Accept installs monday starts (8 Oct 2026)
+
+The OAuth callback required our `tg_state` cookie on every install. Only
+installs started at our `/auth/install` set it. The marketplace Install button
+and the Share tab's link start at `auth.monday.com` and arrive with no cookie
+of ours — so every real install, the review team's included, would have been
+refused with "Sign-in could not be verified". It went unnoticed because the
+only live install was started from `/auth/install`.
+
+`classifyCallback` (src/server/oauth.ts): with our cookie, the signed state
+must match it (ADR-024 unchanged); with no cookie of ours, the install is
+monday's and is accepted. Safe because nothing is bound to the browser — the
+token, account and installer all come from monday's answer for the code.
+Same fix Automation Watchdog shipped on 28 Sep. Installs are now logged
+(`install account=… slug=… via=ours|monday`) so a partner's account can be
+found for a complimentary licence.

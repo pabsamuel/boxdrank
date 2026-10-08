@@ -16,10 +16,9 @@ import {
   authorizeUrl,
   createState,
   readCookie,
-  stateMatchesCookie,
+  classifyCallback,
   exchangeCodeForToken,
   verifySessionToken,
-  verifyState,
   type OAuthConfig,
 } from './oauth.js';
 import { isAuthorisedCronCaller } from './cron-auth.js';
@@ -235,12 +234,11 @@ export function createServer(deps: ServerDeps) {
       const { code, state } = req.query as { code?: string; state?: string };
       if (!code) throw new TemplateGuardError('monday did not return an authorization code.', 'permission_denied');
 
-      // Two checks, and both are needed. The signature proves the state came
-      // from us; the cookie proves it came from *this browser*. Without the
-      // second, anyone can start an install, obtain a valid signed state, and
-      // have someone else's browser complete their authorization.
+      // Installs we started must match our cookie; installs monday started
+      // (marketplace, Share link) carry no cookie of ours — see classifyCallback.
       const cookie = readCookie(req.header('Cookie'), STATE_COOKIE);
-      if (!state || !verifyState(deps.signingSecret, state) || !stateMatchesCookie(state, cookie)) {
+      const origin = classifyCallback(deps.signingSecret, state, cookie);
+      if (!origin) {
         throw new TemplateGuardError(
           'Sign-in could not be verified. Please start the install again from monday.',
           'permission_denied',
@@ -272,6 +270,12 @@ export function createServer(deps: ServerDeps) {
         // has nobody to go to. Captured here rather than asked for later.
         installedByUserId: data.me.id != null ? String(data.me.id) : undefined,
       });
+
+      // One line per install, so a new customer (or a partner who needs their
+      // complimentary licence) shows up in the logs with the account to grant.
+      console.log(
+        `[template-guard] install account=${String(data.me.account.id)} slug=${data.me.account.slug} via=${origin}`,
+      );
 
       res.redirect('/installed.html');
     } catch (err) {
