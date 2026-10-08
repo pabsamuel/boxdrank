@@ -1,6 +1,21 @@
 # Gate 0: kill checks for Unanswered Updates
 
-> **Result: PENDING** (started 8 Oct 2026).
+> **Result, 8 Oct 2026: GO, by the rules written before the results. It is a
+> weak GO.** (`COMPETITORS.md`)
+> - Rule 1, native: not triggered. Every native "didn't reply" view covers
+>   only mentions of the user.
+> - Rule 2, monday AI: not triggered, but close. The agent templates cover
+>   mentions of you, your own tickets, and disputed invoices.
+> - Rule 3, marketplace: not triggered. None was found; the marketplace
+>   could not be crawled fully.
+> - Rule 4, API: passes on what is known (root `updates` with `replies`).
+>   UNKNOWN: whether automation-written updates can be told apart, and
+>   whether results are limited to the user's boards.
+> - Demand: 7 distinct people, more than the 3 required. All of them ask
+>   about **their own mentions**, with 0–2 votes each.
+> - What makes it weak: low demand, and monday could ship the same thing as
+>   an agent template. Neither changes the result; both shape the scope
+>   (`SPEC.md`).
 
 The idea, from the Updates Inbox research of 2 Oct
 (`../monday-updates-inbox/BACKLOG.md`):
