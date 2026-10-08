@@ -42,22 +42,41 @@ if [ -z "${DOMAIN}" ]; then
 fi
 base="https://${DOMAIN}"
 
-# A container that has only just been given a domain may not be serving yet, so
-# wait for /v1/health before running the real checks -- otherwise the first
-# cold-start second reads as a failed deploy.
-# After a redeploy the pre-deploy migrations and the rollout happen after
-# `railway up --ci` returns, so allow a few minutes, not seconds.
-for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
-  code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "${base}/v1/health" || echo 000)"
-  [ "${code}" = "200" ] && break
-  echo "  health -> ${code}, retrying in $(( attempt * 5 ))s"
-  sleep $(( attempt * 5 ))
+# `railway up --ci` returns when the build is done; the pre-deploy migrations
+# and the rollout happen after that while the PREVIOUS deployment keeps
+# serving, and it answers /v1/health with 200 too. So wait until the health
+# response names the deployment this run uploaded (railway-redeploy.sh records
+# its id; /v1/health echoes RAILWAY_DEPLOYMENT_ID). On a first-time deploy
+# there is no previous version, so a plain 200 is enough.
+WANT="$(cat /tmp/deployment-id.txt 2>/dev/null || true)"
+echo "──────── wait for the new deployment ────────"
+deadline=$(( $(date +%s) + 600 ))
+while :; do
+  body="$(curl -sS --max-time 20 "${base}/v1/health" 2>/dev/null || true)"
+  live="$(printf '%s' "${body}" | jq -r '.deployment // empty' 2>/dev/null || true)"
+  if printf '%s' "${body}" | grep -q '"ok":true'; then
+    if [ -z "${WANT}" ] || [ "${live}" = "${WANT}" ]; then
+      echo "  serving deployment ${live:-<unknown>}"
+      break
+    fi
+    echo "  serving ${live:-<unknown>}, waiting for ${WANT}"
+  else
+    echo "  health not ready yet"
+  fi
+  if [ "$(date +%s)" -ge "${deadline}" ]; then
+    fail "Rollout did not finish" "Deployment ${WANT:-<unknown>} was not serving ${base}/v1/health within 10 minutes (last seen: ${live:-none}). The pre-deploy migrations may have failed; the deployment log in the Railway dashboard says why, and the previous version keeps serving meanwhile."
+  fi
+  sleep 15
 done
 
 # The real checks live in smoke.sh, which is also the hand-run deploy gate;
-# duplicating them here would let the two drift apart.
-if ./infrastructure/scripts/smoke.sh "${base}"; then
-  note "LIVE" "${base} -- health, OpenAPI and a database-backed lookup all pass."
-else
-  fail "Smoke test failed" "The API at ${base} did not pass its checks. Which check failed is in the published run log."
-fi
+# duplicating them here would let the two drift apart. A couple of retries
+# cover the first seconds after cutover, when the pool is still connecting.
+for attempt in 1 2 3; do
+  if ./infrastructure/scripts/smoke.sh "${base}"; then
+    note "LIVE" "${base} -- health, OpenAPI and a database-backed lookup all pass."
+    exit 0
+  fi
+  [ "${attempt}" -lt 3 ] && { echo "  smoke test failed on attempt ${attempt}, retrying in 20s"; sleep 20; }
+done
+fail "Smoke test failed" "The API at ${base} did not pass its checks. Which check failed is in the published run log."
