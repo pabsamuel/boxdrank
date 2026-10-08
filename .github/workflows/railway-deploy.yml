@@ -1,12 +1,20 @@
 name: Deploy to Railway
 
 # Runs on GitHub's runners, which have the outbound network access the
-# authoring environment does not. Two modes so the real command surface is
+# authoring environment does not. Three modes so the real command surface is
 # read from the installed CLI before anything is provisioned:
 #
-#   probe  — install the CLI and print its help. Changes nothing.
-#   deploy — provision and deploy. Steps are added once probe has confirmed
-#            the command surface, so they are not guessed from blog posts.
+#   probe    — install the CLI and print its help. Changes nothing.
+#   deploy   — provision a NEW project (init, Postgres, Redis, api) and deploy.
+#              Run it once; running it again creates a second project.
+#   redeploy — deploy the current code to the EXISTING project named by
+#              RAILWAY_PROJECT_ID below (the one `deploy` created). This is
+#              the mode for every deploy after the first.
+#
+# Database migrations run inside Railway, not from this runner: the Postgres
+# service has no public URL, so the runner cannot reach it. railway.json in
+# global-emotes/ sets the api service's pre-deploy command to run them before
+# each new deployment goes live.
 #
 # Needs an ACCOUNT/workspace token in the repo secret RAILWAY_API_TOKEN:
 # creating a project is account-level work, which a project-scoped
@@ -18,8 +26,8 @@ on:
       mode:
         description: 'probe = read the CLI surface only; deploy = provision and deploy'
         type: choice
-        options: [probe, deploy]
-        default: probe
+        options: [probe, deploy, redeploy]
+        default: redeploy
 
 jobs:
   railway:
@@ -35,7 +43,7 @@ jobs:
       # Help output needs no auth, so probe runs without a token and the
       # command surface can be read before the owner has added one.
       - name: Check the token is present
-        if: inputs.mode == 'deploy'
+        if: inputs.mode != 'probe'
         run: |
           if [ -z "${RAILWAY_API_TOKEN}" ]; then
             echo "::error::No Railway token found. Set the repo secret NEWAPIRAILWAY (or RAILWAY_API_TOKEN) to an account/workspace token from railway.com → Account Settings → Tokens — not a project token."
@@ -71,7 +79,7 @@ jobs:
       # Checking here turns a bare "Unauthorized" three commands later into a
       # message that says which token to go and make.
       - name: Verify the token is account-scoped
-        if: inputs.mode == 'deploy'
+        if: inputs.mode != 'probe'
         run: |
           if ! railway whoami 2>&1 | tee /tmp/whoami.txt; then :; fi
           if grep -qi 'unauthorized' /tmp/whoami.txt; then
@@ -162,16 +170,47 @@ jobs:
           echo "Migrations have NOT run yet — that is the next step, and it needs"
           echo "the database's public URL, which is read in the step below."
 
-      - name: Run migrations against the new database
+      - name: Redeploy the api service
+        if: inputs.mode == 'redeploy'
+        run: |
+          set -euo pipefail
+          cd global-emotes
+          cp infrastructure/docker/Dockerfile.api ./Dockerfile
+
+          echo "──────── link the existing project ────────"
+          railway link --project "${RAILWAY_PROJECT_ID}" --environment "${RAILWAY_ENVIRONMENT_ID}" --service api --json
+
+          echo "──────── deploy api ────────"
+          # railway.json rides along in the upload: Railway runs its
+          # preDeployCommand (the migrations) before this deployment goes live.
+          railway up --service api --ci
+
+          echo "──────── wait for the health check ────────"
+          for i in $(seq 1 24); do
+            code=$(curl -sS -o /tmp/health.json -w '%{http_code}' "${API_URL}/v1/health" || echo 000)
+            if [ "${code}" = "200" ]; then
+              echo "healthy after ~$((i*10))s: $(cat /tmp/health.json)"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::${API_URL}/v1/health did not return 200 within 4 minutes (last code ${code}). Check the deployment logs in the Railway dashboard."
+          exit 1
+
+      # Only possible when the Postgres service has a public (TCP proxy) URL;
+      # DATABASE_URL points at postgres.railway.internal, which the runner
+      # cannot resolve. Without a public URL this step passes and leaves the
+      # migrations to the api service's pre-deploy command (railway.json).
+      - name: Run migrations from the runner (only with a public database URL)
         if: inputs.mode == 'deploy'
         run: |
           set -uo pipefail
           cd global-emotes
           echo "Reading the Postgres public URL..."
           PGURL="$(railway variable list --service Postgres --json 2>/dev/null \
-                   | jq -r '.DATABASE_PUBLIC_URL // .DATABASE_URL // empty')"
+                   | jq -r '.DATABASE_PUBLIC_URL // empty')"
           if [ -z "${PGURL}" ]; then
-            echo "::warning::Could not read the database URL automatically. Run 'pnpm db:migrate' once with DATABASE_URL set to the Postgres service's DATABASE_PUBLIC_URL."
+            echo "::notice::Postgres has no public URL; migrations run inside Railway as the api service's pre-deploy command on its next deployment. Run this workflow in 'redeploy' mode to trigger one."
             exit 0
           fi
           corepack enable
