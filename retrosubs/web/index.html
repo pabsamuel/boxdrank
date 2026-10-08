@@ -245,7 +245,7 @@
   <button class="chip" id="gear">AYAR</button>
   <span id="status">hazir</span>
   <button class="chip" id="rec" style="display:none">● DURDUR</button>
-  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v15</span>
+  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v16</span>
 </div>
 
 <div id="diag"></div>
@@ -264,9 +264,20 @@
 
 <div id="sheet">
   <div class="full"><div id="meter"><i></i></div></div>
-  <div class="full">
-    <label for="name">KONUSAN</label>
+  <div>
+    <label for="name">KONUSAN 1</label>
     <input id="name" type="text" maxlength="14" placeholder="comolli" autocomplete="off" />
+  </div>
+  <div>
+    <label for="name2">KONUSAN 2</label>
+    <input id="name2" type="text" maxlength="14" placeholder="sen" autocomplete="off" />
+  </div>
+  <div class="full">
+    <label for="turns">SIRA</label>
+    <select id="turns">
+      <option value="one">tek kisi</option>
+      <option value="alt">her cumlede sirayla degissin</option>
+    </select>
   </div>
   <div>
     <label for="engine">MOTOR</label>
@@ -357,6 +368,7 @@
     test: $("test"), diag: $("diag"), diagSel: $("diagSel"),
     shot: $("shot"), recBtn: $("recBtn"), rec: $("rec"), pro: $("pro"),
     intro: $("intro"), introGo: $("introGo"), introShare: $("introShare"), buy: $("buy"),
+    name2: $("name2"), turns: $("turns"), speakerRow: $("speaker"),
   };
 
   // ---------------- text blip: synthesised, one per character ----------------
@@ -659,10 +671,23 @@
 
   document.getElementById("box").addEventListener("click", turnPage);
 
-  /** Whoever the microphone is listening to — the user names them, and we remember it. */
+  /**
+   * Who the microphone is attributed to. One mic cannot tell two voices apart -- that is a real
+   * limit, not an oversight -- so the user names the people and the box either stays on one of
+   * them, alternates each finished sentence, or switches when the name plate is tapped.
+   */
+  let turn = 0;
+
+  function speakerNames() {
+    const a = (el.name.value || "").trim().toUpperCase();
+    const b = (el.name2.value || "").trim().toUpperCase();
+    // One name means one speaker. Inventing a second one would put words in someone's mouth.
+    return [a || "SEN", b].filter(Boolean);
+  }
+
   function micName() {
-    const typed = (el.name.value || "").trim();
-    return (typed || "SEN").toUpperCase();
+    const names = speakerNames();
+    return names[turn % names.length];
   }
 
   function micId() {
@@ -672,11 +697,22 @@
     return Math.abs(h) % 64;                         // same name, same sigil, every time
   }
 
-  try { el.name.value = localStorage.getItem("retrosubs.name") || ""; } catch (e) {}
-  el.name.oninput = () => {
-    try { localStorage.setItem("retrosubs.name", el.name.value); } catch (e) {}
-    if (running) speaker(micName(), micId());
-  };
+  function nextTurn() {
+    const names = speakerNames();
+    if (names.length < 2) return;
+    turn = (turn + 1) % names.length;
+    speaker(micName(), micId());
+  }
+
+  el.speakerRow.addEventListener("click", nextTurn);   // tap the name plate to hand over
+
+  for (const field of ["name", "name2"]) {
+    try { el[field].value = localStorage.getItem("retrosubs." + field) || ""; } catch (e) {}
+    el[field].oninput = () => {
+      try { localStorage.setItem("retrosubs." + field, el[field].value); } catch (e) {}
+      if (running) speaker(micName(), micId());
+    };
+  }
 
   el.size.onchange = () => { el.line.style.fontSize = el.size.value + "px"; };
   el.speed.onchange = () => {
@@ -822,7 +858,7 @@
         }
       } else if (speaking && now - lastVoice > 550) {
         speaking = false;
-        if (!u.isEmpty) say(u.finish(), true);
+        if (!u.isEmpty) { say(u.finish(), true); if (el.turns.value === "alt") nextTurn(); }
         u = new Utterance(script);
       }
       raf = requestAnimationFrame(loop);
@@ -855,6 +891,7 @@
         heard++; el.status.textContent = "dinliyor";
         diag((fin ? "final" : "ara") + " len=" + text.length);
         say(fin ? punctuate(text) : text, fin);
+        if (fin && el.turns.value === "alt") nextTurn();
       }
     };
     recog.onerror = e => {
@@ -926,7 +963,7 @@
 
 
   // ---------------- settings that survive a reload ----------------
-  const REMEMBER = ["engine", "lang", "size", "frame", "speed", "sound", "diagSel"];
+  const REMEMBER = ["engine", "lang", "size", "frame", "speed", "sound", "diagSel", "turns"];
 
   function loadPrefs() {
     for (const id of REMEMBER) {

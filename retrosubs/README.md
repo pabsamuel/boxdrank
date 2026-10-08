@@ -43,6 +43,13 @@ the app below floats over other apps.
 | Switch to WhatsApp / Discord / Meet / anything | The box stays on top. Drag it with `⠿`, flip top/bottom with `⇅`, collapse with `▁`, pause with `❚❚`, close with `✕`. |
 | Speak | Text appears progressively, ~300–800 ms behind the voice. |
 
+### Iki kisi
+
+**AYAR**'da iki isim var. Kutudaki isme dokununca konusan degisir; `SIRA` ayarini
+"her cumlede sirayla degissin" yaparsan her biten cumleden sonra kendiliginden degisir.
+Tek mikrofonla iki sesi birbirinden ayirmak mumkun degil — bu yuzden kim konustuguna sen
+karar veriyorsun, uygulama tahmin etmiyor.
+
 ### Paylas: foto ve video
 
 **AYAR → FOTO CEK** ekrandaki kutuyu (kamerasıyla birlikte) PNG olarak verir, **VIDEO KAYDET**
