@@ -278,6 +278,19 @@ Submission
     need more time, you can contact our support team to request a trial
     extension."
   - Free developer accounts exist (team-squad is one).
+  - 8 Oct 2026: both apps still answer 200 on `/health` and `/view/`, four
+    days after the trial's end date. INFERENCE: the trial did not take the
+    monday code hosting down. Which account it was is still unconfirmed
+    (`SAMET-TODO.md` 1).
+- **Review response overdue, 8 Oct 2026.** FACT
+  (`apps/docs/submit-your-app.md`, updated 25 Feb 2026): "You can expect an
+  initial response within 72 business hours of submission". Problems come as
+  an invitation to "a monday.com board" by email. Both apps were submitted on
+  28 Sep. By 8 Oct no invitation or other email from monday's review team
+  had arrived, and the submission sent no confirmation email either.
+  - If nothing by 12 Oct: Samet asks through
+    https://monday.com/helpcenter/contact-support (the only contact the docs
+    give).
 
 ## 6. Market check — 2/2
 
