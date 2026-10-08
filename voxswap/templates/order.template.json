@@ -1,0 +1,75 @@
+{
+  "order_id": "ORD-YYYYMMDD-XXXXXX",
+  "created_at": "",
+  "customer": {
+    "name": "Customer Name",
+    "email": "customer@example.com",
+    "contact_locale": "en",
+    "notes": ""
+  },
+  "target": {
+    "kind": "game",
+    "title": "Title of the game or film",
+    "adapter": "generic",
+    "asset_root": "assets",
+    "include": ["**/*.wav"],
+    "exclude": ["**/music/**", "**/sfx/**"],
+    "script_file": "",
+    "delivery_layout": "mirror",
+    "output_format": "source"
+  },
+  "language": {
+    "source": "en",
+    "target": "en"
+  },
+  "voices": [
+    {
+      "voice_id": "main",
+      "person_label": "Customer Name",
+      "samples_dir": "voices/main",
+      "consent_ref": "C-1",
+      "gender_hint": "",
+      "accent_hint": ""
+    }
+  ],
+  "roles": [
+    {
+      "role_id": "HERO",
+      "display_name": "Main character",
+      "voice_id": "main",
+      "match": ["**/hero/**", "hero_*.wav"],
+      "match_speakers": ["hero"],
+      "style": "neutral"
+    }
+  ],
+  "consents": [
+    {
+      "consent_ref": "C-1",
+      "person_name": "Customer Name",
+      "person_email": "customer@example.com",
+      "is_self": true,
+      "signed_at": "",
+      "signature_file": "consent/C-1-signed.pdf",
+      "phrase_audio": "consent/C-1-phrase.wav",
+      "scope": ["voice_clone", "personal_use"],
+      "expires_at": "",
+      "revoked": false
+    }
+  ],
+  "options": {
+    "preserve_timing": true,
+    "max_stretch": 1.15,
+    "target_lufs": -18.0,
+    "emotion_transfer": true,
+    "keep_original_on_fail": true,
+    "max_parallel": 4,
+    "qc_max_duration_delta_ms": 250,
+    "qc_min_pass_rate": 0.97,
+    "dry_run_limit": 0
+  },
+  "providers": {
+    "asr": "mock",
+    "translation": "mock",
+    "voice": "mock"
+  }
+}

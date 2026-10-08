@@ -149,10 +149,15 @@ docker run -d -p 8000:8000 \
 
 ## Also in this repository
 
-Besides BoxdRank (this directory), the repo hosts two standalone Shopify
-apps, each self-contained with its own README, deployment guide, tests,
-and CI workflow:
+Besides BoxdRank (this directory), the repo hosts several standalone
+projects, each self-contained with its own README, docs, tests, and CI
+workflow:
 
+- [`voxswap/`](voxswap/) — **VoxSwap**: puts a customer's own voice into the
+  games and films they already own. Consent-gated voice cloning, dubbing
+  translation, and a ten-stage pipeline that delivers a drop-in audio folder
+- [`global-emotes/`](global-emotes/) — **Global Emotes**: creator emote packs
+  with a cross-platform entitlement engine and mobile keyboards
 - [`airsync/`](airsync/) — **AirSync**: syncs Shopify orders & products
   into a merchant's Airtable base in near real-time
 - [`notionsync/`](notionsync/) — **NotionSync**: the same connector for
