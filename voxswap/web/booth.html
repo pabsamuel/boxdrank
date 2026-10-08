@@ -1,6 +1,12 @@
-<title>VoxSwap Recording Booth</title>
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ses kaydı</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="site-config.js"></script>
 
 <style>
   :root {
@@ -158,7 +164,7 @@
   button.nav-btn:hover:not(:disabled) { border-color: var(--ink-3); }
   button.nav-btn:disabled { opacity: .4; cursor: not-allowed; }
   button.nav-btn.go { background: var(--steel); border-color: var(--steel); color: var(--surface); }
-  .skip { font-size: 13px; color: var(--ink-3); background: none; border: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; font-family: inherit; padding: 6px; }
+  .skip { white-space: nowrap; font-size: 13px; color: var(--ink-3); background: none; border: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; font-family: inherit; padding: 6px; }
   .skip:hover { color: var(--ink-2); }
   .banked { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 
@@ -167,14 +173,25 @@
   .checklist li:last-child { border-bottom: 0; }
   .tick { font-family: "IBM Plex Mono", monospace; flex: none; width: 15px; }
   .tick.on { color: var(--good); } .tick.off { color: var(--ink-3); }
-  .ref { font-size: 13.5px; color: var(--ink-2); margin: 0 0 6px; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: baseline; }
+  .ref { font-size: 13.5px; color: var(--ink-2); margin: 16px 0 6px; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: baseline; }
   .ref b { font-family: "IBM Plex Mono", monospace; font-weight: 500; color: var(--ink); letter-spacing: .02em; }
   .ref small { flex-basis: 100%; font-size: 12px; color: var(--ink-3); }
   .fine { font-size: 13px; color: var(--ink-3); margin: 16px 0 0; }
+  .home { font-size: 13px; font-weight: 600; color: var(--ink-2); text-decoration: none; white-space: nowrap; }
+  .home:hover { color: var(--ink); }
+  .send { display: grid; gap: 10px; margin: 4px 0 6px; }
+  .send .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  a.act, button.act { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-weight: 600; font-size: 15px; cursor: pointer; text-decoration: none;
+    border-radius: 9px; border: 1px solid var(--steel); background: var(--steel); color: var(--surface); padding: 11px 18px; }
+  a.act.alt, button.act.alt { background: var(--surface-2); color: var(--ink); border-color: var(--line); }
+  .send .addr { font-family: "IBM Plex Mono", monospace; font-size: 13.5px; color: var(--ink); user-select: all; }
 </style>
+</head>
+<body>
 
 <div class="shell">
   <div class="rail">
+    <a class="home" href="index.html" id="home"></a>
     <div class="rail-track"><div class="rail-fill" id="railFill"></div></div>
     <span class="rail-count" id="railCount"></span>
   </div>
@@ -194,14 +211,21 @@
 
   var MIN_PHRASE_S = 3, MIN_TOTAL_S = 30, GOOD_TOTAL_S = 90, MIN_TAKE_S = 3, RATE = 48000;
   var HOSTED = !!(window.claude && window.claude.use);
+  // site-config.js names the business and where packs go. Opened on its own
+  // (an emailed copy, an artifact preview) the page still works: the pack is
+  // built either way, and the send step falls back to "send it to whoever gave
+  // you this link".
+  var SITE = window.SITE || {};
+  var BRAND = (SITE.brand || "").trim() || "VoxSwap";
+  var INBOX = (SITE.contactEmail || "").trim();
 
   // ---------------------------------------------------------------- strings
   var T = {
     tr: {
-      hello: "Sesini kaydedelim", intake: "VoxSwap kayıt",
+      hello: "Sesini kaydedelim", intake: BRAND + " · ses kaydı",
       lede: "On bir kısa ekran. Her birinde bir cümle okuyorsun, sayfa hemen kaydın yeterli olup olmadığını söylüyor — yani gürültülü oda burada yakalanıyor, oyun baştan yapıldıktan sonra değil.",
       name: "Ad soyad", mail: "E-posta", langLabel: "Okuma dili",
-      namePh: "Samet Ateşen",
+      namePh: "Ayşe Yılmaz",
       orderRef: "Referans numaran", orderRefNote: "Bir sorun olursa bu numarayı söylemen yeterli.",
       idHint: "Son ekrandaki düğmeye basana kadar bu sayfadan hiçbir şey gönderilmiyor.",
       permission: "İzin", sayThis: "İzin formu",
@@ -220,10 +244,19 @@
       thirdParty: "Başkasının sesi mi? O zaman o kişinin sesli onayı gerekiyor — siparişi hazırlayan kişiye söyle.",
       passage: "Pasaj", of: "/", tone: "Ton: ",
       lastStep: "Son adım", sendIt: "Gönder",
-      sendLede: "Her şeyi tek dosyaya paketler, VoxSwap'in beklediği düzende. Dosya senin bilgisayarında kalır — kime vereceğine sen karar verirsin.",
+      sendLede: "Kayıtların ve izin formun tek bir dosyaya paketlenir. Dosya önce senin cihazına kaydedilir — gönderene kadar hiçbir yere gitmez.",
+      home: "← " + BRAND,
+      gameLabel: "Hangi oyun?", gamePh: "ör. The Last of Us Part I", charLabel: "Hangi karakter?", charPh: "ör. Joel",
+      gameNote: "İsteğe bağlı — yazarsan ücretsiz örneği o oyundan hazırlarız.",
+      shareBtn: "Paylaş — Mail, WhatsApp…", mailBtn: "E-postayı hazırla", sendTo: "Gönderilecek adres:",
+      mailAttach: "E-posta açılınca kaydettiğin .zip dosyasını ekle — tarayıcı dosyayı kendisi ekleyemiyor.",
+      bigFile: function (mb) { return "Dosya " + mb + " MB. E-postaya sığmazsa Google Drive ya da WeTransfer linki gönder."; },
+      noInbox: "Bu dosyayı, sana bu sayfanın linkini gönderen kişiye gönder.",
+      mailSubject: function (r) { return "Ses paketi — " + r; },
+      mailBody: function (r, f, g, c) { return "Merhaba,\n\nSes paketim ekte: " + f + "\nReferans: " + r + "\nOyun: " + (g || "") + "\nKarakter: " + (c || "") + "\nPlatform (PC / PlayStation / Xbox / Switch): \n\nTeşekkürler"; },
       record: "Kaydet", recordAgain: "Tekrar kaydet", stop: "Dur",
       back: "Geri", next: "İleri", start: "Başla", skip: "Bunu atla",
-      build: "Paketimi oluştur", packing: "Paketleniyor…",
+      build: "Paketimi oluştur", rebuild: "Paketi yeniden oluştur", packing: "Paketleniyor…",
       banked: "sn / " + GOOD_TOTAL_S + " sn biriktir",
       uploadBtn: "Onun yerine dosya yükle", uploadAgain: "Başka dosya yükle", reading: "Okunuyor…",
       uploadNote: "Bu cümleyi telefonunun ses kaydedicisiyle oku, sonra dosyayı seç. Aynı şekilde kontrol edilir.",
@@ -261,15 +294,15 @@
       ckClean: "Tekrar edilmesi gereken kayıt yok",
       ckBad: function (n) { return n + " kayıt tekrar bekliyor — pakete girmeyecekler"; },
       buildOff: "Yukarıdaki eksikleri tamamla, düğme açılacak.",
-      buildOn: "Bilgisayarına bir .zip kaydeder. O dosyayı siparişini hazırlayan kişiye gönder.",
-      savedAs: function (f) { return f + " olarak kaydedildi. Siparişini hazırlayan kişiye gönder."; },
+      buildOn: "Cihazına bir .zip kaydeder, sonra göndermen için seçenekler çıkar.",
+      savedAs: function (f) { return f + " olarak kaydedildi. Şimdi gönder:"; },
       saveCancel: "Kaydetme iptal edildi — hazır olunca tekrar bas.",
       saveBusy: "Zaten açık bir kaydetme penceresi var. Onu bitir, sonra tekrar dene.",
       saveNo: "Bu görünümde kaydetme çalışmıyor. Sayfayı kendi bilgisayarında aç ve paketi orada oluştur.",
       withdraw: "Fikrini değiştirirsen: silme talebi yeterli — klonlanan ses, ondan üretilen her satır ve teslimat yok edilir. Sana zaten gönderilmiş dosyalar geri alınamaz, bunu kimse vaat edemez."
     },
     en: {
-      hello: "Let's record your voice", intake: "VoxSwap intake",
+      hello: "Let's record your voice", intake: BRAND + " · voice recording",
       lede: "Eleven short screens. You read one line on each, and the page tells you straight away whether the take is good enough — so a noisy room gets caught here, not after your game has been rebuilt.",
       name: "Full name", mail: "Email", langLabel: "Reading language",
       namePh: "Ayse Demir",
@@ -291,10 +324,19 @@
       thirdParty: "Recording someone else's voice? That needs a spoken confirmation from them — tell whoever is building your order.",
       passage: "Passage", of: "of", tone: "Delivery: ",
       lastStep: "Last step", sendIt: "Send it over",
-      sendLede: "This packs everything into one file, laid out the way VoxSwap expects. It stays on your computer — you decide who gets it.",
+      sendLede: "Your takes and your permission form go into one file. It is saved to your device first — nothing leaves until you send it.",
+      home: "← " + BRAND,
+      gameLabel: "Which game?", gamePh: "e.g. The Last of Us Part I", charLabel: "Which character?", charPh: "e.g. Joel",
+      gameNote: "Optional — tell us and we make your free sample from that game.",
+      shareBtn: "Share — Mail, WhatsApp…", mailBtn: "Write the email", sendTo: "Send it to:",
+      mailAttach: "When the email opens, attach the .zip you just saved — a browser cannot attach it for you.",
+      bigFile: function (mb) { return "The file is " + mb + " MB. If your email refuses it, send a Google Drive or WeTransfer link instead."; },
+      noInbox: "Send this file to whoever sent you the link to this page.",
+      mailSubject: function (r) { return "Voice pack — " + r; },
+      mailBody: function (r, f, g, c) { return "Hi,\n\nMy voice pack is attached: " + f + "\nReference: " + r + "\nGame: " + (g || "") + "\nCharacter: " + (c || "") + "\nPlatform (PC / PlayStation / Xbox / Switch): \n\nThanks"; },
       record: "Record", recordAgain: "Record again", stop: "Stop",
       back: "Back", next: "Next", start: "Start", skip: "Skip this one",
-      build: "Build my recording pack", packing: "Packing…",
+      build: "Build my recording pack", rebuild: "Build it again", packing: "Packing…",
       banked: "s of " + GOOD_TOTAL_S + "s banked",
       uploadBtn: "Upload a recording instead", uploadAgain: "Upload a different file", reading: "Reading…",
       uploadNote: "Record this line in your phone's voice recorder, then pick the file. It gets checked exactly the same way.",
@@ -329,8 +371,8 @@
       ckClean: "Nothing flagged for a redo",
       ckBad: function (n) { return n + " take" + (n === 1 ? "" : "s") + " flagged — they will be left out"; },
       buildOff: "Go back and finish the unticked lines above, then this turns on.",
-      buildOn: "Saves a .zip to your computer. Send that file to whoever is building your order.",
-      savedAs: function (f) { return "Saved as " + f + ". Send that file to whoever is building your order."; },
+      buildOn: "Saves a .zip to your device, then shows you how to send it.",
+      savedAs: function (f) { return "Saved as " + f + ". Now send it:"; },
       saveCancel: "Save cancelled — press the button again when you are ready.",
       saveBusy: "A save prompt is already open. Finish that one, then try again.",
       saveNo: "Saving is not available in this view. Open the copy of this page on your own computer and build the pack there.",
@@ -378,7 +420,8 @@
     return "VS-" + String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, "0") +
            String(d.getDate()).padStart(2, "0") + "-" + tail;
   }
-  var who = { name: "", mail: "", order: orderId(), lang: "tr" };
+  var who = { name: "", mail: "", order: orderId(), lang: "tr", game: "", character: "" };
+  var packed = null;                     // { file, filename } once built
   var agreed = { ck1: false, ck2: false, ck3: false, ck4: false, signature: "" };
   var takes = {}, step = 0;
   var stream = null, actx = null, rec = null, recording = false, raf = 0, tick = 0, t0 = 0;
@@ -872,6 +915,10 @@
     if (ui.sync) { ui.sync.stop(); ui.sync = null; }
     teardownMeter();
     var L = t(), stage = $("stage"), last = stepCount() - 1;
+    // Leaving the last screen can change the takes or the form, so a pack
+    // built before that no longer matches; offering to send it would ship
+    // the old one.
+    if (step !== last) packed = null;
     stage.innerHTML = "";
     ui = {};
 
@@ -993,6 +1040,19 @@
         list.appendChild(li);
       });
       stage.appendChild(list);
+
+      var gf = el("div", "fields");
+      [["game", L.gameLabel, L.gamePh], ["character", L.charLabel, L.charPh]].forEach(function (spec) {
+        var box = el("div"), lab = el("label", null, spec[1]), input = el("input");
+        lab.setAttribute("for", "f_" + spec[0]);
+        input.id = "f_" + spec[0]; input.type = "text"; input.placeholder = spec[2]; input.autocomplete = "off";
+        input.value = who[spec[0]] || "";
+        input.addEventListener("input", function () { who[spec[0]] = input.value; paintSend(); });
+        box.appendChild(lab); box.appendChild(input); gf.appendChild(box);
+      });
+      stage.appendChild(gf);
+      stage.appendChild(el("p", "hint", L.gameNote));
+
       var ref = el("p", "ref");
       ref.appendChild(el("span", null, L.orderRef + " "));
       ref.appendChild(el("b", null, who.order));
@@ -1001,7 +1061,11 @@
       var note = el("p", "hint");
       note.id = "buildNote";
       stage.appendChild(note);
+      var send = el("div", "send");
+      send.id = "sendBox";
+      stage.appendChild(send);
       stage.appendChild(el("p", "fine", L.withdraw));
+      paintSend();
 
     } else {
       var idx = step - 2, p = passages()[idx], id = "s" + (idx + 1);
@@ -1020,9 +1084,13 @@
 
   function paint() {
     var L = t(), last = stepCount() - 1, total = banked();
+    // Uppercase labels follow the page's language: under lang="tr" an "i"
+    // capitalises to "İ", which is right for Turkish and wrong for English.
+    document.documentElement.lang = who.lang;
     $("railFill").style.width = ((step / last) * 100) + "%";
     $("railCount").textContent = (step + 1) + " / " + stepCount();
     $("banked").textContent = step > 0 && step < last ? Math.round(total) + " " + L.banked : "";
+    $("home").textContent = L.home;
     $("back").textContent = L.back;
     $("skip").textContent = L.skip;
     $("back").disabled = step === 0 || recording;
@@ -1045,16 +1113,61 @@
         sn.className = "signnote" + (consentGiven() ? " ok" : typed && typed.toLowerCase() !== who.name.trim().toLowerCase() ? " bad" : "");
       }
     } else if (step === last) {
-      nextBtn.textContent = L.build;
+      nextBtn.textContent = packed ? L.rebuild : L.build;
       nextBtn.disabled = !(who.name.trim() && who.mail.trim() && consentGiven() && total >= MIN_TOTAL_S);
       var note = $("buildNote");
-      if (note) note.textContent = nextBtn.disabled ? L.buildOff : L.buildOn;
+      if (note && !packed) note.textContent = nextBtn.disabled ? L.buildOff : L.buildOn;
     } else {
       var id = "s" + (step - 1);
       nextBtn.textContent = L.next;
       nextBtn.disabled = recording || !takes[id] || takes[id].level === "bad";
       skipBtn.hidden = recording || (!!takes[id] && takes[id].level !== "bad");
     }
+  }
+
+  // ----------------------------------------------------------------- send
+  // A pack sitting in Downloads earns nothing. Once it exists, offer the
+  // shortest way out of the device: the share sheet where there is one (phones
+  // — it can carry the file itself), and a pre-written email everywhere, since
+  // no browser can attach a file to a mailto link.
+  function paintSend() {
+    var box = $("sendBox"), L = t();
+    if (!box) return;
+    box.innerHTML = "";
+    if (!packed) return;
+    var row = el("div", "row");
+    var subject = L.mailSubject(who.order);
+    var body = L.mailBody(who.order, packed.filename, who.game.trim(), who.character.trim());
+    if (navigator.canShare && navigator.share) {
+      var canFile = false;
+      try { canFile = navigator.canShare({ files: [packed.file] }); } catch (err) { canFile = false; }
+      if (canFile) {
+        var sh = el("button", "act", L.shareBtn);
+        sh.type = "button";
+        sh.addEventListener("click", function () {
+          navigator.share({ files: [packed.file], title: subject, text: body + (INBOX ? "\n\n→ " + INBOX : "") })
+            .catch(function () { /* closed the sheet; the buttons stay */ });
+        });
+        row.appendChild(sh);
+      }
+    }
+    if (INBOX) {
+      var m = el("a", "act" + (row.childNodes.length ? " alt" : ""), L.mailBtn);
+      m.href = "mailto:" + INBOX + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+      row.appendChild(m);
+    }
+    if (row.childNodes.length) box.appendChild(row);
+    if (INBOX) {
+      var to = el("p", "hint");
+      to.appendChild(document.createTextNode(L.sendTo + " "));
+      to.appendChild(el("span", "addr", INBOX));
+      box.appendChild(to);
+      box.appendChild(el("p", "hint", L.mailAttach));
+    } else {
+      box.appendChild(el("p", "hint", L.noInbox));
+    }
+    var mb = packed.file.size / 1048576;
+    if (mb > 20) box.appendChild(el("p", "hint", L.bigFile(Math.round(mb))));
   }
 
   // ----------------------------------------------------------------- pack
@@ -1066,7 +1179,7 @@
     var zip = new JSZip();
 
     zip.file("consent/C-1-signed.md",
-      "# Consent — " + order + "\n\nI, " + who.name + ", give VoxSwap permission to create a synthetic copy of my\n" +
+      "# Consent — " + order + "\n\nI, " + who.name + ", give " + BRAND + " permission to create a synthetic copy of my\n" +
       "voice and to use it for the roles agreed in order " + order + ".\n\n" +
       "I understand that I can withdraw this permission at any time, that doing so\n" +
       "destroys the cloned voice and everything made from it, and that files already\n" +
@@ -1075,7 +1188,7 @@
       ["ck1", "ck2", "ck3", "ck4"].map(function (k) { return "  [x] " + T.en[k]; }).join("\n") + "\n\n" +
       "Scope: voice_clone, personal_use\nName:  " + who.name + "\nEmail: " + who.mail +
       "\nDate:  " + todayISO() + "\nSigned: " + agreed.signature +
-      "\nSigned in the VoxSwap Recording Booth. This voice is the customer's own,\n" +
+      "\nSigned in the " + BRAND + " recording booth (" + location.host + "). This voice is the customer's own,\n" +
       "so no spoken verification phrase was required.\n");
 
     var used = [], i = 1;
@@ -1103,6 +1216,8 @@
         agreed_points: ["ck1", "ck2", "ck3", "ck4"].map(function (k) { return T.en[k]; }),
         typed_signature: agreed.signature
       },
+      request: { game: who.game.trim(), character: who.character.trim() },
+      business: BRAND,
       samples: used,
       total_sample_seconds: +total.toFixed(2),
       audio_format: "PCM WAV, mono, " + RATE + " Hz, 16-bit",
@@ -1110,21 +1225,22 @@
     }, null, 2));
 
     zip.file("README.txt",
-      "VoxSwap recording pack — order " + order + "\n" + "=".repeat(46) + "\n\n" +
-      "Recorded by " + who.name + " on " + todayISO() + ".\n" +
-      total.toFixed(0) + " seconds of samples across " + used.length + " takes, plus the spoken permission.\n\n" +
+      BRAND + " recording pack — order " + order + "\n" + "=".repeat(46) + "\n\n" +
+      "Recorded by " + who.name + " <" + who.mail + "> on " + todayISO() + ".\n" +
+      "Game: " + (who.game.trim() || "(not given)") + "   Character: " + (who.character.trim() || "(not given)") + "\n" +
+      total.toFixed(0) + " seconds of samples across " + used.length + " takes, plus a signed permission form.\n\n" +
       "FOR THE OPERATOR\n" +
       "  1. Unzip into orders/" + order + "/ so you end up with:\n" +
-      "       orders/" + order + "/consent/C-1-phrase.wav\n" +
       "       orders/" + order + "/consent/C-1-signed.md\n" +
       "       orders/" + order + "/voices/" + voiceId + "/sample_*.wav\n" +
       "  2. Copy the voice/consent blocks out of intake.json into order.json.\n" +
       "  3. Add the game's audio under assets/ and run:\n" +
       "       python3 -m voxswap validate " + order + "\n\n" +
-      "  Play C-1-phrase.wav before building anything. It should say this person's\n" +
-      "  name, today's date and this order ID — that check is what makes a stolen\n" +
-      "  voice note useless, and only a human can actually do it.\n" +
-      "  It was recorded in: " + who.lang + "\n\n" +
+      "  This pack covers the sender's OWN voice only (a signed declaration, no\n" +
+      "  spoken phrase). Anyone else's voice needs their own spoken confirmation\n" +
+      "  and their own email before a single sample is used — see\n" +
+      "  docs/04-CONSENT-AND-RIGHTS.md.\n" +
+      "  Samples were read in: " + who.lang + "\n\n" +
       "EVERY TAKE, AS MEASURED\n" +
       used.map(function (u) {
         return "  " + u.file.split("/").pop() + "  " + u.seconds.toFixed(1) + "s  peak " +
@@ -1132,7 +1248,10 @@
       }).join("\n") + "\n");
 
     var blob = await zip.generateAsync({ type: "blob", compression: "STORE" });
-    var filename = "voxswap-" + slug(order) + "-" + voiceId + ".zip";
+    var filename = (slug(BRAND) || "voxswap") + "-" + slug(order) + "-" + voiceId + ".zip";
+    var file = null;
+    try { file = new File([blob], filename, { type: "application/zip" }); } catch (err) { file = blob; file.name = filename; }
+    packed = { file: file, filename: filename };
     var note = $("buildNote");
 
     if (HOSTED) {
@@ -1157,6 +1276,7 @@
       if (note) note.textContent = L.savedAs(filename);
     }
     paint();
+    paintSend();
   }
 
   // ------------------------------------------------------------------ nav
@@ -1179,3 +1299,5 @@
   render();
 })();
 </script>
+</body>
+</html>
