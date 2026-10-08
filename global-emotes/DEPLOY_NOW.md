@@ -17,6 +17,34 @@ never commit them. Regenerate any time with
 
 ---
 
+## Automated route (preferred)
+
+Most of this is now driven from GitHub Actions, because the agent's own
+environment cannot reach these providers' APIs but GitHub's runners can:
+
+| Workflow             | Does                                                                         |
+| -------------------- | ---------------------------------------------------------------------------- |
+| `railway-deploy.yml` | project, Postgres, Redis, api service, variables, deploy, domain, migrations |
+| `cloudflare-r2.yml`  | verifies the Cloudflare token, creates the three buckets                     |
+
+Each has a `probe` mode that only reads, and runs before anything is created.
+
+Two things must be done by hand in a dashboard first — no API can do either:
+
+1. **A Railway account token.** `railway.com` → **Account Settings → Tokens**,
+   _not_ a project's own Settings → Tokens. A project-scoped token cannot
+   create projects; `railway-deploy.yml` now detects that case and says so.
+   Store it as the repo secret `RAILWAY_API_TOKEN`.
+2. **Enable R2 on the Cloudflare account.** Dashboard → **R2** → enable (asks
+   for a card; $0 on the free tier). Until then the API answers
+   `10042 Please enable R2 through the Cloudflare Dashboard`, whatever the
+   token's permissions are — confirmed against the live API, not assumed.
+
+The R2 **S3 key pair** also comes from the dashboard (R2 → Manage R2 API
+Tokens): that credential is not issued by the REST API used here.
+
+The manual click-path below still stands, and is what the workflows automate.
+
 ## 0 · Accounts to create (3 signups, all "Continue with GitHub")
 
 | #   | Service                            | Why                                                  | Free tier enough?         |
