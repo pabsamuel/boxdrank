@@ -25,7 +25,10 @@ jobs:
   railway:
     runs-on: ubuntu-latest
     env:
-      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+      # NEWAPIRAILWAY holds the account-scoped token; the older
+      # RAILWAY_API_TOKEN secret is project-scoped and cannot create projects,
+      # so it is only a fallback.
+      RAILWAY_API_TOKEN: ${{ secrets.NEWAPIRAILWAY || secrets.RAILWAY_API_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -35,7 +38,7 @@ jobs:
         if: inputs.mode == 'deploy'
         run: |
           if [ -z "${RAILWAY_API_TOKEN}" ]; then
-            echo "::error::RAILWAY_API_TOKEN is not set. Add it under Settings → Secrets and variables → Actions → New repository secret. Use an account/workspace token from railway.com → Account Settings → Tokens, not a project token."
+            echo "::error::No Railway token found. Set the repo secret NEWAPIRAILWAY (or RAILWAY_API_TOKEN) to an account/workspace token from railway.com → Account Settings → Tokens — not a project token."
             exit 1
           fi
           echo "Token present (${#RAILWAY_API_TOKEN} characters)."
@@ -72,7 +75,7 @@ jobs:
         run: |
           if ! railway whoami 2>&1 | tee /tmp/whoami.txt; then :; fi
           if grep -qi 'unauthorized' /tmp/whoami.txt; then
-            echo "::error::Railway rejected this token for account-level calls, which means it is a PROJECT token (those cannot run whoami, list, or init). Create one at railway.com → Account Settings → Tokens — the account page, not a project's own Settings → Tokens — and replace the RAILWAY_API_TOKEN secret with it."
+            echo "::error::Railway rejected this token for account-level calls, which means it is a PROJECT token (those cannot run whoami, list, or init). Create one at railway.com → Account Settings → Tokens — the account page, not a project's own Settings → Tokens — and replace the NEWAPIRAILWAY secret with it."
             exit 1
           fi
 
