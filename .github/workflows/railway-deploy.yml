@@ -29,7 +29,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Help output needs no auth, so probe runs without a token and the
+      # command surface can be read before the owner has added one.
       - name: Check the token is present
+        if: inputs.mode == 'deploy'
         run: |
           if [ -z "${RAILWAY_API_TOKEN}" ]; then
             echo "::error::RAILWAY_API_TOKEN is not set. Add it under Settings → Secrets and variables → Actions → New repository secret. Use an account/workspace token from railway.com → Account Settings → Tokens, not a project token."
@@ -50,10 +53,14 @@ jobs:
             echo "═══════════ railway $c --help ═══════════"
             railway $c --help 2>&1 | head -40
           done
-          echo "═══════════ railway whoami ═══════════"
-          railway whoami 2>&1 | head -5
-          echo "═══════════ railway list ═══════════"
-          railway list 2>&1 | head -20
+          if [ -n "${RAILWAY_API_TOKEN}" ]; then
+            echo "═══════════ railway whoami ═══════════"
+            railway whoami 2>&1 | head -5
+            echo "═══════════ railway list ═══════════"
+            railway list 2>&1 | head -20
+          else
+            echo "(no RAILWAY_API_TOKEN yet — skipping the calls that need auth)"
+          fi
           exit 0
 
       - name: Provision and deploy
