@@ -1143,3 +1143,26 @@ an account to match it; deletes on uninstall only once monday reports the
 stored token dead (retry on unknown); and never takes a plan from the body —
 it reads `app_subscription` with the account's own token. A forged uninstall
 changes nothing and a forged "subscription created" cannot grant Pro.
+
+## ADR-038 — Pro alerts go by email, not monday notifications (8 Oct 2026)
+
+Found while adding complimentary Pro for live testing: `create_notification`
+requires `notifications:write` (monday API reference), which v1 does not
+request. Every Pro alert would have failed over to the console sink — the
+paid feature silently not working, which is the failure this product sells
+against.
+
+v1 is live and locked for review, so a new scope means a new version. Instead,
+alerts go by email now (owner's decision, 8 Oct): `EmailSink`, SMTP via
+`SMTP_URL` (secret) and `ALERT_FROM` (env). The recipient is the installer,
+read with `me { email }` at send time (me:read) and never stored. Channel
+order: customer webhook (if set) → email → monday notification (works once
+v2 adds the scope) → console.
+
+Same change: alerts are deduplicated. `TemplateRecord.alerted` keeps a
+fingerprint (finding ids) per linked board; a sweep alerts only when it
+changes, clears it when the board is back in line, and does not record a
+failed delivery, so it is retried next sweep. Messages now name the board
+instead of its id.
+
+Also new: `COMPLIMENTARY_PRO_ACCOUNTS` (partner licences, live testing).

@@ -278,7 +278,7 @@ describe('drift reporting', () => {
       }),
     );
     const text = notificationFor(
-      { templateBoardId: 't', copyBoardId: 'c', diff, counts: countBySeverity(diff.findings) },
+      { templateBoardId: 't', copyBoardId: 'c', copyBoardName: 'Acme Corp', diff, counts: countBySeverity(diff.findings) },
       'Acme Corp',
     );
     expect(text).toMatch(/wrong board/i);

@@ -30,6 +30,7 @@ import { InMemoryStorage, TokenCipher, type Storage } from './storage.js';
 import { SqliteStorage } from './sqlite-storage.js';
 import { ConsoleNotificationSink, DriftScheduler, type NotificationSink } from '../drift/scheduler.js';
 import { FallbackSink, MondayNotificationSink, WebhookSink } from '../drift/sinks.js';
+import { EmailSink, createSmtpMailer } from '../drift/email.js';
 import { mondayCors, rateLimit, requireHttps, securityHeaders } from './security.js';
 import { EnvConfig, MondayCodeConfig, type Config } from './config.js';
 import { MondayCodeStorage, type AccountStore, type SecureStore } from './monday-code-storage.js';
@@ -797,7 +798,33 @@ if (isMain) {
     return new MondayClient({ token: cipher.decrypt(install.encryptedToken) });
   };
 
+  // Email (ADR-038): the alert channel that needs no extra monday scope. The
+  // address is read from monday at send time with the installer's own token
+  // (`me { email }`, covered by me:read) and never stored.
+  const smtpUrl = config.get('SMTP_URL');
+  const alertFrom = config.get('ALERT_FROM');
+  const emailSink =
+    smtpUrl && alertFrom
+      ? new EmailSink(createSmtpMailer({ url: smtpUrl, from: alertFrom }), async (accountId) => {
+          const settings = await storage.getNotificationSettings(accountId);
+          if (!settings.enabled) return null;
+          const client = await clientForAccount(accountId);
+          if (!client) return null;
+          const { data } = await client.request<{ me?: { email?: string | null } | null }>('query { me { email } }');
+          return data?.me?.email ?? null;
+        })
+      : null;
+  if (!emailSink) {
+    console.warn('[template-guard] SMTP_URL / ALERT_FROM not set: drift alerts cannot be emailed.');
+  }
+
   const sink: NotificationSink = new FallbackSink([
+    // A webhook the customer configured wins; it throws when none is set.
+    new WebhookSink(async (accountId) => {
+      const settings = await storage.getNotificationSettings(accountId);
+      return settings.enabled ? settings.webhookUrl : null;
+    }),
+    ...(emailSink ? [emailSink] : []),
     new MondayNotificationSink(clientForAccount, async (accountId) => {
       const settings = await storage.getNotificationSettings(accountId);
       if (!settings.enabled) return null;
@@ -805,10 +832,6 @@ if (isMain) {
       // an auditing tool on the account is the right default recipient for it.
       if (settings.mondayUserId) return settings.mondayUserId;
       return (await storage.getInstall(accountId))?.installedByUserId ?? null;
-    }),
-    new WebhookSink(async (accountId) => {
-      const settings = await storage.getNotificationSettings(accountId);
-      return settings.enabled ? settings.webhookUrl : null;
     }),
     new ConsoleNotificationSink(),
   ]);

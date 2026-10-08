@@ -135,6 +135,56 @@ describe('DriftScheduler', () => {
     expect(sweep.results[0]!.errors).toEqual([]);
   });
 
+  it('alerts once per drift, not every sweep, and alerts again after a fix and a new drift', async () => {
+    const storage = await seed();
+    const sink = new RecordingSink();
+    const drifted = copyWith((b) => {
+      b.columns = b.columns.filter((c) => c.type !== 'status');
+    });
+    let board: typeof templateBoard = drifted;
+    const scheduler = new DriftScheduler(storage, cipher, sink, {
+      sleep: noSleep,
+      jitterMs: 0,
+      makeClient: () => fakeClient(board),
+    });
+
+    await scheduler.sweep();
+    await scheduler.sweep();
+    expect(sink.sent).toHaveLength(1);
+    expect(sink.sent[0]!.message).toContain(drifted.name);
+    expect(sink.sent[0]!.boardUrl).toBe(`https://agency.monday.com/boards/${COPY_BOARD_ID}`);
+
+    board = cleanCopy;
+    await scheduler.sweep();
+    expect(sink.sent).toHaveLength(1);
+
+    board = drifted;
+    await scheduler.sweep();
+    expect(sink.sent).toHaveLength(2);
+  });
+
+  it('retries a failed delivery on the next sweep instead of marking it as sent', async () => {
+    const storage = await seed();
+    const drifted = copyWith((b) => {
+      b.columns = b.columns.filter((c) => c.type !== 'status');
+    });
+    const broken = new DriftScheduler(storage, cipher, new BrokenSink(), {
+      sleep: noSleep,
+      jitterMs: 0,
+      makeClient: () => fakeClient(drifted),
+    });
+    await broken.sweep();
+
+    const sink = new RecordingSink();
+    const working = new DriftScheduler(storage, cipher, sink, {
+      sleep: noSleep,
+      jitterMs: 0,
+      makeClient: () => fakeClient(drifted),
+    });
+    await working.sweep();
+    expect(sink.sent).toHaveLength(1);
+  });
+
   it('sends nothing when the copy still matches its template', async () => {
     const storage = await seed();
     const sink = new RecordingSink();

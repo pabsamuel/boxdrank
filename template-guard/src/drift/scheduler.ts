@@ -3,7 +3,7 @@ import { TemplateGuardError } from '../api/errors.js';
 import type { Storage, StoredInstall } from '../server/storage.js';
 import type { TokenCipher } from '../server/storage.js';
 import { canUseDriftMonitoring } from '../billing/tiers.js';
-import { notificationFor, runDriftCheck, type DriftFinding, type DriftReport } from './monitor.js';
+import { driftFingerprint, notificationFor, runDriftCheck, type DriftFinding, type DriftReport } from './monitor.js';
 
 /**
  * What actually makes drift monitoring run.
@@ -34,6 +34,9 @@ export interface DriftNotification {
   copyBoardId: string;
   message: string;
   severity: 'miswired' | 'missing' | 'altered' | 'cosmetic';
+  /** The copy's name and a link to it, for channels that show more than a line. */
+  copyBoardName?: string;
+  boardUrl?: string;
 }
 
 /**
@@ -330,7 +333,20 @@ export class DriftScheduler {
           now: this.opts.now,
         });
         out.reports.push(report);
-        out.notificationsSent += await this.notify(accountId, report.drifted, out.errors);
+
+        // Alert only on drift that is new or has changed since the last alert.
+        const alerted = { ...(template.alerted ?? {}) };
+        const fresh = report.drifted.filter((f) => alerted[f.copyBoardId] !== driftFingerprint(f));
+        const delivered = await this.notify(accountId, fresh, out.errors, install);
+        out.notificationsSent += delivered.length;
+        for (const f of delivered) alerted[f.copyBoardId] = driftFingerprint(f);
+        const stillDrifted = new Set(report.drifted.map((f) => f.copyBoardId));
+        for (const boardId of report.checkedBoardIds) {
+          if (!stillDrifted.has(boardId)) delete alerted[boardId];
+        }
+        if (JSON.stringify(alerted) !== JSON.stringify(template.alerted ?? {})) {
+          await this.storage.saveTemplate({ ...template, alerted });
+        }
       } catch (err) {
         // One template's failure must not cancel the rest of the account.
         out.errors.push(`Template ${template.templateBoardId}: ${describe(err)}`);
@@ -344,20 +360,29 @@ export class DriftScheduler {
     return out;
   }
 
-  private async notify(accountId: string, drifted: DriftFinding[], errors: string[]): Promise<number> {
-    let sent = 0;
+  private async notify(
+    accountId: string,
+    drifted: DriftFinding[],
+    errors: string[],
+    install?: StoredInstall,
+  ): Promise<DriftFinding[]> {
+    const sent: DriftFinding[] = [];
     for (const finding of drifted) {
       const severity = topSeverity(finding);
       const notification: DriftNotification = {
         accountId,
         templateBoardId: finding.templateBoardId,
         copyBoardId: finding.copyBoardId,
-        message: notificationFor(finding, finding.diff.copyBoardId),
+        message: notificationFor(finding, finding.copyBoardName || finding.copyBoardId),
         severity,
+        copyBoardName: finding.copyBoardName,
+        boardUrl: install?.accountSlug
+          ? `https://${install.accountSlug}.monday.com/boards/${finding.copyBoardId}`
+          : undefined,
       };
       try {
         await this.sink.deliver(notification);
-        sent += 1;
+        sent.push(finding);
       } catch (err) {
         // A delivery failure is recorded rather than retried here. Retrying
         // inside a sweep risks turning a mail outage into a stalled monitor.

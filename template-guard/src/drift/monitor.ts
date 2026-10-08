@@ -25,6 +25,8 @@ import { canUseDriftMonitoring, type AccountPlan } from '../billing/tiers.js';
 export interface DriftFinding {
   templateBoardId: string;
   copyBoardId: string;
+  /** The copy's name, for messages people read. */
+  copyBoardName: string;
   diff: DiffResult;
   /** Severity counts, for deciding whether this is worth a notification. */
   counts: ReturnType<typeof countBySeverity>;
@@ -117,6 +119,7 @@ export async function runDriftCheck(
         drifted.push({
           templateBoardId: template.templateBoardId,
           copyBoardId: snapshot.boardId,
+          copyBoardName: snapshot.name,
           diff,
           counts,
         });
@@ -160,4 +163,14 @@ export function notificationFor(finding: DriftFinding, boardName: string): strin
     return `“${boardName}” is missing ${counts.missing} thing${counts.missing === 1 ? '' : 's'} its template has.`;
   }
   return `“${boardName}” has drifted from its template.`;
+}
+
+/** What a drift *is*, independent of when it was seen: its finding ids. */
+export function driftFingerprint(finding: DriftFinding): string {
+  const ids = finding.diff.findings
+    .filter((f) => f.severity !== 'cosmetic')
+    .map((f) => f.id)
+    .sort();
+  if (finding.diff.basedOnIncompleteData) ids.push('incomplete-read');
+  return ids.join('|');
 }

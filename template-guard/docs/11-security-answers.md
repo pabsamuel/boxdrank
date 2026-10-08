@@ -14,7 +14,7 @@ The app serves from one domain, its monday code URL:
 
 None are in the repository (`.gitignore` covers `.env`, `.mappsrc`). The five
 secrets — `MONDAY_CLIENT_ID`, `MONDAY_CLIENT_SECRET`, `MONDAY_SIGNING_SECRET`,
-`TOKEN_ENCRYPTION_KEY`, `DRIFT_CRON_SECRET` — are monday code secrets, read at
+`TOKEN_ENCRYPTION_KEY`, `DRIFT_CRON_SECRET`, `SMTP_URL` — are monday code secrets, read at
 startup through the SDK (`src/server/config.ts`, `MondayCodeConfig`). A missing
 one is reported by name only, never by value.
 
@@ -34,10 +34,12 @@ one is reported by name only, never by value.
 | Template board configuration: board/column/group/view ids, titles, types, settings; owners and subscribers as user ids | monday Storage, per account (JSON text) | To compare copies against the template |
 | Plan and alert settings | Secure Storage | Feature gating and alert delivery |
 
+| Installer's email address | **Not stored** — read with `me { email }` when an alert is sent | Drift alert emails (ADR-038) |
+
 **No item data**: no item names, column values, updates or files are requested
 or stored. Enforced at the storage boundary by `assertNoItemData()` in every
-storage implementation, before serialisation. The only personal data is the
-installer's monday user id.
+storage implementation, before serialisation. Personal data: the installer's monday user id (stored)
+and, for Pro alerts, their email address (read at send time, not stored).
 
 ## Scopes
 
@@ -104,6 +106,13 @@ since 30 Sep 2026; the site is Cloudflare Pages, built from
 from the sweep index, deletes its templates from Storage (while the token
 still allows it), and its plan, alert settings and install from Secure
 Storage (`src/server/monday-code-storage.ts`).
+
+## Email
+
+Alerts are plain text (board names cannot inject markup), sent over SMTP with
+TLS required (`smtps://`, or `smtp://` with mandatory STARTTLS). The SMTP
+password is scrubbed from every error before it is logged —
+`src/drift/email.ts`.
 
 ## Cookies
 

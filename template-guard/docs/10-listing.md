@@ -125,7 +125,8 @@ Modelled on Automation Watchdog's `SUBMISSION.md`. **OWNER** = only Samet can do
 
 ## 21 — Personal Data Use
 
-> One piece of personal data: the monday user id of the installer, so drift
-> alerts have a recipient. Board owners and subscribers are stored only as
+> Two pieces of personal data: the monday user id of the installer (stored), and
+> on the Pro plan their email address, read from monday only at the moment a
+> drift alert is emailed and never stored. Board owners and subscribers are stored only as
 > user ids, as part of the board configuration. No item names, column values,
 > updates or files are read or stored. Everything is deleted on uninstall.

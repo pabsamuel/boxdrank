@@ -119,6 +119,13 @@ export interface TemplateRecord {
   linkedBoardIds: string[];
   createdAt: string;
   updatedAt: string;
+  /**
+   * The drift last reported per linked board, as a fingerprint of its finding
+   * ids. A sweep alerts only when this changes, so one unfixed board is one
+   * email, not four a day. Cleared when the board comes back into line, so it
+   * alerts again if it drifts again.
+   */
+  alerted?: Record<string, string>;
 }
 
 export function isSnapshotComplete(s: BoardSnapshot): boolean {
