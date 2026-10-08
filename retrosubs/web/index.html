@@ -245,7 +245,7 @@
   <button class="chip" id="gear">AYAR</button>
   <span id="status">hazir</span>
   <button class="chip" id="rec" style="display:none">● DURDUR</button>
-  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v16</span>
+  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v17</span>
 </div>
 
 <div id="diag"></div>
@@ -339,6 +339,7 @@
     <label for="diagSel">TANI</label>
     <select id="diagSel"><option value="0" selected>kapali</option><option value="1">acik</option></select>
   </div>
+  <button class="btn" id="txt">YAZIYI KAYDET</button>
   <button class="btn" id="shot">FOTO CEK</button>
   <button class="btn" id="recBtn">VIDEO KAYDET</button>
   <div class="full">
@@ -366,7 +367,7 @@
     meter: $("meter").firstElementChild, engine: $("engine"), lang: $("lang"), size: $("size"),
     frame: $("frame"), speed: $("speed"), sound: $("sound"), demo: $("demo"), name: $("name"),
     test: $("test"), diag: $("diag"), diagSel: $("diagSel"),
-    shot: $("shot"), recBtn: $("recBtn"), rec: $("rec"), pro: $("pro"),
+    shot: $("shot"), recBtn: $("recBtn"), rec: $("rec"), pro: $("pro"), txt: $("txt"),
     intro: $("intro"), introGo: $("introGo"), introShare: $("introShare"), buy: $("buy"),
     name2: $("name2"), turns: $("turns"), speakerRow: $("speaker"),
   };
@@ -661,7 +662,10 @@
    * stop otherwise.
    */
   const TR_QUESTION_TAIL = /\bm[ıiuü](s[ıiuü]n(ız|iz|uz|üz)?|y[ıiuü][zm]|sınız|siniz|sunuz|sünüz)?\s*$/i;
-  const QUESTION_WORD = /^(ne|neden|niye|nasıl|kim|kime|kimin|kaç|hangi|nerede|nereye|nereden|ne zaman|what|where|when|why|how|who|which|is|are|do|does|did|can|could|would|should)\b/i;
+  // Turkish question words take suffixes -- 'nasilsin', 'kimsin', 'nerede' -- so matching a whole
+  // word misses most real questions. Match the stem instead, and keep \b only where the stem is
+  // also the start of ordinary words ('ne' in 'neyse', 'nem').
+  const QUESTION_WORD = /^(nas[ıi]l|neden|niye|niçin|kim|ka[çc]|hangi|nere|ne\b|ne zaman|what|where|when|why|how|who|which|is|are|do|does|did|can|could|would|should)/i;
 
   function punctuate(text) {
     const t = text.trim();
@@ -858,7 +862,12 @@
         }
       } else if (speaking && now - lastVoice > 550) {
         speaking = false;
-        if (!u.isEmpty) { say(u.finish(), true); if (el.turns.value === "alt") nextTurn(); }
+        if (!u.isEmpty) {
+          const line = u.finish();
+          say(line, true);
+          remember(micName(), line);
+          if (el.turns.value === "alt") nextTurn();
+        }
         u = new Utterance(script);
       }
       raf = requestAnimationFrame(loop);
@@ -890,8 +899,12 @@
       if (text) {
         heard++; el.status.textContent = "dinliyor";
         diag((fin ? "final" : "ara") + " len=" + text.length);
-        say(fin ? punctuate(text) : text, fin);
-        if (fin && el.turns.value === "alt") nextTurn();
+        const line = fin ? punctuate(text) : text;
+        say(line, fin);
+        if (fin) {
+          remember(micName(), line);
+          if (el.turns.value === "alt") nextTurn();
+        }
       }
     };
     recog.onerror = e => {
@@ -1129,6 +1142,25 @@
     setTimeout(() => URL.revokeObjectURL(url), 10000);
     return "kaydedildi";
   }
+
+  // Every finished line, kept in memory only: the box shows two lines at a time, but a
+  // conversation is worth more than its last page.
+  const transcript = [];
+
+  function remember(name, text) {
+    const t = new Date();
+    const stamp = String(t.getHours()).padStart(2, "0") + ":" + String(t.getMinutes()).padStart(2, "0");
+    transcript.push(`[${stamp}] ${name}: ${text}`);
+    if (transcript.length > 500) transcript.shift();
+  }
+
+  el.txt.onclick = async () => {
+    if (!transcript.length) { el.status.textContent = "henuz yazi yok"; return; }
+    el.sheet.classList.remove("open");
+    const header = "RetroSubs — " + new Date().toLocaleString("tr-TR") + "\n\n";
+    const blob = new Blob([header + transcript.join("\n") + "\n"], { type: "text/plain;charset=utf-8" });
+    el.status.textContent = await deliver(blob, "retrosubs.txt");
+  };
 
   el.shot.onclick = async () => {
     el.sheet.classList.remove("open");
