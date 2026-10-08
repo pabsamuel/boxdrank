@@ -6,6 +6,8 @@ WORKDIR /repo
 
 FROM base AS deps
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
 COPY apps/worker/package.json apps/worker/
 COPY packages ./packages
 RUN pnpm install --frozen-lockfile --filter @global-emotes/worker...
@@ -15,4 +17,4 @@ ENV NODE_ENV=production
 COPY --from=deps /repo /repo
 COPY apps/worker ./apps/worker
 USER node
-CMD ["node_modules/.bin/tsx", "apps/worker/src/index.ts"]
+CMD ["apps/worker/node_modules/.bin/tsx", "apps/worker/src/index.ts"]

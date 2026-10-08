@@ -297,19 +297,60 @@ export async function handleTokenRefresh(
 
 // ── Cleanup ──────────────────────────────────────────────────────────────────
 
+/**
+ * Grace period before an uploaded-but-unused grant's bytes are swept. The
+ * grant itself expires 15 minutes after it is issued; this is measured from
+ * that expiry, so a client that uploads and then takes a while to finish
+ * creating the emote is never cut off mid-flow.
+ */
+const QUARANTINE_SWEEP_GRACE_MS = 24 * 3_600_000;
+
 export async function handleCleanup(
   deps: HandlerDeps,
-): Promise<{ expiredGrants: number; expiredTokens: number }> {
-  const { db } = deps;
+): Promise<{ expiredGrants: number; expiredTokens: number; sweptObjects: number }> {
+  const { db, storage, env } = deps;
   const now = deps.now?.() ?? new Date();
   const grants = await db
     .update(schema.uploadGrants)
     .set({ status: 'expired' })
     .where(and(eq(schema.uploadGrants.status, 'pending'), lt(schema.uploadGrants.expiresAt, now)))
     .returning({ id: schema.uploadGrants.id });
+
+  // Sweep quarantine objects whose grant was uploaded but never consumed.
+  // Without this they are never deleted: the asset-processing handler only
+  // removes an object after a SUCCESSFUL emote, so bytes from an abandoned or
+  // rejected upload stay in the bucket forever and the bucket grows without
+  // bound. Everything else writing to storage is bounded by the per-plan emote
+  // cap; this path was not.
+  const abandoned = await db
+    .select({ id: schema.uploadGrants.id, objectKey: schema.uploadGrants.objectKey })
+    .from(schema.uploadGrants)
+    .where(
+      and(
+        eq(schema.uploadGrants.status, 'uploaded'),
+        lt(schema.uploadGrants.expiresAt, new Date(now.getTime() - QUARANTINE_SWEEP_GRACE_MS)),
+      ),
+    );
+  let sweptObjects = 0;
+  for (const grant of abandoned) {
+    // Mark expired even if the delete fails, so one unreachable object cannot
+    // make the sweep retry it forever; the bucket lifecycle rule is the
+    // backstop. Idempotent: deleting an already-gone key is not an error.
+    try {
+      await storage.delete(env.S3_BUCKET_QUARANTINE, grant.objectKey);
+      sweptObjects += 1;
+    } catch {
+      // Leave it to the next sweep's backstop; the grant is still closed below.
+    }
+    await db
+      .update(schema.uploadGrants)
+      .set({ status: 'expired' })
+      .where(eq(schema.uploadGrants.id, grant.id));
+  }
+
   const tokens = await db
     .delete(schema.authTokens)
     .where(lt(schema.authTokens.expiresAt, new Date(now.getTime() - 24 * 3_600_000)))
     .returning({ id: schema.authTokens.id });
-  return { expiredGrants: grants.length, expiredTokens: tokens.length };
+  return { expiredGrants: grants.length, expiredTokens: tokens.length, sweptObjects };
 }

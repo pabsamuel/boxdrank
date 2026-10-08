@@ -17,3 +17,7 @@ apps/ios/build/
 apps/ios/DerivedData/
 *.xcuserstate
 drizzle/**/meta/_journal.json.bak
+
+# Playwright run artifacts
+test-results/
+playwright-report/

@@ -154,6 +154,9 @@ export async function buildServer(ctx: AppContext): Promise<Server> {
     ok: true,
     service: ctx.env.BRAND_NAME,
     time: new Date().toISOString(),
+    // Railway sets this on every deployment; the deploy workflow uses it to
+    // wait for the version it just uploaded instead of the one still serving.
+    deployment: process.env.RAILWAY_DEPLOYMENT_ID ?? null,
   }));
   app.get('/v1/openapi.json', async () => app.swagger());
 

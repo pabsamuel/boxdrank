@@ -7,6 +7,8 @@ WORKDIR /repo
 FROM base AS deps
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+COPY apps/worker/package.json apps/worker/
 COPY packages ./packages
 RUN pnpm install --frozen-lockfile --filter @global-emotes/api...
 
@@ -14,7 +16,11 @@ FROM base AS runtime
 ENV NODE_ENV=production
 COPY --from=deps /repo /repo
 COPY apps/api ./apps/api
+# --chmod because the build context may arrive as an upload that did not carry
+# the executable bit (Railway's `up` uploads an archive).
+COPY --chmod=0755 infrastructure/docker/api-entrypoint.sh ./entrypoint.sh
 USER node
 EXPOSE 3001
-# tsx runs the TS sources directly (internal packages are consumed as source).
-CMD ["node_modules/.bin/tsx", "apps/api/src/index.ts"]
+# The entrypoint applies database migrations and then execs the API; tsx runs
+# the TS sources directly, since internal packages are consumed as source.
+CMD ["./entrypoint.sh"]

@@ -1,0 +1,84 @@
+# CI for Perde (perde/): the same pipeline a contributor runs locally with
+# `pnpm verify`, plus the Playwright smoke suite against the real relay
+# (wrangler dev + workerd). No Cloudflare credentials needed.
+name: Perde CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "perde/**"
+      - ".github/workflows/perde-ci.yml"
+  pull_request:
+    paths:
+      - "perde/**"
+      - ".github/workflows/perde-ci.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: perde-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: perde
+
+jobs:
+  verify:
+    name: typecheck · lint · unit · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: perde/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: perde/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm validate:content
+      - run: pnpm build
+      - name: Progress metrics
+        run: pnpm metrics --check
+      - uses: actions/upload-artifact@v4
+        with:
+          name: perde-web-dist
+          path: perde/apps/web/dist
+          retention-days: 7
+
+  e2e:
+    name: e2e (playwright vs wrangler dev)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: verify
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: perde/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: perde/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm e2e
+        env:
+          CI: "1"
+          WRANGLER_SEND_METRICS: "false"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: perde-playwright-report
+          path: |
+            perde/playwright-report
+            perde/test-results
+          retention-days: 7

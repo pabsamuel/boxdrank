@@ -1,0 +1,128 @@
+name: Deploy to Railway
+
+# Runs on GitHub's runners, which have the outbound network access the
+# authoring environment does not. Three modes so the real command surface is
+# read from the installed CLI before anything is provisioned:
+#
+#   probe    — install the CLI and print its help. Changes nothing.
+#   deploy   — first-time provisioning: project, Postgres, Redis, api. The
+#              script refuses to run if the project already exists.
+#   redeploy — deploy the current code to the existing project named by
+#              RAILWAY_PROJECT_ID below. The mode for every deploy after the
+#              first.
+#
+# Database migrations are applied by the api container's entrypoint
+# (global-emotes/infrastructure/docker/api-entrypoint.sh) before the server
+# starts, on Railway's own network. railway.json's preDeployCommand used to
+# carry them, but Railway no longer honours legacy config-as-code for services
+# created through the CLI, so it silently did nothing and every
+# database-backed route answered 500.
+#
+# Every run tees its output to a file that is committed to the `ci-logs`
+# branch, because Actions logs are served from a storage host the authoring
+# environment cannot reach. Key results are also emitted as annotations.
+#
+# Needs an ACCOUNT-scoped token in the repo secret NEWNEWRAILWAYAPIKEY: creating a
+# project is account-level work, which a project-scoped token cannot do. On
+# railway.com the token form pre-selects a Workspace — leave that field BLANK,
+# or the token it issues will be rejected for `whoami`, `list` and `init`.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'probe = read the CLI surface only; deploy = first-time provisioning; redeploy = ship the current code to the existing project'
+        type: choice
+        options: [probe, deploy, redeploy]
+        default: redeploy
+
+jobs:
+  railway:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      # NEWNEWRAILWAYAPIKEY holds the account-scoped token. The older
+      # NEWAPIRAILWAY and RAILWAY_API_TOKEN secrets turned out to be
+      # workspace/project-scoped (they fail `railway whoami`), so they are
+      # only fallbacks.
+      RAILWAY_API_TOKEN: ${{ secrets.NEWNEWRAILWAYAPIKEY || secrets.NEWAPIRAILWAY || secrets.RAILWAY_API_TOKEN }}
+      # The project and environment the first `deploy` run created on
+      # 2026-10-08 ("global-emotes" in pabsamuel's Projects), and the domain
+      # it was given. Identifiers, not secrets: the token is what grants access.
+      RAILWAY_PROJECT_ID: 44f08990-122d-4f57-b9aa-d0c9a3e9486e
+      RAILWAY_ENVIRONMENT_ID: 706690e6-545c-44c7-ad32-c118f3811c7d
+      API_DOMAIN: api-production-844a7.up.railway.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Railway CLI
+        run: |
+          npm install -g @railway/cli
+          echo "::notice title=CLI::$(railway --version 2>&1)"
+
+      - name: Read the CLI surface
+        if: inputs.mode == 'probe'
+        run: |
+          set -o pipefail
+          global-emotes/infrastructure/scripts/railway-probe.sh 2>&1 | tee /tmp/run.log
+          exit 0
+
+      # `whoami` is the one call that separates the two token types: an
+      # account-scoped token answers it, a project-scoped one cannot. Checking
+      # here turns a bare "Unauthorized" three commands later into a message
+      # that names the fix.
+      - name: Verify the token is account-scoped
+        if: inputs.mode != 'probe'
+        run: |
+          if [ -z "${RAILWAY_API_TOKEN}" ]; then
+            echo "::error title=No token::Set the repo secret NEWNEWRAILWAYAPIKEY to an account-scoped token from railway.com -> Account Settings -> Tokens, with the Workspace field left BLANK."
+            exit 1
+          fi
+          echo "Token present (${#RAILWAY_API_TOKEN} characters)."
+          railway whoami 2>&1 | tee /tmp/whoami.txt || true
+          if grep -qi 'unauthorized' /tmp/whoami.txt; then
+            echo "::error title=Project token, not an account token::Railway rejected this token for account-level calls. Create one at railway.com -> Account Settings -> Tokens and LEAVE THE WORKSPACE FIELD BLANK -- the form pre-selects a workspace, and a workspace/project-scoped token cannot run whoami, list or init. Then replace the NEWNEWRAILWAYAPIKEY secret."
+            exit 1
+          fi
+          echo "::notice title=Token::Account-scoped, accepted."
+
+      - name: Provision and deploy
+        if: inputs.mode == 'deploy'
+        env:
+          BRAND_NAME: Global Emotes
+          # Optional: set these repo secrets to wire storage and sign-in email.
+          # Without them the API still boots, but uploads and magic-link
+          # sign-in will not work until they are supplied.
+          # Only needed if the Railway account has more than one workspace;
+          # with one, the CLI auto-selects and this can stay unset.
+          RAILWAY_WORKSPACE: ${{ secrets.RAILWAY_WORKSPACE }}
+          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+        run: |
+          set -o pipefail
+          global-emotes/infrastructure/scripts/railway-deploy.sh 2>&1 | tee -a /tmp/run.log
+
+      - name: Redeploy the api service
+        if: inputs.mode == 'redeploy'
+        run: |
+          set -o pipefail
+          global-emotes/infrastructure/scripts/railway-redeploy.sh 2>&1 | tee -a /tmp/run.log
+
+      - name: Migrate and smoke-test
+        if: inputs.mode != 'probe'
+        run: |
+          set -o pipefail
+          global-emotes/infrastructure/scripts/railway-migrate.sh 2>&1 | tee -a /tmp/run.log
+
+      # always(): a failed run is exactly the one whose log is worth reading.
+      - name: Publish the run log
+        if: always()
+        uses: ./.github/actions/publish-log
+        with:
+          file: /tmp/run.log
+          name: ${{ inputs.mode }}.log

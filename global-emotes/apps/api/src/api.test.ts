@@ -169,6 +169,34 @@ describe('creator journey: profile → upload → pack → publish', () => {
     expect(emoteRes.statusCode).toBe(400);
   });
 
+  it('caps how many upload grants one user can hold open at once', async () => {
+    // A grant reserves a slot to write bytes into the quarantine bucket, and
+    // the per-plan emote cap cannot bound that: it is checked when the emote
+    // is created, which is after the bytes have landed. Unlimited grants
+    // therefore means unlimited storage writes from one account.
+    const ask = () =>
+      t.app.inject({
+        method: 'POST',
+        url: '/v1/uploads',
+        headers: { cookie },
+        payload: { fileName: 'x.png', mimeType: 'image/png', bytes: 1024 },
+      });
+
+    let refused: Awaited<ReturnType<typeof ask>> | undefined;
+    // Comfortably past the cap; the loop stops at the first refusal.
+    for (let i = 0; i < 40; i += 1) {
+      const res = await ask();
+      if (res.statusCode !== 200) {
+        refused = res;
+        break;
+      }
+    }
+
+    expect(refused).toBeDefined();
+    expect(refused!.statusCode).toBe(400);
+    expect(refused!.json().error.message).toContain('too many upload grants open');
+  });
+
   it('creates a pack, attaches the emote, sets rules, publishes', async () => {
     const packRes = await t.app.inject({
       method: 'POST',

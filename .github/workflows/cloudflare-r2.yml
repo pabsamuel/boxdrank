@@ -1,0 +1,112 @@
+name: Cloudflare R2 buckets
+
+# The authoring environment cannot reach api.cloudflare.com (egress policy),
+# so this runs on GitHub's runners. Uses the CLOUDFLARE_API_TOKEN and
+# CLOUDFLARE_ACCOUNT_ID secrets that already exist on this repo.
+#
+#   probe  — verify the token and list buckets. Changes nothing.
+#   create — create the three buckets the asset pipeline expects.
+#
+# Every result is emitted as a workflow ANNOTATION (::notice:: / ::error::),
+# not just stdout: run logs are served from a storage host the authoring
+# environment cannot reach, but annotations come back over the plain REST API.
+# So anything worth reading afterwards has to go through an annotation.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'probe = verify token and list buckets; create = create the buckets'
+        type: choice
+        options: [probe, create]
+        default: probe
+
+jobs:
+  r2:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      API: https://api.cloudflare.com/client/v4
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the secrets are present
+        run: |
+          [ -n "${CF_TOKEN}" ]   || { echo "::error::CLOUDFLARE_API_TOKEN is not set."; exit 1; }
+          [ -n "${CF_ACCOUNT}" ] || { echo "::error::CLOUDFLARE_ACCOUNT_ID is not set."; exit 1; }
+          echo "::notice title=Secrets::Token ${#CF_TOKEN} chars, account id ${#CF_ACCOUNT} chars."
+
+      - name: Verify the token
+        run: |
+          set -uo pipefail
+          exec > >(tee -a /tmp/run.log) 2>&1
+          body=$(curl -sS "${API}/user/tokens/verify" -H "Authorization: Bearer ${CF_TOKEN}")
+          echo "$body"
+          ok=$(jq -r '.success' <<<"$body")
+          status=$(jq -r '.result.status // "unknown"' <<<"$body")
+          errs=$(jq -rc '[.errors[]? | "\(.code): \(.message)"] | join(" | ")' <<<"$body")
+          if [ "$ok" != "true" ]; then
+            echo "::error title=Token rejected::${errs:-no error detail}"
+            exit 1
+          fi
+          echo "::notice title=Token::valid, status=${status}"
+
+      - name: List buckets
+        id: list
+        run: |
+          set -uo pipefail
+          exec > >(tee -a /tmp/run.log) 2>&1
+          # A 10042 error here means the token is fine but R2 is not enabled on
+          # the account; 10000-ish means the token carries no R2 permission.
+          # Both are the thing worth knowing before 'create'.
+          body=$(curl -sS "${API}/accounts/${CF_ACCOUNT}/r2/buckets" -H "Authorization: Bearer ${CF_TOKEN}")
+          echo "$body"
+          ok=$(jq -r '.success' <<<"$body")
+          errs=$(jq -rc '[.errors[]? | "\(.code): \(.message)"] | join(" | ")' <<<"$body")
+          if [ "$ok" != "true" ]; then
+            case "$errs" in
+              *10042*) echo "::error title=R2 not enabled::${errs} -- click 'Add R2 subscription to my account' in the Cloudflare dashboard (it is free; 10GB/mo), then re-run this workflow." ;;
+              *)       echo "::error title=R2 list failed::${errs:-no error detail}" ;;
+            esac
+            exit 1
+          fi
+          names=$(jq -rc '[.result.buckets[]?.name] | join(", ")' <<<"$body")
+          echo "::notice title=Buckets::${names:-<none>}"
+
+      - name: Create the buckets
+        if: inputs.mode == 'create'
+        run: |
+          set -uo pipefail
+          exec > >(tee -a /tmp/run.log) 2>&1
+          failed=0
+          for b in emote-originals emote-processed uploads-quarantine; do
+            body=$(curl -sS -X POST "${API}/accounts/${CF_ACCOUNT}/r2/buckets" \
+              -H "Authorization: Bearer ${CF_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data "{\"name\":\"${b}\"}")
+            echo "$body"
+            ok=$(jq -r '.success' <<<"$body")
+            errs=$(jq -rc '[.errors[]? | "\(.code): \(.message)"] | join(" | ")' <<<"$body")
+            if [ "$ok" = "true" ]; then
+              echo "::notice title=Created::${b}"
+            # An existing bucket is the desired end state, not a failure.
+            elif printf '%s' "$errs" | grep -qiE 'already (exists|owned)|10004'; then
+              echo "::notice title=Already there::${b} -- ${errs}"
+            else
+              echo "::error title=Create failed::${b} -- ${errs:-no error detail}"
+              failed=1
+            fi
+          done
+          [ "$failed" -eq 0 ] || exit 1
+          echo "::notice title=Next by hand::An R2 *S3* access key pair is still needed (dashboard -> R2 -> Manage R2 API Tokens); that credential is not issued by this API path."
+
+      # always(): a failed run is exactly the one whose log is worth reading.
+      - name: Publish the run log
+        if: always()
+        uses: ./.github/actions/publish-log
+        with:
+          file: /tmp/run.log
+          name: ${{ inputs.mode }}.log

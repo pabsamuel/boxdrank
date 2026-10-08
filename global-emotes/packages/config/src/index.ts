@@ -29,9 +29,22 @@ const envSchema = z.object({
   S3_BUCKET_QUARANTINE: z.string().default('uploads-quarantine'),
   ASSET_CDN_URL: z.string().default('http://localhost:9000/emote-processed'),
 
+  // Delivery goes over SMTP for every value except 'console'; hosted providers
+  // (Resend, Postmark, SES) are configured through their SMTP endpoint and
+  // credentials below rather than a bespoke HTTP client per vendor.
   EMAIL_PROVIDER: z.enum(['smtp', 'resend', 'console']).default('smtp'),
   SMTP_HOST: z.string().default('localhost'),
   SMTP_PORT: z.coerce.number().default(1025),
+  // Empty user means an unauthenticated relay (Mailpit locally). Every hosted
+  // provider needs both, or sign-in email silently never sends.
+  SMTP_USER: z.string().default(''),
+  SMTP_PASS: z.string().default(''),
+  // Not z.coerce.boolean(): that turns the string 'false' into true. Unset
+  // means "derive from the port" (465 is implicit TLS, 587/25 use STARTTLS).
+  SMTP_SECURE: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v === 'true')),
   EMAIL_FROM: z.string().default('no-reply@localhost'),
 
   STRIPE_SECRET_KEY: z.string().default(''),

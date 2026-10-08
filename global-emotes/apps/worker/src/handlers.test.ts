@@ -210,4 +210,45 @@ describe('cleanup handler', () => {
     expect(result.expiredGrants).toBe(1);
     expect(result.expiredTokens).toBe(1);
   });
+
+  it('deletes quarantine bytes from uploads that never became an emote', async () => {
+    // An 'uploaded' grant that is never consumed: the asset-processing handler
+    // only deletes a quarantine object after a SUCCESSFUL emote, so without
+    // the sweep these bytes stay in the bucket forever.
+    const key = 'incoming/abandoned-upload';
+    await deps.storage.put(deps.env.S3_BUCKET_QUARANTINE, key, Buffer.from('bytes'), 'image/png');
+    await db.insert(schema.uploadGrants).values({
+      userId: seeded.fanUserId,
+      objectKey: key,
+      mimeType: 'image/png',
+      maxBytes: 1000,
+      status: 'uploaded',
+      // Past expiry by more than the sweep's grace period.
+      expiresAt: new Date(NOW.getTime() - 25 * 3_600_000),
+    });
+
+    const result = await handleCleanup(deps);
+
+    expect(result.sweptObjects).toBe(1);
+    expect(await deps.storage.get(deps.env.S3_BUCKET_QUARANTINE, key)).toBeNull();
+  });
+
+  it('leaves a recent upload alone so a slow client is not cut off mid-flow', async () => {
+    const key = 'incoming/still-in-flight';
+    await deps.storage.put(deps.env.S3_BUCKET_QUARANTINE, key, Buffer.from('bytes'), 'image/png');
+    await db.insert(schema.uploadGrants).values({
+      userId: seeded.fanUserId,
+      objectKey: key,
+      mimeType: 'image/png',
+      maxBytes: 1000,
+      status: 'uploaded',
+      // Expired, but well inside the grace period.
+      expiresAt: new Date(NOW.getTime() - 60_000),
+    });
+
+    const result = await handleCleanup(deps);
+
+    expect(result.sweptObjects).toBe(0);
+    expect(await deps.storage.get(deps.env.S3_BUCKET_QUARANTINE, key)).not.toBeNull();
+  });
 });
