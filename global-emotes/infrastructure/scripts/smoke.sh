@@ -3,6 +3,10 @@
 #
 #   ./infrastructure/scripts/smoke.sh https://api-emotes.example.com https://emotes.example.com
 #
+# The web URL is optional: with the API alone, the three API-side checks run
+# and the web check is reported as skipped. That is the shape of a deploy
+# where the API goes live before the front end.
+#
 # Or via env: API_URL=... WEB_URL=... ./infrastructure/scripts/smoke.sh
 # Exits non-zero if any check fails, so it works as a deploy gate.
 
@@ -11,8 +15,8 @@ set -u
 API="${1:-${API_URL:-}}"
 WEB="${2:-${WEB_URL:-}}"
 
-if [ -z "$API" ] || [ -z "$WEB" ]; then
-  echo "usage: $0 <api-base-url> <web-base-url>" >&2
+if [ -z "$API" ]; then
+  echo "usage: $0 <api-base-url> [web-base-url]" >&2
   echo "   eg: $0 https://api-emotes.example.com https://emotes.example.com" >&2
   exit 2
 fi
@@ -24,8 +28,9 @@ CURL="curl -sS --max-time 20"
 
 pass() { printf '  \033[32mPASS\033[0m  %s\n' "$1"; }
 fail() { printf '  \033[31mFAIL\033[0m  %s\n' "$1"; FAILED=1; }
+skip() { printf '  \033[33mSKIP\033[0m  %s\n' "$1"; }
 
-echo "smoke: api=$API web=$WEB"
+echo "smoke: api=$API web=${WEB:-<not deployed, skipping>}"
 echo
 
 # 1 — API is up and is our service
@@ -62,18 +67,22 @@ esac
 
 # 4 — Web app renders
 echo "4. Web app"
-CODE=$($CURL -o /dev/null -w '%{http_code}' -L "$WEB/" 2>/dev/null) || CODE=''
-if [ "$CODE" = "200" ]; then
-  pass "200"
+if [ -z "$WEB" ]; then
+  skip "no web URL given"
 else
-  fail "expected 200, got '${CODE:-no response}'"
+  CODE=$($CURL -o /dev/null -w '%{http_code}' -L "$WEB/" 2>/dev/null) || CODE=''
+  if [ "$CODE" = "200" ]; then
+    pass "200"
+  else
+    fail "expected 200, got '${CODE:-no response}'"
+  fi
 fi
 
 echo
 if [ "$FAILED" -eq 0 ]; then
-  echo "All four checks passed — the deployment is live."
-  echo "Next: log in with a magic link (needs RESEND_API_KEY), then create a pack"
-  echo "and upload a PNG to exercise the asset pipeline and the CDN domain."
+  echo "Checks passed — the deployment is live."
+  echo "Next: log in with a magic link (needs the SMTP_* variables set), then"
+  echo "create a pack and upload a PNG to exercise the asset pipeline."
 else
   echo "Smoke test FAILED. Full regression: docs/QA_TEST_PLAN.md" >&2
 fi
