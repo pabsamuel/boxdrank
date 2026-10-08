@@ -17,6 +17,7 @@ import {
   type SeatInfo,
   type StageState,
   onStageAt,
+  StageStateSchema,
 } from '@perde/shared';
 import { getPack, isUnlocked, packs } from '@perde/content';
 
@@ -50,6 +51,10 @@ export interface StageModel {
 export type StageEvent =
   | { type: 'joined'; seat: string; name?: string; at: number }
   | { type: 'left'; seat: string }
+  /** The relay's greeting after (re)connecting: who is on the phones right now. */
+  | { type: 'welcome'; peers: Array<{ seat: string; name?: string }>; at: number }
+  /** A reloaded TV picks its room back up from a saved snapshot. */
+  | { type: 'restore'; snapshot: unknown }
   | { type: 'plan'; plan: Plan; notice?: string }
   | { type: 'notice'; notice?: string }
   | { type: 'msg'; msg: FromControllerMsg; at: number }
@@ -115,6 +120,87 @@ export function createStageModel(cultureId = 'tr', plan: Plan = 'free'): StageMo
     casting: {},
     names,
     hostSeat: null,
+    custom: [],
+  };
+}
+
+/**
+ * What a TV needs to pick a room back up after a reload: the broadcast state
+ * plus the casting and names behind it. Poses and gestures are ephemeral and
+ * custom puppet images are big, so neither is saved; phones re-send both.
+ */
+export interface StageSnapshot {
+  v: 1;
+  code: string;
+  state: StageState;
+  casting: Record<string, string>;
+  names: Record<string, string>;
+  hostSeat: string | null;
+}
+
+export function snapshotModel(model: StageModel, code: string): StageSnapshot {
+  return {
+    v: 1,
+    code,
+    state: { ...model.state, customPuppets: [] },
+    casting: model.casting,
+    names: model.names,
+    hostSeat: model.hostSeat,
+  };
+}
+
+function isStringRecord(v: unknown): v is Record<string, string> {
+  return (
+    !!v &&
+    typeof v === 'object' &&
+    !Array.isArray(v) &&
+    Object.values(v as Record<string, unknown>).every((x) => typeof x === 'string')
+  );
+}
+
+/** The schema lives in shared; the app-side fields are checked by hand (no zod in the app). */
+function parseSnapshot(v: unknown): StageSnapshot | null {
+  if (!v || typeof v !== 'object') return null;
+  const o = v as Record<string, unknown>;
+  if (o.v !== 1 || typeof o.code !== 'string') return null;
+  const state = StageStateSchema.safeParse(o.state);
+  if (!state.success) return null;
+  if (!isStringRecord(o.casting) || !isStringRecord(o.names)) return null;
+  if (o.hostSeat !== null && typeof o.hostSeat !== 'string') return null;
+  return {
+    v: 1,
+    code: o.code,
+    state: state.data,
+    casting: o.casting,
+    names: o.names,
+    hostSeat: o.hostSeat,
+  };
+}
+
+/**
+ * Rebuild a model from a snapshot. Every seat comes back disconnected: the
+ * relay's welcome says who is really there. Returns null for junk.
+ */
+export function restoreModel(snapshot: unknown, plan: Plan): StageModel | null {
+  const snap = parseSnapshot(snapshot);
+  if (!snap) return null;
+  const pack = getPack(snap.state.cultureId);
+  if (!pack) return null;
+  const play = snap.state.play
+    ? (pack.plays.find((p) => p.id === snap.state.play?.id) ?? null)
+    : null;
+  if (snap.state.play && !play) return null;
+  const seats = snap.state.seats.map((seat) => ({ ...seat, connected: false, isHost: false }));
+  return {
+    state: { ...snap.state, plan, seats, customPuppets: [], notice: undefined },
+    pack,
+    play,
+    lines: play ? flattenLines(play) : [],
+    poses: {},
+    gestures: {},
+    casting: play ? snap.casting : {},
+    names: snap.names,
+    hostSeat: snap.hostSeat,
     custom: [],
   };
 }
@@ -360,6 +446,23 @@ export function reduceStage(model: StageModel, ev: StageEvent): StageModel {
         state: { ...model.state, seats, mode },
       };
     }
+    case 'welcome': {
+      let next = model;
+      for (const p of ev.peers)
+        next = reduceStage(next, { type: 'joined', seat: p.seat, name: p.name, at: ev.at });
+      if (next.state.seats.some((s) => s.connected)) return next;
+      // Nobody is holding a rod: whatever was running is over.
+      return {
+        ...next,
+        hostSeat: null,
+        play: null,
+        lines: [],
+        casting: {},
+        state: { ...next.state, mode: 'lobby', play: null },
+      };
+    }
+    case 'restore':
+      return restoreModel(ev.snapshot, model.state.plan) ?? model;
     case 'left': {
       const seats = model.state.seats.map((s) =>
         s.id === ev.seat ? { ...s, connected: false } : s,

@@ -116,3 +116,12 @@ secrets exist. `docs/DEPLOY.md`.
 ## Decisions
 
 Short ADRs in `docs/decisions/`. Add one whenever you choose between real alternatives.
+
+## Reconnection
+
+- The relay replaces a reloaded TV's socket and a reloaded phone's seat socket (close codes
+  4000/4001), and tells phones when the stage goes offline/online.
+- The TV keeps a snapshot of the room in session storage and restores it on load (decision
+  0010); the relay's `welcome` then says which seats are really connected.
+- Phones re-send their pose and newest drawing on their own `welcome` and on `stage: online`,
+  and retake the wake lock and microphone when the screen comes back.
