@@ -13,10 +13,12 @@ import {
 import { lintContent, MAX_WORDS_PER_LINE } from './validate';
 
 describe('content packs', () => {
-  it('registers the Turkish and English packs', () => {
-    expect(cultures.map((c) => c.id)).toEqual(['tr', 'en']);
+  it('registers the Turkish, English and Indonesian packs', () => {
+    expect(cultures.map((c) => c.id)).toEqual(['tr', 'en', 'id']);
     expect(getPack('tr')?.plays.length).toBeGreaterThanOrEqual(4);
     expect(getPack('en')?.plays.length).toBeGreaterThanOrEqual(1);
+    expect(getPack('id')?.plays.length).toBeGreaterThanOrEqual(1);
+    expect(getPack('id')?.puppets.map((p) => p.id)).toEqual(['semar', 'petruk', 'rama', 'hanoman']);
   });
 
   it('has no cross-reference errors', () => {

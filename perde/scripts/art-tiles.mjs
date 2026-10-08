@@ -7,12 +7,17 @@
 //   node scripts/art-tiles.mjs webp <workDir> <outDir> <name…> # plain .webp for set pieces
 //
 // Everything runs in headless Chromium (canvas), so no image library is needed.
+// A job's `key` says what is behind the tiles: true = the white page (flood-filled from the
+// border, so white inside a figure survives but enclosed white does not), 'magenta' = a
+// #FF00FF page (every magenta pixel is background; use this for figures with enclosed gaps).
 // PERDE_CHROMIUM_PATH points at the browser when Playwright's own download is unavailable.
 
 import { chromium } from '@playwright/test';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
-const FIGURES = ['karagoz', 'hacivat', 'celebi', 'zenne'];
+const ALL_FIGURES = ['karagoz', 'hacivat', 'celebi', 'zenne', 'semar', 'petruk', 'rama', 'hanoman'];
+// ART_ONLY=semar,petruk limits a command to some figures.
+const FIGURES = process.env.ART_ONLY ? process.env.ART_ONLY.split(',') : ALL_FIGURES;
 const ART_BOX = { w: 1000, h: 1980 };
 
 const JOBS = [
@@ -70,6 +75,51 @@ const JOBS = [
     cols: [0, 488],
     rows: [0, 600, 856],
   },
+  {
+    name: 'semar',
+    w: 896,
+    h: 1776,
+    key: 'magenta',
+    prefix: 's',
+    cols: [0, 296],
+    rows: [0, 600, 1176],
+  },
+  {
+    name: 'petruk',
+    w: 896,
+    h: 1776,
+    key: 'magenta',
+    prefix: 'p',
+    cols: [0, 296],
+    rows: [0, 600, 1176],
+  },
+  {
+    name: 'rama',
+    w: 896,
+    h: 1776,
+    key: 'magenta',
+    prefix: 'r',
+    cols: [0, 296],
+    rows: [0, 600, 1176],
+  },
+  {
+    name: 'hanoman',
+    w: 896,
+    h: 1776,
+    key: 'magenta',
+    prefix: 'm',
+    cols: [0, 296],
+    rows: [0, 600, 1176],
+  },
+  {
+    name: 'gunungan',
+    w: 1088,
+    h: 1456,
+    key: 'magenta',
+    prefix: 'u',
+    cols: [0, 488],
+    rows: [0, 600, 856],
+  },
 ];
 
 async function withPage(fn) {
@@ -91,6 +141,7 @@ async function stitch(tilesDir, outDir) {
   mkdirSync(outDir, { recursive: true });
   await withPage(async (page) => {
     for (const job of JOBS) {
+      if (process.env.ART_ONLY && !FIGURES.includes(job.name)) continue;
       const tiles = [];
       for (const y of job.rows)
         for (const x of job.cols)
@@ -115,7 +166,46 @@ async function stitch(tilesDir, outDir) {
             ctx.drawImage(img, t.x, t.y);
           }
           let stats = '';
-          if (job.key) {
+          if (job.key === 'magenta') {
+            // The page behind the tiles is #FF00FF, a colour no painted leather has:
+            // every magenta pixel is background, and a rim pixel's share of magenta
+            // is its share of background (so the anti-aliased edge keeps its shape).
+            const im = ctx.getImageData(0, 0, job.w, job.h);
+            const d = im.data;
+            const W = job.w;
+            const H = job.h;
+            const bgness = (i) =>
+              Math.max(0, Math.min(1, (Math.min(d[i], d[i + 2]) - d[i + 1] - 60) / 140));
+            const bg = new Float32Array(W * H);
+            for (let p = 0; p < W * H; p++) bg[p] = bgness(p * 4);
+            let cleared = 0;
+            for (let y = 0; y < H; y++)
+              for (let x = 0; x < W; x++) {
+                const p = y * W + x;
+                const i = p * 4;
+                const b = bg[p];
+                if (b >= 0.5) {
+                  d[i + 3] = 0;
+                  cleared++;
+                  continue;
+                }
+                // Only pixels touching the background get a soft edge; painted purples stay.
+                const nearBg =
+                  (x > 0 && bg[p - 1] >= 0.5) ||
+                  (x < W - 1 && bg[p + 1] >= 0.5) ||
+                  (y > 0 && bg[p - W] >= 0.5) ||
+                  (y < H - 1 && bg[p + W] >= 0.5);
+                if (nearBg && b > 0.05) {
+                  const a = 1 - b;
+                  d[i] = Math.max(0, Math.min(255, (d[i] - b * 255) / a));
+                  d[i + 1] = Math.max(0, Math.min(255, d[i + 1] / a));
+                  d[i + 2] = Math.max(0, Math.min(255, (d[i + 2] - b * 255) / a));
+                  d[i + 3] = Math.round(255 * a);
+                }
+              }
+            ctx.putImageData(im, 0, 0);
+            stats = `cleared ${((100 * cleared) / (W * H)).toFixed(1)}% as magenta background`;
+          } else if (job.key) {
             const im = ctx.getImageData(0, 0, job.w, job.h);
             const d = im.data;
             const W = job.w;
@@ -292,6 +382,66 @@ const ARMS = {
       [520, 760],
     ],
   },
+  semar: {
+    dx: -140,
+    polygon: [
+      [600, 610],
+      [700, 540],
+      [780, 300],
+      [900, 280],
+      [900, 520],
+      [840, 720],
+      [790, 820],
+      [660, 820],
+    ],
+  },
+  petruk: {
+    dx: -140,
+    polygon: [
+      [500, 560],
+      [560, 520],
+      [600, 560],
+      [700, 900],
+      [700, 1420],
+      [800, 1620],
+      [760, 1660],
+      [580, 1500],
+      [540, 1000],
+      [480, 620],
+    ],
+  },
+  rama: {
+    dx: -140,
+    polygon: [
+      [520, 640],
+      [620, 590],
+      [700, 900],
+      [720, 1380],
+      [860, 1500],
+      [860, 1540],
+      [700, 1520],
+      [640, 1320],
+      [540, 900],
+      [500, 700],
+    ],
+  },
+  hanoman: {
+    dx: -140,
+    polygon: [
+      [600, 660],
+      [740, 620],
+      [800, 900],
+      [840, 1100],
+      [840, 1440],
+      [980, 1560],
+      [980, 1680],
+      [880, 1680],
+      [780, 1460],
+      [700, 1150],
+      [640, 900],
+      [580, 760],
+    ],
+  },
 };
 
 /**
@@ -363,11 +513,14 @@ async function parts(pngDir, outDir) {
                 [dx, 0],
                 [dx * 1.5, 0],
                 [dx * 2, 0],
+                [dx * 2.5, 0],
+                [dx, 120],
+                [dx, -120],
                 [0, 160],
                 [0, 320],
                 [0, 480],
-                [dx, 160],
                 [0, -160],
+                [0, -320],
               ]) {
                 const qx = Math.round(x + ox);
                 const qy = Math.round(y + oy);

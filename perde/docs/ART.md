@@ -16,7 +16,11 @@ file exists (`art` on a puppet, see `CONTENT_GUIDE.md`). The Turkish pack's Kara
 | `zenne-arm.webp`   | the forearm with the fan                        |
 | `gostermelik.webp` | the göstermelik (vase of tulips), 1088 × 1456   |
 
-Rigs (`packages/content/src/tr/puppets.ts`, `art:` blocks) use a 1000 × 1980 box; the images are
+The Indonesian pack's four figures and its gunungan live in `apps/web/public/art/id/` the same way
+(`semar`, `petruk`, `rama`, `hanoman` with `-arm` layers; `gunungan.webp`).
+
+Rigs (`packages/content/src/tr/puppets.ts`, `art:` blocks; `packages/content/src/id/puppets.ts`,
+raster rigs) use a 1000 × 1980 box; the images are
 stretched to it (`preserveAspectRatio="none"`), so any resolution with that ratio works.
 
 ## Source
@@ -25,15 +29,21 @@ Generated with Canva's image generator in the traditional painted-leather style,
 removed, then placed on the export sheet design **`DAHWpy4YgoE`** ("Perde tasvir export sheet")
 in the owner's Canva account:
 
-| page  | content                                         |
-| ----- | ----------------------------------------------- |
-| 1–3   | Karagöz, Hacivat, Ottoman street backdrop, full |
-| 7–24  | 600 × 600 windows of the three images (tiles)   |
-| 25–36 | 600 × 600 windows of Çelebi and Zenne           |
-| 37–42 | 600 × 600 windows of the göstermelik            |
+| page   | content                                                                         |
+| ------ | ------------------------------------------------------------------------------- |
+| 1–3    | Karagöz, Hacivat, Ottoman street backdrop, full                                 |
+| 7–24   | 600 × 600 windows of the three images (tiles)                                   |
+| 25–36  | 600 × 600 windows of Çelebi and Zenne                                           |
+| 37–42  | 600 × 600 windows of the göstermelik                                            |
+| 43–72  | 600 × 600 windows of Semar, Petruk, Rama, Hanoman and the gunungan (white page) |
+| 73–100 | the same windows on a magenta page (the ones the files are made from)           |
+
+A second sheet, **`DAHXZ204OFc`**, holds the two gunungan windows that did not fit (a design has
+at most 100 pages).
 
 Media ids: Karagöz `MAHWo1QILio`, Hacivat `MAHWoxUTikw`, Çelebi `MAHWqJIf5ws`, Zenne
-`MAHWqAn_dws`, göstermelik `MAHWqPbyngg`, backdrop `MAHWouzoZTg`.
+`MAHWqAn_dws`, göstermelik `MAHWqPbyngg`, backdrop `MAHWouzoZTg`. Wayang: Semar `MAHXZstkcDM`, Petruk
+`MAHXZhPsU08`, Rama `MAHXZhlDc2E`, Hanoman `MAHXZoKKIZc`, gunungan `MAHXZogX6fk`.
 
 ## Getting pixels out of Canva from a session
 
@@ -47,12 +57,16 @@ when the page is 600 px. Hence the tiles:
    columns 0, 296; rows 0, 600, 1176. For the 1680 × 944 backdrop: columns 0, 600, 1080; rows 0, 344.
 2. `read-design` with `thumbnail_pages` returns the renders inline; save them as
    `<prefix>-<x>-<y>.png` (`k-`, `h-`, `b-`).
-3. `node scripts/art-tiles.mjs stitch <tilesDir> <workDir>` joins them and keys out the page
-   white (flood fill from the border, so white inside a figure survives).
+3. `node scripts/art-tiles.mjs stitch <tilesDir> <workDir>` joins them and keys out the page.
+   On a white page the key is a flood fill from the border, so white paint inside a figure
+   survives but an enclosed gap (between an arm and the torso) does not. Figures with such gaps
+   get their tile pages a magenta background (`#FF00FF`, `background_color` on `add_page`) and
+   `key: 'magenta'` in the script: every magenta pixel is background, edges keep their
+   anti-aliasing. The wayang figures use magenta; the Karagöz ones were fine on white.
 4. `node scripts/art-tiles.mjs grid <workDir> <gridDir>` draws a coordinate grid to read polygons
    off; `node scripts/art-tiles.mjs parts <workDir> apps/web/public/art/tr` writes the body and
    arm layers as WebP; `node scripts/art-tiles.mjs webp <workDir> <outDir> gostermelik` converts a
-   set piece that has no rig.
+   set piece that has no rig. `ART_ONLY=semar,petruk` limits any command to some figures.
 
 If the environment's network policy ever allows `*.canva.com`, `export-design` (PNG, transparent
 background, lossless) gives the same pixels in one file; run steps 3–4 on it unchanged.

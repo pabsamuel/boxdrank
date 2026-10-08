@@ -1,12 +1,13 @@
 import type { Culture, CulturePack, Play, Puppet } from '@perde/shared';
 import { packTr } from './tr';
 import { packEn } from './en';
+import { packId } from './id';
 
 /**
  * Registry of every culture pack. Order = order shown in the lobby.
  * Adding a tradition means adding a folder and one line here.
  */
-export const packs: CulturePack[] = [packTr, packEn];
+export const packs: CulturePack[] = [packTr, packEn, packId];
 
 export const cultures: Culture[] = packs.map((p) => p.culture);
 
@@ -34,3 +35,4 @@ export function isUnlocked(item: { premium: boolean }, plan: Plan): boolean {
 
 export { packTr } from './tr';
 export { packEn } from './en';
+export { packId } from './id';
