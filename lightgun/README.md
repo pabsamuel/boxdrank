@@ -142,7 +142,7 @@ sideways without recalibrating and its error goes to **~50% of screen width**, v
 | `tests/` | Synthetic-truth maths tests and a headless end-to-end run with a simulated gun |
 | `docs/` | Architecture, testing protocol, screenshots |
 
-Read next: **[PROGRESS.md](PROGRESS.md)** for state and measurements, **[ARCHITECTURE.md](ARCHITECTURE.md)**
+Read next: **[DEPLOY.md](DEPLOY.md)** to put it on the internet, **[PROGRESS.md](PROGRESS.md)** for state and measurements, **[ARCHITECTURE.md](ARCHITECTURE.md)**
 for the decisions and why, **[TESTING.md](TESTING.md)** for the protocol to run against a real TV.
 
 ---

@@ -298,7 +298,14 @@ const httpsServer = tls ? https.createServer(tls, (req, res) => handle(req, res,
 // Bind first, attach WebSockets second: a WebSocketServer bound to a socket
 // that then fails to listen turns a recoverable port clash into a crash.
 try {
-  HTTP_PORT = await listenWithFallback(httpServer, HOSTED ? HOSTED_PORT : HTTP_PORT, 'http');
+  // Hosted: bind the port the platform gave us or fail. Stepping to the next
+  // free port is right on a laptop where another project holds 8080, and wrong
+  // on a platform, where it means the router and the health check look for us
+  // on a port nothing is listening on — a deploy that reports "unhealthy" with
+  // a perfectly happy process inside it.
+  HTTP_PORT = HOSTED
+    ? await listenWithFallback(httpServer, HOSTED_PORT, 'http', 1)
+    : await listenWithFallback(httpServer, HTTP_PORT, 'http');
   if (httpsServer) HTTPS_PORT = await listenWithFallback(httpsServer, HTTPS_PORT, 'https');
 } catch (err) {
   console.error(`\n  could not start: ${err.message}`);
