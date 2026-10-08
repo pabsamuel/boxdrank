@@ -9,7 +9,8 @@ set -uo pipefail
 
 echo "railway version: $(railway --version 2>&1)"
 
-for c in "" "init" "add" "variable" "variables" "up" "domain" "service" "link" "list" "status" "run"; do
+for c in "" "init" "add" "variable" "variables" "up" "domain" "service" "link" "list" "status" "run" \
+         "tcp-proxy" "ssh" "connect" "config" "deployment" "postgres" "api" "service source"; do
   echo
   echo "═══════════ railway ${c:-<root>} --help ═══════════"
   railway $c --help 2>&1
