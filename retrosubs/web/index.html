@@ -198,7 +198,7 @@
   <button class="chip" id="gear">AYAR</button>
   <span id="status">hazir</span>
   <button class="chip" id="rec" style="display:none">● DURDUR</button>
-  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v12</span>
+  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v13</span>
 </div>
 
 <div id="diag"></div>
@@ -687,6 +687,7 @@
 
   function stopAll() {
     running = false;
+    releaseWake();
     clearInterval(watchdog); watchdog = null;
     cancelAnimationFrame(raf);
     if (recog) { try { recog.onend = null; recog.stop(); } catch (e) {} recog = null; }
@@ -841,6 +842,7 @@
 
   async function start(withCam, mode) {
     running = true;
+    keepAwake();
     el.go.textContent = "DURDUR"; el.go.dataset.on = "1";
     el.status.textContent = "izin bekleniyor";
     idle("Dinliyor...");
@@ -1145,6 +1147,44 @@
   try {
     if (localStorage.getItem("retrosubs.intro") === "1") document.body.dataset.intro = "done";
   } catch (e) {}
+
+
+  // ---------------- staying alive through a real conversation ----------------
+  // A phone that sleeps mid-sentence, a rotation that leaves the text wrapped for the old width,
+  // and a recogniser that quietly died while the tab was in the background are the three ways a
+  // working session stops working without anyone touching a button.
+  let wakeLock = null;
+
+  async function keepAwake() {
+    try {
+      if ("wakeLock" in navigator && !wakeLock) {
+        wakeLock = await navigator.wakeLock.request("screen");
+        wakeLock.addEventListener("release", () => { wakeLock = null; });
+      }
+    } catch (e) { /* denied or unsupported: the session still works, the screen just dims */ }
+  }
+
+  function releaseWake() {
+    try { if (wakeLock) wakeLock.release(); } catch (e) {}
+    wakeLock = null;
+  }
+
+  window.addEventListener("resize", () => {
+    if (!target) return;
+    // Re-wrap for the new width and keep showing the page the revealed text is on.
+    lines = []; wrapped = "";
+    rewrap(target);
+    pageTop = pageFor(shown);
+    paint();
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible" || !running) return;
+    keepAwake();                                   // a wake lock is dropped when hidden
+    if (el.engine.value === "real" && recog) {
+      try { recog.stop(); } catch (e) {}           // onend restarts it; a dead session does not
+    }
+  });
 
   loadPrefs();
   paintPro();
