@@ -48,10 +48,19 @@ export interface NotificationSink {
   deliver(notification: DriftNotification): Promise<void>;
 }
 
-/** Logs and drops. Useful in development; a real deployment replaces it. */
+/**
+ * The last resort: writes the alert to the log, then **fails**.
+ *
+ * It used to succeed, so an alert that reached nobody counted as delivered —
+ * the sweep reported no error, and the drift was remembered as alerted, so
+ * once email was configured that drift was never sent (found live, 8 Oct
+ * 2026). Logging keeps the alert visible in `mapps code:logs`; failing keeps
+ * the sweep honest and leaves the drift to be retried next sweep.
+ */
 export class ConsoleNotificationSink implements NotificationSink {
   async deliver(n: DriftNotification): Promise<void> {
     console.log(`[template-guard] drift ${n.severity} account=${n.accountId} board=${n.copyBoardId}: ${n.message}`);
+    throw new Error('logged only: no alert channel reached a person (set SMTP_URL, or a webhook in the board view)');
   }
 }
 

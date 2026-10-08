@@ -172,5 +172,7 @@ export function driftFingerprint(finding: DriftFinding): string {
     .map((f) => f.id)
     .sort();
   if (finding.diff.basedOnIncompleteData) ids.push('incomplete-read');
-  return ids.join('|');
+  // Versioned: v2 drops fingerprints stored by v1, when a log-only "delivery"
+  // was wrongly remembered as alerted.
+  return ['v2', ...ids].join('|');
 }

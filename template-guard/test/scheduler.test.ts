@@ -512,3 +512,29 @@ describe('DriftScheduler resumability', () => {
     expect(result.results.map((r) => r.accountId).sort()).toEqual(['acct-0', 'acct-1']);
   });
 });
+
+describe('the log-only fallback', () => {
+  it('is not a delivery: the sweep reports it and retries next time', async () => {
+    const { ConsoleNotificationSink } = await import('../src/drift/scheduler.js');
+    const storage = await seed();
+    const drifted = copyWith((b) => {
+      b.columns = b.columns.filter((c) => c.type !== 'status');
+    });
+    const logOnly = new DriftScheduler(storage, cipher, new ConsoleNotificationSink(), {
+      sleep: noSleep,
+      jitterMs: 0,
+      makeClient: () => fakeClient(drifted),
+    });
+    const sweep = await logOnly.sweep();
+    expect(sweep.results[0]!.errors.join(' ')).toMatch(/logged only/);
+
+    const sink = new RecordingSink();
+    const working = new DriftScheduler(storage, cipher, sink, {
+      sleep: noSleep,
+      jitterMs: 0,
+      makeClient: () => fakeClient(drifted),
+    });
+    await working.sweep();
+    expect(sink.sent).toHaveLength(1);
+  });
+});

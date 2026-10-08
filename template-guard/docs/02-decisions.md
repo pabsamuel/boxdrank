@@ -1183,3 +1183,10 @@ token, account and installer all come from monday's answer for the code.
 Same fix Automation Watchdog shipped on 28 Sep. Installs are now logged
 (`install account=… slug=… via=ours|monday`) so a partner's account can be
 found for a complimentary licence.
+
+**Update to ADR-038 (8 Oct, first live Pro sweep):** the sweep checked the
+account, found the copy's 3 missing items and named the board correctly — but
+with no SMTP_URL the alert landed on the console sink, which *succeeded*, so
+the drift was remembered as alerted and the sweep reported no error. The
+console sink now logs and then fails, and fingerprints are versioned (`v2|`)
+so the one wrongly remembered drift is alerted again once email is set.
