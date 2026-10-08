@@ -60,6 +60,7 @@ jobs:
           --var ENTITLEMENTS_MODE:${{ vars.ENTITLEMENTS_MODE || 'open' }}
           --var LEMONSQUEEZY_STORE_ID:${{ vars.LEMONSQUEEZY_STORE_ID || '' }}
           --var LEMONSQUEEZY_PRODUCT_ID:${{ vars.LEMONSQUEEZY_PRODUCT_ID || '' }}
+          --var PERDE_CHECKOUT_URL:${{ vars.PERDE_CHECKOUT_URL || '' }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

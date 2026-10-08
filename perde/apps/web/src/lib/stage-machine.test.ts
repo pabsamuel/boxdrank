@@ -116,7 +116,10 @@ describe('stage machine', () => {
     expect(m.state.notice).toBe('locked');
     m = ctl(m, 'p1', 'set-culture', { cultureId: 'en' });
     expect(m.state.cultureId).toBe('tr');
+    m = reduceStage(m, { type: 'plan', plan: 'free', checkoutUrl: 'https://buy.example/plus' });
+    expect(m.state.checkoutUrl).toBe('https://buy.example/plus');
     m = reduceStage(m, { type: 'plan', plan: 'plus' });
+    expect(m.state.checkoutUrl).toBe('https://buy.example/plus');
     m = ctl(m, 'p1', 'set-culture', { cultureId: 'en' });
     expect(m.state.cultureId).toBe('en');
     expect(m.state.seats[0]!.puppetId).toBe('punch');

@@ -52,7 +52,7 @@ work; don't tick ahead.
 ## M3 — Plus is real
 
 - [ ] Lemon Squeezy store, product and licence keys wired (`ENTITLEMENTS_MODE=lemonsqueezy`)
-- [ ] Checkout link on the landing page (`PERDE_CHECKOUT_URL`) and the locked-play prompt on the phone
+- [x] Checkout link on the landing page (`PERDE_CHECKOUT_URL`) and the locked-play prompt on the phone
 - [ ] Licence activation flow tested end to end with a test-mode key
 - [ ] `docs/PRICING.md` prices confirmed after the first ten sales (numbers only, no gating)
 - [ ] Custom domain on Cloudflare (perde.app or whatever is bought) and HTTPS everywhere

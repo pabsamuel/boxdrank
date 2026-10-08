@@ -53,6 +53,47 @@ const dict = {
   culture: { tr: 'Gelenek', en: 'Tradition' },
   premium: { tr: 'Perde Plus', en: 'Perde Plus' },
   locked: { tr: 'Perde Plus ile açılır', en: 'Unlocks with Perde Plus' },
+  plusPrice: { tr: '₺249', en: '$9' },
+  plusOnce: {
+    tr: 'Tek sefer, aile başına. Abonelik yok.',
+    en: 'One-time, per family. No subscription.',
+  },
+  plusLocked: { tr: 'Bu oyun Perde Plus ile açılır.', en: 'This play needs Perde Plus.' },
+  plusFeature1: {
+    tr: 'Tüm Karagöz oyunları: Kayık, Eczahane ve gelecekler',
+    en: 'Every Karagöz play: The Boat, The Pharmacy and the ones to come',
+  },
+  plusFeature2: {
+    tr: 'Tüm gelenekler: Punch and Judy ve sıradaki paketler',
+    en: 'Every tradition: Punch and Judy and the packs to come',
+  },
+  plusFeature3: {
+    tr: 'Tuzsuz Deli Bekir ve premium kuklalar',
+    en: 'Tuzsuz Deli Bekir and the premium puppets',
+  },
+  plusBuy: { tr: 'Perde Plus al', en: 'Get Perde Plus' },
+  plusBuySoon: { tr: 'Satın alma bağlantısı henüz açık değil', en: 'Checkout is not open yet' },
+  plusHaveKey: { tr: 'Lisans anahtarım var', en: 'I have a licence key' },
+  plusKeyPlaceholder: { tr: 'Lisans anahtarı', en: 'Licence key' },
+  plusActivate: { tr: 'Etkinleştir', en: 'Activate' },
+  plusScan: {
+    tr: 'Telefonla okut; anahtarı telefondaki menüden gir.',
+    en: 'Scan with a phone; enter the key from the phone menu.',
+  },
+  plusDevices: {
+    tr: '5 televizyona kadar · 14 gün iade · hesap yok',
+    en: 'Up to 5 TVs · 14-day refund · no account',
+  },
+  notNow: { tr: 'Şimdi değil', en: 'Not now' },
+  noticeLocked: { tr: 'Bu içerik Perde Plus ile açılır.', en: 'This needs Perde Plus.' },
+  noticePlusActivated: {
+    tr: 'Perde Plus açıldı. Her şey senin!',
+    en: 'Perde Plus activated. Everything is yours.',
+  },
+  noticeLicenseRejected: {
+    tr: 'Lisans anahtarı kabul edilmedi.',
+    en: 'That licence key was not accepted.',
+  },
   seatTaken: { tr: 'Bu koltuk dolu', en: 'This seat is taken' },
   enterCode: { tr: 'Televizyondaki kodu gir', en: 'Enter the code on the TV' },
   join: { tr: 'Katıl', en: 'Join' },
@@ -156,4 +197,18 @@ export type UiKey = keyof typeof dict;
 
 export function t(key: UiKey, lang: UiLang): string {
   return dict[key][lang];
+}
+
+/** The short status codes the stage puts in `state.notice`, as dictionary keys. */
+export function noticeKey(notice: string): UiKey | null {
+  switch (notice) {
+    case 'locked':
+      return 'noticeLocked';
+    case 'plus-activated':
+      return 'noticePlusActivated';
+    case 'license-rejected':
+      return 'noticeLicenseRejected';
+    default:
+      return null;
+  }
 }

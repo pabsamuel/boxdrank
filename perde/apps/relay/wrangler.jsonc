@@ -20,6 +20,8 @@
     "ENTITLEMENTS_MODE": "open",
     "LEMONSQUEEZY_STORE_ID": "",
     "LEMONSQUEEZY_PRODUCT_ID": "",
+    // Lemon Squeezy checkout link; empty until the store exists (docs/PRICING.md).
+    "PERDE_CHECKOUT_URL": "",
   },
   "observability": { "enabled": true },
 }

@@ -12,6 +12,7 @@ import {
 } from '@perde/shared';
 import {
   activateLicense,
+  checkoutUrl,
   entitlementsMode,
   validateLicense,
   type EntitlementsEnv,
@@ -24,7 +25,7 @@ import {
  *   POST /api/rooms                 → { code }
  *   GET  /api/rooms/:code           → { code, stage, controllers }
  *   GET  /api/rooms/:code/ws        → WebSocket (send { t: "hello" } first)
- *   GET  /api/entitlements          → { mode, plan }
+ *   GET  /api/entitlements          → { mode, plan, checkoutUrl? }
  *   POST /api/license/activate      → { ok, plan, instanceId }
  *   POST /api/license/validate      → { ok, plan }
  *   GET  /api/health                → { ok, version }
@@ -97,7 +98,7 @@ async function handleApi(request: Request, env: Env, url: URL): Promise<Response
 
   if (path === '/api/entitlements' && method === 'GET') {
     const mode = entitlementsMode(env);
-    return json({ mode, plan: mode === 'open' ? 'plus' : 'free' });
+    return json({ mode, plan: mode === 'open' ? 'plus' : 'free', checkoutUrl: checkoutUrl(env) });
   }
 
   if ((path === '/api/license/activate' || path === '/api/license/validate') && method === 'POST') {

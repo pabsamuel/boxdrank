@@ -1,5 +1,11 @@
 import type { Plan } from '@perde/shared';
-import { activateLicense, getEntitlements, validateLicense, type LicenseResult } from './api';
+import {
+  activateLicense,
+  getEntitlements,
+  validateLicense,
+  type Entitlements,
+  type LicenseResult,
+} from './api';
 
 /**
  * The TV remembers its licence in localStorage and re-validates on start.
@@ -31,20 +37,27 @@ function write(v: StoredLicense | null) {
   }
 }
 
-export async function resolvePlan(): Promise<{ plan: Plan; mode: 'open' | 'lemonsqueezy' }> {
-  const ent = await getEntitlements().catch(() => ({
+export interface ResolvedPlan {
+  plan: Plan;
+  mode: 'open' | 'lemonsqueezy';
+  checkoutUrl?: string;
+}
+
+export async function resolvePlan(): Promise<ResolvedPlan> {
+  const ent: Entitlements = await getEntitlements().catch(() => ({
     mode: 'lemonsqueezy' as const,
     plan: 'free' as const,
   }));
-  if (ent.mode === 'open') return { plan: 'plus', mode: 'open' };
+  const checkoutUrl = ent.checkoutUrl;
+  if (ent.mode === 'open') return { plan: 'plus', mode: 'open', checkoutUrl };
   const stored = read();
-  if (!stored) return { plan: 'free', mode: ent.mode };
+  if (!stored) return { plan: 'free', mode: ent.mode, checkoutUrl };
   const r = await validateLicense(stored.key, stored.instanceId).catch(() => ({
     ok: false,
     plan: 'free' as const,
   }));
   if (!r.ok) write(null);
-  return { plan: r.ok ? 'plus' : 'free', mode: ent.mode };
+  return { plan: r.ok ? 'plus' : 'free', mode: ent.mode, checkoutUrl };
 }
 
 export async function activate(key: string): Promise<{ ok: boolean; error?: string }> {

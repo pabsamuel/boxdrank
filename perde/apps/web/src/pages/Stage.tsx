@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useSearchParams } from 'react-router';
-import { joinUrl, NEUTRAL_POSE, pickLocalized, type StageInbound } from '@perde/shared';
+import { joinUrl, NEUTRAL_POSE, noticeKey, pickLocalized, type StageInbound } from '@perde/shared';
 import { KaraokeBar } from '../components/KaraokeBar';
 import { StageScene, type ScenePuppet } from '../components/StageScene';
 import { playNareke, playSting, playTef, unlockSound, watchSound } from '../lib/sound';
@@ -49,6 +49,8 @@ export function Stage() {
   const uiLang = useUiLang();
   const [params] = useSearchParams();
   const demo = params.get('demo') === '1';
+  /** `?free=1`: see the free tier on an open-mode relay (screenshots, e2e). */
+  const previewFree = params.get('free') === '1';
   const [model, dispatch] = useReducer(reducer, params.get('culture') ?? 'tr', (c) =>
     createStageModel(c, demo ? 'plus' : 'free'),
   );
@@ -130,8 +132,18 @@ export function Stage() {
   // Entitlements.
   useEffect(() => {
     if (demo) return;
-    resolvePlan().then((r) => dispatch({ type: 'plan', plan: r.plan }));
-  }, [demo]);
+    resolvePlan().then((r) =>
+      dispatch({ type: 'plan', plan: previewFree ? 'free' : r.plan, checkoutUrl: r.checkoutUrl }),
+    );
+  }, [demo, previewFree]);
+
+  // A locked play was asked for: the offer stays on the screen long enough to scan.
+  const lockedNotice = model.state.notice === 'locked';
+  useEffect(() => {
+    if (!lockedNotice) return;
+    const id = setTimeout(() => dispatch({ type: 'notice', notice: undefined }), 45_000);
+    return () => clearTimeout(id);
+  }, [lockedNotice]);
 
   // Remember the room so a reload does not lose the play.
   useEffect(() => {
@@ -375,7 +387,8 @@ export function Stage() {
     ? (model.state.seats.find((s) => s.character === ps.line?.character)?.color ??
       model.play?.characters.find((c) => c.seat === ps.line?.character)?.color)
     : undefined;
-  const notice = noticeText(model.state.notice, uiLang);
+  const nk = model.state.notice ? noticeKey(model.state.notice) : null;
+  const notice = nk ? t(nk) : null;
 
   return (
     <div
@@ -487,7 +500,7 @@ export function Stage() {
         </div>
       )}
 
-      {coach && (
+      {coach && !lockedNotice && (
         <div className="coach" role="status">
           <h2>{t('coachTitle')}</h2>
           <ol>
@@ -498,24 +511,36 @@ export function Stage() {
         </div>
       )}
 
-      {(notice || error) && <div className="toast">{error ?? notice}</div>}
+      {lockedNotice && (
+        <div className="plus-card" role="status">
+          <div className="plus-card__qr">
+            <QRCodeSVG
+              value={model.state.checkoutUrl ?? `${origin}/#pricing`}
+              size={220}
+              bgColor="#fff8ea"
+              fgColor="#2b1d10"
+              level="M"
+              includeMargin
+            />
+          </div>
+          <div className="plus-card__copy">
+            <span className="badge badge--plus">Plus</span>
+            <h2>{t('premium')}</h2>
+            <p className="plus-card__locked">{t('plusLocked')}</p>
+            <ul>
+              <li>{t('plusFeature1')}</li>
+              <li>{t('plusFeature2')}</li>
+              <li>{t('plusFeature3')}</li>
+            </ul>
+            <p className="plus-card__price">
+              {t('plusPrice')} <small>{t('plusOnce')}</small>
+            </p>
+            <p className="plus-card__scan">{t('plusScan')}</p>
+          </div>
+        </div>
+      )}
+
+      {((notice && !lockedNotice) || error) && <div className="toast">{error ?? notice}</div>}
     </div>
   );
-}
-
-function noticeText(notice: string | undefined, lang: 'tr' | 'en'): string | null {
-  switch (notice) {
-    case 'locked':
-      return lang === 'tr' ? 'Bu içerik Perde Plus ile açılır.' : 'This needs Perde Plus.';
-    case 'plus-activated':
-      return lang === 'tr'
-        ? 'Perde Plus açıldı. Her şey senin!'
-        : 'Perde Plus activated. Everything is yours.';
-    case 'license-rejected':
-      return lang === 'tr'
-        ? 'Lisans anahtarı kabul edilmedi.'
-        : 'That licence key was not accepted.';
-    default:
-      return null;
-  }
 }

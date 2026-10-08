@@ -36,10 +36,21 @@ ten sales (`ROADMAP.md`, M3) by changing the number, not by adding a survey step
 
 - **Merchant of record: Lemon Squeezy.** It collects VAT/KDV worldwide and issues invoices, so
   the project never touches tax. A licence key is generated per order.
-- **Activation.** The host phone opens the menu, types the key, taps "Perde Plus". The TV posts
-  it to `/api/license/activate`; the Worker calls Lemon Squeezy's licence API (`activate`,
+- **The moment.** Nothing is sold until a locked play is tapped. Then the phone shows the Plus
+  sheet (what it is, the price once, "Get Perde Plus", "I have a licence key") and the TV shows
+  the same offer with a QR code of the checkout link for 45 seconds, so the parent on the sofa
+  can scan it without touching the host phone. The ☰ menu also has a "Perde Plus" row.
+- **Activation.** "I have a licence key" on the phone; the key goes to the TV, which posts it to
+  `/api/license/activate`; the Worker calls Lemon Squeezy's licence API (`activate`,
   `validate`) and the TV stores the key in localStorage. One key allows up to 5 activations
   (set the limit on the product), which covers a family's TVs and laptops.
+- **Checkout link.** `PERDE_CHECKOUT_URL` is a Worker variable served by `/api/entitlements`;
+  the landing page, the phone sheet and the TV card read it at runtime, so opening the store
+  needs no rebuild. Until it is set the sheet says checkout is not open yet and the TV's QR
+  points at the landing page's pricing section. `VITE_CHECKOUT_URL` at build time is the
+  fallback for the landing page only.
+- **Previewing the free tier.** On an open-mode relay everything is unlocked; `/stage?free=1`
+  makes one TV behave as free (used by the e2e test and for screenshots).
 - **Open mode.** `ENTITLEMENTS_MODE=open` unlocks everything without a key; used for
   development, self-hosting and demos. The deploy workflow defaults to `open` until the
   repository variable `ENTITLEMENTS_MODE=lemonsqueezy` is set.
@@ -51,8 +62,8 @@ ten sales (`ROADMAP.md`, M3) by changing the number, not by adding a survey step
    activation limit 5). Note the store id and product id.
 2. Repository variables: `ENTITLEMENTS_MODE=lemonsqueezy`, `LEMONSQUEEZY_STORE_ID`,
    `LEMONSQUEEZY_PRODUCT_ID`, `PERDE_CHECKOUT_URL=https://<store>.lemonsqueezy.com/checkout/buy/<variant>`.
-3. Push to `main`; the deploy workflow passes the vars to `wrangler deploy` and the landing
-   page's "Get Perde Plus" button becomes the checkout link.
+3. Push to `main`; the deploy workflow passes the vars to `wrangler deploy`, and the landing
+   page, the phone sheet and the TV card pick the checkout link up from `/api/entitlements`.
 4. Buy a test-mode key, activate it on a TV, confirm Kayık starts and Punch and Judy loads.
 
 `docs/SETUP_WITH_CHROME.md` has copy-paste prompts for doing the dashboard steps with Claude in

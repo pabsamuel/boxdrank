@@ -116,6 +116,8 @@ export const StageStateSchema = z.object({
   karaoke: z.boolean(),
   leniency: z.enum(['kids', 'normal', 'strict']),
   plan: PlanSchema,
+  /** Where "Get Perde Plus" goes; the phones show it when something is locked. */
+  checkoutUrl: z.string().optional(),
   /** The TV reads the lines of characters nobody holds (speech synthesis). */
   voice: z.boolean().optional(),
   /** Stage sounds on the TV: the nareke, the tef, the curtain. */

@@ -23,6 +23,8 @@ export async function getRoom(code: string): Promise<RoomInfo | null> {
 export interface Entitlements {
   mode: 'open' | 'lemonsqueezy';
   plan: Plan;
+  /** The checkout link, when the store is open. */
+  checkoutUrl?: string;
 }
 
 export async function getEntitlements(): Promise<Entitlements> {

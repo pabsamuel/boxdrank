@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activateLicense, entitlementsMode, validateLicense } from './entitlements';
+import { activateLicense, checkoutUrl, entitlementsMode, validateLicense } from './entitlements';
 
 const fakeFetch = (payload: unknown) =>
   (async () => new Response(JSON.stringify(payload))) as unknown as typeof fetch;
@@ -9,6 +9,15 @@ describe('entitlements', () => {
     expect(entitlementsMode({})).toBe('open');
     expect(entitlementsMode({ ENTITLEMENTS_MODE: 'weird' })).toBe('open');
     expect(entitlementsMode({ ENTITLEMENTS_MODE: 'lemonsqueezy' })).toBe('lemonsqueezy');
+  });
+
+  it('only hands out an https checkout link', () => {
+    expect(checkoutUrl({})).toBeUndefined();
+    expect(checkoutUrl({ PERDE_CHECKOUT_URL: '' })).toBeUndefined();
+    expect(checkoutUrl({ PERDE_CHECKOUT_URL: 'javascript:alert(1)' })).toBeUndefined();
+    expect(checkoutUrl({ PERDE_CHECKOUT_URL: ' https://perde.lemonsqueezy.com/buy/x ' })).toBe(
+      'https://perde.lemonsqueezy.com/buy/x',
+    );
   });
 
   it('grants plus without calling anyone in open mode', async () => {

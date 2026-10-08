@@ -78,4 +78,39 @@ test.describe('phone', () => {
     await expect(page.getByPlaceholder('ABCD')).toHaveValue(code);
     await tv.close();
   });
+
+  test('a locked play shows the Plus offer on both screens and a key unlocks it', async ({
+    browser,
+    page,
+    request,
+  }) => {
+    const created = await request.post('/api/rooms');
+    const { code } = (await created.json()) as { code: string };
+    // `free=1`: the dev relay unlocks everything; this TV pretends it is on the free tier.
+    const tv = await browser.newPage({ viewport: { width: 1600, height: 900 } });
+    await tv.goto(`/stage?room=${code}&free=1`);
+    await expect(tv.locator('.chip__code')).toHaveText(code, { timeout: 15_000 });
+
+    await page.goto(`/join?room=${code}&seat=p1`);
+    await page.getByRole('button', { name: /Kuklayı eline al|Pick up the puppet/ }).click();
+    await expect(page.locator('.controller__puppet')).toHaveText('Karagöz', { timeout: 15_000 });
+    await page.getByRole('button', { name: 'menu' }).click();
+    await page.getByRole('button', { name: /Kayık/ }).click();
+    // The phone gets the offer, the TV gets the QR card, the play does not start.
+    await expect(page.locator('.plus-sheet')).toContainText('Perde Plus');
+    await expect(tv.locator('.plus-card')).toBeVisible({ timeout: 10_000 });
+    await expect(tv.locator('.plus-card svg')).toHaveCount(1);
+    await expect(tv.locator('.karaoke__line')).toHaveCount(0);
+
+    // A key typed on the phone unlocks the TV (the dev relay accepts any key).
+    await page.getByRole('button', { name: /Lisans anahtarım var|I have a licence key/ }).click();
+    await page.getByPlaceholder(/Lisans anahtarı|Licence key/).fill('PERDE-TEST-KEY-0000-0000');
+    await page.getByRole('button', { name: /Etkinleştir|Activate/ }).click();
+    await expect(page.locator('.plus-sheet')).toBeHidden({ timeout: 10_000 });
+    await expect(tv.locator('.plus-card')).toBeHidden();
+    await page.getByRole('button', { name: 'menu' }).click();
+    await page.getByRole('button', { name: /Kayık/ }).click();
+    await expect(tv.locator('.karaoke__line')).toBeVisible({ timeout: 10_000 });
+    await tv.close();
+  });
 });

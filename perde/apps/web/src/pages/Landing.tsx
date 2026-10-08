@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { NEUTRAL_POSE, pickLocalized, type Pose } from '@perde/shared';
 import { cultures, getPack } from '@perde/content';
 import { StageScene, type ScenePuppet } from '../components/StageScene';
+import { getEntitlements } from '../lib/api';
 import { useT, useUiLang } from '../lib/ui';
 
 /** Marketing page with a live, self-animating stage so visitors see the thing move. */
@@ -11,6 +12,18 @@ export function Landing({ onToggleLang }: { onToggleLang: () => void }) {
   const lang = useUiLang();
   const pack = getPack('tr')!;
   const [now, setNow] = useState(0);
+  // The checkout link lives on the relay (a repository variable), so the store can
+  // open without a rebuild; the build-time value is the fallback.
+  const [checkout, setCheckout] = useState<string | undefined>(
+    import.meta.env.VITE_CHECKOUT_URL || undefined,
+  );
+  useEffect(() => {
+    getEntitlements()
+      .then((e) => {
+        if (e.checkoutUrl) setCheckout(e.checkoutUrl);
+      })
+      .catch(() => undefined);
+  }, []);
   useEffect(() => {
     let raf = 0;
     const start = performance.now();
@@ -159,10 +172,43 @@ export function Landing({ onToggleLang }: { onToggleLang: () => void }) {
                 <li key={f}>{f}</li>
               ))}
             </ul>
-            <a className="btn btn--primary" href={import.meta.env.VITE_CHECKOUT_URL || '#pricing'}>
+            <a
+              className="btn btn--primary"
+              href={checkout ?? '#pricing'}
+              target={checkout ? '_blank' : undefined}
+              rel={checkout ? 'noreferrer' : undefined}
+            >
               {copy.buy}
             </a>
+            <p className="plan__fine">{copy.plusFine}</p>
           </article>
+        </div>
+        <p className="pricing__note">{copy.prices}</p>
+        <table className="compare">
+          <thead>
+            <tr>
+              <th>{copy.compareHead[0]}</th>
+              <th>{copy.compareHead[1]}</th>
+              <th>{copy.compareHead[2]}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {copy.compare.map(([what, free, plus]) => (
+              <tr key={what}>
+                <td>{what}</td>
+                <td className={free ? 'yes' : 'no'}>{free ? '✓' : '—'}</td>
+                <td className={plus ? 'yes' : 'no'}>{plus ? '✓' : '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="faq">
+          {copy.faq.map(([q, a]) => (
+            <details key={q}>
+              <summary>{q}</summary>
+              <p>{a}</p>
+            </details>
+          ))}
         </div>
       </section>
 
@@ -217,6 +263,37 @@ const TR = {
     'Yeni oyunlar geldikçe ücretsiz',
   ],
   buy: 'Perde Plus al',
+  plusFine: '5 televizyona kadar · 14 gün koşulsuz iade · hesap açmak yok',
+  prices:
+    'Türkiye ₺249 · AB €9 · Birleşik Krallık £8 · diğer ülkeler $9. Ödeme Lemon Squeezy üzerinden, KDV dahil; faturan e-postana gelir.',
+  compareHead: ['', 'Ücretsiz', 'Plus'] as [string, string, string],
+  compare: [
+    ['Karagöz: Giriş + Salıncak', true, true],
+    ['Karagöz: Kayık, Eczahane ve her yeni oyun', false, true],
+    ['Kuklalar: Karagöz, Hacivat, Çelebi, Zenne', true, true],
+    ['Premium kuklalar (Tuzsuz Deli Bekir, …)', false, true],
+    ['Diğer gelenekler: Punch and Judy; sırada Wayang, Kasperle, Guignol', false, true],
+    ['4 telefon, karaoke replikler, ses tanıma, serbest oyun', true, true],
+    ['Kendi kuklanı çiz', true, true],
+  ] as Array<[string, boolean, boolean]>,
+  faq: [
+    [
+      'Gerçekten tek sefer mi?',
+      'Evet. Bir kez ödersin, Perde Plus o ailenin olur. Sonradan eklenen oyunlar ve gelenekler de dahil. Abonelik, yenileme, reklam yok.',
+    ],
+    [
+      'Anahtarı nereye giriyorum?',
+      'Satın alınca e-postana bir lisans anahtarı gelir. Oyun sırasında telefondaki ☰ menüden "Perde Plus"a dokun, anahtarı yaz; televizyon açılır ve hatırlar. Aynı anahtar 5 televizyonda çalışır.',
+    ],
+    [
+      'Çocuğum yanlışlıkla bir şey satın alabilir mi?',
+      'Hayır. Uygulamanın içinde ödeme yok; satın alma Lemon Squeezy’nin kendi sayfasında, kart bilgisiyle yapılır. Kilitli bir oyuna dokununca yalnızca bu teklif görünür.',
+    ],
+    [
+      'Beğenmezsem?',
+      '14 gün içinde, soru sorulmadan iade. Perde’nin hiçbir yerinde hesap ya da kişisel veri tutulmaz; ödeme bilgileri Lemon Squeezy’de kalır.',
+    ],
+  ] as Array<[string, string]>,
   footer:
     'Perde, Karagöz ve Hacivat’ı (UNESCO Somut Olmayan Kültürel Miras, 2009) yeni nesle sevdirmek için yapıldı. Oyun metinleri anonim halk eserlerinin çocuklara uygun uyarlamalarıdır.',
 };
@@ -265,6 +342,37 @@ const EN: typeof TR = {
     'New plays free as they land',
   ],
   buy: 'Get Perde Plus',
+  plusFine: 'Up to 5 TVs · 14-day no-questions refund · no account to create',
+  prices:
+    'Türkiye ₺249 · EU €9 · UK £8 · everywhere else $9. Paid through Lemon Squeezy, VAT included; the invoice lands in your inbox.',
+  compareHead: ['', 'Free', 'Plus'] as [string, string, string],
+  compare: [
+    ['Karagöz: the Opening + The Swing', true, true],
+    ['Karagöz: The Boat, The Pharmacy and every new play', false, true],
+    ['Puppets: Karagöz, Hacivat, Çelebi, Zenne', true, true],
+    ['Premium puppets (Tuzsuz Deli Bekir, …)', false, true],
+    ['Other traditions: Punch and Judy; Wayang, Kasperle, Guignol next', false, true],
+    ['4 phones, karaoke lines, speech recognition, free play', true, true],
+    ['Draw your own puppet', true, true],
+  ] as Array<[string, boolean, boolean]>,
+  faq: [
+    [
+      'Really one-time?',
+      'Yes. Pay once and Perde Plus belongs to that family, including the plays and traditions added later. No subscription, no renewal, no ads.',
+    ],
+    [
+      'Where do I enter the key?',
+      'After the purchase a licence key arrives by email. During a show, open the ☰ menu on the phone, tap "Perde Plus" and type it; the TV unlocks and remembers. One key works on 5 TVs.',
+    ],
+    [
+      'Can my child buy something by accident?',
+      'No. There is no payment inside the app; the purchase happens on Lemon Squeezy’s own page with a card. Tapping a locked play only shows this offer.',
+    ],
+    [
+      'What if we don’t like it?',
+      'A refund within 14 days, no questions asked. Perde keeps no accounts or personal data anywhere; payment details stay with Lemon Squeezy.',
+    ],
+  ] as Array<[string, string]>,
   footer:
     'Perde exists to make a new generation love Karagöz and Hacivat (UNESCO Intangible Cultural Heritage, 2009). Play texts are child-friendly adaptations of anonymous folk works.',
 };

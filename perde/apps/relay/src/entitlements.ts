@@ -17,6 +17,8 @@ export interface EntitlementsEnv {
   ENTITLEMENTS_MODE?: string;
   LEMONSQUEEZY_STORE_ID?: string;
   LEMONSQUEEZY_PRODUCT_ID?: string;
+  /** The Lemon Squeezy checkout link; shown on the landing page, the phone and the TV. */
+  PERDE_CHECKOUT_URL?: string;
 }
 
 export interface LicenseResult {
@@ -30,6 +32,12 @@ const LS_API = 'https://api.lemonsqueezy.com/v1/licenses';
 
 export function entitlementsMode(env: EntitlementsEnv): EntitlementsMode {
   return env.ENTITLEMENTS_MODE === 'lemonsqueezy' ? 'lemonsqueezy' : 'open';
+}
+
+/** Where "Get Perde Plus" goes. Only an https link counts; anything else means "not open yet". */
+export function checkoutUrl(env: EntitlementsEnv): string | undefined {
+  const u = env.PERDE_CHECKOUT_URL?.trim();
+  return u && /^https:\/\//.test(u) ? u : undefined;
 }
 
 interface LsResponse {

@@ -55,7 +55,7 @@ export type StageEvent =
   | { type: 'welcome'; peers: Array<{ seat: string; name?: string }>; at: number }
   /** A reloaded TV picks its room back up from a saved snapshot. */
   | { type: 'restore'; snapshot: unknown }
-  | { type: 'plan'; plan: Plan; notice?: string }
+  | { type: 'plan'; plan: Plan; notice?: string; checkoutUrl?: string }
   | { type: 'notice'; notice?: string }
   | { type: 'msg'; msg: FromControllerMsg; at: number }
   | {
@@ -481,7 +481,11 @@ export function reduceStage(model: StageModel, ev: StageEvent): StageModel {
       };
     }
     case 'plan':
-      return withState(model, { plan: ev.plan, notice: ev.notice });
+      return withState(model, {
+        plan: ev.plan,
+        notice: ev.notice,
+        checkoutUrl: ev.checkoutUrl ?? model.state.checkoutUrl,
+      });
     case 'notice':
       return withState(model, { notice: ev.notice });
     case 'local':

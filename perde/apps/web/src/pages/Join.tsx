@@ -6,12 +6,14 @@ import {
   pickLocalized,
   type ControlAction,
   type ControllerInbound,
+  noticeKey,
   type Gesture,
   type Pose,
   type StageState,
 } from '@perde/shared';
 import { cultures, getPack, isUnlocked } from '@perde/content';
 import { KaraokeBar } from '../components/KaraokeBar';
+import { PlusSheet } from '../components/PlusSheet';
 import {
   DEFAULT_TUNING,
   MotionModel,
@@ -189,7 +191,7 @@ function Controller({ code, seat, name, onName, onLeave, onToggleLang }: Control
   const [talking, setTalking] = useState(false);
   const [heard, setHeard] = useState('');
   const [menu, setMenu] = useState(false);
-  const [licenseKey, setLicenseKey] = useState('');
+  const [plus, setPlus] = useState(false);
   const [tuning, setTuning] = useState<MotionTuning>(() => loadTuning());
   const [readout, setReadout] = useState<MotionReadout | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
@@ -494,6 +496,13 @@ function Controller({ code, seat, name, onName, onLeave, onToggleLang }: Control
 
   const plays = pack?.plays ?? [];
   const locked = (item: { premium: boolean }) => !isUnlocked(item, state?.plan ?? 'free');
+  const nk = state?.notice ? noticeKey(state.notice) : null;
+  const noticeText = nk ? t(nk) : (state?.notice ?? null);
+  // Something locked was tapped: the TV says so to everyone, this phone shows the offer.
+  const offerPlus = () => {
+    setMenu(false);
+    setPlus(true);
+  };
 
   return (
     <div className="phone controller" style={{ ['--seat' as string]: color }}>
@@ -628,7 +637,8 @@ function Controller({ code, seat, name, onName, onLeave, onToggleLang }: Control
                       className={`btn btn--row ${locked(p) ? 'is-locked' : ''}`}
                       onClick={() => {
                         control('start-play', { playId: p.id });
-                        setMenu(false);
+                        if (locked(p)) offerPlus();
+                        else setMenu(false);
                       }}
                     >
                       <span>
@@ -691,7 +701,10 @@ function Controller({ code, seat, name, onName, onLeave, onToggleLang }: Control
                   <button
                     key={p.id}
                     className={`btn btn--small ${me?.puppetId === p.id ? 'is-active' : ''} ${locked(p) ? 'is-locked' : ''}`}
-                    onClick={() => control('set-puppet', { puppetId: p.id })}
+                    onClick={() => {
+                      control('set-puppet', { puppetId: p.id });
+                      if (locked(p)) offerPlus();
+                    }}
                   >
                     {p.name}
                   </button>
@@ -737,37 +750,24 @@ function Controller({ code, seat, name, onName, onLeave, onToggleLang }: Control
                   <button
                     key={c.id}
                     className={`btn btn--small ${state.cultureId === c.id ? 'is-active' : ''} ${locked(c) ? 'is-locked' : ''}`}
-                    onClick={() => control('set-culture', { cultureId: c.id })}
+                    onClick={() => {
+                      control('set-culture', { cultureId: c.id });
+                      if (locked(c)) offerPlus();
+                    }}
                   >
                     {pickLocalized(c.name, uiLang)}
                   </button>
                 ))}
               </div>
               {state.plan === 'free' && (
-                <form
-                  className="menu__row menu__license"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    control('activate-license', { licenseKey: licenseKey.trim() });
-                  }}
-                >
-                  <input
-                    value={licenseKey}
-                    onChange={(e) => setLicenseKey(e.target.value)}
-                    placeholder={
-                      uiLang === 'tr' ? 'Perde Plus lisans anahtarı' : 'Perde Plus licence key'
-                    }
-                  />
-                  <button
-                    className="btn btn--small btn--primary"
-                    type="submit"
-                    disabled={licenseKey.trim().length < 16}
-                  >
-                    {t('premium')}
+                <div className="menu__row menu__plus">
+                  <button className="btn btn--small btn--primary" onClick={offerPlus}>
+                    ✨ {t('premium')}
                   </button>
-                </form>
+                  <small>{t('plusOnce')}</small>
+                </div>
               )}
-              {state.notice && <p className="warn">{state.notice}</p>}
+              {noticeText && <p className="warn">{noticeText}</p>}
 
               <TuningPanel
                 tuning={tuning}
@@ -786,6 +786,15 @@ function Controller({ code, seat, name, onName, onLeave, onToggleLang }: Control
             </small>
           </div>
         </div>
+      )}
+
+      {plus && state && state.plan === 'free' && (
+        <PlusSheet
+          checkoutUrl={state.checkoutUrl}
+          notice={noticeText}
+          onActivate={(licenseKey) => control('activate-license', { licenseKey })}
+          onClose={() => setPlus(false)}
+        />
       )}
     </div>
   );
