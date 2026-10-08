@@ -49,7 +49,9 @@ Then **Manage R2 API Tokens → Create** (Object Read & Write). Save:
 1. **New Project → Deploy from GitHub repo** → `pabsamuel/boxdrank`.
 2. **+ New → Database → Postgres**, then again **→ Redis**. (Railway injects
    `DATABASE_URL` / `REDIS_URL` — reference them, don't retype.)
-3. On the repo service: **Settings → Build**
+3. On the repo service: **Settings → Build**. These go in the UI — Railway
+   deprecated `railway.json` config-as-code and new services can no longer opt
+   into it, so don't look for a config file to commit.
    - Root directory: `global-emotes`
    - Dockerfile path: `infrastructure/docker/Dockerfile.api`
    - Health check path: `/v1/health`
