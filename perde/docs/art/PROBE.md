@@ -81,3 +81,19 @@ menu, Edit, Network access) either choose a broader access level or add
 then re-run the download task. Note the signed URLs carry
 `response-expires` times of 08:16, 08:25 and 09:15 GMT on 2026-09-30, so
 they may need to be re-exported from Canva before retrying.
+
+## Re-probe 2026-10-08 06:30 UTC (Canva connector attached)
+
+- The Canva connector can reach the design directly: `DAHWpy4YgoE` ("Perde tasvir
+  export sheet", 42 pages; page 1 Karagöz 1194 × 2368, page 2 Hacivat 1194 × 2368,
+  page 3 backdrop 1680 × 944). Fresh PNG/JPG exports were generated successfully.
+- Downloading the fresh export URLs from the container still fails the same way:
+  curl exit 22, HTTP 403 from the proxy, `no rule or allowlist entry allows host
+  "export-download.canva.com"`. `media.canva.com` is blocked as well.
+- The connector delivers page thumbnails into the session, but only at 317 px wide
+  (83 kB), far below the 896 × 1776 / 1680 × 944 the stage needs, so they were not
+  committed.
+- No workaround is possible from inside the container. Either add
+  `export-download.canva.com` to the environment's allowed domains and re-run, or
+  download the three files by hand and put them in a Google Drive folder named
+  `Perde art` (see `ART.md`); Claude can fetch from Drive and commit.
