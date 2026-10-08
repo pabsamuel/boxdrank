@@ -28,6 +28,10 @@ export class Game {
     this.misses = 0;
     this.mistakes = 0;
     this.shots = 0;
+    this.bestCombo = 1;
+    this.beatBest = false;
+    this.previousBest = 0;
+    this._now = 0;
     this.startedAt = 0;
     this.endsAt = 0;
     this.running = false;
@@ -39,6 +43,7 @@ export class Game {
   start(now) {
     this.reset();
     this.running = true;
+    this._now = now;      // so remainingMs is the full round before the first update
     this.startedAt = now;
     this.endsAt = now + ROUND_MS;
     this.nextSpawn = now + 250;
@@ -114,6 +119,11 @@ export class Game {
 
   finish() {
     this.running = false;
+    // `best` is overwritten here, so whether this round beat it has to be
+    // recorded now — the results screen runs after this and would otherwise
+    // only ever see score === best.
+    this.beatBest = this.score > this.best && this.score > 0;
+    this.previousBest = this.best;
     if (this.score > this.best) {
       this.best = this.score;
       localStorage.setItem('lightgun.best', String(this.best));
@@ -153,6 +163,7 @@ export class Game {
     ps.hits++;
     this.streak++;
     this.combo = Math.min(8, 1 + Math.floor(this.streak / 3));
+    if (this.combo > this.bestCombo) this.bestCombo = this.combo;
 
     let gained = hit.spec.points * this.combo;
     hit.dead = true;

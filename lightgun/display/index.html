@@ -104,25 +104,49 @@
 <div id="banner" class="banner hidden"></div>
 <div id="subBanner" class="sub-banner hidden"></div>
 
+<!-- Inside the title-safe area: televisions crop the edges by varying amounts,
+     and this is the one thing a player reads mid-round. Score and time are the
+     two numbers that matter, the combo only exists while it is above x1, and
+     the best score is deliberately quiet. -->
 <div id="hud" class="hud hidden">
-  <div class="hud-item"><span>SCORE</span><b id="hudScore">0</b></div>
-  <div class="hud-item"><span>TIME</span><b id="hudTime">60</b></div>
-  <div class="hud-item"><span>COMBO</span><b id="hudCombo">x1</b></div>
-  <div class="hud-item"><span>BEST</span><b id="hudBest">0</b></div>
+  <div class="hud-group">
+    <div class="hud-item primary"><span>Score</span><b id="hudScore">0</b></div>
+    <div class="hud-item quiet"><span>Best</span><b id="hudBest">0</b></div>
+  </div>
+  <div class="hud-item primary time" id="hudTimeItem"><span>Time</span><b id="hudTime">60</b></div>
+  <div class="hud-group right">
+    <div class="hud-item combo hidden" id="hudComboItem"><span>Combo</span><b id="hudCombo">x2</b></div>
+  </div>
 </div>
 
 <section id="results" class="results hidden">
-  <h2>TIME UP</h2>
+  <h2 id="resultsTitle">Time up</h2>
   <div class="final" id="finalScore">0</div>
+  <div class="best-flag hidden" id="bestFlag">New best</div>
   <div class="breakdown" id="breakdown"></div>
-  <div class="actions">
-    <div><b>SHOOT</b> the buttons, or press <b>G</b></div>
-    <div id="againBtn" class="btn">PLAY AGAIN</div>
-    <div id="recalBtn" class="btn">RECALIBRATE</div>
+
+  <!-- These are shot, not clicked, so they are sized against the gun's measured
+       accuracy rather than against a mouse: comfortably larger than the p95
+       aiming error in both directions, and they light up when aimed at. -->
+  <div class="targets">
+    <button id="againBtn" class="target">
+      <span class="target-label">Play again</span>
+      <span class="target-sub">shoot here</span>
+    </button>
+    <button id="recalBtn" class="target secondary">
+      <span class="target-label">Recalibrate</span>
+      <span class="target-sub">if your aim drifted</span>
+    </button>
   </div>
+  <p class="results-hint">or press <b>G</b> to play, <b>C</b> to recalibrate</p>
 </section>
 
 <pre id="diag" class="diag hidden"></pre>
+
+<!-- Crosshairs and shot marks draw here, above every DOM panel. On the results
+     screen the panel is opaque, so a crosshair on the world canvas underneath
+     is invisible — and "shoot here" with no visible pointer is not a target. -->
+<canvas id="pointer" class="pointer"></canvas>
 
 <script type="module" src="./js/main.js"></script>
 </body>

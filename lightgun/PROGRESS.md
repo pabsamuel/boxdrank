@@ -106,6 +106,30 @@ behaviour only exists in a room we cannot see)
 - **The phone can set the TV size**, since the person holding it is the one standing in front of the
   television. The display stays the source of truth and rejects impossible values.
 
+**A HUD and a results screen sized for the gun that aims at them**
+- The same 10-foot rules, applied to the two screens the lobby review had not covered, found two
+  defects that were invisible by eye:
+  - **The HUD sat at `y=0`.** A television crops its edges by an unpredictable amount — 5%, or 54px on
+    1080p, is the usual planning figure — so the score and the clock were first to be cut off. The HUD
+    now sits inside that inset, like the lobby already did.
+  - **The results buttons were smaller than the aiming error.** They were 5.9% of screen height, while
+    the measured p95 aim error after a player moves is 4.9% of screen *width* — 8.7% of height on 16:9.
+    Fitts's law applies to the pointer you actually have, and a target narrower than the p95 error of
+    the thing pointing at it cannot be hit, however obvious it looks. They are now 15% of height
+    (~1.7x that error in the tight axis), separated by a gap that also exceeds it so a shot meant for
+    *play again* cannot land on *recalibrate*.
+- **Crosshairs moved to their own canvas above the DOM panels.** The results overlay is opaque, so the
+  crosshair was being drawn underneath the very buttons that say "shoot here" — a pointer the player
+  could not see. The same change fixed shot marks landing at half position on a HiDPI display, where
+  the canvas works in device pixels and `window.innerWidth` reports CSS pixels.
+- A target lights up while a crosshair is inside it: the only feedback that tells a player a shot
+  *will* hit before they pull the trigger.
+- HUD hierarchy rather than four equal numbers: the combo does not exist at x1, the clock changes
+  colour only in the last ten seconds, the best score is dimmed to 60%, the score animates on change,
+  and big numbers are grouped (`24,800`). Results stats are a labelled row, civilians appear only when
+  some were hit, and beating the high score is announced once — with the score it beat — instead of in
+  both a title and a flag.
+
 **Tests**
 - `npm test` — 20 synthetic-truth checks across distances, screen sizes, off-axis and tilted screens,
   wrong stated sizes, 3-vs-4 point, smoothing lag and jitter, degenerate rays. All passing.
@@ -126,6 +150,12 @@ behaviour only exists in a room we cannot see)
   play virtual 6DoF phones through the real protocol, now including tracking loss, re-zero, the
   session report, a **pose-trace round trip through the real recorder and chunked transfer**, and
   **two simultaneous players**. All passing.
+- `node tests/ui.js` (part of `npm run test:e2e`) — 34 checks that measure the display at 1920x1080
+  rather than looking at it: every readable element inside a 5% title-safe inset, every shootable
+  target and the gap between them larger than the gun's own measured p95 aim error, the crosshair
+  layer stacked above the results panel, muted colours at 7:1 or better, and the combo, the urgency
+  state and the "new best" flag appearing only when they are true. Both HUD defects above were found
+  by writing it. All passing.
 
 ---
 
@@ -284,6 +314,11 @@ Nothing has failed yet. Criteria 2, 3 and 5 are only provisionally passed until 
    That sits exactly in the range of real ARCore jitter, so the tool would have made a quiet phone look
    noisy and sent us tuning the filter against an artifact. Fixed with the `atan2` form, which is exact
    down to zero; noise recovery went from a 3.3x overestimate to within 2% of truth.
+5b. **The crosshair was drawn under the results panel.** Shots and crosshairs went to the world canvas,
+   which sits below the DOM overlays — fine everywhere else, invisible behind an opaque results screen
+   that is simultaneously asking to be shot at. In the same place: shot marks were stored in CSS
+   pixels and drawn into a canvas scaled to device pixels, so on a 2x display every mark landed at
+   half its true position. Both found by measuring the rendered page rather than by playing it.
 6. The analyser's still-window detector counted slow ramps as stillness (fixed by rejecting windows
    with a trend through them), its drift metric compared positions when it should have clustered screen
    coordinates, and its smoothing sweep silently reported "zero jitter" on noisy phones where it had

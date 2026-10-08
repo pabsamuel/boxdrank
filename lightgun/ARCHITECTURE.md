@@ -136,6 +136,30 @@ aiming. Hence a trigger that is the whole screen rather than a button, and the T
 living there as well as on the laptop — the person who can see how big the television is, is the
 one standing in front of it.
 
+### Anything shot at is sized against the gun's measured error
+
+The same rules applied to the in-round HUD and the results screen turned up two things that were
+invisible by eye and obvious once measured, so `tests/ui.js` now measures them on every run:
+
+- **The HUD was at `y=0`.** Televisions crop their edges by an amount nobody can predict — 5% is the
+  usual planning figure, 54px on 1080p — so the score and the clock were the first things to go. The
+  whole HUD now lives inside that inset, like the lobby already did.
+- **The results buttons were smaller than the aiming error.** They were 5.9% of screen height, while
+  the measured p95 aim error after a player moves is 4.9% of screen *width*, which on 16:9 is 8.7% of
+  height. Fitts's law applies to the pointer you actually have: a target narrower than the p95 error
+  of the thing pointing at it cannot be hit reliably, however obvious it looks. They are now 15% of
+  height — about 1.7x that error in the tight axis — separated by a gap that also exceeds it, so a
+  shot meant for *play again* cannot land on *recalibrate*.
+
+Two smaller consequences of the same reasoning. A target lights up while a crosshair is inside it,
+because that is the only feedback that tells a player a shot *will* hit before they pull; and
+crosshairs moved to their own canvas stacked above the DOM panels, because the results overlay is
+opaque and was hiding the pointer underneath the very buttons it was asking to be shot.
+
+The HUD earns its space the same way: the combo does not exist at x1, the clock only changes colour
+in the last ten seconds, the best score is dimmed to 60%, and the score animates on change — a
+number that moves silently on a screen three metres away does not get noticed.
+
 ## What this deliberately is not
 
 No accounts, no cloud, no analytics, no persistence beyond a high score in `localStorage`, no
