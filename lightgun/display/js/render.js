@@ -125,7 +125,12 @@ export function drawTestField(ctx, w, h, markers, hitMap) {
 
 /** Shot marker: an expanding ring plus a persistent pin-prick. */
 export function drawShot(ctx, shot, now) {
-  const age = now - shot.t;
+  // Clamped: a shot arrives over the socket between frames and is stamped with
+  // performance.now(), while this `now` is the frame's own timestamp, which is
+  // the moment the frame started. So a fresh shot can be a millisecond in the
+  // future, making the age negative, the radius negative, and the whole draw
+  // call throw — which loses the entire frame, not just the shot.
+  const age = Math.max(0, now - shot.t);
   const life = 700;
   if (age > life) return false;
   const k = age / life;
@@ -146,7 +151,7 @@ export function drawShot(ctx, shot, now) {
 }
 
 export function drawFloatingText(ctx, item, now) {
-  const age = now - item.t;
+  const age = Math.max(0, now - item.t);
   const life = 900;
   if (age > life) return false;
   const k = age / life;

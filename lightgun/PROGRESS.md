@@ -85,6 +85,14 @@ behaviour only exists in a room we cannot see)
   `render.yaml` and `/healthz` included; verified by reproducing the container's exact file layout
   and running it, since no Docker daemon is available here to build the image.
 
+**Surviving a public URL** (hosted mode means the relay meets traffic that is not a light gun)
+- Relay limits: 256 KB frame cap, a 240 msg/s token bucket per socket, 8 sockets per room, 500 rooms,
+  and a socket that never joins a room is dropped after 10 s. None of them touch real play — a 60 Hz
+  aim stream passes untouched — they only stop one socket taking the server down for everyone else.
+- Room codes went from 4 characters to 6, generated from `crypto.getRandomValues`. On a public URL a
+  600k-combination code is guessable enough for a stranger to turn up as a second gun on someone's
+  screen; 480 million is not, and the QR carries it so nobody types it anyway.
+
 **Tests**
 - `npm test` — 20 synthetic-truth checks across distances, screen sizes, off-axis and tilted screens,
   wrong stated sizes, 3-vs-4 point, smoothing lag and jitter, degenerate rays. All passing.
@@ -97,6 +105,10 @@ behaviour only exists in a room we cannot see)
   double-fire, and that the aim look-back recovers the pre-flick position. Caught two real bugs: a
   cooldown initialised to 0 that swallowed every shot in the first 320 ms of a session, and a
   wall-clock cooldown that disagreed with the sample-driven re-arm.
+- `node tests/relay.js` (part of `npm run test:e2e`) — 7 checks that the relay survives the internet
+  without getting in the way: a 180-packet 60 Hz stream passes intact, a flood is disconnected, an
+  oversized frame is refused, a room stops at capacity, malformed JSON does not take it down, a socket
+  that never joins is dropped, and rooms never see each other's traffic.
 - `npm run test:e2e` — 21 checks: headless Chromium runs the real display client while Node processes
   play virtual 6DoF phones through the real protocol, now including tracking loss, re-zero, the
   session report, a **pose-trace round trip through the real recorder and chunked transfer**, and
@@ -248,6 +260,12 @@ Nothing has failed yet. Criteria 2, 3 and 5 are only provisionally passed until 
 3. **One-Euro tuned by intuition** had 126 ms of steady-state lag. Caught by measuring lag rather than
    watching it.
 4. Static assets 404'd because `/` rewrote instead of redirecting, breaking every relative path.
+4b. **A shot arriving between frames crashed the whole frame.** Shots are stamped with
+   `performance.now()` when they arrive over the socket, but the draw loop runs on the frame's own
+   timestamp — which is when the frame *started*. A shot a millisecond in the future gave a negative
+   age, then a negative radius, and `ctx.arc` throws on that, losing every later draw call in the
+   frame. Intermittent by nature, and found only because the end-to-end test asserts on uncaught
+   errors rather than on what the screen looks like.
 5. **The trace analyser had a 0.09° noise floor** — `acos(dot(a,b))` on directions that are rounded to
    five decimals on the wire, where `acos(1 − ε) ≈ √(2ε)` turns a 5e-6 loss of unit length into ~0.09°.
    That sits exactly in the range of real ARCore jitter, so the tool would have made a quiet phone look

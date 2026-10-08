@@ -273,7 +273,7 @@ export class Game {
       ctx.stroke();
     } else if (t.type === 'explosive') {
       polygon(ctx, 3, r, spin * 1.4, t.spec.colour, 'rgba(255,150,54,0.22)');
-      ring(ctx, r * 0.7 + Math.sin(now / 120) * 3, t.spec.colour, 3);
+      ring(ctx, Math.max(1, r * 0.7 + Math.sin(now / 120) * 3), t.spec.colour, 3);
     }
 
     // Expiry clock: a shrinking arc, so the player can read urgency at a glance.
@@ -330,7 +330,7 @@ function ring(ctx, r, colour, width) {
 }
 
 function drawText(ctx, e, w, h, now) {
-  const age = now - e.t;
+  const age = Math.max(0, now - e.t);
   const life = 900;
   if (age > life) return false;
   const k = age / life;
@@ -345,7 +345,7 @@ function drawText(ctx, e, w, h, now) {
 }
 
 function drawBlast(ctx, e, w, h, unit, now) {
-  const age = now - e.t;
+  const age = Math.max(0, now - e.t);
   const life = 420;
   if (age > life) return false;
   const k = age / life;

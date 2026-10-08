@@ -122,10 +122,41 @@ async function handle(req, res, secure) {
 }
 
 /* ------------------------------------------------------------ room relay */
+//
+// Limits exist because hosted mode puts this on the open internet, where the
+// relay will meet traffic that is not a light gun. None of them constrain real
+// play: a gun sends ~60 small packets a second and a room holds two phones and
+// a TV. They only stop a single socket from taking the server down for the
+// people actually using it.
+
+const LIMITS = {
+  payloadBytes: 256 * 1024,   // a trace chunk is 48 KB; nothing legitimate is larger
+  messagesPerSecond: 240,     // 60 Hz aim + pings, with headroom for a burst
+  socketsPerRoom: 8,          // two players, a display, and room to reconnect
+  rooms: 500,
+  helloTimeoutMs: 10000,      // a socket that never joins a room is not a client
+};
 
 /** room code -> Set of sockets */
 const rooms = new Map();
 let nextId = 1;
+
+/**
+ * Token bucket, refilled continuously. Cheap enough to run on every message:
+ * two numbers and no allocation.
+ */
+function allowMessage(sock) {
+  const now = Date.now();
+  const elapsed = (now - sock.lgBucketAt) / 1000;
+  sock.lgBucketAt = now;
+  sock.lgTokens = Math.min(
+    LIMITS.messagesPerSecond,
+    sock.lgTokens + elapsed * LIMITS.messagesPerSecond,
+  );
+  if (sock.lgTokens < 1) return false;
+  sock.lgTokens -= 1;
+  return true;
+}
 
 function peersOf(room, except) {
   return [...(rooms.get(room) || [])].filter((s) => s !== except && s.readyState === 1);
@@ -143,25 +174,50 @@ function announce(room) {
 }
 
 function attachWs(server) {
-  const wss = new WebSocketServer({ server, path: '/ws' });
+  const wss = new WebSocketServer({
+    server,
+    path: '/ws',
+    maxPayload: LIMITS.payloadBytes,
+  });
   // Without this, any server error is re-emitted here with no listener and
   // takes the process down as an unhandled 'error' event.
   wss.on('error', (err) => console.error(`  websocket error: ${err.message}`));
   wss.on('connection', (sock) => {
     sock.lgId = nextId++;
     sock.isAlive = true;
+    sock.lgTokens = LIMITS.messagesPerSecond;
+    sock.lgBucketAt = Date.now();
     sock.on('pong', () => { sock.isAlive = true; });
+    sock.on('error', () => sock.terminate());
+
+    // A connection that never joins a room is not a client of ours.
+    const helloTimer = setTimeout(() => {
+      if (!sock.lgRoom) sock.close(4000, 'no hello');
+    }, LIMITS.helloTimeoutMs);
+    helloTimer.unref?.();
 
     sock.on('message', (buf) => {
+      if (!allowMessage(sock)) { sock.close(4001, 'rate limit'); return; }
       let msg;
       try { msg = JSON.parse(buf); } catch { return; }
+      if (!msg || typeof msg !== 'object' || typeof msg.t !== 'string') return;
 
       if (msg.t === 'hello') {
+        if (sock.lgRoom) return;                      // one join per socket
         sock.lgRole = msg.role === 'display' ? 'display' : 'phone';
-        sock.lgRoom = String(msg.room || '').toUpperCase().slice(0, 8);
+        sock.lgRoom = String(msg.room || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
         sock.lgName = String(msg.name || '').slice(0, 24);
-        if (!sock.lgRoom) { sock.close(); return; }
+        if (!sock.lgRoom) { sock.close(4002, 'no room'); return; }
+        if (!rooms.has(sock.lgRoom) && rooms.size >= LIMITS.rooms) {
+          sock.close(4003, 'server full');
+          return;
+        }
         if (!rooms.has(sock.lgRoom)) rooms.set(sock.lgRoom, new Set());
+        if (rooms.get(sock.lgRoom).size >= LIMITS.socketsPerRoom) {
+          sock.close(4004, 'room full');
+          return;
+        }
+        clearTimeout(helloTimer);
         rooms.get(sock.lgRoom).add(sock);
         // Slot index lets the display keep P1/P2 stable across reconnects.
         const phones = [...rooms.get(sock.lgRoom)].filter((s) => s.lgRole === 'phone');

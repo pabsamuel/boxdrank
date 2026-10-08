@@ -92,6 +92,11 @@ problem — which so far it always has been.
 Set `LG_PUBLIC_ORIGIN` only if your proxy rewrites the Host header; otherwise the
 display builds the phone URL from its own origin.
 
+The relay is rate-limited, frame-capped and room-capped for the open internet, and room
+codes are six random characters — a stranger cannot stumble into your session. Those
+limits are far above real play: a 60 Hz aim stream passes untouched, which
+`node tests/relay.js` asserts alongside the abuse cases.
+
 ---
 
 ## How the aiming works

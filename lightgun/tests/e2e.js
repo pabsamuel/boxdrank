@@ -65,8 +65,12 @@ class VirtualPhone {
     this.seq = 0;
     this.ready = new Promise((res) => (this._ready = res));
     // Mirror the real controller's twice-a-second status beacon.
+    // The beacon reports the state this phone last announced. Hardcoding
+    // 'tracking' here made the heartbeat contradict the transition events the
+    // test itself was sending.
+    this.trackingState = 'tracking';
     this.statusTimer = setInterval(() => this.send({
-      t: 'status', mode: '6dof', tracking: 'tracking', poseHz: 60,
+      t: 'status', mode: '6dof', tracking: this.trackingState, poseHz: 60,
       aimHz: this.aimCount || 0, calibrated: Boolean(this.model),
       rms: this.model ? this.model.rmsErrorScreen : null,
     }) || (this.aimCount = 0), 500);
@@ -297,6 +301,7 @@ check('aim survives the player moving, with no recentring', movedMean < 6,
 /* ---------------------------------------------- 5. tracking loss and re-zero */
 
 eye = [0, 1.2, 0];
+phone.trackingState = 'lost';
 phone.send({ t: 'tracking', state: 'lost', previous: 'tracking', losses: 1 });
 await sleep(300);
 const lostState = await page.evaluate(() => {
@@ -306,6 +311,7 @@ const lostState = await page.evaluate(() => {
 check('a tracking loss is surfaced, not silently ignored',
   lostState.tracking === 'lost' && lostState.losses === 1, JSON.stringify(lostState));
 
+phone.trackingState = 'tracking';
 phone.send({ t: 'tracking', state: 'tracking', previous: 'lost', losses: 1 });
 await sleep(300);
 

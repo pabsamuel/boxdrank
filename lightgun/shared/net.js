@@ -119,10 +119,21 @@ export class Net extends EventTarget {
   }
 }
 
-/** Four characters, no vowels and no look-alikes, so room codes are readable. */
+/**
+ * Room code: no vowels and no look-alikes, so it is readable off a TV from
+ * across the room. Six characters rather than four because hosted mode puts
+ * the relay on a public URL, where a four-character code (600k combinations)
+ * is guessable enough for someone to turn up as a second gun on a stranger's
+ * screen. Six is 480 million, and nobody types it anyway — the QR carries it.
+ */
 export function makeRoomCode() {
   const alphabet = 'BCDFGHJKLMNPQRSTVWXZ23456789';
-  let s = '';
-  for (let i = 0; i < 4; i++) s += alphabet[Math.floor(Math.random() * alphabet.length)];
-  return s;
+  const bytes = new Uint8Array(6);
+  // Unbiased where available: Math.random is fine for a game room, but this
+  // is the only thing standing between a stranger and someone's session.
+  if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
+  else for (let i = 0; i < 6; i++) bytes[i] = Math.floor(Math.random() * 256);
+  let out = '';
+  for (let i = 0; i < 6; i++) out += alphabet[bytes[i] % alphabet.length];
+  return out;
 }
