@@ -163,7 +163,8 @@
   <button class="chip" id="camBtn">KAMERA</button>
   <button class="chip" id="gear">AYAR</button>
   <span id="status">hazir</span>
-  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v10</span>
+  <button class="chip" id="rec" style="display:none">● DURDUR</button>
+  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v11</span>
 </div>
 
 <div id="diag"></div>
@@ -244,6 +245,12 @@
     <label for="diagSel">TANI</label>
     <select id="diagSel"><option value="0" selected>kapali</option><option value="1">acik</option></select>
   </div>
+  <button class="btn" id="shot">FOTO CEK</button>
+  <button class="btn" id="recBtn">VIDEO KAYDET</button>
+  <div class="full">
+    <label for="pro">PRO KOD</label>
+    <input id="pro" type="text" placeholder="pro kodu" autocomplete="off" />
+  </div>
   <button class="btn full" id="test">TEST SATIRI (tempoyu gor)</button>
   <button class="btn full" id="demo">DEMO (izin gerekmez)</button>
   <p class="hint">
@@ -262,6 +269,7 @@
     meter: $("meter").firstElementChild, engine: $("engine"), lang: $("lang"), size: $("size"),
     frame: $("frame"), speed: $("speed"), sound: $("sound"), demo: $("demo"), name: $("name"),
     test: $("test"), diag: $("diag"), diagSel: $("diagSel"),
+    shot: $("shot"), recBtn: $("recBtn"), rec: $("rec"), pro: $("pro"), cam: $("cam"),
   };
 
   // ---------------- text blip: synthesised, one per character ----------------
@@ -826,6 +834,235 @@
       el.status.textContent = "hata"; idle(msg);
     }
   };
+
+
+  // ---------------- settings that survive a reload ----------------
+  const REMEMBER = ["engine", "lang", "size", "frame", "speed", "sound", "diagSel"];
+
+  function loadPrefs() {
+    for (const id of REMEMBER) {
+      try {
+        const v = localStorage.getItem("retrosubs." + id);
+        if (v !== null && el[id]) el[id].value = v;
+      } catch (e) {}
+    }
+    el.line.style.fontSize = el.size.value + "px";
+    document.body.dataset.frame = el.frame.value;
+    document.body.dataset.diag = el.diagSel.value === "1" ? "on" : "off";
+  }
+
+  for (const id of REMEMBER) {
+    const node = el[id];
+    if (!node) continue;
+    node.addEventListener("change", () => {
+      try { localStorage.setItem("retrosubs." + id, node.value); } catch (e) {}
+    });
+  }
+
+  // ---------------- pro ----------------
+  // A local flag, deliberately simple and deliberately NOT a security boundary: anyone can set
+  // it from the console. It exists so the free/paid split is wired end to end; before charging
+  // for it, the check moves to a signed licence verified on a server. See docs/05-MONETIZATION.md.
+  const PRO_HASH = "1256bb532074914efb5419bdb1f469bdf45071634d0c2c66737624cfa3edac5f";
+
+  function isPro() {
+    try { return localStorage.getItem("retrosubs.pro") === "1"; } catch (e) { return false; }
+  }
+
+  async function sha256(text) {
+    const data = new TextEncoder().encode(text);
+    const buf = await crypto.subtle.digest("SHA-256", data);
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  function paintPro() {
+    el.pro.value = isPro() ? "PRO ACIK" : "";
+    el.pro.disabled = isPro();
+  }
+
+  el.pro.addEventListener("change", async () => {
+    if (isPro()) return;                 // already unlocked; the field now holds its own label
+    const code = el.pro.value.trim();
+    if (!code) return;
+    let ok = false;
+    try { ok = (await sha256(code.toUpperCase())) === PRO_HASH; } catch (e) {}
+    if (ok) {
+      try { localStorage.setItem("retrosubs.pro", "1"); } catch (e) {}
+      el.status.textContent = "pro acildi";
+    } else {
+      el.status.textContent = "kod gecersiz";
+    }
+    paintPro();
+  });
+
+  // ---------------- capture: a photo or a clip of exactly what is on screen ----------------
+  // Sharing is how this travels, so the box has to leave the phone as a file. The composite is
+  // drawn from the live layout rather than a second renderer, so what you export is what you saw.
+  const shotCanvas = document.createElement("canvas");
+  let recorder = null, recChunks = [], recRaf = 0;
+
+  function css(name) {
+    return getComputedStyle(document.body).getPropertyValue(name).trim();
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function composite(ctx, W, H, s) {
+    ctx.fillStyle = css("--bg") || "#0A0D24";
+    ctx.fillRect(0, 0, W, H);
+
+    // camera, mirrored and covering, exactly as the page shows it
+    const v = el.cam;
+    if (document.body.dataset.cam === "on" && v.videoWidth) {
+      const scale = Math.max(W / v.videoWidth, H / v.videoHeight);
+      const dw = v.videoWidth * scale, dh = v.videoHeight * scale;
+      ctx.save();
+      ctx.translate(W, 0); ctx.scale(-1, 1);
+      ctx.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      ctx.restore();
+    }
+
+    const box = document.getElementById("box").getBoundingClientRect();
+    const bx = box.left * s, by = box.top * s, bw = box.width * s, bh = box.height * s;
+    const pad = 4 * s, inner = 3 * s;
+
+    ctx.fillStyle = css("--frame-outer"); roundRect(ctx, bx, by, bw, bh, 10 * s); ctx.fill();
+    ctx.fillStyle = css("--frame-inner");
+    roundRect(ctx, bx + pad, by + pad, bw - pad * 2, bh - pad * 2, 7 * s); ctx.fill();
+    ctx.fillStyle = css("--paper");
+    const px = bx + pad + inner, py = by + pad + inner;
+    roundRect(ctx, px, py, bw - (pad + inner) * 2, bh - (pad + inner) * 2, 5 * s); ctx.fill();
+
+    // speaker name
+    const who = document.getElementById("who");
+    const wr = who.getBoundingClientRect();
+    ctx.fillStyle = css("--frame-outer");
+    ctx.textBaseline = "alphabetic";
+    ctx.font = (10 * s) + 'px "Press Start 2P", monospace';
+    ctx.fillText(who.textContent, wr.left * s, (wr.bottom - 2) * s);
+
+    // the two visible lines, straight from the DOM so it cannot drift from the screen
+    const lineEl = document.getElementById("line");
+    const lr = lineEl.getBoundingClientRect();
+    const cs = getComputedStyle(lineEl);
+    const fontSize = parseFloat(cs.fontSize);
+    const lineHeight = parseFloat(cs.lineHeight) || fontSize * 1.35;
+    ctx.fillStyle = lineEl.classList.contains("idle") ? "#909090" : css("--ink");
+    ctx.font = (fontSize * s) + 'px "Pixelify Sans", ui-monospace, monospace';
+    lineEl.textContent.split("\n").forEach((text, i) => {
+      ctx.fillText(text, lr.left * s, (lr.top + lineHeight * (i + 0.78)) * s);
+    });
+
+    // caret, when the box is showing one
+    const caret = document.getElementById("caret");
+    if (caret.classList.contains("on")) {
+      const cr = caret.getBoundingClientRect();
+      ctx.fillStyle = css("--caret");
+      ctx.beginPath();
+      ctx.moveTo(cr.left * s, cr.top * s);
+      ctx.lineTo(cr.right * s, cr.top * s);
+      ctx.lineTo((cr.left + cr.width / 2) * s, cr.bottom * s);
+      ctx.closePath(); ctx.fill();
+    }
+
+    if (!isPro()) {
+      ctx.font = (9 * s) + 'px "Press Start 2P", monospace';
+      ctx.fillStyle = "rgba(245,239,220,.75)";
+      const label = "retrosubs";
+      const tw = ctx.measureText(label).width;
+      ctx.fillText(label, W - tw - 14 * s, H - 14 * s);
+    }
+  }
+
+  function sizeCanvas() {
+    const s = Math.min(2, window.devicePixelRatio || 1);
+    shotCanvas.width = Math.round(window.innerWidth * s);
+    shotCanvas.height = Math.round(window.innerHeight * s);
+    return s;
+  }
+
+  /** Hand the file to the share sheet where there is one, otherwise download it. */
+  async function deliver(blob, filename) {
+    const file = new File([blob], filename, { type: blob.type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file] }); return "paylasildi"; } catch (e) { /* cancelled */ }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    return "kaydedildi";
+  }
+
+  el.shot.onclick = async () => {
+    el.sheet.classList.remove("open");
+    const s = sizeCanvas();
+    const ctx = shotCanvas.getContext("2d");
+    composite(ctx, shotCanvas.width, shotCanvas.height, s);
+    shotCanvas.toBlob(async blob => {
+      if (!blob) { el.status.textContent = "foto alinamadi"; return; }
+      el.status.textContent = await deliver(blob, "retrosubs.png");
+    }, "image/png");
+  };
+
+  function pickMime() {
+    const types = ["video/mp4", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"];
+    return types.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || "";
+  }
+
+  function stopRecording() {
+    cancelAnimationFrame(recRaf);
+    if (recorder && recorder.state !== "inactive") recorder.stop();
+  }
+
+  el.rec.onclick = stopRecording;
+
+  el.recBtn.onclick = () => {
+    if (recorder && recorder.state === "recording") { stopRecording(); return; }
+    if (!window.MediaRecorder) { el.status.textContent = "bu tarayici video kaydi vermiyor"; return; }
+    const mime = pickMime();
+    if (!mime) { el.status.textContent = "video kaydi desteklenmiyor"; return; }
+
+    el.sheet.classList.remove("open");
+    const s = sizeCanvas();
+    const ctx = shotCanvas.getContext("2d");
+    const out = shotCanvas.captureStream(30);
+    // In vibe mode we hold the microphone, so the clip can carry sound; in real mode the
+    // recogniser owns it and the clip is silent. Saying so beats a mystery.
+    if (stream) stream.getAudioTracks().forEach(t => out.addTrack(t));
+
+    recChunks = [];
+    recorder = new MediaRecorder(out, { mimeType: mime, videoBitsPerSecond: 4_000_000 });
+    recorder.ondataavailable = e => { if (e.data && e.data.size) recChunks.push(e.data); };
+    recorder.onstop = async () => {
+      el.rec.style.display = "none";
+      const blob = new Blob(recChunks, { type: mime.split(";")[0] });
+      recorder = null;
+      el.status.textContent = await deliver(blob, mime.startsWith("video/mp4") ? "retrosubs.mp4" : "retrosubs.webm");
+    };
+    recorder.start(250);
+    el.rec.style.display = "";
+    el.status.textContent = stream && stream.getAudioTracks().length ? "kaydediyor (sesli)" : "kaydediyor (sessiz)";
+
+    const draw = () => {
+      if (!recorder) return;
+      composite(ctx, shotCanvas.width, shotCanvas.height, s);
+      recRaf = requestAnimationFrame(draw);
+    };
+    draw();
+  };
+
+  loadPrefs();
+  paintPro();
 
   sigil(1);
   el.line.style.fontSize = el.size.value + "px";

@@ -20,6 +20,13 @@ _Last updated: Phase 0–5 landing commit._
   types nonsense (Japanese kana or latin) in time with the speaker. Works with no recognizer, no
   network and no supported language.
 
+- **Browser version** (`retrosubs/web`, live at https://pabsamuel.github.io/boxdrank/) — the only
+  thing that runs on iOS: full-screen box over the front camera, two-line pagination, per-character
+  blip, automatic punctuation, named speaker, on-device diagnostics.
+- **Export and the free/Pro split** — photo and clip of exactly what is on screen, watermarked on
+  the free tier, unlocked by a local Pro flag. Deliberately not a security boundary yet; the
+  upgrade path is written down in `docs/05-MONETIZATION.md`.
+
 ## Not built, on purpose
 - iOS app (`docs/04-IOS-AND-COMPANION.md` says exactly what iOS permits).
 - Companion/second-device mode, desktop client, extra themes.
