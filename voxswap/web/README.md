@@ -6,7 +6,7 @@ the folder as it is, at <https://pabsamuel.github.io/boxdrank/voxswap/>.
 | File | What it is |
 | --- | --- |
 | `site-config.js` | **The one file to edit before sharing the site**: brand, contact email, payment links, prices, turnaround. Every page reads it. |
-| `index.html` | The landing page: a playable before/after of the same line, how it works, prices, the consent rules, FAQ. Turkish first, English toggle. |
+| `index.html` | The landing page: a playable before/after of the same line, how it works, prices, the consent rules, FAQ. English by default, Turkish toggle (the choice carries over to the booth and the demo). |
 | `booth.html` | The recording booth: the page a customer records their samples and signs the permission form on. |
 | `demo.html` | Station Four — a tiny game, voiced as shipped and again in a stand-in customer's voice. One file, both casts embedded. |
 | `audio/` | The six clips the landing page plays. Built by `tools/demo_game/build_page.py`. |
@@ -27,7 +27,7 @@ localProcessing: true            // shows "your voice never goes to an AI compan
 ```
 
 Everything empty degrades instead of breaking: with no payment link a price
-button reads "Önce ücretsiz örnek" and opens the booth; with no email the last
+button reads "Start with a free sample" and opens the booth; with no email the last
 booth screen tells the customer to send the file to whoever shared the link.
 
 Keep `localProcessing` true only while orders run on `local_vc` on your own
@@ -39,7 +39,10 @@ third party's spoken consent names the business the customer bought from.
 
 ## The customer's path
 
-1. **Landing page** → plays the demo, reads the rules, presses "Ücretsiz örnek".
+1. **Landing page** → plays the demo, reads the rules, presses "Free sample".
+   Everything is English unless the visitor presses TR; that choice is
+   remembered, so the booth and the demo open in Turkish too. A link can
+   also ask for it: `booth.html?lang=tr`.
 2. **Booth** → name and email, a four-point permission form they tick and sign
    by typing their name, eight short lines read aloud, each checked as it is
    recorded. On the last screen: which game, which character (optional).

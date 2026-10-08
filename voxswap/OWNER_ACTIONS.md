@@ -21,7 +21,10 @@ step below switches one more thing on.
       Create three digital-service products — *Kısa*, *Başrol*, *Ekip* — at the
       prices in `site-config.js` (or your own). Copy each product link into
       `checkout.short` / `checkout.lead` / `checkout.crew`.
-      The buttons then say "Sipariş ver" and open Shopier.
+      The buttons then say "Order" ("Sipariş ver" in Turkish) and open Shopier.
+      The site is English by default and shows the `en` prices in dollars,
+      but Shopier charges in lira — set the `en` prices to what the lira
+      price comes to, or say "charged in TRY" next to them.
 - [ ] **Check the name.** "Başrol" found no competing app, but search the
       domain and do a quick trademark search before you print it anywhere.
       To rename, change `brand` in `site-config.js` — it is the only place.

@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Başrol — Oyunun kahramanı senin sesinle konuşsun</title>
-<meta name="description" content="Sahip olduğun oyunun ana karakterini senin sesinle yeniden seslendiriyoruz. Oyuncunun performansı aynen kalıyor, sadece ses seninki oluyor.">
+<title>Başrol — be the voice of the hero</title>
+<meta name="description" content="We re-voice the lead character of a game you own with your own voice. The actor's performance stays exactly as it was — only the voice becomes yours.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -218,128 +218,128 @@
 
 <header class="top">
   <div class="wrap bar">
-    <a class="brand" href="#" aria-label="Ana sayfa">
+    <a class="brand" href="#" aria-label="Home">
       <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="currentColor"/><rect x="7" y="13" width="3" height="6" rx="1.5" fill="#ffd23f"/><rect x="12.5" y="8" width="3" height="16" rx="1.5" fill="#ffd23f"/><rect x="18" y="11" width="3" height="10" rx="1.5" fill="#ffd23f"/><rect x="23.5" y="14" width="3" height="4" rx="1.5" fill="#ffd23f"/></svg>
       <span data-brand>Başrol</span>
     </a>
     <nav class="links">
-      <a href="#nasil" data-i="nav_how">Nasıl çalışır</a>
-      <a href="#fiyat" data-i="nav_price">Fiyatlar</a>
-      <a href="#riza" data-i="nav_consent">Rıza</a>
-      <a href="#sss" data-i="nav_faq">SSS</a>
+      <a href="#nasil" data-i="nav_how">How it works</a>
+      <a href="#fiyat" data-i="nav_price">Pricing</a>
+      <a href="#riza" data-i="nav_consent">Consent</a>
+      <a href="#sss" data-i="nav_faq">FAQ</a>
     </nav>
     <span class="spacer"></span>
-    <div class="lang" role="group" aria-label="Dil / Language">
-      <button type="button" data-lang="tr" aria-pressed="true">TR</button>
-      <button type="button" data-lang="en" aria-pressed="false">EN</button>
+    <div class="lang" role="group" aria-label="Language / Dil">
+      <button type="button" data-lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-lang="tr" aria-pressed="false">TR</button>
     </div>
-    <a class="btn small" href="booth.html" data-i="cta_sample_short">Ücretsiz örnek</a>
+    <a class="btn small" href="booth.html" data-i="cta_sample_short">Free sample</a>
   </div>
 </header>
 
 <main>
   <div class="wrap hero">
     <div>
-      <p class="eyebrow"><span class="pip"></span><span data-i="eyebrow">Oyun seslendirmesi, senin sesinle</span></p>
-      <h1 data-i="h1" data-html>Oyunun kahramanı artık <em>senin sesinle</em> konuşsun.</h1>
-      <p class="lede" data-i="lede">Sahip olduğun oyunun ana karakterini senin sesinle yeniden seslendiriyoruz. Oyuncunun performansı — bağırışı, fısıltısı, duraklaması — aynen kalıyor. Sadece konuşan kişi değişiyor: sen.</p>
+      <p class="eyebrow"><span class="pip"></span><span data-i="eyebrow">Game voice-over, in your voice</span></p>
+      <h1 data-i="h1" data-html>Be the voice of <em>the hero</em>.</h1>
+      <p class="lede" data-i="lede">We re-voice the lead character of a game you own with your voice. The actor's performance — every shout, whisper and pause — stays exactly where it was. Only the person speaking changes: it's you.</p>
       <div class="cta-row">
-        <a class="btn" href="booth.html" data-i="cta_sample">Ücretsiz 3 satırlık örnek al</a>
-        <a class="btn ghost" href="#nasil" data-i="cta_how">Nasıl çalışır?</a>
+        <a class="btn" href="booth.html" data-i="cta_sample">Get a free 3-line sample</a>
+        <a class="btn ghost" href="#nasil" data-i="cta_how">How does it work?</a>
       </div>
-      <p class="fineprint" data-i="hero_fine">Önce örneğini dinle, beğenirsen öde. Kayıt tarayıcında 10 dakika sürüyor.</p>
+      <p class="fineprint" data-i="hero_fine">Hear your sample first, pay only if you like it. Recording takes ten minutes in your browser.</p>
     </div>
 
     <div>
       <div class="screen" id="screen">
         <div class="scene"></div>
-        <div class="hud"><span data-i="hud_place">İstasyon Dört — 03:19</span><span class="rec" id="hudRec">● DEMO</span></div>
+        <div class="hud"><span data-i="hud_place">Station Four — 03:19</span><span class="rec" id="hudRec">● DEMO</span></div>
         <div class="cast">
-          <div class="seg" role="group" aria-label="Ses">
-            <button type="button" id="castOrig" aria-pressed="true" data-i="cast_orig">Oyundaki ses</button>
-            <button type="button" id="castYou" aria-pressed="false" data-i="cast_you">Senin sesin</button>
+          <div class="seg" role="group" aria-label="Voice">
+            <button type="button" id="castOrig" aria-pressed="true" data-i="cast_orig">Voice as shipped</button>
+            <button type="button" id="castYou" aria-pressed="false" data-i="cast_you">Your voice</button>
           </div>
         </div>
         <div class="dialogue">
-          <p class="speaker"><span data-i="speaker_role">Kahraman</span> <span id="speakerWho" data-i="who_orig">· oyundaki seslendirme</span></p>
+          <p class="speaker"><span data-i="speaker_role">Hero</span> <span id="speakerWho" data-i="who_orig">· original voice-over</span></p>
           <p class="line" id="line">“Get away from that door!”</p>
           <div class="controls">
-            <button type="button" class="play" id="play" aria-label="Oynat">
+            <button type="button" class="play" id="play" aria-label="Play">
               <svg viewBox="0 0 16 16" id="playIcon" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>
             </button>
             <canvas class="wave" id="wave" aria-hidden="true"></canvas>
-            <button type="button" class="nextline" id="nextLine" data-i="next_line">Sonraki ›</button>
+            <button type="button" class="nextline" id="nextLine" data-i="next_line">Next ›</button>
           </div>
         </div>
       </div>
-      <p class="screen-note" data-i="screen_note">Ortada geçiş yap, aynı repliği tekrar dinle. Demo: iki ses de sentetik — gerçek bir kişinin sesi kullanılmadı.</p>
+      <p class="screen-note" data-i="screen_note">Switch mid-line and play it again. Demo: both voices are synthetic — no real person's voice is used.</p>
     </div>
   </div>
 
   <section class="block" id="robotik">
     <div class="wrap">
-      <p class="kicker" data-i="why_kicker">Neden robotik değil</p>
-      <h2 data-i="why_h2">Repliği yeniden okutmuyoruz. Sesi değiştiriyoruz.</h2>
-      <p class="intro" data-i="why_intro">Çoğu yapay zekâ seslendirmesi metni sıfırdan okutur — o yüzden düz ve robotik çıkar, çünkü oyuncunun seçtiği tonlama en baştan kaybolur. Biz oyunun orijinal kaydını alıp sadece kimin konuştuğunu değiştiriyoruz.</p>
+      <p class="kicker" data-i="why_kicker">Why it isn't robotic</p>
+      <h2 data-i="why_h2">We don't re-read the line. We change the voice.</h2>
+      <p class="intro" data-i="why_intro">Most AI voice-over reads the script from scratch — which is why it comes out flat and robotic: the actor's choices are gone before the model starts. We take the game's original recording and change only who is speaking.</p>
       <div class="compare">
         <div class="cmp">
-          <h3><span class="tag no" data-i="tag_no">Metinden okutma</span></h3>
-          <p data-i="cmp_tts">Model repliği bir yazıdan baştan üretir. Nerede bağırılacağını, nerede duraklanacağını tahmin eder — ve genelde yanılır. Süre de değişir, dudak senkronu kayar.</p>
+          <h3><span class="tag no" data-i="tag_no">Text-to-speech</span></h3>
+          <p data-i="cmp_tts">The model rebuilds the line from text. It guesses where to shout and where to pause — and usually guesses wrong. The length changes too, so lip-sync drifts.</p>
         </div>
         <div class="cmp">
-          <h3><span class="tag yes" data-i="tag_yes">Ses dönüştürme</span></h3>
-          <p data-i="cmp_vc">Oyuncunun gerçek performansı korunur; yalnızca tını senin olur. Süre birebir aynı kaldığı için dudak senkronu bozulmaz, duygu kaybolmaz.</p>
+          <h3><span class="tag yes" data-i="tag_yes">Voice conversion</span></h3>
+          <p data-i="cmp_vc">The actor's real performance is kept; only the timbre becomes yours. The length stays identical, so lip-sync holds and the emotion survives.</p>
         </div>
       </div>
       <div class="timing">
-        <div class="timing-head"><b data-i="timing_title">Aynı replik, iki ses — zamanlama birebir</b><span class="mono" id="timingStat"></span></div>
-        <div class="trackrow"><small data-i="track_orig">Oyundaki ses</small><canvas id="trackA" aria-hidden="true"></canvas></div>
-        <div class="trackrow"><small data-i="track_you">Senin sesin</small><canvas id="trackB" aria-hidden="true"></canvas></div>
+        <div class="timing-head"><b data-i="timing_title">Same line, two voices — identical timing</b><span class="mono" id="timingStat"></span></div>
+        <div class="trackrow"><small data-i="track_orig">Voice as shipped</small><canvas id="trackA" aria-hidden="true"></canvas></div>
+        <div class="trackrow"><small data-i="track_you">Your voice</small><canvas id="trackB" aria-hidden="true"></canvas></div>
       </div>
     </div>
   </section>
 
   <section class="block" id="nasil">
     <div class="wrap">
-      <p class="kicker" data-i="how_kicker">Nasıl çalışır</p>
-      <h2 data-i="how_h2">Üç adım. Senin işin sadece ilki.</h2>
+      <p class="kicker" data-i="how_kicker">How it works</p>
+      <h2 data-i="how_h2">Three steps. Only the first is yours.</h2>
       <ol class="steps">
-        <li><h3 data-i="s1_h">Sesini kaydet</h3><p data-i="s1_p">Tarayıcıda 8 kısa cümle okursun. Sayfa her kaydı anında kontrol eder: gürültü varsa, mikrofon kırpıyorsa söyler.</p><span class="time" data-i="s1_t">≈ 10 dakika</span></li>
-        <li><h3 data-i="s2_h">Oyunu söyle</h3><p data-i="s2_p">Hangi oyun, hangi karakter. Ödeme yapmadan önce oyununun uygun olup olmadığına bakıp sana 3 satırlık örnek göndeririz.</p><span class="time" data-i="s2_t">ücretsiz</span></li>
-        <li><h3 data-i="s3_h">Kur ve oyna</h3><p data-i="s3_p">Oyunun klasör yapısına uygun bir paket gelir: ses dosyaları, adım adım kurulum, ve orijinallerin yedeğini almanı sağlayan bir liste.</p><span class="time" data-turnaround></span></li>
+        <li><h3 data-i="s1_h">Record your voice</h3><p data-i="s1_p">Read eight short lines in your browser. The page checks every take as you go and tells you if the room is noisy or the mic is clipping.</p><span class="time" data-i="s1_t">≈ 10 minutes</span></li>
+        <li><h3 data-i="s2_h">Tell us the game</h3><p data-i="s2_p">Which game, which character. Before you pay, we check your game works and send you a 3-line sample.</p><span class="time" data-i="s2_t">free</span></li>
+        <li><h3 data-i="s3_h">Install and play</h3><p data-i="s3_p">You get a pack shaped like your game's own folders: the audio, step-by-step install notes, and a list to back up the originals first.</p><span class="time" data-turnaround></span></li>
       </ol>
     </div>
   </section>
 
   <section class="block" id="fiyat">
     <div class="wrap">
-      <p class="kicker" data-i="price_kicker">Fiyatlar</p>
-      <h2 data-i="price_h2">Karakterini seç.</h2>
+      <p class="kicker" data-i="price_kicker">Pricing</p>
+      <h2 data-i="price_h2">Choose your character.</h2>
       <div class="free">
-        <div><b data-i="free_b">Önce ücretsiz örnek</b><p data-i="free_p">Oyunundan 3 replik, senin sesinle. Beğenmezsen hiçbir şey ödemezsin.</p></div>
-        <a class="btn" href="booth.html" data-i="free_cta">Sesimi kaydet</a>
+        <div><b data-i="free_b">A free sample first</b><p data-i="free_p">Three lines from your game, in your voice. Don't like it? You pay nothing.</p></div>
+        <a class="btn" href="booth.html" data-i="free_cta">Record my voice</a>
       </div>
       <div class="tiers">
         <div class="tier">
-          <span class="role" data-i="t1_role">Yan karakter</span>
-          <h3 data-i="t1_h">Kısa</h3>
+          <span class="role" data-i="t1_role">Side character</span>
+          <h3 data-i="t1_h">Short</h3>
           <div class="price" data-price="short"></div>
-          <ul><li data-i="t1_a">150 satıra kadar</li><li data-i="t1_b">Tek ses — senin sesin</li><li data-i="t1_c">Kısa oyunlar, tek bir sahne, hediye</li></ul>
+          <ul><li data-i="t1_a">Up to 150 lines</li><li data-i="t1_b">One voice — yours</li><li data-i="t1_c">Short games, a single scene, a gift</li></ul>
           <a class="btn ghost" data-buy="short" href="booth.html"></a>
         </div>
         <div class="tier pick">
-          <span class="badge" data-i="t2_badge">En çok seçilen</span>
-          <span class="role" data-i="t2_role">Ana karakter</span>
-          <h3 data-i="t2_h">Başrol</h3>
+          <span class="badge" data-i="t2_badge">Most popular</span>
+          <span class="role" data-i="t2_role">Main character</span>
+          <h3 data-i="t2_h">Lead role</h3>
           <div class="price" data-price="lead"></div>
-          <ul><li data-i="t2_a">1.500 satıra kadar</li><li data-i="t2_b">Çoğu oyunun kahramanının tamamı</li><li data-i="t2_c">Bir tur düzeltme dahil</li></ul>
+          <ul><li data-i="t2_a">Up to 1,500 lines</li><li data-i="t2_b">The whole hero, in most games</li><li data-i="t2_c">One round of fixes included</li></ul>
           <a class="btn" data-buy="lead" href="booth.html"></a>
         </div>
         <div class="tier">
-          <span class="role" data-i="t3_role">Tüm kadro</span>
-          <h3 data-i="t3_h">Ekip</h3>
+          <span class="role" data-i="t3_role">Full cast</span>
+          <h3 data-i="t3_h">Crew</h3>
           <div class="price" data-price="crew"></div>
-          <ul><li data-i="t3_a">Başrol + 2 ses daha</li><li data-i="t3_b">Sevgilin, arkadaşların — her biri kendi onayını verir</li><li data-i="t3_c">Bir tur düzeltme dahil</li></ul>
+          <ul><li data-i="t3_a">Lead role + 2 more voices</li><li data-i="t3_b">Your partner, your friends — each gives their own consent</li><li data-i="t3_c">One round of fixes included</li></ul>
           <a class="btn ghost" data-buy="crew" href="booth.html"></a>
         </div>
       </div>
@@ -348,38 +348,38 @@
 
   <section class="block" id="riza">
     <div class="wrap">
-      <p class="kicker" data-i="consent_kicker">Rıza</p>
-      <h2 data-i="consent_h2">Ses, sahibinin. Bunu kodla koruyoruz.</h2>
-      <p class="intro" data-i="consent_intro">Oyun dünyasında yapay zekâ seslerinin en büyük sorunu, seslendirme sanatçılarının izinsiz kopyalanması oldu. Biz yalnızca, sesini kendisi veren insanlarla çalışıyoruz.</p>
+      <p class="kicker" data-i="consent_kicker">Consent</p>
+      <h2 data-i="consent_h2">A voice belongs to its owner. We enforce that in code.</h2>
+      <p class="intro" data-i="consent_intro">The biggest scandal around AI voices in games has been voice actors copied without permission. We only work with people who hand over their own voice.</p>
       <div class="trust">
-        <div class="rule"><h3 data-i="r1_h">Kendi sesin</h3><p data-i="r1_p">İzin formunu kendin onaylarsın. Kimse senin yerine senin sesini gönderemez.</p></div>
-        <div class="rule"><h3 data-i="r2_h">Başka birinin sesi</h3><p data-i="r2_p">Sevgilin ya da arkadaşın kendi onay kaydını kendisi yapar, kendi e-postasını verir. Sen onun yerine onay veremezsin.</p></div>
-        <div class="rule"><h3 data-i="r3_h">İstediğin an geri al</h3><p data-i="r3_p">İzni geri çektiğinde klonlanan ses ve ondan üretilen her şey silinir. Sana teslim edilmiş dosyalar geri alınamaz; bunu baştan söylüyoruz.</p></div>
-        <div class="rule" id="localRule"><h3 data-i="r4_h">Sesin bir yapay zekâ şirketine gitmez</h3><p data-i="r4_p">Dönüştürme kendi makinemizde yapılır. Kaydın üçüncü taraf bir yapay zekâ servisine yüklenmez.</p></div>
+        <div class="rule"><h3 data-i="r1_h">Your own voice</h3><p data-i="r1_p">You agree to the consent form yourself. Nobody else can send in your voice for you.</p></div>
+        <div class="rule"><h3 data-i="r2_h">Someone else's voice</h3><p data-i="r2_p">Your partner or friend records their own confirmation and gives their own email. You can't agree on their behalf.</p></div>
+        <div class="rule"><h3 data-i="r3_h">Withdraw any time</h3><p data-i="r3_p">Withdraw and the cloned voice, and everything made from it, is destroyed. Files already delivered can't be recalled — we say so up front.</p></div>
+        <div class="rule" id="localRule"><h3 data-i="r4_h">Your voice never goes to an AI company</h3><p data-i="r4_p">Conversion runs on our own machine. Your recording is never uploaded to a third-party AI service.</p></div>
       </div>
-      <p class="never" data-i="never">Ünlülerin, yayıncıların, politikacıların ve profesyonel seslendirme sanatçılarının sesini klonlamıyoruz — hiçbir ücret karşılığında.</p>
+      <p class="never" data-i="never">We don't clone celebrities, streamers, politicians or professional voice actors — at any price.</p>
     </div>
   </section>
 
   <section class="block" id="sss">
     <div class="wrap">
-      <p class="kicker" data-i="faq_kicker">Sık sorulanlar</p>
-      <h2 data-i="faq_h2">Aklındakiler.</h2>
+      <p class="kicker" data-i="faq_kicker">Questions</p>
+      <h2 data-i="faq_h2">What people ask.</h2>
       <div class="faq">
-        <details><summary data-i="q1">Hangi oyunlarla çalışıyor?</summary><p data-i="a1">Ses dosyalarını düz .wav veya .ogg olarak tutan oyunlar en kolayı — bunlarda dosyaları doğrudan değiştirebilirsin. Sesleri paketli tutan oyunlarda (.pak, .bnk, .bank) sana hazır ses dosyalarını ve oyuna göre kurulum talimatını veririz. Ödemeden önce oyununa bakıp ne kadar uygun olduğunu söyleriz.</p></details>
-        <details><summary data-i="q2">Türkçe oyun yapabilir miyim? Dili değiştirebilir misiniz?</summary><p data-i="a2">Oyun hangi dildeyse o dilde, senin sesinle çalışır — en doğal sonuç bu. Dili değiştirmek (örneğin İngilizce oyunu Türkçe seslendirmek) farklı bir işlem ve şu an sunmuyoruz, çünkü o zaman repliği sıfırdan okutmak gerekir ve sonuç robotikleşir.</p></details>
-        <details><summary data-i="q3">Online oyunlarda kullanabilir miyim?</summary><p data-i="a3">Önermiyoruz. Çok oyunculu oyunlar oyun dosyalarının değiştirilmesini hile sayıp hesabını kısıtlayabilir. Bu hizmet tek oyunculu oyunlar için.</p></details>
-        <details><summary data-i="q4">Yasal mı?</summary><p data-i="a4">Kendi sahip olduğun bir oyunda, kişisel kullanım için yaptığın bir ses modu. Paketi başkalarıyla paylaşmaman, yüklememen ve satmaman şartıyla teslim ediyoruz. Oyunun kendisini değil, sadece senin sesinle yapılmış replikleri gönderiyoruz.</p></details>
-        <details><summary data-i="q5">Ne kadar kayıt gerekiyor?</summary><p data-i="a5">En az 30 saniye, ideal olarak 90 saniye temiz konuşma. Kayıt sayfası 8 kısa cümle okutuyor ve her birini anında kontrol ediyor; sessiz bir oda ve telefonunun mikrofonu yeterli.</p></details>
-        <details><summary data-i="q6">Beğenmezsem?</summary><p data-i="a6">Ödeme, ücretsiz örneği dinledikten sonra. Ücretli siparişlerde bir tur düzeltme dahil — bir replik kötü olduysa sadece onu yeniden yaparız.</p></details>
+        <details><summary data-i="q1">Which games does it work with?</summary><p data-i="a1">Games that store voice lines as plain .wav or .ogg files are the easiest — you can swap the files directly. For games that pack their audio (.pak, .bnk, .bank) we hand you ready-made audio files and install notes for that engine. Before you pay, we look at your game and tell you how well it fits.</p></details>
+        <details><summary data-i="q2">Can you change the language?</summary><p data-i="a2">It works in whatever language the game is in, with your voice — that is what sounds most natural. Changing the language is a different job that we don't offer yet, because it means reading the line from scratch, and that is exactly what makes it robotic.</p></details>
+        <details><summary data-i="q3">Can I use it in online games?</summary><p data-i="a3">We don't recommend it. Multiplayer games can treat modified game files as cheating and restrict your account. This is for single-player games.</p></details>
+        <details><summary data-i="q4">Is it legal?</summary><p data-i="a4">It's a personal voice mod, for a game you own, for your own use. We deliver it on the condition that you don't share, upload or sell the pack. We never send you the game itself — only lines voiced as you.</p></details>
+        <details><summary data-i="q5">How much recording do you need?</summary><p data-i="a5">At least 30 seconds, ideally 90, of clean speech. The recording page asks for eight short lines and checks each one instantly; a quiet room and your phone's microphone are enough.</p></details>
+        <details><summary data-i="q6">What if I don't like it?</summary><p data-i="a6">You pay after hearing the free sample. Paid orders include one round of fixes — if a line came out badly, we redo just that line.</p></details>
       </div>
     </div>
   </section>
 
   <section class="block">
     <div class="wrap closing">
-      <h2 data-i="close_h2">Kahraman sen ol.</h2>
-      <a class="btn" href="booth.html" data-i="cta_sample">Ücretsiz 3 satırlık örnek al</a>
+      <h2 data-i="close_h2">Be the hero.</h2>
+      <a class="btn" href="booth.html" data-i="cta_sample">Get a free 3-line sample</a>
     </div>
   </section>
 </main>
@@ -387,13 +387,13 @@
 <footer>
   <div class="wrap cols">
     <div>
-      <p><b data-brand>Başrol</b> — <span data-i="foot_tag">oyunların için kişisel ses modları.</span></p>
-      <p data-i="foot_terms">Yalnızca sahip olduğun oyunlarda kişisel kullanım içindir. Teslim edilen dosyalar paylaşılamaz, yüklenemez, satılamaz.</p>
-      <p id="contactLine" hidden><span data-i="foot_contact">İletişim:</span> <a id="contactLink" href="#"></a></p>
+      <p><b data-brand>Başrol</b> — <span data-i="foot_tag">personal voice mods for your games.</span></p>
+      <p data-i="foot_terms">For personal use in games you own only. Delivered files may not be shared, uploaded or sold.</p>
+      <p id="contactLine" hidden><span data-i="foot_contact">Contact:</span> <a id="contactLink" href="#"></a></p>
     </div>
     <div>
-      <p data-i="foot_credit" data-html>Demo sesleri <a href="https://github.com/rhasspy/piper">Piper</a> ile, <a href="https://www.openslr.org/60/">LibriTTS</a> veri kümesinden (CC BY 4.0) sentezlendi.</p>
-      <p><a href="demo.html" data-i="foot_demo">Tam demo oyunu dinle</a></p>
+      <p data-i="foot_credit" data-html>Demo voices synthesised with <a href="https://github.com/rhasspy/piper">Piper</a> from the <a href="https://www.openslr.org/60/">LibriTTS</a> dataset (CC BY 4.0).</p>
+      <p><a href="demo.html" data-i="foot_demo">Listen to the full demo game</a></p>
     </div>
   </div>
 </footer>
@@ -404,72 +404,128 @@
   var SITE = window.SITE || {};
 
   // ------------------------------------------------------------ strings
-  // Turkish lives in the markup, so the page reads correctly before any
-  // script runs; English is the one carried here.
+  // English lives in the markup, so the page reads correctly before any
+  // script runs; Turkish is the one carried here.
+  var TR = {
+    nav_how: "Nasıl çalışır",
+    nav_price: "Fiyatlar",
+    nav_consent: "Rıza",
+    nav_faq: "SSS",
+    cta_sample_short: "Ücretsiz örnek",
+    eyebrow: "Oyun seslendirmesi, senin sesinle",
+    h1: "Oyunun kahramanı artık <em>senin sesinle</em> konuşsun.",
+    lede: "Sahip olduğun oyunun ana karakterini senin sesinle yeniden seslendiriyoruz. Oyuncunun performansı — bağırışı, fısıltısı, duraklaması — aynen kalıyor. Sadece konuşan kişi değişiyor: sen.",
+    cta_sample: "Ücretsiz 3 satırlık örnek al",
+    cta_how: "Nasıl çalışır?",
+    hero_fine: "Önce örneğini dinle, beğenirsen öde. Kayıt tarayıcında 10 dakika sürüyor.",
+    hud_place: "İstasyon Dört — 03:19",
+    cast_orig: "Oyundaki ses",
+    cast_you: "Senin sesin",
+    speaker_role: "Kahraman",
+    who_orig: "· oyundaki seslendirme",
+    next_line: "Sonraki ›",
+    screen_note: "Ortada geçiş yap, aynı repliği tekrar dinle. Demo: iki ses de sentetik — gerçek bir kişinin sesi kullanılmadı.",
+    why_kicker: "Neden robotik değil",
+    why_h2: "Repliği yeniden okutmuyoruz. Sesi değiştiriyoruz.",
+    why_intro: "Çoğu yapay zekâ seslendirmesi metni sıfırdan okutur — o yüzden düz ve robotik çıkar, çünkü oyuncunun seçtiği tonlama en baştan kaybolur. Biz oyunun orijinal kaydını alıp sadece kimin konuştuğunu değiştiriyoruz.",
+    tag_no: "Metinden okutma",
+    cmp_tts: "Model repliği bir yazıdan baştan üretir. Nerede bağırılacağını, nerede duraklanacağını tahmin eder — ve genelde yanılır. Süre de değişir, dudak senkronu kayar.",
+    tag_yes: "Ses dönüştürme",
+    cmp_vc: "Oyuncunun gerçek performansı korunur; yalnızca tını senin olur. Süre birebir aynı kaldığı için dudak senkronu bozulmaz, duygu kaybolmaz.",
+    timing_title: "Aynı replik, iki ses — zamanlama birebir",
+    track_orig: "Oyundaki ses",
+    track_you: "Senin sesin",
+    how_kicker: "Nasıl çalışır",
+    how_h2: "Üç adım. Senin işin sadece ilki.",
+    s1_h: "Sesini kaydet",
+    s1_p: "Tarayıcıda 8 kısa cümle okursun. Sayfa her kaydı anında kontrol eder: gürültü varsa, mikrofon kırpıyorsa söyler.",
+    s1_t: "≈ 10 dakika",
+    s2_h: "Oyunu söyle",
+    s2_p: "Hangi oyun, hangi karakter. Ödeme yapmadan önce oyununun uygun olup olmadığına bakıp sana 3 satırlık örnek göndeririz.",
+    s2_t: "ücretsiz",
+    s3_h: "Kur ve oyna",
+    s3_p: "Oyunun klasör yapısına uygun bir paket gelir: ses dosyaları, adım adım kurulum, ve orijinallerin yedeğini almanı sağlayan bir liste.",
+    price_kicker: "Fiyatlar",
+    price_h2: "Karakterini seç.",
+    free_b: "Önce ücretsiz örnek",
+    free_p: "Oyunundan 3 replik, senin sesinle. Beğenmezsen hiçbir şey ödemezsin.",
+    free_cta: "Sesimi kaydet",
+    t1_role: "Yan karakter",
+    t1_h: "Kısa",
+    t1_a: "150 satıra kadar",
+    t1_b: "Tek ses — senin sesin",
+    t1_c: "Kısa oyunlar, tek bir sahne, hediye",
+    t2_badge: "En çok seçilen",
+    t2_role: "Ana karakter",
+    t2_h: "Başrol",
+    t2_a: "1.500 satıra kadar",
+    t2_b: "Çoğu oyunun kahramanının tamamı",
+    t2_c: "Bir tur düzeltme dahil",
+    t3_role: "Tüm kadro",
+    t3_h: "Ekip",
+    t3_a: "Başrol + 2 ses daha",
+    t3_b: "Sevgilin, arkadaşların — her biri kendi onayını verir",
+    t3_c: "Bir tur düzeltme dahil",
+    consent_kicker: "Rıza",
+    consent_h2: "Ses, sahibinin. Bunu kodla koruyoruz.",
+    consent_intro: "Oyun dünyasında yapay zekâ seslerinin en büyük sorunu, seslendirme sanatçılarının izinsiz kopyalanması oldu. Biz yalnızca, sesini kendisi veren insanlarla çalışıyoruz.",
+    r1_h: "Kendi sesin",
+    r1_p: "İzin formunu kendin onaylarsın. Kimse senin yerine senin sesini gönderemez.",
+    r2_h: "Başka birinin sesi",
+    r2_p: "Sevgilin ya da arkadaşın kendi onay kaydını kendisi yapar, kendi e-postasını verir. Sen onun yerine onay veremezsin.",
+    r3_h: "İstediğin an geri al",
+    r3_p: "İzni geri çektiğinde klonlanan ses ve ondan üretilen her şey silinir. Sana teslim edilmiş dosyalar geri alınamaz; bunu baştan söylüyoruz.",
+    r4_h: "Sesin bir yapay zekâ şirketine gitmez",
+    r4_p: "Dönüştürme kendi makinemizde yapılır. Kaydın üçüncü taraf bir yapay zekâ servisine yüklenmez.",
+    never: "Ünlülerin, yayıncıların, politikacıların ve profesyonel seslendirme sanatçılarının sesini klonlamıyoruz — hiçbir ücret karşılığında.",
+    faq_kicker: "Sık sorulanlar",
+    faq_h2: "Aklındakiler.",
+    q1: "Hangi oyunlarla çalışıyor?",
+    a1: "Ses dosyalarını düz .wav veya .ogg olarak tutan oyunlar en kolayı — bunlarda dosyaları doğrudan değiştirebilirsin. Sesleri paketli tutan oyunlarda (.pak, .bnk, .bank) sana hazır ses dosyalarını ve oyuna göre kurulum talimatını veririz. Ödemeden önce oyununa bakıp ne kadar uygun olduğunu söyleriz.",
+    q2: "Türkçe oyun yapabilir miyim? Dili değiştirebilir misiniz?",
+    a2: "Oyun hangi dildeyse o dilde, senin sesinle çalışır — en doğal sonuç bu. Dili değiştirmek (örneğin İngilizce oyunu Türkçe seslendirmek) farklı bir işlem ve şu an sunmuyoruz, çünkü o zaman repliği sıfırdan okutmak gerekir ve sonuç robotikleşir.",
+    q3: "Online oyunlarda kullanabilir miyim?",
+    a3: "Önermiyoruz. Çok oyunculu oyunlar oyun dosyalarının değiştirilmesini hile sayıp hesabını kısıtlayabilir. Bu hizmet tek oyunculu oyunlar için.",
+    q4: "Yasal mı?",
+    a4: "Kendi sahip olduğun bir oyunda, kişisel kullanım için yaptığın bir ses modu. Paketi başkalarıyla paylaşmaman, yüklememen ve satmaman şartıyla teslim ediyoruz. Oyunun kendisini değil, sadece senin sesinle yapılmış replikleri gönderiyoruz.",
+    q5: "Ne kadar kayıt gerekiyor?",
+    a5: "En az 30 saniye, ideal olarak 90 saniye temiz konuşma. Kayıt sayfası 8 kısa cümle okutuyor ve her birini anında kontrol ediyor; sessiz bir oda ve telefonunun mikrofonu yeterli.",
+    q6: "Beğenmezsem?",
+    a6: "Ödeme, ücretsiz örneği dinledikten sonra. Ücretli siparişlerde bir tur düzeltme dahil — bir replik kötü olduysa sadece onu yeniden yaparız.",
+    close_h2: "Kahraman sen ol.",
+    foot_tag: "oyunların için kişisel ses modları.",
+    foot_terms: "Yalnızca sahip olduğun oyunlarda kişisel kullanım içindir. Teslim edilen dosyalar paylaşılamaz, yüklenemez, satılamaz.",
+    foot_contact: "İletişim:",
+    foot_credit: "Demo sesleri <a href=\"https://github.com/rhasspy/piper\">Piper</a> ile, <a href=\"https://www.openslr.org/60/\">LibriTTS</a> veri kümesinden (CC BY 4.0) sentezlendi.",
+    foot_demo: "Tam demo oyunu dinle",
+    who_you: "· senin sesin (demo)",
+    a_play: "Oynat",
+    a_stop: "Durdur",
+    buy_open: "Sipariş ver",
+    buy_sample: "Önce ücretsiz örnek",
+    buy_after: "Ödeme, örnekten sonra",
+    title: "Başrol — Oyunun kahramanı senin sesinle konuşsun"
+  };
   var EN = {
-    nav_how: "How it works", nav_price: "Pricing", nav_consent: "Consent", nav_faq: "FAQ",
-    cta_sample_short: "Free sample",
-    eyebrow: "Game voice-over, in your voice",
-    h1: "Be the voice of <em>the hero</em>.",
-    lede: "We re-voice the lead character of a game you own with your voice. The actor's performance — every shout, whisper and pause — stays exactly where it was. Only the person speaking changes: it's you.",
-    cta_sample: "Get a free 3-line sample", cta_how: "How does it work?",
-    hero_fine: "Hear your sample first, pay only if you like it. Recording takes ten minutes in your browser.",
-    hud_place: "Station Four — 03:19", cast_orig: "Voice as shipped", cast_you: "Your voice",
-    speaker_role: "Hero", who_orig: "· original voice-over", who_you: "· your voice (demo)",
-    next_line: "Next ›",
-    screen_note: "Switch mid-line and play it again. Demo: both voices are synthetic — no real person's voice is used.",
-    why_kicker: "Why it isn't robotic",
-    why_h2: "We don't re-read the line. We change the voice.",
-    why_intro: "Most AI voice-over reads the script from scratch — which is why it comes out flat and robotic: the actor's choices are gone before the model starts. We take the game's original recording and change only who is speaking.",
-    tag_no: "Text-to-speech", tag_yes: "Voice conversion",
-    cmp_tts: "The model rebuilds the line from text. It guesses where to shout and where to pause — and usually guesses wrong. The length changes too, so lip-sync drifts.",
-    cmp_vc: "The actor's real performance is kept; only the timbre becomes yours. The length stays identical, so lip-sync holds and the emotion survives.",
-    timing_title: "Same line, two voices — identical timing",
-    track_orig: "Voice as shipped", track_you: "Your voice",
-    how_kicker: "How it works", how_h2: "Three steps. Only the first is yours.",
-    s1_h: "Record your voice", s1_p: "Read eight short lines in your browser. The page checks every take as you go and tells you if the room is noisy or the mic is clipping.", s1_t: "≈ 10 minutes",
-    s2_h: "Tell us the game", s2_p: "Which game, which character. Before you pay, we check your game works and send you a 3-line sample.", s2_t: "free",
-    s3_h: "Install and play", s3_p: "You get a pack shaped like your game's own folders: the audio, step-by-step install notes, and a list to back up the originals first.",
-    price_kicker: "Pricing", price_h2: "Choose your character.",
-    free_b: "A free sample first", free_p: "Three lines from your game, in your voice. Don't like it? You pay nothing.", free_cta: "Record my voice",
-    t1_role: "Side character", t1_h: "Short", t1_a: "Up to 150 lines", t1_b: "One voice — yours", t1_c: "Short games, a single scene, a gift",
-    t2_badge: "Most popular", t2_role: "Main character", t2_h: "Lead role", t2_a: "Up to 1,500 lines", t2_b: "The whole hero, in most games", t2_c: "One round of fixes included",
-    t3_role: "Full cast", t3_h: "Crew", t3_a: "Lead role + 2 more voices", t3_b: "Your partner, your friends — each gives their own consent", t3_c: "One round of fixes included",
-    consent_kicker: "Consent", consent_h2: "A voice belongs to its owner. We enforce that in code.",
-    consent_intro: "The biggest scandal around AI voices in games has been voice actors copied without permission. We only work with people who hand over their own voice.",
-    r1_h: "Your own voice", r1_p: "You agree to the consent form yourself. Nobody else can send in your voice for you.",
-    r2_h: "Someone else's voice", r2_p: "Your partner or friend records their own confirmation and gives their own email. You can't agree on their behalf.",
-    r3_h: "Withdraw any time", r3_p: "Withdraw and the cloned voice, and everything made from it, is destroyed. Files already delivered can't be recalled — we say so up front.",
-    r4_h: "Your voice never goes to an AI company", r4_p: "Conversion runs on our own machine. Your recording is never uploaded to a third-party AI service.",
-    never: "We don't clone celebrities, streamers, politicians or professional voice actors — at any price.",
-    faq_kicker: "Questions", faq_h2: "What people ask.",
-    q1: "Which games does it work with?", a1: "Games that store voice lines as plain .wav or .ogg files are the easiest — you can swap the files directly. For games that pack their audio (.pak, .bnk, .bank) we hand you ready-made audio files and install notes for that engine. Before you pay, we look at your game and tell you how well it fits.",
-    q2: "Can you change the language?", a2: "It works in whatever language the game is in, with your voice — that is what sounds most natural. Changing the language is a different job that we don't offer yet, because it means reading the line from scratch, and that is exactly what makes it robotic.",
-    q3: "Can I use it in online games?", a3: "We don't recommend it. Multiplayer games can treat modified game files as cheating and restrict your account. This is for single-player games.",
-    q4: "Is it legal?", a4: "It's a personal voice mod, for a game you own, for your own use. We deliver it on the condition that you don't share, upload or sell the pack. We never send you the game itself — only lines voiced as you.",
-    q5: "How much recording do you need?", a5: "At least 30 seconds, ideally 90, of clean speech. The recording page asks for eight short lines and checks each one instantly; a quiet room and your phone's microphone are enough.",
-    q6: "What if I don't like it?", a6: "You pay after hearing the free sample. Paid orders include one round of fixes — if a line came out badly, we redo just that line.",
-    close_h2: "Be the hero.",
-    foot_tag: "personal voice mods for your games.",
-    foot_terms: "For personal use in games you own only. Delivered files may not be shared, uploaded or sold.",
-    foot_contact: "Contact:",
-    foot_credit: "Demo voices synthesised with <a href=\"https://github.com/rhasspy/piper\">Piper</a> from the <a href=\"https://www.openslr.org/60/\">LibriTTS</a> dataset (CC BY 4.0).",
-    foot_demo: "Listen to the full demo game",
-    a_play: "Play", a_stop: "Stop",
-    buy_open: "Order", buy_sample: "Start with a free sample", buy_after: "Payment after your sample",
+    who_you: "· your voice (demo)",
+    a_play: "Play",
+    a_stop: "Stop",
+    buy_open: "Order",
+    buy_sample: "Start with a free sample",
+    buy_after: "Payment after your sample",
     title: "Başrol — be the voice of the hero"
   };
-  var TR = { who_you: "· senin sesin (demo)", a_play: "Oynat", a_stop: "Durdur", buy_open: "Sipariş ver", buy_sample: "Önce ücretsiz örnek", buy_after: "Ödeme, örnekten sonra" };
 
   var nodes = Array.prototype.slice.call(document.querySelectorAll("[data-i]"));
-  nodes.forEach(function (n) { TR[n.getAttribute("data-i")] = n.hasAttribute("data-html") ? n.innerHTML : n.textContent; });
-  TR.title = document.title;
+  nodes.forEach(function (n) { EN[n.getAttribute("data-i")] = n.hasAttribute("data-html") ? n.innerHTML : n.textContent; });
+  EN.title = document.title;
 
-  var lang = "tr";
-  try { lang = localStorage.getItem("lang") || ""; } catch (e) { lang = ""; }
-  if (lang !== "tr" && lang !== "en") lang = /^tr/i.test(navigator.language || "") ? "tr" : "en";
+  // English unless the visitor picked Turkish with the toggle.
+  var lang = "en";
+  try { lang = localStorage.getItem("lang") || "en"; } catch (e) { lang = "en"; }
+  if (lang !== "tr" && lang !== "en") lang = "en";
 
-  function t(key) { return (lang === "en" ? EN : TR)[key] || TR[key] || ""; }
+  function t(key) { return (lang === "tr" ? TR : EN)[key] || EN[key] || ""; }
 
   function applyLang() {
     document.documentElement.lang = lang;

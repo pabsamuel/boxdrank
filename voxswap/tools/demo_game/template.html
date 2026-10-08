@@ -171,9 +171,10 @@
   document.querySelectorAll("[data-t]").forEach(function (n) {
     EN[n.getAttribute("data-t")] = n.hasAttribute("data-html") ? n.innerHTML : n.textContent;
   });
+  // English unless the visitor picked Turkish on the landing page.
   var lang = "en";
-  try { lang = localStorage.getItem("lang") || ""; } catch (e) { lang = ""; }
-  if (lang !== "tr" && lang !== "en") lang = /^tr/i.test(navigator.language || "") ? "tr" : "en";
+  try { lang = localStorage.getItem("lang") || "en"; } catch (e) { lang = "en"; }
+  if (lang !== "tr") lang = "en";
   function t(k) { return (lang === "tr" ? TR : EN)[k] || EN[k] || ""; }
   document.documentElement.lang = lang;
   document.querySelectorAll("[data-t]").forEach(function (n) {

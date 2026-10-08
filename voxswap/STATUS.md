@@ -16,7 +16,7 @@ set in `web/site-config.js`):
 
 * `index.html` — landing page: the same line played in both voices with the
   waveforms drawn from the files (Δ 0 ms), how it works, three packages, the
-  consent rules, FAQ. Turkish first, English toggle.
+  consent rules, FAQ. English by default, with a Turkish toggle.
 * `booth.html` — the recording booth, now branded from the config, with a
   "which game / which character" step and a send step (share sheet on phones,
   a pre-written email to `contactEmail` everywhere).
