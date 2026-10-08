@@ -49,6 +49,11 @@ Clip names read `Speaker-CONVERSATION-n` (`Kim Kitsuragi-WHIRLING  KIM MAIN-55`)
 Existing voice mods for the game install by overwriting these bundle files, so
 a rebuilt bundle goes in the same way.
 
+`disco_elysium/find_bundles.ps1` copies the Kim, Garte and Klaasje bundles from
+the Whirling-in-Rags out of an install (read-only on the game), and
+`disco_elysium/install.ps1` puts rebuilt ones in — backing up every original
+first — or restores the originals.
+
 The work happens with the customer's own copy of the game, for their personal
 use. Game audio is someone else's copyright: never commit it, publish it, or
 put it anywhere public.
