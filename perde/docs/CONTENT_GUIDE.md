@@ -58,7 +58,7 @@ A vector rig can carry painted artwork that replaces it once the file exists:
 
 ```ts
 art: {
-  image: '/art/tr/karagoz.png',   // transparent PNG in apps/web/public/art/<culture>/
+  image: '/art/tr/karagoz.webp',  // transparent WebP in apps/web/public/art/<culture>/
   width: 1000, height: 1980,      // the box the image is drawn into (its aspect ratio)
   rod: [500, 520],                // where the rod holds it, in that box
   parts: [
