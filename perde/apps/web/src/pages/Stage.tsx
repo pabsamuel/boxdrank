@@ -158,7 +158,12 @@ export function Stage() {
       () =>
         dispatch({
           type: 'msg',
-          msg: { t: 'control', seat: 'p1', action: 'start-play', playId: 'giris' },
+          msg: {
+            t: 'control',
+            seat: 'p1',
+            action: 'start-play',
+            playId: modelRef.current.pack.plays[0]?.id,
+          },
           at: Date.now(),
         }),
       800,
@@ -186,7 +191,7 @@ export function Stage() {
             y: Math.max(0, Math.sin(s * 2.2)) * 0.3,
             lean: Math.sin(s * 1.7) * 0.5,
             arm: (Math.sin(s * 2.5) + 1) / 2,
-            talking: modelRef.current.state.play?.line?.character === 'karagoz',
+            talking: modelRef.current.state.play?.line?.seat === 'p1',
           },
         },
         at: Date.now(),
@@ -201,7 +206,7 @@ export function Stage() {
             y: 0,
             lean: Math.sin(s * 1.1 + 2) * 0.3,
             arm: (Math.sin(s * 1.4 + 1) + 1) / 2,
-            talking: modelRef.current.state.play?.line?.character === 'hacivat',
+            talking: modelRef.current.state.play?.line?.seat === 'p2',
           },
         },
         at: Date.now(),

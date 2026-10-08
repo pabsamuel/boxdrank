@@ -201,7 +201,7 @@ const TR = {
   plays: 'oyun',
   puppets: 'kukla',
   soonTitle: 'Sırada',
-  soon: 'Wayang Kulit (Endonezya), Kasperle (Almanya), Guignol (Fransa), Píyǐngxì (Çin), Pulcinella (İtalya). Her gelenek bir içerik paketi; ekleme rehberi depoda.',
+  soon: 'Kasperle (Almanya), Guignol (Fransa), Píyǐngxì (Çin), Pulcinella (İtalya). Her gelenek bir içerik paketi; ekleme rehberi depoda.',
   freeFeatures: [
     'Karagöz ve Hacivat: Giriş + Salıncak',
     '4 kukla, 4 telefon',
@@ -249,7 +249,7 @@ const EN: typeof TR = {
   plays: 'plays',
   puppets: 'puppets',
   soonTitle: 'Coming next',
-  soon: 'Wayang Kulit (Indonesia), Kasperle (Germany), Guignol (France), Píyǐngxì (China), Pulcinella (Italy). Each tradition is a content pack; the guide to adding one is in the repo.',
+  soon: 'Kasperle (Germany), Guignol (France), Píyǐngxì (China), Pulcinella (Italy). Each tradition is a content pack; the guide to adding one is in the repo.',
   freeFeatures: [
     'Karagöz and Hacivat: the Opening + The Swing',
     '4 puppets, 4 phones',

@@ -96,6 +96,7 @@ Hacivat files and where to put them.
 - **Wayang Kulit (Indonesia).** Sacred in origin (Javanese/Balinese); UNESCO 2003. Use the
   clown-servants (Semar, Petruk, Gareng, Bagong) for comedy, treat the epic figures with care,
   keep the gunungan as the curtain. Ask someone from the tradition to read the first play.
+  Shipped as pack `id` (decision 0011): Semar, Petruk, Rama, Hanoman; "Cincin Rama".
 - **Kasperle (Germany/Austria)**, **Guignol (Lyon)**, **Pulcinella (Naples)**: hand-puppet
   cousins of Punch; each has its own catchphrases and a policeman who arrives late.
 - **Píyǐngxì (China).** UNESCO 2011. Articulated leather figures on a paper screen; the

@@ -67,7 +67,7 @@ work; don't tick ahead.
 
 ## M5 — Other traditions
 
-- [ ] Wayang Kulit (Indonesia): gunungan, Semar, Petruk, a Ramayana scene; shadow-screen look
+- [x] Wayang Kulit (Indonesia): gunungan, Semar, Petruk, a Ramayana scene; shadow-screen look
 - [ ] Kasperle (Germany): Kasperle, Gretel, Krokodil, Räuber; one play
 - [ ] Guignol (France): Guignol, Gnafron, Madelon; one play
 - [ ] Píyǐngxì (China): two figures with articulated arms; one short scene

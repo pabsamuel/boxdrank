@@ -6,15 +6,15 @@ One-time purchase per family. No subscription, no ads, no accounts. The free tie
 Karagöz night; Plus is the rest of the library and every other tradition, forever, including
 plays added later.
 
-|                                                                                             | Free | Perde Plus |
-| ------------------------------------------------------------------------------------------- | ---- | ---------- |
-| Karagöz: Giriş + Salıncak                                                                   | ✓    | ✓          |
-| Karagöz: Kayık, Eczahane, and every future play                                             |      | ✓          |
-| Puppets: Karagöz, Hacivat, Çelebi, Zenne                                                    | ✓    | ✓          |
-| Premium puppets (Tuzsuz Deli Bekir, …)                                                      |      | ✓          |
-| Other traditions (Punch and Judy now; Wayang, Kasperle, Guignol, Píyǐngxì, Pulcinella next) |      | ✓          |
-| Up to 4 phones, karaoke lines, speech recognition, free play                                | ✓    | ✓          |
-| Custom puppet colours, show recording (M6)                                                  |      | ✓          |
+|                                                                                                   | Free | Perde Plus |
+| ------------------------------------------------------------------------------------------------- | ---- | ---------- |
+| Karagöz: Giriş + Salıncak                                                                         | ✓    | ✓          |
+| Karagöz: Kayık, Eczahane, and every future play                                                   |      | ✓          |
+| Puppets: Karagöz, Hacivat, Çelebi, Zenne                                                          | ✓    | ✓          |
+| Premium puppets (Tuzsuz Deli Bekir, …)                                                            |      | ✓          |
+| Other traditions (Punch and Judy, Wayang Kulit now; Kasperle, Guignol, Píyǐngxì, Pulcinella next) |      | ✓          |
+| Up to 4 phones, karaoke lines, speech recognition, free play                                      | ✓    | ✓          |
+| Custom puppet colours, show recording (M6)                                                        |      | ✓          |
 
 ## Prices
 
