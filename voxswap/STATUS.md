@@ -6,7 +6,7 @@
 ## Current state
 
 **v0.1.0, with a public site that can take orders.** Ten stages, seven provider
-adapters, five target adapters, 191 tests green on Python 3.10/3.11/3.12, with
+adapters, five target adapters, 195 tests green on Python 3.10/3.11/3.12, with
 and without ffmpeg. No API key or GPU needed: voice conversion (`local_vc`,
 FreeVC) runs a full order on a plain CPU with zero timing error and keeps the
 original actor's performance.
@@ -65,6 +65,7 @@ Write down what broke. That list is the v0.2 backlog.
 | Resume / caching / locking | done | `ResumeTests` — asserts takes are never regenerated |
 | Watcher (auto-start) | done | `WatcherTests` |
 | Re-recorded samples rebuild the clone | done | 9 tests in `tests/test_voice_rebuild.py` |
+| Voice swap inside a real Unity game (`tools/games/unity_voice.py`) | done, not yet tried in a shipped game | rebuilt a real Unity bundle: 3 lines converted with `local_vc`, FMOD decodes them bit-exact, 32 untouched clips byte-identical; FSB5 layout pinned by 4 tests |
 | Public site (landing, booth, demo) | done | driven end to end in headless Chromium: playback + mid-line voice switch, TR/EN, phone layout, booth form → consent → 8 uploaded takes → pack → send step |
 | ElevenLabs adapter | **unverified** | written against the documented API; no live call made |
 | OpenAI ASR adapter | **unverified** | same |
@@ -85,7 +86,7 @@ drift. All of them are env-overridable for exactly this reason.
 
 ```
 python3 -m unittest discover -s tests -t .
-→ 191 tests, OK, ~64s, no network, no API keys
+→ 195 tests, OK, ~64s, no network, no API keys
 
 GAME-DEMO (tools/demo_game, local_vc on CPU, LibriTTS speakers 47 → 110)
 → 8/8 lines, median and worst slot error 0 ms; pitch 92–109 Hz → 120–139 Hz,
