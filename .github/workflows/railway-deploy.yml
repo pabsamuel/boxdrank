@@ -1,0 +1,63 @@
+name: Deploy to Railway
+
+# Runs on GitHub's runners, which have the outbound network access the
+# authoring environment does not. Two modes so the real command surface is
+# read from the installed CLI before anything is provisioned:
+#
+#   probe  — install the CLI and print its help. Changes nothing.
+#   deploy — provision and deploy. Steps are added once probe has confirmed
+#            the command surface, so they are not guessed from blog posts.
+#
+# Needs an ACCOUNT/workspace token in the repo secret RAILWAY_API_TOKEN:
+# creating a project is account-level work, which a project-scoped
+# RAILWAY_TOKEN cannot do. Never set both — the CLI errors if you do.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'probe = read the CLI surface only; deploy = provision and deploy'
+        type: choice
+        options: [probe, deploy]
+        default: probe
+
+jobs:
+  railway:
+    runs-on: ubuntu-latest
+    env:
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the token is present
+        run: |
+          if [ -z "${RAILWAY_API_TOKEN}" ]; then
+            echo "::error::RAILWAY_API_TOKEN is not set. Add it under Settings → Secrets and variables → Actions → New repository secret. Use an account/workspace token from railway.com → Account Settings → Tokens, not a project token."
+            exit 1
+          fi
+          echo "Token present (${#RAILWAY_API_TOKEN} characters)."
+
+      - name: Install the Railway CLI
+        run: |
+          npm install -g @railway/cli
+          railway --version
+
+      - name: Read the CLI surface
+        if: inputs.mode == 'probe'
+        run: |
+          set +e
+          for c in "" "init" "add" "variable" "variables" "up" "domain" "service" "link" "status"; do
+            echo "═══════════ railway $c --help ═══════════"
+            railway $c --help 2>&1 | head -40
+          done
+          echo "═══════════ railway whoami ═══════════"
+          railway whoami 2>&1 | head -5
+          echo "═══════════ railway list ═══════════"
+          railway list 2>&1 | head -20
+          exit 0
+
+      - name: Provision and deploy
+        if: inputs.mode == 'deploy'
+        run: |
+          echo "::error::Deploy steps are intentionally not written yet — run this workflow in 'probe' mode first so they can be based on the installed CLI's real commands rather than guesses."
+          exit 1
