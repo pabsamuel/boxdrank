@@ -1,0 +1,63 @@
+name: Cloudflare R2 buckets
+
+# The authoring environment cannot reach api.cloudflare.com (egress policy),
+# so this runs on GitHub's runners. Uses the CLOUDFLARE_API_TOKEN and
+# CLOUDFLARE_ACCOUNT_ID secrets that already exist on this repo.
+#
+#   probe  — verify the token and list buckets. Changes nothing.
+#   create — create the three buckets the asset pipeline expects.
+#
+# Probe first: it reports whether that existing token actually carries R2
+# permissions, which decides whether 'create' can work at all.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'probe = verify token and list buckets; create = create the buckets'
+        type: choice
+        options: [probe, create]
+        default: probe
+
+jobs:
+  r2:
+    runs-on: ubuntu-latest
+    env:
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      API: https://api.cloudflare.com/client/v4
+    steps:
+      - name: Check the secrets are present
+        run: |
+          [ -n "${CF_TOKEN}" ]   || { echo "::error::CLOUDFLARE_API_TOKEN is not set."; exit 1; }
+          [ -n "${CF_ACCOUNT}" ] || { echo "::error::CLOUDFLARE_ACCOUNT_ID is not set."; exit 1; }
+          echo "Token ${#CF_TOKEN} chars, account id ${#CF_ACCOUNT} chars."
+
+      - name: Verify the token and list buckets
+        run: |
+          set -uo pipefail
+          echo "──────── token verify ────────"
+          curl -sS "${API}/user/tokens/verify" \
+            -H "Authorization: Bearer ${CF_TOKEN}" | jq '{success, errors, status: .result.status}'
+
+          echo "──────── R2 buckets ────────"
+          # A 10000-ish auth error here means the token is valid but carries no
+          # R2 permission — which is the thing worth knowing before 'create'.
+          curl -sS "${API}/accounts/${CF_ACCOUNT}/r2/buckets" \
+            -H "Authorization: Bearer ${CF_TOKEN}" | jq '{success, errors, buckets: [.result.buckets[]?.name]}'
+
+      - name: Create the buckets
+        if: inputs.mode == 'create'
+        run: |
+          set -uo pipefail
+          for b in emote-originals emote-processed uploads-quarantine; do
+            echo "──────── ${b} ────────"
+            curl -sS -X POST "${API}/accounts/${CF_ACCOUNT}/r2/buckets" \
+              -H "Authorization: Bearer ${CF_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data "{\"name\":\"${b}\"}" | jq '{success, errors}'
+          done
+          echo
+          echo "Buckets requested. 'already exists' in errors is fine — it means it was there."
+          echo "Still needed by hand: an R2 *S3* access key pair (dashboard → R2 → Manage R2 API"
+          echo "Tokens), since those credentials are not issued by this API path."
