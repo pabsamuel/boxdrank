@@ -79,4 +79,25 @@ for attempt in 1 2 3; do
   fi
   [ "${attempt}" -lt 3 ] && { echo "  smoke test failed on attempt ${attempt}, retrying in 20s"; sleep 20; }
 done
-fail "Smoke test failed" "The API at ${base} did not pass its checks. Which check failed is in the published run log."
+
+# Everything below is diagnosis for the published run log: what the API
+# answered, what the service is configured to do, and what it logged.
+echo "──────── diagnostics: error body ────────"
+curl -sS --max-time 20 "${base}/v1/public/creators/smoke-diagnostic" || true
+echo
+echo "──────── diagnostics: api service settings (is railway.json applied?) ────────"
+railway status --json 2>/dev/null \
+  | jq '.environments.edges[].node.serviceInstances.edges[].node
+         | select(.serviceName == "api")
+         | {serviceName,
+            latestDeployment: {id: .latestDeployment.id, status: .latestDeployment.status},
+            deploy: .latestDeployment.meta.serviceManifest.deploy
+                    | {preDeployCommand, healthcheckPath, startCommand}}' 2>/dev/null \
+  || echo "(railway status unavailable)"
+echo "──────── diagnostics: deployment log of ${WANT:-latest} ────────"
+if [ -n "${WANT}" ]; then
+  railway logs "${WANT}" --service api --lines 200 2>&1 | tail -200 || true
+else
+  railway logs --service api --latest --lines 200 2>&1 | tail -200 || true
+fi
+fail "Smoke test failed" "The API at ${base} did not pass its checks. Which check failed, the API's error body, its service settings and its deployment log are in the published run log."
