@@ -5,6 +5,7 @@ import {
   reduceStage,
   visiblePuppets,
   type StageModel,
+  snapshotModel,
 } from './stage-machine';
 
 const t0 = 1_000;
@@ -209,6 +210,37 @@ describe('stage machine', () => {
     while (m.state.play?.line?.seat !== 'karagoz' && guard++ < 20) m = ctl(m, 'p1', 'next');
     expect(at('p1').offstage).toBe(false);
     expect(at('p2').offstage).toBe(false);
+  });
+
+  it('survives a TV reload: snapshot, restore, then the relay says who is there', () => {
+    let m = join(join(createStageModel(), 'p1'), 'p2');
+    m = ctl(m, 'p1', 'start-play', { playId: 'giris' });
+    m = ctl(m, 'p1', 'next');
+    m = ctl(m, 'p1', 'set-leniency', { leniency: 'strict' });
+    const snap = JSON.parse(JSON.stringify(snapshotModel(m, 'ABCD')));
+    const fresh = createStageModel();
+    let r = reduceStage(fresh, { type: 'restore', snapshot: snap });
+    expect(r.state.play?.id).toBe('giris');
+    expect(r.state.play?.lineIndex).toBe(1);
+    expect(r.state.leniency).toBe('strict');
+    expect(r.casting).toEqual(m.casting);
+    expect(r.lines.length).toBe(m.lines.length);
+    expect(r.state.seats.every((s) => !s.connected)).toBe(true);
+    // Both phones are still on: the play goes on where it was.
+    r = reduceStage(r, { type: 'welcome', peers: [{ seat: 'p1' }, { seat: 'p2' }], at: t0 });
+    expect(r.state.mode).toBe('play');
+    expect(r.state.seats.filter((s) => s.connected)).toHaveLength(2);
+    expect(r.state.play?.lineIndex).toBe(1);
+    // Nobody left on the phones: back to the lobby.
+    const empty = reduceStage(reduceStage(fresh, { type: 'restore', snapshot: snap }), {
+      type: 'welcome',
+      peers: [],
+      at: t0,
+    });
+    expect(empty.state.mode).toBe('lobby');
+    expect(empty.state.play).toBeNull();
+    // Junk is ignored.
+    expect(reduceStage(fresh, { type: 'restore', snapshot: { v: 1 } })).toBe(fresh);
   });
 
   it('castPlay prefers matching puppets', () => {

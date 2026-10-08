@@ -389,6 +389,45 @@ select {
 .lobby__start {
   margin-top: 0.6vh;
 }
+.chip--warn {
+  color: var(--saffron);
+  border: 1px solid rgba(242, 201, 76, 0.5);
+  animation: pulse 1.6s infinite;
+}
+.chip--help {
+  font-weight: 700;
+  min-width: 2.2em;
+  justify-content: center;
+}
+.help {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: min(70ch, 86vw);
+  padding: 2.4vh 3vw;
+  border-radius: 18px;
+  background: rgba(28, 20, 12, 0.92);
+  border: 1px solid rgba(201, 162, 75, 0.7);
+  color: #fff8ea;
+  display: grid;
+  gap: 1.2vh;
+  justify-items: start;
+}
+.help h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2.6vw, 2.4rem);
+}
+.help p {
+  margin: 0;
+  font-size: clamp(0.9rem, 1.4vw, 1.3rem);
+  line-height: 1.5;
+}
+.rod__reconnect {
+  text-align: center;
+  animation: pulse 1.6s infinite;
+}
 .chip--muted {
   opacity: 0.8;
 }

@@ -66,6 +66,12 @@ test.describe('phone', () => {
     // No buttons on the rod: a double-tap on the line counts it as said.
     await page.locator('.rod').dblclick();
     await expect(tv.locator('.karaoke__count')).toContainText('2 /');
+    // A reloaded TV picks the play back up where it was, with the phone still on.
+    await tv.reload();
+    await expect(tv.locator('.karaoke__count')).toContainText('2 /', { timeout: 15_000 });
+    await expect(tv.locator('.lobby')).toBeHidden();
+    await expect(page.locator('.controller__puppet')).toHaveText('Hacivat', { timeout: 15_000 });
+    await expect(page.locator('.karaoke__line')).toBeVisible();
     // The menu always offers the door.
     await page.getByRole('button', { name: 'menu' }).click();
     await page.getByRole('button', { name: /Odadan çık|Leave the room/ }).click();

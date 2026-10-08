@@ -11,6 +11,7 @@ import {
   createStageModel,
   findPuppet,
   reduceStage,
+  snapshotModel,
   visiblePuppets,
   type StageEvent,
   type StageModel,
@@ -25,6 +26,19 @@ import { useT, useUiLang } from '../lib/ui';
  */
 
 const ROOM_KEY = 'perde.stage.room';
+/** The running room, saved so a reloaded TV (or a flaky TV browser) picks it back up. */
+const SNAPSHOT_KEY = 'perde.stage.snapshot';
+
+function readSnapshot(code: string): unknown {
+  try {
+    const raw = sessionStorage.getItem(SNAPSHOT_KEY);
+    if (!raw) return null;
+    const snap = JSON.parse(raw) as { code?: string };
+    return snap.code === code ? snap : null;
+  } catch {
+    return null;
+  }
+}
 
 function reducer(model: StageModel, ev: StageEvent): StageModel {
   return reduceStage(model, ev);
@@ -51,7 +65,7 @@ export function Stage() {
     const at = Date.now();
     switch (msg.t) {
       case 'welcome':
-        for (const p of msg.peers) dispatch({ type: 'joined', seat: p.seat, name: p.name, at });
+        dispatch({ type: 'welcome', peers: msg.peers, at });
         break;
       case 'joined':
         dispatch({ type: 'joined', seat: msg.seat, name: msg.name, at });
@@ -98,6 +112,9 @@ export function Stage() {
         if (cancelled) return;
         sessionStorage.setItem(ROOM_KEY, c);
         setCode(c);
+        // Same room as before the reload: carry on where the play was.
+        const snapshot = readSnapshot(c);
+        if (snapshot) dispatch({ type: 'restore', snapshot });
         socketRef.current = openStageSocket(c, onMessage, setStatus);
       } catch (e) {
         setError(String(e));
@@ -115,6 +132,16 @@ export function Stage() {
     if (demo) return;
     resolvePlan().then((r) => dispatch({ type: 'plan', plan: r.plan }));
   }, [demo]);
+
+  // Remember the room so a reload does not lose the play.
+  useEffect(() => {
+    if (demo || !code) return;
+    try {
+      sessionStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshotModel(model, code)));
+    } catch {
+      /* storage full or disabled: the reload falls back to the lobby */
+    }
+  }, [model, code, demo]);
 
   // Broadcast state to phones whenever it changes.
   useEffect(() => {
@@ -187,17 +214,22 @@ export function Stage() {
     };
   }, [demo]);
 
-  // Keyboard for testing on a laptop.
+  // Keyboard for a laptop or a TV remote with a keyboard; ? shows the card.
+  const [help, setHelp] = useState(false);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const at = Date.now();
       unlockSound();
-      if (e.key === 'f') document.documentElement.requestFullscreen?.().catch(() => undefined);
+      if (e.key === '?' || e.key === 'h') setHelp((h) => !h);
+      else if (e.key === 'f') document.documentElement.requestFullscreen?.().catch(() => undefined);
       else if (e.key === 'n' || e.key === 'ArrowRight')
         dispatch({ type: 'local', action: 'next', at });
       else if (e.key === 'ArrowLeft') dispatch({ type: 'local', action: 'prev', at });
       else if (e.key === 'k') dispatch({ type: 'local', action: 'toggle-karaoke', at });
-      else if (e.key === 'Escape') dispatch({ type: 'local', action: 'lobby', at });
+      else if (e.key === 'Escape') {
+        setHelp(false);
+        dispatch({ type: 'local', action: 'lobby', at });
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -368,6 +400,17 @@ export function Stage() {
             🔇 {t('tapForSound')}
           </button>
         )}
+        {status !== 'open' && code && !demo && (
+          <div className="chip chip--warn">{t('reconnecting')}</div>
+        )}
+        <button
+          className="chip chip--action chip--help"
+          onClick={() => setHelp((h) => !h)}
+          aria-label={t('helpTitle')}
+          title={t('helpTitle')}
+        >
+          ?
+        </button>
         {ps && (
           <div className="chip chip--muted">
             {ps.title} · {ps.sectionTitle}
@@ -408,6 +451,17 @@ export function Stage() {
               🔊 {t('startShow')}
             </button>
           )}
+        </div>
+      )}
+
+      {help && (
+        <div className="help" role="dialog" aria-label={t('helpTitle')}>
+          <h2>{t('helpTitle')}</h2>
+          <p>{t('helpKeys')}</p>
+          <p>{t('helpPhone')}</p>
+          <button className="btn btn--small" onClick={() => setHelp(false)}>
+            {t('helpClose')}
+          </button>
         </div>
       )}
 

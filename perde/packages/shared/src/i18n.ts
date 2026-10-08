@@ -125,6 +125,17 @@ const dict = {
   startShow: { tr: 'Sesi aç · Tam ekran', en: 'Sound on · Fullscreen' },
   tapForSound: { tr: 'Ses için ekrana tıkla', en: 'Click the screen for sound' },
   sectionLabel: { tr: 'Bölüm', en: 'Part' },
+  reconnecting: { tr: 'Yeniden bağlanıyor…', en: 'Reconnecting…' },
+  helpTitle: { tr: 'Televizyon kısayolları', en: 'TV shortcuts' },
+  helpKeys: {
+    tr: 'F tam ekran · → / N sonraki replik · ← önceki · K karaoke · Esc lobi · ? bu kart',
+    en: 'F fullscreen · → / N next line · ← previous · K karaoke · Esc lobby · ? this card',
+  },
+  helpPhone: {
+    tr: 'Telefon: kaydır yürür, yatır eğilir, hızla kaldır zıplar, bileği çevir döner, öne eğ selam verir.',
+    en: 'Phone: slide to walk, roll to lean, lift sharply to hop, twist the wrist to turn, tip forward to bow.',
+  },
+  helpClose: { tr: 'Kapat', en: 'Close' },
   nextUp: { tr: 'Sıradaki', en: 'Next' },
   coachTitle: { tr: 'Telefonun çubuk oldu', en: 'Your phone is the rod' },
   coach1: {

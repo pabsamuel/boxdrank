@@ -46,8 +46,8 @@ work; don't tick ahead.
 - [x] Puppet entrances/exits (walk in from the wing, walk off when the section ends); Karagöz drops in from above
 - [x] Sound: tef (tambourine) hit on entrance and a curtain sting, synthesized with WebAudio
 - [x] The show opens like a real one: a painted göstermelik hangs in the lobby and lifts with the nareke whistle; the TV asks for one tap to unlock sound and fullscreen
-- [ ] TV keyboard/remote help overlay (`?`), fullscreen prompt on load
-- [ ] Reconnect UX: phone shows "reconnecting…" and re-sends its pose; TV survives a reload
+- [x] TV keyboard/remote help overlay (`?`), fullscreen prompt on load
+- [x] Reconnect UX: phone shows "reconnecting…" and re-sends its pose; TV survives a reload
 
 ## M3 — Plus is real
 

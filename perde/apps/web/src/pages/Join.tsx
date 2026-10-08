@@ -247,28 +247,61 @@ function Controller({ code, seat, name, onName, onLeave, onToggleLang }: Control
     if (p) socketRef.current?.send({ t: 'puppet', puppet: p });
   }, []);
 
-  const onMessage = useCallback((msg: ControllerInbound) => {
-    switch (msg.t) {
-      case 'welcome': {
-        setStageOnline(msg.stageConnected);
-        // The family's newest drawing travels with the phone.
-        const newest = listPuppets()[0];
-        if (newest) setTimeout(() => socketRef.current?.send({ t: 'puppet', puppet: newest }), 300);
-        break;
-      }
-      case 'stage':
-        setStageOnline(msg.online);
-        break;
-      case 'state':
-        setState(msg.state);
-        break;
-      case 'error':
-        setError(msg.message);
-        break;
-      default:
-        break;
-    }
+  // After (re)connecting, or when the TV comes back: the newest drawing and the
+  // current pose travel with the phone so the figure stands where the hand is.
+  const resync = useCallback(() => {
+    setTimeout(() => {
+      const sock = socketRef.current;
+      if (!sock) return;
+      sock.send({ t: 'pose', pose: poseRef.current });
+      const newest = listPuppets()[0];
+      if (newest) sock.send({ t: 'puppet', puppet: newest });
+    }, 300);
   }, []);
+
+  const onMessage = useCallback(
+    (msg: ControllerInbound) => {
+      switch (msg.t) {
+        case 'welcome':
+          setStageOnline(msg.stageConnected);
+          resync();
+          break;
+        case 'stage':
+          setStageOnline(msg.online);
+          // A reloaded TV starts from its snapshot; give it our pose and drawing again.
+          if (msg.online) resync();
+          break;
+        case 'state':
+          setState(msg.state);
+          break;
+        case 'error':
+          setError(msg.message);
+          break;
+        default:
+          break;
+      }
+    },
+    [resync],
+  );
+
+  // Phones sleep: when the screen comes back, take the wake lock and the
+  // microphone again and tell the TV where the rod is.
+  const requestWakeLock = useCallback(() => {
+    (navigator as unknown as { wakeLock?: { request(type: 'screen'): Promise<unknown> } }).wakeLock
+      ?.request('screen')
+      .catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    if (step !== 'play') return;
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      requestWakeLock();
+      speechRef.current?.start();
+      resync();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [step, requestWakeLock, resync]);
 
   const pickUp = async () => {
     setError(null);
@@ -307,13 +340,7 @@ function Controller({ code, seat, name, onName, onLeave, onToggleLang }: Control
       });
       speechRef.current?.start();
     }
-    try {
-      await (
-        navigator as unknown as { wakeLock?: { request(type: 'screen'): Promise<unknown> } }
-      ).wakeLock?.request('screen');
-    } catch {
-      /* not critical */
-    }
+    requestWakeLock();
     socketRef.current = openControllerSocket(code, seat, name, onMessage, setStatus);
     setStep('play');
   };
@@ -505,6 +532,7 @@ function Controller({ code, seat, name, onName, onLeave, onToggleLang }: Control
         onPointerCancel={onPointerUp}
         onDoubleClick={passLine}
       >
+        {status !== 'open' && <p className="warn rod__reconnect">{t('reconnecting')}</p>}
         {!stageOnline && state && (
           <section className="rod__problem">
             <p className="warn">{t('stageOffline')}</p>
