@@ -1,0 +1,11 @@
+{"result":{"id":"c2bf1d8d7403253e409764d4d84343a0","status":"active"},"success":true,"errors":[],"messages":[{"code":10000,"message":"This API Token is valid and active","type":null}]}
+::notice title=Token::valid, status=active
+{"success":true,"errors":[],"messages":[],"result":{"buckets":[]}}
+::notice title=Buckets::<none>
+{"success":true,"errors":[],"messages":[],"result":{"name":"emote-originals","creation_date":"2026-10-08T07:32:07.647Z","location":"ENAM","storage_class":"Standard","jurisdiction":"default"}}
+::notice title=Created::emote-originals
+{"success":true,"errors":[],"messages":[],"result":{"name":"emote-processed","creation_date":"2026-10-08T07:32:08.475Z","location":"ENAM","storage_class":"Standard","jurisdiction":"default"}}
+::notice title=Created::emote-processed
+{"success":true,"errors":[],"messages":[],"result":{"name":"uploads-quarantine","creation_date":"2026-10-08T07:32:09.065Z","location":"ENAM","storage_class":"Standard","jurisdiction":"default"}}
+::notice title=Created::uploads-quarantine
+::notice title=Next by hand::An R2 *S3* access key pair is still needed (dashboard -> R2 -> Manage R2 API Tokens); that credential is not issued by this API path.
