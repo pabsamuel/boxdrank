@@ -12,12 +12,47 @@
 
 <!-- ------------------------------------------------------------- lobby -->
 <section id="lobby" class="panel-full">
-  <div class="lobby-left">
+  <div class="lobby-main">
     <h1>LIGHT<span>GUN</span></h1>
-    <p class="tagline">Turn your phone into a light gun.</p>
+    <p class="tagline">Turn your phone into a light gun</p>
 
+    <!-- The code is the hero and the URL is the path that always works; the QR
+         is an accelerator beside them, not the only way in. A QR above a small
+         code is the classic failure: on a short screen the code falls out of
+         sight, and anyone whose camera will not focus is stuck. -->
+    <ol class="join">
+      <li>
+        <span class="join-label">On your phone, open</span>
+        <span class="join-url" id="joinUrl">…</span>
+      </li>
+      <li>
+        <span class="join-label">Room code</span>
+        <span class="join-code" id="roomCode">----</span>
+      </li>
+    </ol>
+
+    <div class="players" id="playerList"></div>
+  </div>
+
+  <aside class="lobby-side">
+    <div class="qr-card">
+      <img id="qr" alt="Pairing QR code">
+      <div class="qr-cap">or just scan this</div>
+    </div>
+    <div class="warn" id="tlsWarn">
+      Your phone will warn about the certificate.
+      Tap <b>Advanced → Proceed</b> — expected on a local network.
+    </div>
+    <div class="addr hidden">
+      <label>Phone can't connect? Try another address
+        <select id="addrPicker"></select>
+      </label>
+    </div>
+  </aside>
+
+  <footer class="lobby-foot">
     <div class="settings">
-      <label>Screen size
+      <label>TV size
         <select id="screenSize">
           <option value="24">24" monitor</option>
           <option value="32">32" monitor</option>
@@ -32,67 +67,86 @@
       <label id="customSizeWrap" class="hidden">Diagonal (inches)
         <input id="customSize" type="number" min="10" max="200" value="55">
       </label>
-      <label>Calibration points
+      <label>Calibration
         <select id="calibPoints">
-          <option value="4" selected>4 (more accurate)</option>
-          <option value="3">3 (faster)</option>
+          <option value="4" selected>4 points</option>
+          <option value="3">3 points</option>
         </select>
       </label>
-      <p class="note">Measure the screen corner to corner. A wrong size still aims fine
-        if you stand still, but drifts when you walk around.</p>
+      <p class="note">Measure corner to corner. You can also set this on the phone.</p>
     </div>
-
-    <div class="players" id="playerList"></div>
-
-    <div class="keys">
-      <b>F</b> fullscreen &nbsp; <b>C</b> calibrate &nbsp; <b>T</b> test mode &nbsp;
-      <b>G</b> game &nbsp; <b>D</b> debug &nbsp; <b>H</b> crosshair &nbsp;
-      <b>S</b> smoothing &nbsp; <b>R</b> rotation-only A/B &nbsp;
-      <b>Z</b> re-zero &nbsp; <b>X</b> save session report
-    </div>
-  </div>
-
-  <div class="lobby-right">
-    <div class="qr-card">
-      <img id="qr" alt="Pairing QR code">
-      <div class="room">ROOM <b id="roomCode">----</b></div>
-      <div class="url" id="joinUrl">…</div>
-      <div class="addr hidden">
-        <label>Phone can't connect? Try another address
-          <select id="addrPicker"></select>
-        </label>
-      </div>
-      <div class="warn" id="tlsWarn">
-        Your phone will warn about the self-signed certificate.
-        Tap <b>Advanced → Proceed</b> — that is expected on a local network.
-      </div>
-    </div>
-  </div>
+    <div class="keys-hint">press <b>?</b> for keys</div>
+  </footer>
 </section>
+
+<div id="keysOverlay" class="keys-overlay hidden">
+  <div class="keys-panel">
+    <h2>Keys</h2>
+    <dl>
+      <dt>F</dt><dd>fullscreen</dd>
+      <dt>C</dt><dd>calibrate</dd>
+      <dt>T</dt><dd>test mode</dd>
+      <dt>G</dt><dd>game</dd>
+      <dt>Z</dt><dd>re-zero after drift</dd>
+      <dt>X</dt><dd>save session report</dd>
+      <dt>V</dt><dd>save phone pose trace</dd>
+      <dt>D</dt><dd>diagnostics</dd>
+      <dt>H</dt><dd>crosshair on/off</dd>
+      <dt>S</dt><dd>smoothing on/off</dd>
+      <dt>R</dt><dd>rotation-only A/B</dd>
+      <dt>L</dt><dd>back to lobby</dd>
+    </dl>
+    <p>press any key to close</p>
+  </div>
+</div>
 
 <!-- -------------------------------------------------------- overlays -->
 <div id="banner" class="banner hidden"></div>
 <div id="subBanner" class="sub-banner hidden"></div>
 
+<!-- Inside the title-safe area: televisions crop the edges by varying amounts,
+     and this is the one thing a player reads mid-round. Score and time are the
+     two numbers that matter, the combo only exists while it is above x1, and
+     the best score is deliberately quiet. -->
 <div id="hud" class="hud hidden">
-  <div class="hud-item"><span>SCORE</span><b id="hudScore">0</b></div>
-  <div class="hud-item"><span>TIME</span><b id="hudTime">60</b></div>
-  <div class="hud-item"><span>COMBO</span><b id="hudCombo">x1</b></div>
-  <div class="hud-item"><span>BEST</span><b id="hudBest">0</b></div>
+  <div class="hud-group">
+    <div class="hud-item primary"><span>Score</span><b id="hudScore">0</b></div>
+    <div class="hud-item quiet"><span>Best</span><b id="hudBest">0</b></div>
+  </div>
+  <div class="hud-item primary time" id="hudTimeItem"><span>Time</span><b id="hudTime">60</b></div>
+  <div class="hud-group right">
+    <div class="hud-item combo hidden" id="hudComboItem"><span>Combo</span><b id="hudCombo">x2</b></div>
+  </div>
 </div>
 
 <section id="results" class="results hidden">
-  <h2>TIME UP</h2>
+  <h2 id="resultsTitle">Time up</h2>
   <div class="final" id="finalScore">0</div>
+  <div class="best-flag hidden" id="bestFlag">New best</div>
   <div class="breakdown" id="breakdown"></div>
-  <div class="actions">
-    <div><b>SHOOT</b> the buttons, or press <b>G</b></div>
-    <div id="againBtn" class="btn">PLAY AGAIN</div>
-    <div id="recalBtn" class="btn">RECALIBRATE</div>
+
+  <!-- These are shot, not clicked, so they are sized against the gun's measured
+       accuracy rather than against a mouse: comfortably larger than the p95
+       aiming error in both directions, and they light up when aimed at. -->
+  <div class="targets">
+    <button id="againBtn" class="target">
+      <span class="target-label">Play again</span>
+      <span class="target-sub">shoot here</span>
+    </button>
+    <button id="recalBtn" class="target secondary">
+      <span class="target-label">Recalibrate</span>
+      <span class="target-sub">if your aim drifted</span>
+    </button>
   </div>
+  <p class="results-hint">or press <b>G</b> to play, <b>C</b> to recalibrate</p>
 </section>
 
 <pre id="diag" class="diag hidden"></pre>
+
+<!-- Crosshairs and shot marks draw here, above every DOM panel. On the results
+     screen the panel is opaque, so a crosshair on the world canvas underneath
+     is invisible — and "shoot here" with no visible pointer is not a target. -->
+<canvas id="pointer" class="pointer"></canvas>
 
 <script type="module" src="./js/main.js"></script>
 </body>

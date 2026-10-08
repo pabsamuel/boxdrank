@@ -10,6 +10,10 @@ import { Game } from './game.js';
 const $ = (id) => document.getElementById(id);
 const canvas = $('stage');
 const ctx = canvas.getContext('2d');
+// A second layer, stacked above the DOM panels, for anything the player points
+// with. The world draws below the UI; the pointer draws above it.
+const pointerCanvas = $('pointer');
+const pctx = pointerCanvas.getContext('2d');
 
 const MODE = {
   LOBBY: 'lobby', CALIBRATE: 'calibrate', TEST: 'test', REZERO: 'rezero',
@@ -247,6 +251,25 @@ function startRezero(playerId) {
 }
 
 net.on('recalibrateRequest', (m) => startCalibration(m.from));
+
+// The person who knows how big the TV is, is the one holding the phone and
+// standing in front of it — not the one sitting at the laptop. Either can set
+// it; the display stays the single source of truth and echoes it back.
+net.on('setScreen', (m) => {
+  const inches = Number(m.diagInches);
+  if (!Number.isFinite(inches) || inches < 10 || inches > 200) return;
+  state.diagInches = inches;
+  const picker = $('screenSize');
+  const match = [...picker.options].find((o) => Number(o.value) === inches);
+  if (match) picker.value = match.value;
+  else {
+    picker.value = 'custom';
+    $('customSizeWrap').classList.remove('hidden');
+    $('customSize').value = String(inches);
+  }
+  logEvent('screenSize', { inches, from: 'phone' });
+  broadcastConfig();
+});
 net.on('dryFire', () => {});
 net.on('peerGone', () => renderPlayerList());
 
@@ -454,9 +477,7 @@ function handleShot(p, m) {
   const w = window.innerWidth;
   const h = window.innerHeight;
   const now = performance.now();
-  const x = m.x * w;
-  const y = m.y * h;
-  state.shots.push({ x, y, t: now, colour: p.colour });
+  state.shots.push({ nx: m.x, ny: m.y, t: now, colour: p.colour });
   if (state.shots.length > 40) state.shots.shift();
 
   const fireLatency = now - net.peerToLocal(m.ts, m.from);
@@ -548,27 +569,126 @@ function enterGame() {
   banner(null);
   $('diag').classList.remove('center');
   game.start(performance.now());
+  resetHud();
+  updateHud();
   show($('hud'));
   hide($('results'));
 }
 
+/* ------------------------------------------------------------------- HUD */
+
+// Written only on change: an animation restarted every frame never plays, and
+// the numbers are read from across a room where constant motion is noise.
+const hudShown = { score: null, secs: null, combo: null, best: null, urgent: null };
+
+// Grouped digits are read faster from a sofa than a run of five.
+const num = (n) => n.toLocaleString('en-US');
+
+const URGENT_FROM_MS = 10000;
+
+function updateHud() {
+  const secs = Math.ceil(game.remainingMs / 1000);
+  const best = Math.max(game.best, game.score);
+
+  if (game.score !== hudShown.score) {
+    const el = $('hudScore');
+    el.textContent = num(game.score);
+    // Restarting a CSS animation needs the class gone for one layout pass.
+    const item = el.parentElement;
+    item.classList.remove('pop');
+    void item.offsetWidth;
+    item.classList.add('pop');
+    hudShown.score = game.score;
+  }
+
+  if (secs !== hudShown.secs) {
+    $('hudTime').textContent = String(secs);
+    hudShown.secs = secs;
+  }
+
+  const urgent = game.remainingMs <= URGENT_FROM_MS;
+  if (urgent !== hudShown.urgent) {
+    $('hudTimeItem').classList.toggle('urgent', urgent);
+    hudShown.urgent = urgent;
+  }
+
+  // x1 is not a combo, so it is absent rather than shown as a dull x1.
+  if (game.combo !== hudShown.combo) {
+    const item = $('hudComboItem');
+    $('hudCombo').textContent = `x${game.combo}`;
+    if (game.combo > 1) {
+      item.classList.remove('hidden');
+      item.style.animation = 'none';
+      void item.offsetWidth;
+      item.style.animation = '';
+    } else {
+      item.classList.add('hidden');
+    }
+    hudShown.combo = game.combo;
+  }
+
+  if (best !== hudShown.best) {
+    $('hudBest').textContent = num(best);
+    hudShown.best = best;
+  }
+}
+
+function resetHud() {
+  for (const k of Object.keys(hudShown)) hudShown[k] = null;
+  $('hudTimeItem').classList.remove('urgent');
+  $('hudComboItem').classList.add('hidden');
+}
+
 function endGame() {
   state.mode = MODE.OVER;
-  $('finalScore').textContent = String(game.score);
+  $('finalScore').textContent = num(game.score);
+  // The flag carries the celebration; a title that also shouts "new high score"
+  // says the same thing twice and buries what the score actually beat.
+  $('bestFlag').textContent = game.previousBest > 0
+    ? `New best — beat ${num(game.previousBest)}`
+    : 'New best';
+  $('bestFlag').classList.toggle('hidden', !game.beatBest);
+
   const acc = game.shots ? Math.round((game.hits / game.shots) * 100) : 0;
-  const lines = [
-    `HITS ${game.hits}   ·   SHOTS ${game.shots}   ·   ACCURACY ${acc}%`,
-    `CIVILIANS HIT ${game.mistakes}   ·   BEST ${game.best}`,
+  const stats = [
+    ['Hits', game.hits],
+    ['Shots', game.shots],
+    ['Accuracy', `${acc}%`],
+    ['Best combo', `x${game.bestCombo}`],
   ];
+  // Only shown when it happened: a permanent "civilians 0" reads as a target
+  // the player failed to hit.
+  if (game.mistakes) stats.push(['Civilians', game.mistakes, 'warn']);
+  if (!game.beatBest) stats.push(['Best', num(game.best)]);
   if (state.players.size > 1) {
     for (const p of sortedPlayers()) {
-      const s = game.playerStats(p.id);
-      lines.push(`PLAYER ${p.slot + 1}: ${s.score} (${s.hits}/${s.shots})`);
+      const ps = game.playerStats(p.id);
+      stats.push([`Player ${p.slot + 1}`, ps.score]);
     }
   }
-  $('breakdown').innerHTML = lines.join('<br>');
+  $('breakdown').innerHTML = stats
+    .map(([label, value, cls]) => `<div class="stat${cls ? ` ${cls}` : ''}"><span>${label}</span><b>${value}</b></div>`)
+    .join('');
+
+  for (const el of [$('againBtn'), $('recalBtn')]) el.classList.remove('hot');
   show($('results'));
   hide($('hud'));
+}
+
+/**
+ * Light the target a crosshair is sitting on. Without this the player has no
+ * way to know a shot will land on the button until after they have fired, and
+ * these are the only two things on the screen worth hitting.
+ */
+function highlightTargets() {
+  const aimed = new Set();
+  for (const p of sortedPlayers()) {
+    if (!p.calibrated || performance.now() - p.lastAimAt > 400) continue;
+    const t = hitButton(p.aim.x, p.aim.y);
+    if (t) aimed.add(t);
+  }
+  $('againBtn').classList.toggle('hot', aimed.has('again'));
+  $('recalBtn').classList.toggle('hot', aimed.has('recal'));
 }
 
 /* --------------------------------------------------------------- lobby UI */
@@ -577,7 +697,7 @@ function renderPlayerList() {
   const list = $('playerList');
   const players = sortedPlayers();
   if (!players.length) {
-    list.innerHTML = '<div class="player waiting"><div class="name">WAITING FOR A GUN</div><div class="meta">scan the QR code with an Android phone</div></div>';
+    list.innerHTML = '<div class="player waiting"><div class="name">WAITING FOR A GUN</div><div class="meta">scan the code, or type the address above</div></div>';
     return;
   }
   list.innerHTML = players.map((p) => `
@@ -621,8 +741,20 @@ $('calibPoints').addEventListener('change', (e) => {
 });
 function broadcastConfig() { for (const p of state.players.keys()) sendConfig(p); }
 
+// They are shot from the sofa, but whoever is at the laptop has a mouse and
+// will try it — a button that does nothing when clicked reads as broken.
+$('againBtn').addEventListener('click', () => { if (state.mode === MODE.OVER) startCountdown(MODE.GAME); });
+$('recalBtn').addEventListener('click', () => {
+  if (state.mode !== MODE.OVER) return;
+  const first = sortedPlayers()[0];
+  if (first) startCalibration(first.id);
+});
+
 window.addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
+  const keys = $('keysOverlay');
+  if (!keys.classList.contains('hidden')) { keys.classList.add('hidden'); return; }
+  if (k === '?' || (k === '/' && e.shiftKey)) { keys.classList.remove('hidden'); return; }
   if (k === 'f') {
     if (document.fullscreenElement) document.exitFullscreen();
     else document.documentElement.requestFullscreen();
@@ -659,8 +791,11 @@ function frame(now) {
     }
   }
 
+  fitCanvas(pointerCanvas);
   ctx.setTransform(canvas.width / w, 0, 0, canvas.height / h, 0, 0);
   ctx.clearRect(0, 0, w, h);
+  pctx.setTransform(1, 0, 0, 1, 0, 0);
+  pctx.clearRect(0, 0, w, h);
 
   switch (state.mode) {
     case MODE.LOBBY:
@@ -700,21 +835,22 @@ function frame(now) {
     case MODE.GAME:
       game.update(now, dt);
       game.draw(ctx, w, h, now);
-      $('hudScore').textContent = String(game.score);
-      $('hudTime').textContent = String(Math.ceil(game.remainingMs / 1000));
-      $('hudCombo').textContent = `x${game.combo}`;
-      $('hudBest').textContent = String(Math.max(game.best, game.score));
+      updateHud();
       if (!game.running) endGame();
       break;
 
     case MODE.OVER:
       ctx.fillStyle = '#0b0f18';
       ctx.fillRect(0, 0, w, h);
+      highlightTargets();
       break;
   }
 
-  // Shots and crosshairs sit above everything except the DOM overlays.
-  state.shots = state.shots.filter((s) => drawShot(ctx, s, now));
+  // Shots and crosshairs sit above everything, including the DOM overlays.
+  // They are stored normalised and scaled here, because the canvas works in
+  // device pixels while the window reports CSS pixels — on a 2x display the two
+  // differ by a factor of two and the mark lands in the wrong place.
+  state.shots = state.shots.filter((s) => drawShot(pctx, { ...s, x: s.nx * w, y: s.ny * h }, now));
 
   if (state.showCrosshair && state.mode !== MODE.LOBBY && state.mode !== MODE.CALIBRATE) {
     for (const p of sortedPlayers()) {
@@ -723,12 +859,12 @@ function frame(now) {
       // A crosshair drawn from a lost pose is a lie; dim it rather than hide it
       // so the player can see the gun is still there but not trusted.
       if (p.tracking === 'lost' || p.tracking === 'limited') {
-        drawCrosshair(ctx, p.aim.x * w, p.aim.y * h, '#8794aa', {
+        drawCrosshair(pctx, p.aim.x * w, p.aim.y * h, '#8794aa', {
           offscreen: true, label: p.tracking.toUpperCase(),
         });
         continue;
       }
-      drawCrosshair(ctx, p.aim.x * w, p.aim.y * h, p.colour, {
+      drawCrosshair(pctx, p.aim.x * w, p.aim.y * h, p.colour, {
         offscreen: p.aim.off,
         label: state.players.size > 1 ? `P${p.slot + 1}` : '',
       });

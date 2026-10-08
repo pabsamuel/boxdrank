@@ -388,6 +388,32 @@ check('an unbiased simulated gun reports no systematic bias', bias.magnitude < 1
     `${a.health.samples} samples`);
 }
 
+/* ------------------------------- 7b. the phone can set the TV size */
+
+{
+  // Whoever is holding the phone is the one standing in front of the TV, so
+  // the size can be set from there. The display stays the source of truth.
+  const before = await page.evaluate(() => window.__lightgun.state.diagInches);
+  phone.send({ t: 'setScreen', diagInches: 65 });
+  await page.waitForFunction(() => window.__lightgun.state.diagInches === 65, null, { timeout: 5000 })
+    .catch(() => {});
+  const after = await page.evaluate(() => ({
+    inches: window.__lightgun.state.diagInches,
+    picker: document.getElementById('screenSize').value,
+  }));
+  log(`      phone set TV size ${before}" -> ${after.inches}" (display picker now "${after.picker}")`);
+  check('the phone can set the TV size', after.inches === 65 && after.picker === '65',
+    JSON.stringify(after));
+
+  // And nonsense from a phone must not be taken as gospel.
+  phone.send({ t: 'setScreen', diagInches: 99999 });
+  await sleep(300);
+  const guarded = await page.evaluate(() => window.__lightgun.state.diagInches);
+  check('an impossible TV size is ignored', guarded === 65, `${guarded}"`);
+  phone.send({ t: 'setScreen', diagInches: DIAG });
+  await sleep(300);
+}
+
 /* ---------------------------------------------------------- 8. two players */
 
 const phone2 = new VirtualPhone();
