@@ -23,6 +23,9 @@ _Last updated: Phase 0–5 landing commit._
 - **Browser version** (`retrosubs/web`, live at https://pabsamuel.github.io/boxdrank/) — the only
   thing that runs on iOS: full-screen box over the front camera, two-line pagination, per-character
   blip, automatic punctuation, named speaker, on-device diagnostics.
+- **Ready to charge for** — first-run screen, two Pro frames, a privacy page, bundled fonts
+  (nothing is fetched from anywhere), screen wake lock, re-wrap on rotation, and one empty
+  `BUY_URL` constant that turns on the PRO AL button the moment a Stripe link is pasted into it.
 - **Export and the free/Pro split** — photo and clip of exactly what is on screen, watermarked on
   the free tier, unlocked by a local Pro flag. Deliberately not a security boundary yet; the
   upgrade path is written down in `docs/05-MONETIZATION.md`.
@@ -41,5 +44,10 @@ _This container cannot reach `dl.google.com`, so the Android SDK and Google Mave
 locally: CI is the build and the verification._
 
 ## Next action
-Install the APK, try it in a real conversation, then paste prompt **P1** from
-`docs/03-PROMPTS.md` with what you saw.
+1. Open https://pabsamuel.github.io/boxdrank/ and check the version chip reads the latest build.
+2. Create a Stripe Payment Link and paste it into `BUY_URL` in `retrosubs/web/index.html`
+   (`docs/05-MONETIZATION.md` has the 15-minute version of this).
+3. Share a clip. The watermark is the distribution.
+
+For the Android app (the only build that can float over WhatsApp), install the APK from the
+`retrosubs-latest` release and work through `docs/03-PROMPTS.md`.
