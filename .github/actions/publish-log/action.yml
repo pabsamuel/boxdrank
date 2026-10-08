@@ -1,0 +1,61 @@
+name: Publish a run log
+description: >
+  Commits a run log to the orphan `ci-logs` branch so it can be read over the
+  REST contents API. GitHub serves Actions logs and artifacts from a storage
+  host that some environments cannot reach; a file on a branch is reachable
+  wherever the API is.
+
+inputs:
+  file:
+    description: Path to the log file to publish.
+    required: true
+  name:
+    description: Name to publish it under, inside the run's folder.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        # A composite action does not inherit the caller's secrets, and
+        # GITHUB_TOKEN is not in the shell environment by default.
+        GITHUB_TOKEN: ${{ github.token }}
+        LOG_FILE: ${{ inputs.file }}
+        LOG_NAME: ${{ inputs.name }}
+        DEST: ${{ github.workflow }}/${{ github.run_id }}
+      run: |
+        set -uo pipefail
+        [ -f "${LOG_FILE}" ] || { echo "No log at ${LOG_FILE}; nothing to publish."; exit 0; }
+
+        work="$(mktemp -d)"
+        # A shallow single-branch clone: the log branch is orphan and unrelated
+        # to the code history, so there is nothing else worth fetching.
+        git clone --depth 1 --branch ci-logs \
+          "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$work" 2>/dev/null \
+          || {
+            git init -q "$work"
+            git -C "$work" checkout -q --orphan ci-logs
+            git -C "$work" remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          }
+
+        mkdir -p "$work/${DEST}"
+        cp "${LOG_FILE}" "$work/${DEST}/${LOG_NAME}"
+
+        git -C "$work" config user.name  "github-actions[bot]"
+        git -C "$work" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git -C "$work" add -A
+        git -C "$work" diff --cached --quiet && { echo "Log unchanged."; exit 0; }
+        git -C "$work" commit -q -m "ci-logs: ${DEST}/${LOG_NAME}"
+
+        # Concurrent runs race on this branch; rebase and retry rather than
+        # forcing, so one run never drops another run's log.
+        for attempt in 1 2 3 4 5; do
+          if git -C "$work" push -q origin ci-logs; then
+            echo "::notice title=Run log::Published to the ci-logs branch at ${DEST}/${LOG_NAME}"
+            exit 0
+          fi
+          sleep $(( attempt * 2 ))
+          git -C "$work" pull -q --rebase origin ci-logs || true
+        done
+        echo "::warning::Could not publish the run log after 5 attempts."
