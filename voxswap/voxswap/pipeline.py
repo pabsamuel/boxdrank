@@ -20,6 +20,7 @@ from .errors import VoxSwapError
 from .log import Logger
 from .models import Order, load_lines
 from .stages import STAGE_NAMES, STAGES, JobContext, stage_by_name
+from .stages.voice import voices_with_new_samples
 from .state import DONE, FAILED, JobLock, JobState
 from .workspace import Workspace
 
@@ -71,6 +72,14 @@ def run_order(
         state.reset_from(from_stage)
     if force and not from_stage and not only_stage:
         state.reset_from(STAGE_NAMES[0])
+    elif not from_stage and not only_stage and state.is_done("voice"):
+        # A finished order whose customer has since re-recorded. Skipping the
+        # finished stages would deliver the old voice again, so start over
+        # from the clone; everything before it is still good.
+        changed = voices_with_new_samples(order)
+        if changed:
+            log.warn(f"new samples for {', '.join(changed)} since the clone was made — rebuilding from the voice stage")
+            state.reset_from("voice")
 
     ctx = JobContext(order=order, cfg=cfg, log=log, ws=ws, state=state, force=force)
     ctx.lines = load_lines(ws.lines_file)

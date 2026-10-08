@@ -38,9 +38,14 @@ order ID** — unless they are actually there and actually agreeing.
 python3 -m voxswap phrase ORD-123
 ```
 
-> *"My name is Ada Lovelace. Today is 1 March 2026. I give VoxSwap permission to
-> create a synthetic copy of my voice for order ORD-123. I understand I can
-> withdraw this permission at any time."*
+> *"I am Ada Lovelace. Today is 1 March 2026. I give VoxSwap permission to use
+> my voice for order ORD-123."*
+
+It is said in the customer's language (`contact_locale`; Turkish is built in),
+and it names whoever the customer bought from: set `VOXSWAP_BUSINESS_NAME` in
+`.env` to the shop's public name (the website's `brand`) and that name replaces
+"VoxSwap". The withdrawal terms are in the signed document, not the recording —
+every extra clause was another retake.
 
 They record it, send it back, you save it where the command says. Under 3
 seconds of audio and the job is refused.
@@ -111,7 +116,9 @@ event, appended, never rewritten.
 
 ```
 2026-09-17T14:23:09Z	CLEARED	main	C-1	Demo Customer	samples=6.0s
-2026-09-17T14:23:09Z	CLONED	main	C-1	Demo Customer	provider=elevenlabs	id=voxswap-main-C-1
+2026-09-17T14:23:09Z	CLONED	main	C-1	Demo Customer	provider=elevenlabs	id=voxswap-main-C-1	samples=c9df81eb9e74b674
+2026-09-20T18:02:40Z	CLONED	main	C-1	Demo Customer	provider=elevenlabs	id=voxswap-main-C-1b	samples=5a1e07d2c3b4f918
+2026-09-20T18:02:41Z	REPLACED	main	C-1	Demo Customer	provider=elevenlabs	old=voxswap-main-C-1	new=voxswap-main-C-1b
 2026-10-02T09:14:51Z	REVOKED	C-1	asked by email 2026-10-02
 2026-10-02T09:15:12Z	PURGED	main	samples=yes
 ```
@@ -119,7 +126,9 @@ event, appended, never rewritten.
 | Event | Written when |
 | --- | --- |
 | `CLEARED` | consent was verified at the start of a build |
-| `CLONED` | a synthetic voice was actually created at a provider |
+| `CLONED` | a synthetic voice was actually created at a provider, with a fingerprint of the samples it was made from |
+| `REPLACED` | the customer re-recorded, a new clone was made, and the old one was deleted |
+| `ORPHANED` | that deletion failed — the old clone still exists at the provider; `purge` retries it, and you should delete it by hand |
 | `REVOKED` | `voxswap revoke` withdrew a consent |
 | `PURGED` | `voxswap purge` destroyed the clone and its output |
 
@@ -131,6 +140,14 @@ the day the order was taken.
 
 If the file cannot be written, the build stops rather than creating a clone
 with no record. That is not a bug to work around.
+
+**Re-recordings.** The `samples=` fingerprint on `CLONED` is what lets a re-run
+notice that the customer sent new audio. When it no longer matches, the voice
+is cloned again, every line is re-rendered, and the old clone is deleted —
+reusing it would ship the game in the voice they replaced, and keeping it would
+leave a copy of their voice that a later withdrawal could not find. An order
+cloned before fingerprints were recorded has nothing to compare against and
+keeps its clone; use `--force` if you know the samples changed.
 
 ### Retention
 

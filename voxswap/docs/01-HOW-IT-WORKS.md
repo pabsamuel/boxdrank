@@ -181,3 +181,10 @@ python3 -m voxswap run ORD-123 --force             # redo everything, including 
 
 `--force` is the only one that can spend money twice. It exists for the case
 where a provider silently changed its output and you need a clean rebuild.
+
+The customer re-recorded? Drop the new files into `voices/<voice>/` and run the
+order again, no flags. VoxSwap compares the samples with the fingerprint it
+recorded when it made the clone, and if they differ it restarts from the voice
+stage on its own: a new clone, every line re-rendered, the old clone deleted.
+Takes are cached under a name derived from the clone and the line's text, so
+nothing made with the old voice can slip into the new delivery.

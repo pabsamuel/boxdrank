@@ -28,7 +28,9 @@ execute is not a promise.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -52,9 +54,15 @@ GOOD_SAMPLE_SECONDS = 90.0
 # they sign; the recording only has to be specific and live. Say it in their
 # own language, too: a Turkish customer reading an English legal sentence gets
 # a worse recording and understands less of what they just agreed to.
+#
+# The business is named because permission is given *to* someone, and the
+# customer knows the shop by its public name, not the software's. Set
+# VOXSWAP_BUSINESS_NAME to that name (the site's `brand`). The Turkish sentence
+# says "{business} ekibine" rather than adding a case ending to the name, so it
+# reads correctly whatever the name's last vowel is.
 PHRASE_TEMPLATES = {
-    "en": "I am {person_name}. Today is {today}. I give VoxSwap permission to use my voice for order {order_id}.",
-    "tr": "Ben {person_name}. Bugün {today}. VoxSwap'e {order_id} numaralı sipariş için sesimi kullanma izni veriyorum.",
+    "en": "I am {person_name}. Today is {today}. I give {business} permission to use my voice for order {order_id}.",
+    "tr": "Ben {person_name}. Bugün {today}. {business} ekibine {order_id} numaralı sipariş için sesimi kullanma izni veriyorum.",
 }
 PHRASE_TEMPLATE = PHRASE_TEMPLATES["en"]        # kept for callers that predate the mapping
 
@@ -97,7 +105,13 @@ def phrase_for(order: Order, consent: Consent, language: str = "") -> str:
         person_name=consent.person_name,
         today=spoken_date(date.today(), code),
         order_id=order.order_id,
+        business=business_name(),
     )
+
+
+def business_name() -> str:
+    """Who the permission is given to — the public name the customer bought from."""
+    return os.environ.get("VOXSWAP_BUSINESS_NAME", "").strip() or "VoxSwap"
 
 
 def _parse_date(value: str, field: str) -> datetime:
@@ -257,6 +271,39 @@ def list_samples(order: Order, voice: VoiceProfile) -> list[Path]:
     return out
 
 
+def file_digest(path: Path) -> str:
+    """SHA-256 of a file's bytes, read in chunks so a long sample costs no memory."""
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def samples_fingerprint(order: Order, voice: VoiceProfile) -> str:
+    """One short ID for exactly the samples a voice would be cloned from now.
+
+    Same files, same bytes, same fingerprint. It is recorded on the CLONED line
+    of the audit trail, so a later run can tell that a customer re-recorded and
+    the clone on file was made from audio they replaced. Content, not mtimes:
+    copying an order folder must not look like a re-recording, and
+    re-recording over a file in place must.
+    """
+    samples = list_samples(order, voice)
+    if not samples:
+        # Deleting samples once a clone exists is good data hygiene, not a
+        # re-recording. "" means "nothing to compare", never "changed".
+        return ""
+    directory = order.resolve(voice.samples_dir)
+    h = hashlib.sha256()
+    for path in samples:
+        h.update(path.relative_to(directory).as_posix().encode("utf-8"))
+        h.update(b"\0")
+        h.update(file_digest(path).encode("ascii"))
+        h.update(b"\n")
+    return h.hexdigest()[:16]
+
+
 def verify_order(order: Order) -> list[ConsentCheck]:
     """Check every voice bound to a role. Raises on the first failure."""
     used = {order.voice(role.voice_id).voice_id for role in order.roles}
@@ -283,10 +330,15 @@ def record_audit(order_dir: Path, event: str, *fields: object) -> None:
 
     Events:
 
-      CLEARED  consent was verified for a voice at the start of a build
-      CLONED   a synthetic voice was created at a provider
-      REVOKED  a consent was withdrawn
-      PURGED   a clone, its samples and its output were destroyed
+      CLEARED   consent was verified for a voice at the start of a build
+      CLONED    a synthetic voice was created at a provider (with the
+                fingerprint of the samples it was made from)
+      REPLACED  an older clone of the same voice was deleted because the
+                samples changed and a new clone took its place
+      ORPHANED  that deletion failed: the old clone still exists at the
+                provider and has to be removed by hand
+      REVOKED   a consent was withdrawn
+      PURGED    a clone, its samples and its output were destroyed
 
     Errors are deliberately not swallowed: if we cannot write the record, we
     must not carry on and create a clone that has none.
@@ -302,6 +354,38 @@ def record_audit(order_dir: Path, event: str, *fields: object) -> None:
             f"VoxSwap will not create or destroy a voice it cannot record. "
             f"Make {order_dir / AUDIT_FILE} writable, then retry.",
         ) from exc
+
+
+def last_clone(order_dir: Path, voice_id: str) -> dict[str, str]:
+    """The newest CLONED record for a voice, as its `key=value` fields.
+
+    Empty when there is none — an order cloned before fingerprints were
+    recorded, or one whose trail went missing. Callers treat that as "cannot
+    tell", never as "changed".
+    """
+    path = order_dir / AUDIT_FILE
+    if not path.exists():
+        return {}
+    found: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        parts = line.split("\t")
+        if len(parts) < 3 or parts[1] != "CLONED" or parts[2] != voice_id:
+            continue
+        found = {k: v for k, _, v in (p.partition("=") for p in parts[3:] if "=" in p)}
+    return found
+
+
+def orphaned_clones(order_dir: Path, voice_id: str) -> list[str]:
+    """Clone IDs the trail says were left behind at the provider for a voice."""
+    path = order_dir / AUDIT_FILE
+    if not path.exists():
+        return []
+    out: list[str] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 3 and parts[1] == "ORPHANED" and parts[2] == voice_id:
+            out += [p[3:] for p in parts[3:] if p.startswith("id=") and p[3:] not in out]
+    return out
 
 
 # --------------------------------------------------------------------------
@@ -353,6 +437,17 @@ def purge_order(
             except Exception as exc:                     # noqa: BLE001 - keep going; local data must still go
                 if log:
                     log.warn(f"could not delete {voice.provider_voice_id} at the provider: {exc}")
+        # A clone a rebuild failed to delete is still somebody's voice at the
+        # provider. Withdrawal is the moment it has to go too.
+        for stale in orphaned_clones(order.root, voice.voice_id):
+            if stale == voice.provider_voice_id:
+                continue
+            try:
+                provider.delete_voice(stale)
+                deleted_clones.append(stale)
+            except Exception as exc:                     # noqa: BLE001 - same as above
+                if log:
+                    log.warn(f"could not delete the orphaned clone {stale} at the provider: {exc}")
         if samples:
             shutil.rmtree(order.resolve(voice.samples_dir), ignore_errors=True)
 

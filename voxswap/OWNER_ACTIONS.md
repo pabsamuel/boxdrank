@@ -1,89 +1,92 @@
 # Owner actions
 
-Things only you can do. Claude cannot do any of these, and the project cannot
-take real money until they are done.
+Things only you can do — accounts in your name, money, legal judgement, your
+own voice. Everything else is built.
+
+The site is live at <https://pabsamuel.github.io/boxdrank/voxswap/>. It already
+works without any of the steps below: the price buttons lead to the free sample,
+and the booth tells people to send their pack to whoever shared the link. Each
+step below switches one more thing on.
 
 ---
 
-## Tonight — 20 minutes, no accounts, no money
+## 1. Start taking orders — about an hour
 
-Everything needed for this is already built and running.
+- [ ] **A business email you read every day.** A new Gmail just for this is
+      fine. Not your personal one: it goes on a public page, and it is the
+      address a third party uses to withdraw consent.
+      → put it in `voxswap/web/site-config.js` as `contactEmail`.
+      From then on the booth's last screen opens a ready-written email to it.
+- [ ] **Shopier account** (bireysel hesap is fine) → <https://www.shopier.com>
+      Create three digital-service products — *Kısa*, *Başrol*, *Ekip* — at the
+      prices in `site-config.js` (or your own). Copy each product link into
+      `checkout.short` / `checkout.lead` / `checkout.crew`.
+      The buttons then say "Sipariş ver" and open Shopier.
+- [ ] **Check the name.** "Başrol" found no competing app, but search the
+      domain and do a quick trademark search before you print it anywhere.
+      To rename, change `brand` in `site-config.js` — it is the only place.
+- [ ] **Set `VOXSWAP_BUSINESS_NAME=Başrol`** (or your name) in `voxswap/.env`, so
+      a third party's spoken consent names your business.
+- [ ] **Commit `site-config.js` to `main`** (or ask Claude to). The site updates
+      within a minute or two.
 
-- [ ] **Record yourself in the booth**
-      → <https://pabsamuel.github.io/boxdrank/voxswap/booth.html>
-      Eleven screens, one line each. It checks every take as you go and hands
-      you a zip laid out like an order folder. No microphone? Every screen also
-      takes a file from your phone's voice recorder.
-- [ ] **Listen to the game demo** and decide whether the quality sells
-      → the `Station Four` page, switching the hero between both casts.
-      If the swapped voice does not convince you, it will not convince a
-      customer, and that is the thing to fix before anything else.
-- [ ] **Install ffmpeg** on the machine you will actually work on. Without it
-      VoxSwap still runs, but on its fallbacks.
+## 2. Before the first paid order
 
-## This week — your first real order
+- [ ] **Record yourself in the booth** and run one real order on a game you own
+      → `docs/02-OPERATOR-RUNBOOK.md`. Install it and play it. This is the only
+      test that counts.
+- [ ] **Listen to the demo** on the landing page with headphones. If it does
+      not convince you, it will not convince a customer.
+- [ ] **Time it.** Note how long your first three orders take you, then check
+      the prices still make sense — `docs/09-PRICING-AND-BUSINESS.md`.
+- [ ] **Mali müşavir.** Selling repeatedly is a business for tax purposes even
+      as an individual. One call before the first sale.
+- [ ] **One hour with a lawyer** on the consent form and terms. Cheapest
+      insurance there is.
+- [ ] **Fill in `templates/consent-form.md`** with your business name and
+      email; decide your **retention period** and write it in. `purge` is the
+      command that makes it true.
+- [ ] **Write your terms** (or have the lawyer do it): personal use, own copy of
+      the game, no redistribution, one round of fixes, refunds.
 
-- [ ] **Pick a small game you own** with loose `.wav` or `.ogg` voice files.
-      Steam → Settings → Browse local files, then look for `Audio`, `Sound`,
-      `VO` or `Voice`. Avoid `.pak`, `.bnk` and `.bank` for the first one.
-- [ ] **Run it**: unzip your booth pack into `orders/ORD-001/`, drop the game's
-      audio under `assets/`, then `validate` → `run --only plan` → full run.
-      `docs/02-OPERATOR-RUNBOOK.md` is the page to have open.
-- [ ] **Install the result in the game and play it.** This is the only test
-      that counts.
-- [ ] **Write down every confusing or broken thing.** That list is the backlog.
+## 3. Getting the first customers
 
-No API key is needed for any of that — `"voice": "local_vc"` runs on your CPU.
-
-## Only if you want hosted cloning
-
-The local path is free and needs no account. A key buys you hosted cloning,
-which clones from shorter samples and speaks more languages, at a per-character
-price that stops being viable on a long game. Decide after your first order,
-not before.
-
-- [ ] **Voice provider account + API key** → `voxswap/.env` as `ELEVENLABS_API_KEY`
-- [ ] **Translation key** if you sell other languages → `ANTHROPIC_API_KEY`, and
-      `pip install anthropic`
-- [ ] **ASR key** if your customers will not send scripts → `OPENAI_API_KEY`
-
-## Before the first paying customer
-
-- [ ] **Fill in the consent form** (`templates/consent-form.md`) with your
-      business name and email, replacing every `{PLACEHOLDER}`
-- [ ] **Decide your retention period** and write it in that form. You have to be
-      able to honour it — `purge` is the command that makes it true.
-- [ ] **Write your terms**: personal use, own copy, no redistribution, revision
-      window, refund policy
-- [ ] **Set your prices** from your own measured costs — `docs/09-PRICING-AND-BUSINESS.md`
-- [ ] **A business email address** that a third party can contact you on
-      directly to withdraw consent, and that you actually read
-- [ ] **One hour with a lawyer** in your country. Once money is involved, this is
-      the cheapest insurance available.
+- [ ] **Post the demo.** The landing page's player is the pitch — a 15-second
+      screen recording of switching "Oyundaki ses" → "Senin sesin" mid-line.
+      Instagram/TikTok reels, r/gaming-style communities, Turkish gaming
+      Discords. Say plainly it is AI voice conversion with the person's consent.
+- [ ] **Gift angle**: birthdays, anniversaries ("sevgilin oyunun kahramanı
+      olsun"). The *Ekip* package exists for it — each person records and
+      consents themselves.
+- [ ] **Answer every free-sample request within a day.** That is the
+      conversion step; nothing else on the site matters as much.
 
 ## Judgement calls the software cannot make
 
-- [ ] **Listen to every verification phrase**, especially third-party ones. Does
-      it sound like the same person? Do they sound comfortable?
-- [ ] **Decide the refusals**: celebrities, voice actors, streamers, "surprises",
-      sexual content. Write your list down before someone asks, so the answer is
-      already decided.
+- [ ] **Listen to every verification phrase**, especially third-party ones. Same
+      person? Comfortable?
+- [ ] **The refusals** are on the site already: celebrities, streamers,
+      politicians, professional voice actors. Add your own (sexual content,
+      "surprise" recordings of someone else) before someone asks.
 - [ ] **Sign off every delivery.** The QC report is a tool, not a signature.
-      Listen to four lines.
-- [ ] **Decide which titles you take.** Read the EULA of any you do repeatedly.
+      Listen to at least four lines.
+- [ ] **Single-player games only.** The FAQ says so; hold to it.
 
 ## Operational
 
-- [ ] **Back up `orders/`.** The software does not — `work/` is disposable, but
-      `orders/` holds customer data and consent evidence.
-- [ ] **Keep `consent-audit.log` files forever.** They are your proof.
-- [ ] **Diary your retention deadlines** and actually run `purge` when they
-      arrive.
-- [ ] **Re-check provider pricing** every few months and redo the arithmetic in
-      `docs/09-PRICING-AND-BUSINESS.md`.
+- [ ] **Back up `orders/`.** `work/` is disposable; `orders/` holds customer
+      data and consent evidence.
+- [ ] **Keep every `consent-audit.log` forever.** It is your proof.
+- [ ] **Diary retention deadlines** and actually run `purge` when they arrive.
+- [ ] **Turn off `localProcessing`** in `site-config.js` the day any order goes
+      through a hosted provider — the page promises otherwise.
 
-## Not needed yet
+## Only if you want hosted cloning
 
-Deliberately listed so you do not build them too early: a website, a payment
-integration, a customer portal, a queue, a company. Do ten orders by hand first.
-The tenth one will tell you which of these you actually need.
+The local path (`"voice": "local_vc"`) is free and needs no account. A key buys
+hosted cloning at a per-character price that stops being viable on a long game.
+Decide after your first orders, not before.
+
+- [ ] Voice provider key → `voxswap/.env` as `ELEVENLABS_API_KEY`
+- [ ] Translation key → `ANTHROPIC_API_KEY` and `pip install anthropic`
+- [ ] ASR key → `OPENAI_API_KEY`

@@ -93,6 +93,8 @@ python3 -m voxswap purge ORD-123           # someone withdrew consent
 | [`docs/04-CONSENT-AND-RIGHTS.md`](docs/04-CONSENT-AND-RIGHTS.md) | Before your first real customer |
 | [`docs/05-PROVIDERS.md`](docs/05-PROVIDERS.md) | You are ready to spend money on real voices |
 | [`docs/11-RUNNING-LOCAL.md`](docs/11-RUNNING-LOCAL.md) | You would rather not spend that money — running it all locally |
+| [`docs/12-MARKET-AND-COMPETITORS.md`](docs/12-MARKET-AND-COMPETITORS.md) | Who else sells something like this, what they charge, taking payment from Turkey |
+| [`web/README.md`](web/README.md) | The public site: landing page, recording booth, demo — and the one config file to edit |
 | [`docs/06-TARGETS.md`](docs/06-TARGETS.md) | The customer named a specific game or film |
 | [`docs/07-QUALITY-BAR.md`](docs/07-QUALITY-BAR.md) | It works but sounds wrong |
 | [`docs/08-TROUBLESHOOTING.md`](docs/08-TROUBLESHOOTING.md) | Something broke |
@@ -106,7 +108,7 @@ python3 -m voxswap purge ORD-123           # someone withdrew consent
 python3 -m unittest discover -s tests -t .
 ```
 
-181 tests, no dependencies, no network, no API keys, ~45 seconds.
+191 tests, no dependencies, no network, no API keys, ~60 seconds.
 
 12 of them cover the ffmpeg code paths and skip automatically when ffmpeg is
 not installed, so the suite stays runnable on a bare machine. CI runs half its

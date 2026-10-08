@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ..ids import short_hash
 from ..models import Line, save_lines
 from ..parallel import map_workers
 from ..providers.base import SynthesisRequest
@@ -39,7 +40,7 @@ class SynthesizeStage(Stage):
         reused = 0
         pending: list[Line] = []
         for line in todo:
-            out_path = ctx.ws.synth_dir / f"{line.line_id}.wav"
+            out_path = _take_path(ctx, line, role_voice)
             if out_path.exists() and not ctx.force:
                 line.rendered_rel = out_path.name
                 reused += 1
@@ -72,7 +73,7 @@ class SynthesizeStage(Stage):
                 # entire input for a conversion one.
                 source_path=ctx.asset_root / line.source_rel,
             )
-            return provider.synthesize(request, ctx.ws.synth_dir / f"{line.line_id}.wav")
+            return provider.synthesize(request, _take_path(ctx, line, role_voice))
 
         def done(line: Line, path: Path) -> None:
             line.rendered_rel = path.name
@@ -97,6 +98,19 @@ class SynthesizeStage(Stage):
             summary=f"{ok} take(s) generated, {reused} reused, {failed} failed ({characters} characters)",
             metrics={"generated": ok, "reused": reused, "failed": failed, "characters": characters},
         )
+
+
+def _take_path(ctx: JobContext, line: Line, role_voice: dict[str, str]) -> Path:
+    """Where a line's take lives — named for the voice and words that made it.
+
+    A take on disk is reused instead of paid for again, so its name has to
+    change whenever the take would: a rebuilt clone (the customer re-recorded)
+    or an edited line. Named by line alone, a re-run after either would
+    quietly ship the old audio.
+    """
+    voice = ctx.order.voice(role_voice[line.role_id])
+    tag = short_hash(voice.provider_voice_id, line.speak_text, length=8)
+    return ctx.ws.synth_dir / f"{line.line_id}.{tag}.wav"
 
 
 def _source_format(ctx: JobContext, line: Line) -> tuple[int, int]:

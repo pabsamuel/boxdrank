@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
+from unittest import mock
 
 from tests.helpers import consent_record, days_from_now, make_config, make_game_order
 from voxswap.consent import phrase_for, record_revocation, verify_order
@@ -153,6 +155,14 @@ class ConsentTests(unittest.TestCase):
         # A language nobody wrote a phrase for falls back rather than failing.
         self.assertEqual(phrase_for(order, consent, language="xx"),
                          phrase_for(order, consent, language="en"))
+
+    def test_the_phrase_names_the_business_the_customer_bought_from(self) -> None:
+        order = self._order()
+        with mock.patch.dict(os.environ, {"VOXSWAP_BUSINESS_NAME": "Başrol"}):
+            self.assertIn("I give Başrol permission", phrase_for(order, order.consents[0], language="en"))
+            self.assertIn("Başrol ekibine", phrase_for(order, order.consents[0], language="tr"))
+        with mock.patch.dict(os.environ, {"VOXSWAP_BUSINESS_NAME": ""}):
+            self.assertIn("VoxSwap", phrase_for(order, order.consents[0], language="en"))
 
     def test_the_phrase_stays_short_enough_to_read_in_one_go(self) -> None:
         """Every extra clause is another retake. The terms live in the signed

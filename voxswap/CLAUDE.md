@@ -60,7 +60,7 @@ short.
 ## Before saying something works
 
 ```bash
-python3 -m unittest discover -s tests -t .      # 181 tests, ~45s, no network
+python3 -m unittest discover -s tests -t .      # 191 tests, ~65s, no network
 python3 tools/make_example.py && python3 -m voxswap run EXAMPLE-GAME
 ```
 

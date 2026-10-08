@@ -5,6 +5,8 @@ work/
 delivery/
 archive/
 .voices/
+# What tools/demo_game/make_assets.py builds. Regenerated, never edited.
+demo-game/
 
 # Rendered audio, e.g. a before/after comparison cut for a demo. Send these to
 # whoever asked for them; they do not belong in the history.
@@ -12,6 +14,10 @@ archive/
 *.mp3
 *.flac
 !tests/fixtures/**
+# The website's before/after clips. Both voices in them are synthetic
+# (LibriTTS speakers, CC BY 4.0) — never a customer's recording.
+!web/audio/
+!web/audio/**
 
 # Secrets
 .env

@@ -99,8 +99,6 @@ class MockVoice(BaseProvider):
         self._voices: dict[str, str] = {}
 
     def ensure_voice(self, voice_id: str, label: str, samples: list[Path], *, consent_ref: str) -> str:
-        if voice_id in self._voices:
-            return self._voices[voice_id]
         if not samples:
             from ..errors import ProviderError
 
@@ -108,7 +106,10 @@ class MockVoice(BaseProvider):
                 f"no voice samples found for {voice_id!r}",
                 "Put at least one WAV in the voice's samples_dir.",
             )
-        provider_id = f"mock-{short_hash(voice_id, consent_ref, length=8)}"
+        # Like a real provider, a clone made from different audio is a
+        # different clone — the voice stage's rebuild path depends on it.
+        audio = hashlib.sha256(b"".join(Path(p).read_bytes() for p in samples)).hexdigest()
+        provider_id = f"mock-{short_hash(voice_id, consent_ref, audio, length=8)}"
         self._voices[voice_id] = provider_id
         return provider_id
 

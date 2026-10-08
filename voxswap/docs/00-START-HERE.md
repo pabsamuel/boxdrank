@@ -36,10 +36,10 @@ enough to send. The machine does the rest.
 
 | Step | You | Time |
 | --- | --- | --- |
-| 1 | Send the customer `templates/customer-intake-form.md` | 1 min |
-| 2 | They send recordings, the game audio, and the signed consent form | — |
-| 3 | `python3 -m voxswap new ...` then drop their files into the folder | 5 min |
-| 4 | `python3 -m voxswap phrase ORD-123` → send them the sentence to record | 1 min |
+| 1 | The customer records in the booth on the website and emails you the pack (it names the game) | — |
+| 2 | Free sample: 3 lines from their game, so they hear it before paying | 15 min |
+| 3 | `python3 -m voxswap new ...`, unzip the pack into it, add the game's audio under `assets/` | 5 min |
+| 4 | **Only for someone else's voice:** `python3 -m voxswap phrase ORD-123` → that person records it | 1 min |
 | 5 | `python3 -m voxswap validate ORD-123` → fix whatever it complains about | 2 min |
 | 6 | `python3 -m voxswap run ORD-123 --only plan` → check it matched the right character | 2 min |
 | 7 | `python3 -m voxswap run ORD-123` → wait | 0 min |
@@ -76,9 +76,9 @@ properly, before your first paying customer.
 - [ ] Open `delivery/EXAMPLE-GAME/` and look at what a customer receives
 - [ ] Run `python3 -m voxswap doctor` and install ffmpeg if it says you have not
 - [ ] Read [`04-CONSENT-AND-RIGHTS.md`](04-CONSENT-AND-RIGHTS.md)
-- [ ] Pick your providers and put the keys in `.env` ([`05-PROVIDERS.md`](05-PROVIDERS.md))
+- [ ] Start the local voice-conversion server — no keys needed ([`11-RUNNING-LOCAL.md`](11-RUNNING-LOCAL.md)); hosted providers are optional ([`05-PROVIDERS.md`](05-PROVIDERS.md))
 - [ ] Do one order for yourself, with your own voice, on a game you own. End to end. Before you charge anyone.
-- [ ] Decide your prices ([`09-PRICING-AND-BUSINESS.md`](09-PRICING-AND-BUSINESS.md))
+- [ ] Decide your prices ([`09-PRICING-AND-BUSINESS.md`](09-PRICING-AND-BUSINESS.md), [`12-MARKET-AND-COMPETITORS.md`](12-MARKET-AND-COMPETITORS.md)) and put them, your email and your payment links in `web/site-config.js`
 - [ ] Update [`STATUS.md`](../STATUS.md) with where you got to
 
 That last one matters more than it looks. `STATUS.md` is how you — or Claude —

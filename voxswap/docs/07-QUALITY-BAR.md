@@ -32,7 +32,9 @@ A customer should hear *their own voice in the game*, not *a mod*. Concretely:
 | Heavy compression (voice notes, Discord) | Ask for WAV/FLAC, or the original file rather than a re-send. |
 
 Ask for a re-record early. It is free, it takes them ten minutes, and it fixes
-more than any option in this file.
+more than any option in this file. Replace the files in `voices/<voice>/` and
+re-run the order — VoxSwap sees the samples changed and rebuilds the clone
+(see "Resuming and redoing" in `01-HOW-IT-WORKS.md`).
 
 ## Lines are too long / overflow their slots
 

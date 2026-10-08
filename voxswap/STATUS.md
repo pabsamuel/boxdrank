@@ -5,28 +5,41 @@
 
 ## Current state
 
-**v0.1.0 — complete, and now proven on real models.** Ten stages, seven provider
-adapters, five target adapters, 181 tests green on Python 3.10/3.11/3.12, with
-and without ffmpeg.
+**v0.1.0, with a public site that can take orders.** Ten stages, seven provider
+adapters, five target adapters, 191 tests green on Python 3.10/3.11/3.12, with
+and without ffmpeg. No API key or GPU needed: voice conversion (`local_vc`,
+FreeVC) runs a full order on a plain CPU with zero timing error and keeps the
+original actor's performance.
 
-The headline changed since the last entry: **you do not need an API key or a
-GPU.** Voice conversion (`local_vc`, FreeVC) ran a full order on a plain CPU at
-roughly 1.5 s per line, with zero timing error, and it sounds better than the
-cloning models it replaced because it keeps the original actor's performance
-instead of rebuilding it from text.
+Live at <https://pabsamuel.github.io/boxdrank/voxswap/> (brand: **Başrol**,
+set in `web/site-config.js`):
 
-Live and verified:
+* `index.html` — landing page: the same line played in both voices with the
+  waveforms drawn from the files (Δ 0 ms), how it works, three packages, the
+  consent rules, FAQ. Turkish first, English toggle.
+* `booth.html` — the recording booth, now branded from the config, with a
+  "which game / which character" step and a send step (share sheet on phones,
+  a pre-written email to `contactEmail` everywhere).
+* `demo.html` — Station Four, both casts embedded, rebuilt with two LibriTTS
+  (CC BY 4.0) stand-in voices so it can sit on a page that sells something.
 
-* the **recording booth** at `voxswap/web/booth.html`, published at
-  <https://pabsamuel.github.io/boxdrank/voxswap/booth.html>
-* **GAME-DEMO** — a small game voiced by one actor, rebuilt in a customer's
-  voice, both casts in one playable page
-* consent by **signed declaration** for a customer's own voice; the spoken
-  phrase is still mandatory for anyone else's
+What turns it into money is on `OWNER_ACTIONS.md` §1: a business email and
+three Shopier links pasted into `site-config.js`. Until then every price button
+leads to the free sample. Market research and the pricing rationale:
+`docs/12-MARKET-AND-COMPETITORS.md`.
+
+Fixed this session: a customer who re-recorded used to get the old clone back
+(the voice stage reused any clone on file, and cached takes were named by line
+only). Clones are now fingerprinted by their samples on the `CLONED` audit
+line; new samples rebuild the clone, re-render every line and delete the old
+clone (`REPLACED`, or `ORPHANED` if the provider refuses — `purge` retries
+those).
 
 ## Next exact action
 
-**Record yourself in the booth**, then run one real order on a game you own:
+**The owner fills in `web/site-config.js`** (`contactEmail` + three `checkout`
+links) per `OWNER_ACTIONS.md` §1, then records themselves in the booth and runs
+one real order on a game they own:
 
 ```bash
 cd voxswap
@@ -35,10 +48,6 @@ python3 -m voxswap validate ORD-001     # paperwork + files, spends nothing
 python3 -m voxswap run ORD-001 --only plan
 python3 -m voxswap run ORD-001
 ```
-
-With `"voice": "local_vc"` and the FreeVC server running, that costs nothing and
-needs no account. `docs/11-RUNNING-LOCAL.md` has the install, including the four
-ways it fails on a clean machine.
 
 Write down what broke. That list is the v0.2 backlog.
 
@@ -55,6 +64,8 @@ Write down what broke. That list is the v0.2 backlog.
 | Film pipeline end to end | done | `tests/test_pipeline.py::MovieJobTests` |
 | Resume / caching / locking | done | `ResumeTests` — asserts takes are never regenerated |
 | Watcher (auto-start) | done | `WatcherTests` |
+| Re-recorded samples rebuild the clone | done | 9 tests in `tests/test_voice_rebuild.py` |
+| Public site (landing, booth, demo) | done | driven end to end in headless Chromium: playback + mid-line voice switch, TR/EN, phone layout, booth form → consent → 8 uploaded takes → pack → send step |
 | ElevenLabs adapter | **unverified** | written against the documented API; no live call made |
 | OpenAI ASR adapter | **unverified** | same |
 | Claude translation adapter | **unverified** | same |
@@ -74,7 +85,11 @@ drift. All of them are env-overridable for exactly this reason.
 
 ```
 python3 -m unittest discover -s tests -t .
-→ 181 tests, OK, ~45s, no network, no API keys
+→ 191 tests, OK, ~64s, no network, no API keys
+
+GAME-DEMO (tools/demo_game, local_vc on CPU, LibriTTS speakers 47 → 110)
+→ 8/8 lines, median and worst slot error 0 ms; pitch 92–109 Hz → 120–139 Hz,
+  matching the stand-in customer's 125–140 Hz
 
 python3 tools/make_example.py && python3 -m voxswap run EXAMPLE-GAME
 → 10 stages, 0.4s, 4/4 lines at 100% QC, median slot error 0 ms
@@ -137,8 +152,10 @@ and skips cleanly where ffmpeg is absent. CI runs the whole matrix both ways on
   table above). Everything else is covered.
 * Packed-audio titles (Wwise `.bnk`, FMOD `.bank`, Unreal `.pak`) are
   deliberately not opened — we deliver import-ready audio plus instructions.
-* No web intake form; orders are folders an operator creates.
-* No billing, no customer portal, no queue beyond the folder watcher.
+* Intake is the booth plus email: a pack arrives, the operator unzips it into
+  an order folder. No upload server, on purpose — nothing to host or secure.
+* Payment is a link per package (Shopier); nothing reconciles a payment with
+  an order except the reference in the customer's email.
 * Emotion labelling only happens when the translation provider supports it
   (`claude`). Heuristics fill in otherwise.
 
@@ -155,6 +172,7 @@ and skips cleanly where ffmpeg is absent. CI runs the whole matrix both ways on
 | 5b | ffmpeg path coverage; fixed 3 defects it found (see DECISIONS #17) | done |
 | 5c | Local-model path: `local_llm` provider, resident TTS server, keyless local ASR, whisper.cpp wrapper, `docs/11-RUNNING-LOCAL.md` | done |
 | 5d | Audit trail records creation (`CLEARED`/`CLONED`), not only deletion; `purge` declines cleanly with no terminal | done |
+| 5e | Public site: landing page, branded booth with send step, licensed demo; re-recording rebuilds the clone | done |
 | 6 | First real order with a live provider | **next** |
 | 7 | Second title, second engine — prove the target adapters | not started |
 | 8 | Local model path, for cost and privacy | not started |

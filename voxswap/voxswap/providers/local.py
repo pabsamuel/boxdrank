@@ -41,6 +41,7 @@ no key. See docs/11-RUNNING-LOCAL.md.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shlex
@@ -151,7 +152,17 @@ class LocalVoice(BaseProvider):
         if not samples:
             raise ProviderError(f"no samples for voice {voice_id!r}", "Add WAV files to the voice's samples_dir.")
         self.voice_dir.mkdir(parents=True, exist_ok=True)
-        reference = self.voice_dir / f"{voice_id}.wav"
+        # Named for the audio it is built from. The same samples find the same
+        # file and cost nothing; new samples get a new file and a new ID, so
+        # the voice stage can tell the clone changed and delete the old one.
+        # A fixed name per voice would hand back last week's reference forever.
+        digest = hashlib.sha256()
+        for sample in samples:
+            try:
+                digest.update(Path(sample).read_bytes())
+            except OSError:
+                digest.update(str(sample).encode("utf-8"))
+        reference = self.voice_dir / f"{voice_id}-{digest.hexdigest()[:12]}.wav"
         if reference.exists():
             return str(reference)
 
