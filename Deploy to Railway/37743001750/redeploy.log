@@ -1,0 +1,130 @@
+
+──────── link the existing project ────────
+> Select a workspace pabsamuel's Projects
+> Select a project global-emotes
+> Select an environment production
+> Select a service api
+{
+  "projectId": "44f08990-122d-4f57-b9aa-d0c9a3e9486e",
+  "projectName": "global-emotes",
+  "environmentId": "706690e6-545c-44c7-ad32-c118f3811c7d",
+  "environmentName": "production",
+  "serviceId": "28676b34-c88d-4e28-87fb-37ef50597a6b",
+  "serviceName": "api"
+}
+
+──────── deploy api ────────
+Indexing...
+Uploading...
+  Deployment: https://railway.com/project/44f08990-122d-4f57-b9aa-d0c9a3e9486e/service/28676b34-c88d-4e28-87fb-37ef50597a6b?id=f00ce2dc-34e3-4998-bf24-0d5ea3fdf09d
+CI mode enabled
+fetched snapshot sha256:e2714f6772a4e288126fbffd3367023dd22ed5f4a0a07ee0f54c0a6cddfc1d4a (301 kB bytes)
+fetching snapshot
+unpacking archive
+[internal] load build definition from Dockerfile
+[internal] load metadata for docker.io/library/node:22-alpine
+[internal] load .dockerignore
+[runtime 2/2] COPY apps/api ./apps/api
+[runtime 1/2] COPY --from=deps /repo /repo
+[deps 6/6] RUN pnpm install --frozen-lockfile --filter @global-emotes/api...
+[deps 5/6] COPY packages ./packages
+[deps 4/6] COPY apps/worker/package.json apps/worker/
+[deps 3/6] COPY apps/web/package.json apps/web/
+[deps 2/6] COPY apps/api/package.json apps/api/
+[deps 1/6] COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+[internal] load build context
+[base 3/3] WORKDIR /repo
+[base 2/3] RUN corepack enable
+[base 1/3] FROM docker.io/library/node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402
+scheduling build on Metal builder "builder-hzwfzq"
+Deploy complete
+new deployment: f00ce2dc-34e3-4998-bf24-0d5ea3fdf09d
+
+──────── public domain ────────
+::notice title=API domain::https://api-production-844a7.up.railway.app
+::notice title=Deployed::Build uploaded. Railway runs the pre-deploy migrations and rolls the new version out; the smoke test below waits for it.
+──────── read the Postgres public URL ────────
+::notice title=Migrations::Postgres has no public URL, so they ran inside Railway as the api pre-deploy command (railway.json). The smoke test's database lookup below confirms the schema is there.
+──────── smoke test ────────
+──────── wait for the new deployment ────────
+  serving deployment f00ce2dc-34e3-4998-bf24-0d5ea3fdf09d
+smoke: api=https://api-production-844a7.up.railway.app web=<not deployed, skipping>
+
+1. API health
+  [32mPASS[0m  200, ok:true
+2. OpenAPI spec
+  [32mPASS[0m  200
+3. Database (public creator lookup)
+  [31mFAIL[0m  500 — DB unreachable or migrations not run (see DEPLOY_NOW.md step 2.5)
+4. Web app
+  [33mSKIP[0m  no web URL given
+
+Smoke test FAILED. Full regression: docs/QA_TEST_PLAN.md
+  smoke test failed on attempt 1, retrying in 20s
+smoke: api=https://api-production-844a7.up.railway.app web=<not deployed, skipping>
+
+1. API health
+  [32mPASS[0m  200, ok:true
+2. OpenAPI spec
+  [32mPASS[0m  200
+3. Database (public creator lookup)
+  [31mFAIL[0m  500 — DB unreachable or migrations not run (see DEPLOY_NOW.md step 2.5)
+4. Web app
+  [33mSKIP[0m  no web URL given
+
+Smoke test FAILED. Full regression: docs/QA_TEST_PLAN.md
+  smoke test failed on attempt 2, retrying in 20s
+smoke: api=https://api-production-844a7.up.railway.app web=<not deployed, skipping>
+
+1. API health
+  [32mPASS[0m  200, ok:true
+2. OpenAPI spec
+  [32mPASS[0m  200
+3. Database (public creator lookup)
+  [31mFAIL[0m  500 — DB unreachable or migrations not run (see DEPLOY_NOW.md step 2.5)
+4. Web app
+  [33mSKIP[0m  no web URL given
+
+Smoke test FAILED. Full regression: docs/QA_TEST_PLAN.md
+──────── diagnostics: error body ────────
+{"error":{"code":"internal_error","message":"internal error","requestId":"10d7f2bb-06ee-4b0b-9ae5-f54e30db16ff"}}
+──────── diagnostics: api service settings (is railway.json applied?) ────────
+{
+  "serviceName": "api",
+  "latestDeployment": {
+    "id": "f00ce2dc-34e3-4998-bf24-0d5ea3fdf09d",
+    "status": "SUCCESS"
+  },
+  "deploy": {
+    "preDeployCommand": null,
+    "healthcheckPath": null,
+    "startCommand": null
+  }
+}
+──────── diagnostics: deployment log of f00ce2dc-34e3-4998-bf24-0d5ea3fdf09d ────────
+Starting Container
+(node:18) [FSTDEP023] FastifyDeprecation: disableRequestLogging option is deprecated. Use the logController option with disableRequestLogging or isLogDisabled override instead. The disableRequestLogging top-level option will be removed in `fastify@6`.
+2026-10-08T07:22:42.363478428Z [INFO] API listening on :3001 time=1791444162185 service="api"
+(Use `node --trace-warnings ...` to show where the warning was created)
+2026-10-08T07:22:42.363495986Z [INFO] Server listening at http://127.0.0.1:3001 time=1791444162184 service="api"
+2026-10-08T07:22:42.363502166Z [INFO] Server listening at http://10.168.106.16:3001 time=1791444162184 service="api"
+2026-10-08T07:22:45.416965496Z [INFO] incoming request time=1791444165334 service="api" reqId="2e7ba5e1-49b8-4de9-bc45-dc0b243990ff" req={"method":"GET","url":"/v1/health","host":"api-production-844a7.up.railway.app","remoteAddress":"100.64.0.1","remotePort":59600}
+2026-10-08T07:22:45.416969147Z [INFO] request completed time=1791444165339 service="api" reqId="2e7ba5e1-49b8-4de9-bc45-dc0b243990ff" res={"statusCode":200} responseTime=4.403366999999889
+2026-10-08T07:22:45.607416205Z [INFO] incoming request time=1791444165592 service="api" reqId="fc00e121-fe08-400d-9ded-30eced30e86e" req={"method":"GET","url":"/v1/health","host":"api-production-844a7.up.railway.app","remoteAddress":"100.64.0.2","remotePort":14076}
+2026-10-08T07:22:45.607418889Z [INFO] request completed time=1791444165593 service="api" reqId="fc00e121-fe08-400d-9ded-30eced30e86e" res={"statusCode":200} responseTime=0.530892999999196
+2026-10-08T07:22:45.814420643Z [INFO] incoming request time=1791444165807 service="api" reqId="a1d6d068-df61-4e9f-b8f6-116db7d56630" req={"method":"GET","url":"/v1/openapi.json","host":"api-production-844a7.up.railway.app","remoteAddress":"100.64.0.3","remotePort":35182}
+2026-10-08T07:22:45.820557722Z [INFO] request completed time=1791444165817 service="api" reqId="a1d6d068-df61-4e9f-b8f6-116db7d56630" res={"statusCode":200} responseTime=9.868139000000156
+2026-10-08T07:22:46.411446812Z [INFO] incoming request time=1791444166070 service="api" reqId="d06aca2f-c7bc-4b9c-93ca-ddcc13ec51d4" req={"method":"GET","url":"/v1/public/creators/smoke-nonexistent-1791444165","host":"api-production-844a7.up.railway.app","remoteAddress":"100.64.0.4","remotePort":50440}
+2026-10-08T07:22:46.411450863Z [INFO] unhandled error time=1791444166123 service="api" reqId="d06aca2f-c7bc-4b9c-93ca-ddcc13ec51d4" err={"type":"DatabaseError","message":"relation \"creator_profiles\" does not exist","stack":"error: relation \"creator_profiles\" does not exist\n    at /repo/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async <anonymous> (/repo/node_modules/.pnpm/drizzle-orm@0.38.4_@electric-sql+pglite@0.2.17_@types+pg@8.20.0_@types+react@19.2.17_pg@8.22.0_react@19.2.8/node_modules/src/node-postgres/session.ts:104:19)\n    at async Object.<anonymous> (/repo/apps/api/src/routes/public.ts:20:24)","length":115,"name":"error","severity":"ERROR","code":"42P01","position":"80","file":"parse_relation.c","line":"1498","routine":"parserOpenTable"}
+2026-10-08T07:22:46.411454667Z [INFO] request completed time=1791444166127 service="api" reqId="d06aca2f-c7bc-4b9c-93ca-ddcc13ec51d4" res={"statusCode":500} responseTime=56.44907899999998
+2026-10-08T07:23:16.134560610Z [INFO] request completed time=1791444186557 service="api" reqId="cfda59e0-17db-4f1c-910d-e1868c327e30" res={"statusCode":200} responseTime=0.8192009999984293
+2026-10-08T07:23:16.134566613Z [INFO] incoming request time=1791444186789 service="api" reqId="06712837-233b-45f6-a5b0-87d89207a2fd" req={"method":"GET","url":"/v1/public/creators/smoke-nonexistent-1791444186","host":"api-production-844a7.up.railway.app","remoteAddress":"100.64.0.6","remotePort":54024}
+2026-10-08T07:23:16.134570171Z [INFO] unhandled error time=1791444186825 service="api" reqId="06712837-233b-45f6-a5b0-87d89207a2fd" err={"type":"DatabaseError","message":"relation \"creator_profiles\" does not exist","stack":"error: relation \"creator_profiles\" does not exist\n    at /repo/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async <anonymous> (/repo/node_modules/.pnpm/drizzle-orm@0.38.4_@electric-sql+pglite@0.2.17_@types+pg@8.20.0_@types+react@19.2.17_pg@8.22.0_react@19.2.8/node_modules/src/node-postgres/session.ts:104:19)\n    at async Object.<anonymous> (/repo/apps/api/src/routes/public.ts:20:24)","length":115,"name":"error","severity":"ERROR","code":"42P01","position":"80","file":"parse_relation.c","line":"1498","routine":"parserOpenTable"}
+2026-10-08T07:23:16.134586115Z [INFO] incoming request time=1791444186341 service="api" reqId="9f3ee60d-dea6-49a5-ba1b-752b3df7403c" req={"method":"GET","url":"/v1/health","host":"api-production-844a7.up.railway.app","remoteAddress":"100.64.0.2","remotePort":48936}
+2026-10-08T07:23:16.134590113Z [INFO] request completed time=1791444186341 service="api" reqId="9f3ee60d-dea6-49a5-ba1b-752b3df7403c" res={"statusCode":200} responseTime=0.7762770000008459
+2026-10-08T07:23:16.134593694Z [INFO] incoming request time=1791444186556 service="api" reqId="cfda59e0-17db-4f1c-910d-e1868c327e30" req={"method":"GET","url":"/v1/openapi.json","host":"api-production-844a7.up.railway.app","remoteAddress":"100.64.0.5","remotePort":21200}
+2026-10-08T07:23:16.135905592Z [INFO] request completed time=1791444186826 service="api" reqId="06712837-233b-45f6-a5b0-87d89207a2fd" res={"statusCode":500} responseTime=36.694682000001194
+warning: Config as Code (railway.json / railway.toml) is deprecated. Prefer Infrastructure as Code (.railway/railway.ts). Run `railway config migrate` or see https://docs.railway.com/infrastructure-as-code#migrating-from-config-as-code
+  → Migrate: `railway config migrate` — https://docs.railway.com/infrastructure-as-code#migrating-from-config-as-code
+  Existing files keep working until 2026-12-01.
+::error title=Smoke test failed::The API at https://api-production-844a7.up.railway.app did not pass its checks. Which check failed, the API's error body, its service settings and its deployment log are in the published run log.
