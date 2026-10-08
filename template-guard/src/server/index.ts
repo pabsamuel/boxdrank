@@ -24,6 +24,7 @@ import {
 } from './oauth.js';
 import { isAuthorisedCronCaller } from './cron-auth.js';
 import { handleLifecycleWebhook } from '../billing/webhook.js';
+import { parseAccountList, withComplimentaryPro } from '../billing/complimentary.js';
 import { SIDEKICK_PATH, answerSidekick, readInputs, verifySidekickRequest } from './sidekick.js';
 import { InMemoryStorage, TokenCipher, type Storage } from './storage.js';
 import { SqliteStorage } from './sqlite-storage.js';
@@ -767,6 +768,12 @@ if (isMain) {
     } else {
       storage = new SqliteStorage(databaseFile);
     }
+  }
+
+  const complimentary = parseAccountList(config.get('COMPLIMENTARY_PRO_ACCOUNTS'));
+  if (complimentary.size > 0) {
+    storage = withComplimentaryPro(storage, complimentary);
+    console.log(`[template-guard] complimentary Pro for ${complimentary.size} account(s)`);
   }
 
   const automationsPreview = config.flag('FEATURE_AUTOMATIONS_PREVIEW');
