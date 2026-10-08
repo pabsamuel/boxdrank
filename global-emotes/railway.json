@@ -5,7 +5,6 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "preDeployCommand": ["apps/api/node_modules/.bin/tsx packages/database/src/migrate.ts"],
     "healthcheckPath": "/v1/health",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",

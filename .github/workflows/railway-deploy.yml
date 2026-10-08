@@ -11,10 +11,12 @@ name: Deploy to Railway
 #              RAILWAY_PROJECT_ID below. The mode for every deploy after the
 #              first.
 #
-# Database migrations run inside Railway: global-emotes/railway.json sets the
-# api service's pre-deploy command, which runs them in the built image before
-# each new deployment goes live. The runner cannot reach the database itself
-# (no public URL), so the migrate script only smoke-tests in that case.
+# Database migrations are applied by the api container's entrypoint
+# (global-emotes/infrastructure/docker/api-entrypoint.sh) before the server
+# starts, on Railway's own network. railway.json's preDeployCommand used to
+# carry them, but Railway no longer honours legacy config-as-code for services
+# created through the CLI, so it silently did nothing and every
+# database-backed route answered 500.
 #
 # Every run tees its output to a file that is committed to the `ci-logs`
 # branch, because Actions logs are served from a storage host the authoring

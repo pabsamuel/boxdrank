@@ -6,10 +6,11 @@
 # supplies RAILWAY_API_TOKEN (account-scoped), RAILWAY_PROJECT_ID,
 # RAILWAY_ENVIRONMENT_ID and API_DOMAIN.
 #
-# Migrations are not run here: railway.json at the root of the upload sets the
-# api service's pre-deploy command, so Railway runs them in the built image,
-# on its own network, before this deployment goes live. A failed migration
-# fails the deployment and leaves the previous one serving.
+# Migrations are not run here: the api container's entrypoint applies them
+# before starting the server (infrastructure/docker/api-entrypoint.sh), on
+# Railway's own network. A failed migration exits non-zero without starting
+# the server, so Railway marks the deployment failed and the previous one
+# keeps serving.
 set -euo pipefail
 
 cd "$(dirname "$0")/../.."
@@ -30,14 +31,14 @@ railway link --project "${RAILWAY_PROJECT_ID}" --environment "${RAILWAY_ENVIRONM
   || fail "Link failed" "Could not link project ${RAILWAY_PROJECT_ID} / environment ${RAILWAY_ENVIRONMENT_ID}. If the project was deleted, run the workflow in 'deploy' mode to provision a new one and update the IDs in the workflow."
 
 phase "deploy api"
-# --ci streams the build log and exits when the build completes; the
-# pre-deploy command and the rollout happen on Railway's side after that.
+# --ci streams the build log and exits when the build completes; the rollout,
+# including the entrypoint's migrations, happens on Railway's side after that.
 if ! railway up --service api --ci 2>&1 | tee /tmp/up.log; then
   fail "Deploy failed" "The build of the api service failed. The build log is in the published run log."
 fi
 
-# `railway up --ci` returns when the BUILD is done; the pre-deploy command and
-# the rollout happen afterwards, while the previous deployment keeps serving.
+# `railway up --ci` returns when the BUILD is done; the rollout happens
+# afterwards, while the previous deployment keeps serving.
 # Record the new deployment's id so the smoke test can wait for it to be the
 # one answering /v1/health rather than passing against the old version.
 DEPLOYMENT_ID="$(grep -oE 'id=[0-9a-f-]{36}' /tmp/up.log | head -1 | cut -d= -f2 || true)"
@@ -64,4 +65,4 @@ else
   echo "::warning title=Domain unknown::No public domain could be read; the smoke test will be skipped."
 fi
 
-note "Deployed" "Build uploaded. Railway runs the pre-deploy migrations and rolls the new version out; the smoke test below waits for it."
+note "Deployed" "Build uploaded. Railway rolls the new version out and its entrypoint applies the migrations; the wait below blocks until that version is serving."

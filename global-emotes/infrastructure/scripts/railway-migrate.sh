@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
-# Applies the database migrations to the freshly provisioned Railway Postgres,
-# then smoke-tests the deployed API.
+# Waits for the deployment that was just uploaded to be the one serving, then
+# smoke-tests it.
 #
-# Migrations normally run inside Railway as the api service's pre-deploy
-# command (railway.json): once per deployment, before it goes live, and a
-# failure fails that deployment instead of crash-looping the service. The
-# runner can only run them itself when the Postgres service has a public
-# (TCP proxy) URL, which the provisioning does not create; without one this
-# script skips straight to the smoke test, whose database-backed check is
-# what proves the migrations were applied.
+# Migrations are applied by the api container's entrypoint
+# (infrastructure/docker/api-entrypoint.sh) before the server starts, so there
+# is nothing to migrate from here; this script's job is to prove it worked.
+# The smoke test's database-backed check is that proof: it answers 404 only if
+# the query reached a migrated schema.
 set -uo pipefail
 
 cd "$(dirname "$0")/../.."
@@ -17,22 +15,6 @@ note() { echo "::notice title=$1::$2"; }
 warn() { echo "::warning title=$1::$2"; }
 fail() { echo "::error title=$1::$2"; exit 1; }
 
-echo "──────── read the Postgres public URL ────────"
-# The in-network DATABASE_URL is only routable from inside Railway; a runner
-# needs the public one.
-PGURL="$(timeout 300 railway variable list --service Postgres --json </dev/null 2>/dev/null \
-         | jq -r '.DATABASE_PUBLIC_URL // empty')"
-if [ -z "${PGURL}" ]; then
-  note "Migrations" "Postgres has no public URL, so they ran inside Railway as the api pre-deploy command (railway.json). The smoke test's database lookup below confirms the schema is there."
-else
-  echo "Got a public Postgres URL (${#PGURL} chars)."
-  echo "──────── install and migrate ────────"
-  corepack enable
-  pnpm install --frozen-lockfile --filter @global-emotes/database...
-  DATABASE_URL="${PGURL}" pnpm --filter @global-emotes/database db:migrate \
-    || fail "Migrations failed" "The schema was not applied, so the API will answer 500 on anything that touches the database. The failure is in the published run log."
-  note "Migrations" "Applied."
-fi
 
 echo "──────── smoke test ────────"
 DOMAIN="$(cat /tmp/api-domain.txt 2>/dev/null || true)"
@@ -42,7 +24,7 @@ if [ -z "${DOMAIN}" ]; then
 fi
 base="https://${DOMAIN}"
 
-# `railway up --ci` returns when the build is done; the pre-deploy migrations
+# `railway up --ci` returns when the build is done; the entrypoint's migrations
 # and the rollout happen after that while the PREVIOUS deployment keeps
 # serving, and it answers /v1/health with 200 too. So wait until the health
 # response names the deployment this run uploaded (railway-redeploy.sh records
@@ -64,7 +46,7 @@ while :; do
     echo "  health not ready yet"
   fi
   if [ "$(date +%s)" -ge "${deadline}" ]; then
-    fail "Rollout did not finish" "Deployment ${WANT:-<unknown>} was not serving ${base}/v1/health within 10 minutes (last seen: ${live:-none}). The pre-deploy migrations may have failed; the deployment log in the Railway dashboard says why, and the previous version keeps serving meanwhile."
+    fail "Rollout did not finish" "Deployment ${WANT:-<unknown>} was not serving ${base}/v1/health within 10 minutes (last seen: ${live:-none}). The entrypoint's migrations may have failed; the deployment log in the Railway dashboard says why, and the previous version keeps serving meanwhile."
   fi
   sleep 15
 done
