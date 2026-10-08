@@ -288,9 +288,11 @@ Submission
   an invitation to "a monday.com board" by email. Both apps were submitted on
   28 Sep. By 8 Oct no invitation or other email from monday's review team
   had arrived, and the submission sent no confirmation email either.
-  - If nothing by 12 Oct: Samet asks through
-    https://monday.com/helpcenter/contact-support (the only contact the docs
-    give).
+  - **Asked 8 Oct.** Samet sent the follow-up through monday's help-centre
+    contact form, asking whether both submissions were received. The page
+    answered "Email confirmed. Your request was sent. An agent will get back
+    to you soon. You'll receive updates by email." The daily check now
+    watches for the reply.
 
 ## 6. Market check — 2/2
 

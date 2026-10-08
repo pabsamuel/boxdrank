@@ -22,5 +22,7 @@ No agent acts on password, payment or security screens.
 
 ## Done
 
+- 8 Oct: asked monday support whether both submissions were received.
+
 - 1 Oct: the uninstall/reinstall test (Chrome agent with Samet's approval).
 - 2 Oct: email to Patrick Fallon (sent by Claude with Samet's approval).
