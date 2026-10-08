@@ -236,7 +236,6 @@ async function grid(pngDir, gridDir, names = FIGURES) {
 // Arm polygons in art-box units; keep in sync with packages/content/src/tr/puppets.ts.
 const ARMS = {
   karagoz: {
-    dx: 150,
     polygon: [
       [250, 530],
       [430, 560],
@@ -253,7 +252,6 @@ const ARMS = {
     ],
   },
   hacivat: {
-    dx: 130,
     polygon: [
       [270, 520],
       [440, 570],
@@ -268,7 +266,6 @@ const ARMS = {
     ],
   },
   celebi: {
-    dx: 150,
     polygon: [
       [590, 760],
       [700, 530],
@@ -280,7 +277,6 @@ const ARMS = {
     ],
   },
   zenne: {
-    dx: 150,
     polygon: [
       [540, 600],
       [620, 480],
@@ -338,16 +334,51 @@ async function parts(pngDir, outDir, names = FIGURES) {
           const mask = new Uint8Array(W * H);
           for (let y = 0; y < H; y++)
             for (let x = 0; x < W; x++) mask[y * W + x] = inside(x + 0.5, y + 0.5) ? 1 : 0;
+          // Ink lines are thin; the beard, hair and eyes are wide dark runs. Only the
+          // first kind may be copied into the coat.
+          const dark = (i) => Math.max(s[i], s[i + 1], s[i + 2]) < 70;
+          const run = new Uint16Array(W * H);
+          for (let y = 0; y < H; y++) {
+            let x = 0;
+            while (x < W) {
+              const i = (y * W + x) * 4;
+              if (s[i + 3] > 0 && dark(i)) {
+                let e = x;
+                while (e < W && s[(y * W + e) * 4 + 3] > 0 && dark((y * W + e) * 4)) e++;
+                for (let k = x; k < e; k++) run[y * W + k] = Math.min(65535, e - x);
+                x = e;
+              } else x++;
+            }
+          }
           const usable = (x, y) => {
             if (x < 0 || y < 0 || x >= W || y >= H) return false;
             const p = y * W + x;
             if (mask[p]) return false;
             const i = p * 4;
             if (s[i + 3] < 250) return false;
-            // skip the beard and other near-black areas: coat colour only
-            return s[i] + s[i + 1] + s[i + 2] > 150;
+            return !dark(i) || run[p] < 14;
           };
-          const dx = Math.round(spec.dx * sx);
+          const filled = new Uint8Array(W * H);
+          // Pass 1: the coat beside the arm slides under it as one piece. A single
+          // shift (the arm's widest row) keeps the pattern intact; where that lands
+          // off the figure or on the face, two shorter shifts take over, so the
+          // worst case is a seam, never a smear.
+          let shift = 0;
+          for (let y = 0; y < H; y++) {
+            let x = 0;
+            while (x < W) {
+              if (!mask[y * W + x]) {
+                x++;
+                continue;
+              }
+              let xr = x;
+              while (xr + 1 < W && mask[y * W + xr + 1]) xr++;
+              shift = Math.max(shift, xr - x + 1);
+              x = xr + 1;
+            }
+          }
+          shift += 2;
+          const shifts = [shift, Math.round(shift * 0.6), Math.round(shift * 0.3)];
           for (let y = 0; y < H; y++)
             for (let x = 0; x < W; x++) {
               const p = y * W + x;
@@ -358,25 +389,27 @@ async function parts(pngDir, outDir, names = FIGURES) {
               }
               arm.data.set(s.subarray(i, i + 4), i);
               if (s[i + 3] === 0) continue; // outside the figure: stays transparent
-              let from = -1;
-              for (const [ox, oy] of [
-                [dx, 0],
-                [dx * 1.5, 0],
-                [dx * 2, 0],
-                [0, 160],
-                [0, 320],
-                [0, 480],
-                [dx, 160],
-                [0, -160],
-              ]) {
-                const qx = Math.round(x + ox);
-                const qy = Math.round(y + oy);
-                if (usable(qx, qy)) {
-                  from = (qy * W + qx) * 4;
-                  break;
-                }
+              for (const d of shifts) {
+                if (!usable(x + d, y)) continue;
+                const q = (p + d) * 4;
+                body.data.set(s.subarray(q, q + 4), i);
+                filled[p] = 1;
+                break;
               }
-              if (from >= 0) body.data.set(s.subarray(from, from + 4), i);
+            }
+          // Pass 2: where the right side was the face, the beard or thin air, the
+          // coat continues straight up or down from the nearest row that has it.
+          const ok = (p) => filled[p] || (!mask[p] && usable(p % W, (p - (p % W)) / W));
+          for (let y = 0; y < H; y++)
+            for (let x = 0; x < W; x++) {
+              const p = y * W + x;
+              if (!mask[p] || filled[p] || s[p * 4 + 3] === 0) continue;
+              let from = -1;
+              for (let d = 1; d < H && from < 0; d++) {
+                if (y + d < H && ok(p + d * W)) from = p + d * W;
+                else if (y - d >= 0 && ok(p - d * W)) from = p - d * W;
+              }
+              if (from >= 0) body.data.set(body.data.subarray(from * 4, from * 4 + 4), p * 4);
             }
           const out = {};
           ctx.putImageData(body, 0, 0);
