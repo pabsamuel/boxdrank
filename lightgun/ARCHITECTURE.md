@@ -114,6 +114,28 @@ Where the time goes, from the phone's pose to lit pixels:
 Everything we control sits inside one 60 Hz frame. Tell players to put the TV in **Game Mode** — that
 is likely the largest single term in the budget and it is not ours.
 
+### The display is a 10-foot UI, the phone is a 1-foot UI
+
+They are read from completely different distances and the first version ignored that: the lobby was
+a settings page at 11–13px, which is unreadable from a sofa, and operable only with a mouse nobody
+is holding. Looking at how this category actually solves it — AirConsole, Jackbox, Kahoot all run
+the same pairing shape — gives three rules we now follow:
+
+- **The code is the hero.** It is the largest thing on screen (150px at 1080p) with the join URL
+  under it at 44px. The QR sits beside them as the accelerator. A QR *above* a small code is the
+  known failure: on a short screen the code scrolls out of sight, and anyone whose camera will not
+  focus has no way in at all.
+- **Nothing a player must read is below ~22px** on a 1080p canvas, which is where published TV
+  guidance puts the floor. Secondary text is 16–22px, and only the mouse-operated settings — used
+  once, up close, by whoever is at the laptop — stay smaller, deliberately quiet.
+- **Contrast above the web floor.** 4.5:1 is enough for a monitor at arm's length and not for a TV
+  across a room, so the muted colour was lifted from 6.5:1 to 8.9:1 against the background.
+
+The phone inherited the opposite constraint: it is held, in a dark room, and the hand is busy
+aiming. Hence a trigger that is the whole screen rather than a button, and the TV-size question
+living there as well as on the laptop — the person who can see how big the television is, is the
+one standing in front of it.
+
 ## What this deliberately is not
 
 No accounts, no cloud, no analytics, no persistence beyond a high score in `localStorage`, no

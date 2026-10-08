@@ -93,6 +93,19 @@ behaviour only exists in a room we cannot see)
   600k-combination code is guessable enough for a stranger to turn up as a second gun on someone's
   screen; 480 million is not, and the QR carries it so nobody types it anyway.
 
+**A display you can read from the sofa**
+- Reviewed how this category solves pairing (AirConsole, Jackbox, Kahoot) and what published TV
+  guidance says about legibility, then rebuilt the lobby against it: the room code is now the hero
+  at 150px with the join URL at 44px beneath it and the QR beside them as the accelerator, rather
+  than a QR dominating a 26px code.
+- Every player-facing size cleared the ~22px floor for a 1080p TV; the muted colour went from 6.5:1
+  to 8.9:1 contrast, measured rather than eyeballed. Verified at 720p, 1080p, 4K and laptop sizes
+  with no overflow.
+- Settings moved to a quiet footer and the keyboard legend behind **?** — both are used once, up
+  close, by whoever is at the laptop, and were competing with the code for attention.
+- **The phone can set the TV size**, since the person holding it is the one standing in front of the
+  television. The display stays the source of truth and rejects impossible values.
+
 **Tests**
 - `npm test` — 20 synthetic-truth checks across distances, screen sizes, off-axis and tilted screens,
   wrong stated sizes, 3-vs-4 point, smoothing lag and jitter, degenerate rays. All passing.

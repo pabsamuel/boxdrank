@@ -247,6 +247,25 @@ function startRezero(playerId) {
 }
 
 net.on('recalibrateRequest', (m) => startCalibration(m.from));
+
+// The person who knows how big the TV is, is the one holding the phone and
+// standing in front of it — not the one sitting at the laptop. Either can set
+// it; the display stays the single source of truth and echoes it back.
+net.on('setScreen', (m) => {
+  const inches = Number(m.diagInches);
+  if (!Number.isFinite(inches) || inches < 10 || inches > 200) return;
+  state.diagInches = inches;
+  const picker = $('screenSize');
+  const match = [...picker.options].find((o) => Number(o.value) === inches);
+  if (match) picker.value = match.value;
+  else {
+    picker.value = 'custom';
+    $('customSizeWrap').classList.remove('hidden');
+    $('customSize').value = String(inches);
+  }
+  logEvent('screenSize', { inches, from: 'phone' });
+  broadcastConfig();
+});
 net.on('dryFire', () => {});
 net.on('peerGone', () => renderPlayerList());
 
@@ -577,7 +596,7 @@ function renderPlayerList() {
   const list = $('playerList');
   const players = sortedPlayers();
   if (!players.length) {
-    list.innerHTML = '<div class="player waiting"><div class="name">WAITING FOR A GUN</div><div class="meta">scan the QR code with an Android phone</div></div>';
+    list.innerHTML = '<div class="player waiting"><div class="name">WAITING FOR A GUN</div><div class="meta">scan the code, or type the address above</div></div>';
     return;
   }
   list.innerHTML = players.map((p) => `
@@ -623,6 +642,9 @@ function broadcastConfig() { for (const p of state.players.keys()) sendConfig(p)
 
 window.addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
+  const keys = $('keysOverlay');
+  if (!keys.classList.contains('hidden')) { keys.classList.add('hidden'); return; }
+  if (k === '?' || (k === '/' && e.shiftKey)) { keys.classList.remove('hidden'); return; }
   if (k === 'f') {
     if (document.fullscreenElement) document.exitFullscreen();
     else document.documentElement.requestFullscreen();
