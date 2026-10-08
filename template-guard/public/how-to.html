@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Template Guard — How to use</title>
+  </head>
+  <body style="font-family: Figtree, Roboto, sans-serif; margin: 48px auto; max-width: 760px; padding: 0 16px; line-height: 1.55; color: #323338">
+    <h1 style="font-size: 26px">How to use Template Guard</h1>
+    <p>Template Guard finds what a board lost when it was copied from its template: missing columns, groups and
+      views, and connect columns still pointing at the template's board. It is read-only and never changes a board.</p>
+
+    <video src="/demo.mp4" controls preload="metadata" style="width: 100%; border-radius: 8px; border: 1px solid #e6e9ef"></video>
+    <p style="color: #676879; font-size: 14px">49-second demo. Direct link: <a href="/demo.mp4">demo.mp4</a></p>
+
+    <h2 style="font-size: 19px">1. Install</h2>
+    <p>Install Template Guard from the monday apps marketplace. It asks only for read permissions
+      (<code>boards:read</code>, <code>account:read</code>, <code>me:read</code>).</p>
+
+    <h2 style="font-size: 19px">2. Mark your template</h2>
+    <p>Open the board you duplicate for every client or project. Click <b>+</b> next to the board's views →
+      <b>Apps</b> → <b>Template Guard</b>. In the view, click <b>Use this board as a template</b>. Template Guard
+      saves the board's configuration (never its items).</p>
+
+    <h2 style="font-size: 19px">3. Compare a copy</h2>
+    <p>Open any board copied from the template, add the Template Guard view the same way, choose the template
+      under <b>Compare against</b> and click <b>Compare</b>. Every difference is listed, most serious first:
+      <b>miswired</b>, <b>missing</b>, <b>altered</b>, and (if you switch them on) <b>cosmetic</b>.</p>
+    <img src="/how-to-compare.png" alt="Compare result" style="width: 100%; border-radius: 8px; border: 1px solid #e6e9ef" />
+
+    <h2 style="font-size: 19px">4. Fix what matters</h2>
+    <p>Each finding says what changed, why it matters and how to fix it. The checklist links straight to the
+      board. Connect columns are always fixed by hand, because only you know which board a copy should point at.</p>
+    <img src="/how-to-fix.png" alt="Fix checklist" style="width: 100%; border-radius: 8px; border: 1px solid #e6e9ef" />
+
+    <h2 style="font-size: 19px">5. Ask sidekick</h2>
+    <p>Ask monday's AI assistant: <i>"What did the Client A board lose from its template?"</i> Template Guard's
+      Sidekick tool answers with the differences. The same check is available as the automation action
+      <b>Compare [Board name] with its template</b>.</p>
+
+    <h2 style="font-size: 19px">6. Stay covered (Pro)</h2>
+    <p>Pro re-checks every compared copy every six hours and alerts you when one drifts.</p>
+
+    <p style="color: #676879; font-size: 14px">Support: <a href="mailto:sametatesen2@gmail.com">sametatesen2@gmail.com</a> ·
+      <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></p>
+  </body>
+</html>
