@@ -2,8 +2,8 @@
 // Artwork tooling for painted puppets (see docs/ART.md).
 //
 //   node scripts/art-tiles.mjs stitch <tilesDir> <workDir>  # 600 px Canva tile renders → full PNG/JPG
-//   node scripts/art-tiles.mjs grid <workDir> <gridDir>      # coordinate grids for rig polygons
-//   node scripts/art-tiles.mjs parts <workDir> <outDir>     # body (coat painted in) + arm layer .webp
+//   node scripts/art-tiles.mjs grid <workDir> <gridDir> [name…] # coordinate grids for rig polygons
+//   node scripts/art-tiles.mjs parts <workDir> <outDir> [name…] # body (coat painted in) + arm layer .webp
 //   node scripts/art-tiles.mjs webp <workDir> <outDir> <name…> # plain .webp for set pieces
 //
 // Everything runs in headless Chromium (canvas), so no image library is needed.
@@ -182,10 +182,10 @@ async function stitch(tilesDir, outDir) {
 }
 
 /** The figure on white with lines every 100 art-box units, to read polygon coordinates off. */
-async function grid(pngDir, gridDir) {
+async function grid(pngDir, gridDir, names = FIGURES) {
   mkdirSync(gridDir, { recursive: true });
   await withPage(async (page) => {
-    for (const name of FIGURES) {
+    for (const name of names) {
       const url = await page.evaluate(
         async ({ data, box }) => {
           const img = new Image();
@@ -299,10 +299,10 @@ const ARMS = {
  * separate leather piece pinned over the coat, so the coat under it is
  * painted in from the coat beside it; the arm layer keeps only the arm.
  */
-async function parts(pngDir, outDir) {
+async function parts(pngDir, outDir, names = FIGURES) {
   mkdirSync(outDir, { recursive: true });
   await withPage(async (page) => {
-    for (const name of FIGURES) {
+    for (const name of names) {
       const spec = ARMS[name];
       const r = await page.evaluate(
         async ({ data, box, spec }) => {
@@ -424,12 +424,12 @@ async function webp(pngDir, outDir, names) {
 
 const [cmd, a, b, ...rest] = process.argv.slice(2);
 if (cmd === 'stitch' && a && b) await stitch(a, b);
-else if (cmd === 'grid' && a && b) await grid(a, b);
-else if (cmd === 'parts' && a && b) await parts(a, b);
+else if (cmd === 'grid' && a && b) await grid(a, b, rest.length ? rest : FIGURES);
+else if (cmd === 'parts' && a && b) await parts(a, b, rest.length ? rest : FIGURES);
 else if (cmd === 'webp' && a && b && rest.length) await webp(a, b, rest);
 else {
   console.error(
-    'usage: art-tiles.mjs stitch <tilesDir> <workDir> | grid <workDir> <gridDir> | parts <workDir> <outDir>',
+    'usage: art-tiles.mjs stitch <tilesDir> <workDir> | grid <workDir> <gridDir> [name…] | parts <workDir> <outDir> [name…] | webp <workDir> <outDir> <name…>',
   );
   process.exit(2);
 }

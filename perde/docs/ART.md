@@ -4,17 +4,20 @@ Perde's stage draws vector rigs by default and switches to painted artwork the m
 file exists (`art` on a puppet, see `CONTENT_GUIDE.md`). The Turkish pack's Karagöz, Hacivat,
 Çelebi and Zenne are painted; the files live in `apps/web/public/art/tr/`:
 
-| file               | what                                            |
-| ------------------ | ----------------------------------------------- |
-| `karagoz.webp`     | body, 896 × 1776, coat painted in under the arm |
-| `karagoz-arm.webp` | the arm alone, same box, drawn as a layer       |
-| `hacivat.webp`     | body                                            |
-| `hacivat-arm.webp` | arm layer                                       |
-| `celebi.webp`      | body                                            |
-| `celebi-arm.webp`  | the forearm with the rose                       |
-| `zenne.webp`       | body                                            |
-| `zenne-arm.webp`   | the forearm with the fan                        |
-| `gostermelik.webp` | the göstermelik (vase of tulips), 1088 × 1456   |
+| file               | what                                                     |
+| ------------------ | -------------------------------------------------------- |
+| `karagoz.webp`     | body, 1194 × 2368, coat painted in under the arm         |
+| `karagoz-arm.webp` | the arm alone, same box, drawn as a layer                |
+| `hacivat.webp`     | body, 1194 × 2368                                        |
+| `hacivat-arm.webp` | arm layer                                                |
+| `celebi.webp`      | body, 896 × 1776                                         |
+| `celebi-arm.webp`  | the forearm with the rose                                |
+| `zenne.webp`       | body, 896 × 1776                                         |
+| `zenne-arm.webp`   | the forearm with the fan                                 |
+| `gostermelik.webp` | the göstermelik (vase of tulips), 1088 × 1456            |
+| `karagoz.png`      | full Canva export, the source `parts` cuts the webp from |
+| `hacivat.png`      | same                                                     |
+| `backdrop.jpg`     | full export of the street backdrop, 1680 × 944 (unused)  |
 
 Rigs (`packages/content/src/tr/puppets.ts`, `art:` blocks) use a 1000 × 1980 box; the images are
 stretched to it (`preserveAspectRatio="none"`), so any resolution with that ratio works.
@@ -37,10 +40,12 @@ Media ids: Karagöz `MAHWo1QILio`, Hacivat `MAHWoxUTikw`, Çelebi `MAHWqJIf5ws`,
 
 ## Getting pixels out of Canva from a session
 
-Claude's cloud environments cannot reach `canva.com` or `export-download.canva.com` (network
-policy), so `export-design` URLs cannot be downloaded from a session. What does come through is
-the Canva connector's inline page thumbnail, capped at 600 px on the long side and rendered 1:1
-when the page is 600 px. Hence the tiles:
+`export-design` (PNG, transparent background, lossless) gives the pixels in one file when the
+session's network policy allows `export-download.canva.com`; that is how `karagoz.png` and
+`hacivat.png` were fetched, and `node scripts/art-tiles.mjs parts apps/web/public/art/tr
+apps/web/public/art/tr karagoz hacivat` cut the webp layers from them. When the host is blocked,
+what still comes through is the Canva connector's inline page thumbnail, capped at 600 px on the
+long side and rendered 1:1 when the page is 600 px. Hence the tiles:
 
 1. Each tile page is 600 × 600 with the image inserted at native size and offset so the page
    shows one window (`insert_fill` with negative `left`/`top`). Windows for a 896 × 1776 figure:
@@ -54,8 +59,8 @@ when the page is 600 px. Hence the tiles:
    arm layers as WebP; `node scripts/art-tiles.mjs webp <workDir> <outDir> gostermelik` converts a
    set piece that has no rig.
 
-If the environment's network policy ever allows `*.canva.com`, `export-design` (PNG, transparent
-background, lossless) gives the same pixels in one file; run steps 3–4 on it unchanged.
+A full export skips steps 1–3: put it in the work directory as `<name>.png` and run step 4 on it
+unchanged (`parts` and `grid` take an optional list of figure names).
 
 ## Making more
 
