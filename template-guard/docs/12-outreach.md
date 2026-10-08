@@ -13,14 +13,14 @@ shared and installs before marketplace approval) and a free partner licence.
 
 | Agency | Country | Address | Sent | Reply |
 |---|---|---|---|---|
-| Simpleday Solutions | US | info@simpledaysolutions.com | 8 Oct 2026 | — |
+| Simpleday Solutions | US | info@simpledaysolutions.com | 8 Oct 2026 | 8 Oct, Tara: "not relevant right now" — declined |
 | CarbonWeb | US | contact@carbonweb.co | 8 Oct 2026 | — |
 | Workiflow | US | hello@workiflow.com | 8 Oct 2026 | — |
 | Automation Consultants | UK | info@automation-consultants.com | 8 Oct 2026 | — |
-| Work Perfect | AU/NZ | contactus@workperfect.io | 8 Oct 2026 | — |
+| Work Perfect | AU/NZ | contactus@workperfect.io | 8 Oct 2026 | auto-reply only |
 | Fruition | AU/US/UK | contact@fruitionservices.io | 8 Oct 2026 | — |
 | Ability Ops | US | info@abilityops.com | 8 Oct 2026 | — |
-| The SaaSy People | UK | hello@thesaasypeople.com | 8 Oct 2026 | — |
+| The SaaSy People | UK | hello@thesaasypeople.com | 8 Oct 2026 | 8 Oct, 41 s after sending (likely an assistant): "yes, duplicated template boards can sometimes be missed when small structural differences only become visible later in delivery"; not evaluating partner tools — declined |
 | upstream | AU | sales.au@upstreamtech.io | 8 Oct 2026 | — |
 | Empyra | US | info@empyra.com | 8 Oct 2026 | — |
 | OrangeDot Digital | ? | sales@orangedotdigital.com | 8 Oct 2026 | — |
