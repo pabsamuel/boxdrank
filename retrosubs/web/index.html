@@ -24,10 +24,20 @@
     --frame-outer: #303848;
     --frame-inner: #8090A8;
     --caret: #C03028;
+    --name: #303848;
     --ui: #8BD3DD;
   }
-  body[data-frame="emerald"] { --frame-outer: #1E6E4A; --frame-inner: #6EE0A8; }
-  body[data-frame="gold"]    { --frame-outer: #5A4420; --frame-inner: #D8A038; }
+  body[data-frame="emerald"] { --frame-outer: #1E6E4A; --frame-inner: #6EE0A8; --name: #1E6E4A; }
+  body[data-frame="gold"]    { --frame-outer: #5A4420; --frame-inner: #D8A038; --name: #5A4420; }
+  /* Pro frames */
+  body[data-frame="cyber"] {
+    --frame-outer: #0B2A2E; --frame-inner: #16E0B4;
+    --paper: #06181B; --paper-edge: #041012; --ink: #5BFFD0; --caret: #16E0B4; --name: #16E0B4;
+  }
+  body[data-frame="novel"] {
+    --frame-outer: #5B2B4A; --frame-inner: #E79CC4;
+    --paper: #FFF6FA; --paper-edge: #F2DCE8; --ink: #4A2338; --caret: #C0396B; --name: #8E2F5E;
+  }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
@@ -85,7 +95,7 @@
   }
   #speaker {
     font-family: "Press Start 2P", monospace;
-    font-size: 10px; letter-spacing: .06em; color: var(--frame-outer);
+    font-size: 10px; letter-spacing: .06em; color: var(--name);
     display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
   }
   #sigil { width: 18px; height: 18px; display: block; }
@@ -150,9 +160,33 @@
     white-space: pre-wrap; font-family: ui-monospace, Menlo, monospace;
   }
   body[data-diag="on"] #diag { display: block; }
+
+  #intro {
+    position: fixed; inset: 0; z-index: 20; background: #0A0D24;
+    display: flex; flex-direction: column; justify-content: center; gap: 14px;
+    padding: 28px 22px calc(env(safe-area-inset-bottom) + 28px);
+  }
+  #intro h1 { font-family: "Press Start 2P", monospace; font-size: 22px; color: #F2C14E; margin: 0 0 6px; line-height: 1.5; }
+  #intro p { margin: 0; font-size: 16px; line-height: 1.6; color: #cfe8ec; }
+  #intro ol { margin: 6px 0 0; padding-left: 20px; color: #9fb6d8; font-size: 15px; line-height: 1.8; }
+  #intro .go { margin-top: 10px; }
+  body[data-intro="done"] #intro { display: none; }
 </style>
 </head>
 <body data-frame="classic" data-cam="off">
+
+<div id="intro">
+  <h1>RETROSUBS</h1>
+  <p>Konus, soylediklerin eski bir el konsolunun diyalog kutusunda harf harf yazilsin.
+     Kutu on kameranin uzerinde durur; foto ya da video olarak paylasabilirsin.</p>
+  <ol>
+    <li>BASLAT'a bas, mikrofon ve kamera izni ver</li>
+    <li>Konus &mdash; kutu yazmaya baslar</li>
+    <li>AYAR'dan isim, tempo, cerceve ve ses</li>
+  </ol>
+  <button class="btn go" id="introGo">BASLA</button>
+  <button class="btn" id="introShare">LINKI KOPYALA</button>
+</div>
 
 <video id="cam" playsinline autoplay muted></video>
 <div id="lcd"></div>
@@ -164,7 +198,7 @@
   <button class="chip" id="gear">AYAR</button>
   <span id="status">hazir</span>
   <button class="chip" id="rec" style="display:none">● DURDUR</button>
-  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v11</span>
+  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v12</span>
 </div>
 
 <div id="diag"></div>
@@ -221,6 +255,8 @@
       <option value="classic">klasik</option>
       <option value="emerald">zumrut</option>
       <option value="gold">altin</option>
+      <option value="cyber">siber (pro)</option>
+      <option value="novel">roman (pro)</option>
     </select>
   </div>
   <div>
@@ -251,11 +287,14 @@
     <label for="pro">PRO KOD</label>
     <input id="pro" type="text" placeholder="pro kodu" autocomplete="off" />
   </div>
+  <button class="btn full" id="buy" style="display:none">PRO AL</button>
   <button class="btn full" id="test">TEST SATIRI (tempoyu gor)</button>
   <button class="btn full" id="demo">DEMO (izin gerekmez)</button>
   <p class="hint">
     iOS baska uygulamanin ustune kutu cizdirmez, o yuzden bu tam ekran.
     Vibe modu kelimeleri tanimaz, sadece konusma temposuna uyar.
+    Ses ve metin telefondan cikmaz: her sey cihazda calisir, sunucuya hicbir sey gonderilmez.
+    <a href="privacy.html" style="color:#F2C14E">gizlilik</a>
   </p>
 </div>
 
@@ -269,7 +308,8 @@
     meter: $("meter").firstElementChild, engine: $("engine"), lang: $("lang"), size: $("size"),
     frame: $("frame"), speed: $("speed"), sound: $("sound"), demo: $("demo"), name: $("name"),
     test: $("test"), diag: $("diag"), diagSel: $("diagSel"),
-    shot: $("shot"), recBtn: $("recBtn"), rec: $("rec"), pro: $("pro"), cam: $("cam"),
+    shot: $("shot"), recBtn: $("recBtn"), rec: $("rec"), pro: $("pro"),
+    intro: $("intro"), introGo: $("introGo"), introShare: $("introShare"), buy: $("buy"),
   };
 
   // ---------------- text blip: synthesised, one per character ----------------
@@ -847,6 +887,7 @@
       } catch (e) {}
     }
     el.line.style.fontSize = el.size.value + "px";
+    if (PRO_FRAMES.includes(el.frame.value) && !isPro()) el.frame.value = "classic";
     document.body.dataset.frame = el.frame.value;
     document.body.dataset.diag = el.diagSel.value === "1" ? "on" : "off";
   }
@@ -944,7 +985,7 @@
     // speaker name
     const who = document.getElementById("who");
     const wr = who.getBoundingClientRect();
-    ctx.fillStyle = css("--frame-outer");
+    ctx.fillStyle = css("--name") || css("--frame-outer");
     ctx.textBaseline = "alphabetic";
     ctx.font = (10 * s) + 'px "Press Start 2P", monospace';
     ctx.fillText(who.textContent, wr.left * s, (wr.bottom - 2) * s);
@@ -1060,6 +1101,50 @@
     };
     draw();
   };
+
+
+  // ---------------- first run, pro themes, and the single slot a payment link drops into ----
+  // Paste a Stripe Payment Link here and the PRO AL button appears by itself. Nothing else to
+  // wire: the confirmation page hands over the code, the code unlocks the field in AYAR.
+  const BUY_URL = "";
+
+  const PRO_FRAMES = ["cyber", "novel"];
+
+  function applyFrame() {
+    if (PRO_FRAMES.includes(el.frame.value) && !isPro()) {
+      el.frame.value = "classic";
+      el.status.textContent = "bu cerceve pro";
+      if (BUY_URL) el.buy.style.display = "";
+    }
+    document.body.dataset.frame = el.frame.value;
+    try { localStorage.setItem("retrosubs.frame", el.frame.value); } catch (e) {}
+  }
+  el.frame.onchange = applyFrame;
+
+  if (BUY_URL) {
+    el.buy.style.display = "";
+    el.buy.onclick = () => window.open(BUY_URL, "_blank", "noopener");
+  }
+
+  el.introGo.onclick = () => {
+    document.body.dataset.intro = "done";
+    try { localStorage.setItem("retrosubs.intro", "1"); } catch (e) {}
+    audio();                                   // the tap that unlocks sound on iOS
+  };
+
+  el.introShare.onclick = async () => {
+    const url = location.href.split("?")[0];
+    try {
+      if (navigator.share) { await navigator.share({ title: "RetroSubs", url }); return; }
+      await navigator.clipboard.writeText(url);
+      el.introShare.textContent = "KOPYALANDI";
+      setTimeout(() => { el.introShare.textContent = "LINKI KOPYALA"; }, 1500);
+    } catch (e) {}
+  };
+
+  try {
+    if (localStorage.getItem("retrosubs.intro") === "1") document.body.dataset.intro = "done";
+  } catch (e) {}
 
   loadPrefs();
   paintPro();
