@@ -1,0 +1,78 @@
+
+──────── link the existing project ────────
+> Select a workspace pabsamuel's Projects
+> Select a project global-emotes
+> Select an environment production
+> Select a service api
+{
+  "projectId": "44f08990-122d-4f57-b9aa-d0c9a3e9486e",
+  "projectName": "global-emotes",
+  "environmentId": "706690e6-545c-44c7-ad32-c118f3811c7d",
+  "environmentName": "production",
+  "serviceId": "28676b34-c88d-4e28-87fb-37ef50597a6b",
+  "serviceName": "api"
+}
+
+──────── deploy api ────────
+Indexing...
+Uploading...
+  Deployment: https://railway.com/project/44f08990-122d-4f57-b9aa-d0c9a3e9486e/service/28676b34-c88d-4e28-87fb-37ef50597a6b?id=eafcab0c-a17e-4b2b-81c9-d9c89b7b5d60
+CI mode enabled
+fetched snapshot sha256:d5d517499cd950783edfe96d7d40d3c07375dc498bdefe870cf4c7fc7891e981 (301 kB bytes)
+fetching snapshot
+unpacking archive
+[internal] load build definition from Dockerfile
+[internal] load metadata for docker.io/library/node:22-alpine
+scheduling build on Metal builder "builder-hzwfzq"
+Deploy complete
+new deployment: eafcab0c-a17e-4b2b-81c9-d9c89b7b5d60
+
+──────── public domain ────────
+::notice title=API domain::https://api-production-844a7.up.railway.app
+::notice title=Deployed::Build uploaded. Railway runs the pre-deploy migrations and rolls the new version out; the smoke test below waits for it.
+──────── read the Postgres public URL ────────
+::notice title=Migrations::Postgres has no public URL, so they ran inside Railway as the api pre-deploy command (railway.json). The smoke test's database lookup below confirms the schema is there.
+──────── smoke test ────────
+──────── wait for the new deployment ────────
+  serving deployment eafcab0c-a17e-4b2b-81c9-d9c89b7b5d60
+smoke: api=https://api-production-844a7.up.railway.app web=<not deployed, skipping>
+
+1. API health
+  [32mPASS[0m  200, ok:true
+2. OpenAPI spec
+  [32mPASS[0m  200
+3. Database (public creator lookup)
+  [31mFAIL[0m  500 — DB unreachable or migrations not run (see DEPLOY_NOW.md step 2.5)
+4. Web app
+  [33mSKIP[0m  no web URL given
+
+Smoke test FAILED. Full regression: docs/QA_TEST_PLAN.md
+  smoke test failed on attempt 1, retrying in 20s
+smoke: api=https://api-production-844a7.up.railway.app web=<not deployed, skipping>
+
+1. API health
+  [31mFAIL[0m  expected 200 + ok:true, got HTTP '502'
+2. OpenAPI spec
+  [31mFAIL[0m  expected 200, got '502'
+3. Database (public creator lookup)
+  [31mFAIL[0m  expected 404, got '502'
+4. Web app
+  [33mSKIP[0m  no web URL given
+
+Smoke test FAILED. Full regression: docs/QA_TEST_PLAN.md
+  smoke test failed on attempt 2, retrying in 20s
+smoke: api=https://api-production-844a7.up.railway.app web=<not deployed, skipping>
+
+1. API health
+  [32mPASS[0m  200, ok:true
+2. OpenAPI spec
+  [32mPASS[0m  200
+3. Database (public creator lookup)
+  [32mPASS[0m  404 — query ran, DB connected and migrated
+4. Web app
+  [33mSKIP[0m  no web URL given
+
+Checks passed — the deployment is live.
+Next: log in with a magic link (needs the SMTP_* variables set), then
+create a pack and upload a PNG to exercise the asset pipeline.
+::notice title=LIVE::https://api-production-844a7.up.railway.app -- health, OpenAPI and a database-backed lookup all pass.
