@@ -1,0 +1,17 @@
+{
+  "name": "RetroSubs",
+  "short_name": "RetroSubs",
+  "description": "Konustugun an, eski bir el konsolunun diyalog kutusunda yazilsin.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0A0D24",
+  "theme_color": "#0A0D24",
+  "lang": "tr",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

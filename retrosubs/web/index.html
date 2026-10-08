@@ -6,7 +6,23 @@
 <meta name="theme-color" content="#0A0D24" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<title>RetroSubs</title>
+<title>RetroSubs — konustugun an, retro diyalog kutusunda</title>
+<meta name="description" content="Konus, soylediklerin eski bir el konsolunun diyalog kutusunda harf harf yazilsin. Kurulum yok." />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<link rel="icon" href="icons/icon-192.png" />
+<meta name="apple-mobile-web-app-title" content="RetroSubs" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="RetroSubs" />
+<meta property="og:description" content="Konustugun an, eski bir el konsolunun diyalog kutusunda." />
+<meta property="og:url" content="https://pabsamuel.github.io/boxdrank/" />
+<meta property="og:image" content="https://pabsamuel.github.io/boxdrank/og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="RetroSubs" />
+<meta name="twitter:description" content="Konustugun an, eski bir el konsolunun diyalog kutusunda." />
+<meta name="twitter:image" content="https://pabsamuel.github.io/boxdrank/og.png" />
 <style>
   /* Bundled with the page: no third-party request, and it works offline. */
   @font-face {
@@ -229,7 +245,7 @@
   <button class="chip" id="gear">AYAR</button>
   <span id="status">hazir</span>
   <button class="chip" id="rec" style="display:none">● DURDUR</button>
-  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v14</span>
+  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v15</span>
 </div>
 
 <div id="diag"></div>
@@ -1219,6 +1235,14 @@
 
   loadPrefs();
   paintPro();
+
+  // Installable and offline: once added to the home screen it opens without browser chrome,
+  // and the shell is cached so a dropped connection does not take the box away.
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  }
 
   sigil(1);
   el.line.style.fontSize = el.size.value + "px";
