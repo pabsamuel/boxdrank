@@ -1,0 +1,4 @@
+{"result":{"id":"c2bf1d8d7403253e409764d4d84343a0","status":"active"},"success":true,"errors":[],"messages":[{"code":10000,"message":"This API Token is valid and active","type":null}]}
+::notice title=Token::valid, status=active
+{"success":false,"errors":[{"code":10042,"message":"Please enable R2 through the Cloudflare Dashboard."}],"messages":[],"result":null}
+::error title=R2 not enabled::10042: Please enable R2 through the Cloudflare Dashboard. -- click 'Add R2 subscription to my account' in the Cloudflare dashboard (it is free; 10GB/mo), then re-run this workflow.
