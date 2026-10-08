@@ -65,6 +65,100 @@ jobs:
 
       - name: Provision and deploy
         if: inputs.mode == 'deploy'
+        env:
+          BRAND_NAME: Global Emotes
+          # Optional: set these repo secrets to wire storage and sign-in email.
+          # Left empty the API still boots, but uploads and magic-link sign-in
+          # will not work until they are supplied.
+          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
         run: |
-          echo "::error::Deploy steps are intentionally not written yet — run this workflow in 'probe' mode first so they can be based on the installed CLI's real commands rather than guesses."
-          exit 1
+          set -euo pipefail
+          cd global-emotes
+
+          # Railway builds the Dockerfile at the root of whatever directory is
+          # uploaded. Ours lives under infrastructure/docker, and its build
+          # context is this directory, so copy it to where the builder looks.
+          cp infrastructure/docker/Dockerfile.api ./Dockerfile
+
+          echo "──────── create project ────────"
+          railway init --name global-emotes --json
+
+          echo "──────── add Postgres and Redis ────────"
+          railway add --database postgres --json
+          railway add --database redis --json
+
+          echo "──────── create the api service ────────"
+          railway add --service api --json
+
+          # Railway's own variable references use the same ${ { } } form as
+          # GitHub expressions, which would be substituted away before the
+          # runner ever sees them. Build the opening braces at runtime so the
+          # literal reaches Railway intact.
+          O='${'
+          set_var() {
+            railway variable set --service api --skip-deploys "$1" >/dev/null
+            echo "  set ${1%%=*}"
+          }
+
+          echo "──────── variables ────────"
+          set_var "NODE_ENV=production"
+          set_var "BRAND_NAME=${BRAND_NAME}"
+          set_var "DATABASE_URL=${O}{Postgres.DATABASE_URL}}"
+          set_var "REDIS_URL=${O}{Redis.REDIS_URL}}"
+          # Generated here and never printed: they exist only inside Railway.
+          set_var "SESSION_SECRET=$(openssl rand -base64 36 | tr -d '\n=' | tr '+/' 'Aa')"
+          set_var "TOKEN_ENCRYPTION_KEY=$(openssl rand -hex 32)"
+          set_var "LOG_LEVEL=info"
+          set_var "API_PORT=3001"
+          set_var "S3_REGION=auto"
+          set_var "S3_BUCKET_ORIGINALS=emote-originals"
+          set_var "S3_BUCKET_PROCESSED=emote-processed"
+          set_var "S3_BUCKET_QUARANTINE=uploads-quarantine"
+          [ -n "${S3_ENDPOINT}" ]         && set_var "S3_ENDPOINT=${S3_ENDPOINT}"             || echo "  (S3_ENDPOINT not supplied — uploads stay unconfigured)"
+          [ -n "${S3_ACCESS_KEY_ID}" ]    && set_var "S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}"   || true
+          [ -n "${S3_SECRET_ACCESS_KEY}" ]&& set_var "S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}" || true
+          if [ -n "${SMTP_HOST}" ]; then
+            set_var "EMAIL_PROVIDER=smtp"
+            set_var "SMTP_HOST=${SMTP_HOST}"
+            set_var "SMTP_PORT=465"
+            set_var "SMTP_USER=${SMTP_USER}"
+            set_var "SMTP_PASS=${SMTP_PASS}"
+          else
+            echo "  (no SMTP_HOST — sign-in email will not send until it is set)"
+          fi
+
+          echo "──────── deploy api ────────"
+          railway up --service api --ci
+
+          echo "──────── public domain ────────"
+          railway domain --service api --port 3001 --json | tee /tmp/domain.json || true
+
+          echo "──────── project status ────────"
+          railway status --json || true
+
+          echo
+          echo "Deployed. The API domain is in the 'public domain' output above."
+          echo "Migrations have NOT run yet — that is the next step, and it needs"
+          echo "the database's public URL, which is read in the step below."
+
+      - name: Run migrations against the new database
+        if: inputs.mode == 'deploy'
+        run: |
+          set -uo pipefail
+          cd global-emotes
+          echo "Reading the Postgres public URL..."
+          PGURL="$(railway variable list --service Postgres --json 2>/dev/null \
+                   | jq -r '.DATABASE_PUBLIC_URL // .DATABASE_URL // empty')"
+          if [ -z "${PGURL}" ]; then
+            echo "::warning::Could not read the database URL automatically. Run 'pnpm db:migrate' once with DATABASE_URL set to the Postgres service's DATABASE_PUBLIC_URL."
+            exit 0
+          fi
+          corepack enable
+          pnpm install --frozen-lockfile --filter @global-emotes/database...
+          DATABASE_URL="${PGURL}" pnpm --filter @global-emotes/database db:migrate
+          echo "Migrations applied."
