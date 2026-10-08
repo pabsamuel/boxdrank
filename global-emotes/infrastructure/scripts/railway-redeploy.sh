@@ -32,8 +32,21 @@ railway link --project "${RAILWAY_PROJECT_ID}" --environment "${RAILWAY_ENVIRONM
 phase "deploy api"
 # --ci streams the build log and exits when the build completes; the
 # pre-deploy command and the rollout happen on Railway's side after that.
-railway up --service api --ci \
-  || fail "Deploy failed" "The build of the api service failed. The build log is in the published run log."
+if ! railway up --service api --ci 2>&1 | tee /tmp/up.log; then
+  fail "Deploy failed" "The build of the api service failed. The build log is in the published run log."
+fi
+
+# `railway up --ci` returns when the BUILD is done; the pre-deploy command and
+# the rollout happen afterwards, while the previous deployment keeps serving.
+# Record the new deployment's id so the smoke test can wait for it to be the
+# one answering /v1/health rather than passing against the old version.
+DEPLOYMENT_ID="$(grep -oE 'id=[0-9a-f-]{36}' /tmp/up.log | head -1 | cut -d= -f2 || true)"
+if [ -n "${DEPLOYMENT_ID}" ]; then
+  echo "${DEPLOYMENT_ID}" > /tmp/deployment-id.txt
+  echo "new deployment: ${DEPLOYMENT_ID}"
+else
+  echo "::warning title=Deployment id unknown::Could not read the deployment id from 'railway up'; the smoke test will wait on timing alone."
+fi
 
 phase "public domain"
 # The domain already exists; ask Railway for it anyway so the smoke test
