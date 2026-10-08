@@ -1,11 +1,20 @@
 name: Deploy to Railway
 
 # Runs on GitHub's runners, which have the outbound network access the
-# authoring environment does not. Two modes so the real command surface is
+# authoring environment does not. Three modes so the real command surface is
 # read from the installed CLI before anything is provisioned:
 #
-#   probe  — install the CLI and print its help. Changes nothing.
-#   deploy — provision and deploy.
+#   probe    — install the CLI and print its help. Changes nothing.
+#   deploy   — first-time provisioning: project, Postgres, Redis, api. The
+#              script refuses to run if the project already exists.
+#   redeploy — deploy the current code to the existing project named by
+#              RAILWAY_PROJECT_ID below. The mode for every deploy after the
+#              first.
+#
+# Database migrations run inside Railway: global-emotes/railway.json sets the
+# api service's pre-deploy command, which runs them in the built image before
+# each new deployment goes live. The runner cannot reach the database itself
+# (no public URL), so the migrate script only smoke-tests in that case.
 #
 # Every run tees its output to a file that is committed to the `ci-logs`
 # branch, because Actions logs are served from a storage host the authoring
@@ -20,10 +29,10 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'probe = read the CLI surface only; deploy = provision and deploy'
+        description: 'probe = read the CLI surface only; deploy = first-time provisioning; redeploy = ship the current code to the existing project'
         type: choice
-        options: [probe, deploy]
-        default: probe
+        options: [probe, deploy, redeploy]
+        default: redeploy
 
 jobs:
   railway:
@@ -36,6 +45,12 @@ jobs:
       # workspace/project-scoped (they fail `railway whoami`), so they are
       # only fallbacks.
       RAILWAY_API_TOKEN: ${{ secrets.NEWNEWRAILWAYAPIKEY || secrets.NEWAPIRAILWAY || secrets.RAILWAY_API_TOKEN }}
+      # The project and environment the first `deploy` run created on
+      # 2026-10-08 ("global-emotes" in pabsamuel's Projects), and the domain
+      # it was given. Identifiers, not secrets: the token is what grants access.
+      RAILWAY_PROJECT_ID: 44f08990-122d-4f57-b9aa-d0c9a3e9486e
+      RAILWAY_ENVIRONMENT_ID: 706690e6-545c-44c7-ad32-c118f3811c7d
+      API_DOMAIN: api-production-844a7.up.railway.app
     steps:
       - uses: actions/checkout@v4
 
@@ -56,7 +71,7 @@ jobs:
       # here turns a bare "Unauthorized" three commands later into a message
       # that names the fix.
       - name: Verify the token is account-scoped
-        if: inputs.mode == 'deploy'
+        if: inputs.mode != 'probe'
         run: |
           if [ -z "${RAILWAY_API_TOKEN}" ]; then
             echo "::error title=No token::Set the repo secret NEWNEWRAILWAYAPIKEY to an account-scoped token from railway.com -> Account Settings -> Tokens, with the Workspace field left BLANK."
@@ -90,8 +105,14 @@ jobs:
           set -o pipefail
           global-emotes/infrastructure/scripts/railway-deploy.sh 2>&1 | tee -a /tmp/run.log
 
+      - name: Redeploy the api service
+        if: inputs.mode == 'redeploy'
+        run: |
+          set -o pipefail
+          global-emotes/infrastructure/scripts/railway-redeploy.sh 2>&1 | tee -a /tmp/run.log
+
       - name: Migrate and smoke-test
-        if: inputs.mode == 'deploy'
+        if: inputs.mode != 'probe'
         run: |
           set -o pipefail
           global-emotes/infrastructure/scripts/railway-migrate.sh 2>&1 | tee -a /tmp/run.log
