@@ -16,7 +16,7 @@ fail() { echo "::error title=$1::$2"; exit 1; }
 echo "──────── read the Postgres public URL ────────"
 # The in-network DATABASE_URL is only routable from inside Railway; a runner
 # needs the public one.
-PGURL="$(railway variable list --service Postgres --json 2>/dev/null \
+PGURL="$(timeout 300 railway variable list --service Postgres --json </dev/null 2>/dev/null \
          | jq -r '.DATABASE_PUBLIC_URL // empty')"
 if [ -z "${PGURL}" ]; then
   fail "No database URL" \
