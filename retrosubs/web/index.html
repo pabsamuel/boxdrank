@@ -186,6 +186,10 @@
     background: #10143a; border-top: 3px solid var(--frame-inner);
     padding: 14px 16px calc(env(safe-area-inset-bottom) + 18px);
     display: none; gap: 10px; grid-template-columns: 1fr 1fr;
+    /* The sheet has grown past a phone screen: without this, everything below the fold --
+       including PRO AL -- simply cannot be reached. */
+    max-height: 82vh; overflow-y: auto; overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
   #sheet.open { display: grid; }
   #sheet .full { grid-column: 1 / -1; }
@@ -218,6 +222,17 @@
   #intro ol { margin: 6px 0 0; padding-left: 20px; color: #9fb6d8; font-size: 15px; line-height: 1.8; }
   #intro .go { margin-top: 10px; }
   body[data-intro="done"] #intro { display: none; }
+
+  #pay {
+    position: fixed; inset: 0; z-index: 25; background: rgba(6,8,24,.94);
+    display: none; flex-direction: column; justify-content: center; gap: 16px;
+    padding: 28px 22px calc(env(safe-area-inset-bottom) + 28px);
+  }
+  #pay.open { display: flex; }
+  #pay h2 { font-family: "Press Start 2P", monospace; font-size: 16px; color: #F2C14E; margin: 0; line-height: 1.6; }
+  #pay ul { margin: 0; padding-left: 20px; color: #cfe8ec; font-size: 16px; line-height: 1.9; }
+  #pay .price { font-family: "Press Start 2P", monospace; font-size: 20px; color: #F7F3E3; }
+  #pay .small { font-size: 13px; color: #9fb6d8; line-height: 1.6; margin: 0; }
 </style>
 </head>
 <body data-frame="classic" data-cam="off">
@@ -235,6 +250,20 @@
   <button class="btn" id="introShare">LINKI KOPYALA</button>
 </div>
 
+<div id="pay">
+  <h2>RETROSUBS PRO</h2>
+  <ul>
+    <li>Filigransiz foto ve video</li>
+    <li>Siber ve roman cerceveleri</li>
+    <li>Tek seferlik odeme, abonelik yok</li>
+  </ul>
+  <div class="price" id="payPrice">4,99 $</div>
+  <button class="btn" id="payGo">SATIN AL</button>
+  <button class="btn" id="payHave">KODUM VAR</button>
+  <button class="btn" id="payClose">KAPAT</button>
+  <p class="small" id="payNote"></p>
+</div>
+
 <video id="cam" playsinline autoplay muted></video>
 <div id="lcd"></div>
 <div id="mark">RETROSUBS</div>
@@ -245,7 +274,7 @@
   <button class="chip" id="gear">AYAR</button>
   <span id="status">hazir</span>
   <button class="chip" id="rec" style="display:none">● DURDUR</button>
-  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v17</span>
+  <span class="chip" id="ver" style="padding:8px 9px;opacity:.75">v18</span>
 </div>
 
 <div id="diag"></div>
@@ -346,7 +375,7 @@
     <label for="pro">PRO KOD</label>
     <input id="pro" type="text" placeholder="pro kodu" autocomplete="off" />
   </div>
-  <button class="btn full" id="buy" style="display:none">PRO AL</button>
+  <button class="btn full" id="buy">PRO AL</button>
   <button class="btn full" id="test">TEST SATIRI (tempoyu gor)</button>
   <button class="btn full" id="demo">DEMO (izin gerekmez)</button>
   <p class="hint">
@@ -370,6 +399,8 @@
     shot: $("shot"), recBtn: $("recBtn"), rec: $("rec"), pro: $("pro"), txt: $("txt"),
     intro: $("intro"), introGo: $("introGo"), introShare: $("introShare"), buy: $("buy"),
     name2: $("name2"), turns: $("turns"), speakerRow: $("speaker"),
+    pay: $("pay"), payGo: $("payGo"), payHave: $("payHave"), payClose: $("payClose"),
+    payPrice: $("payPrice"), payNote: $("payNote"),
   };
 
   // ---------------- text blip: synthesised, one per character ----------------
@@ -1029,6 +1060,8 @@
     if (ok) {
       try { localStorage.setItem("retrosubs.pro", "1"); } catch (e) {}
       el.status.textContent = "pro acildi";
+      el.pay.classList.remove("open");
+      applyBuy();
     } else {
       el.status.textContent = "kod gecersiz";
     }
@@ -1221,10 +1254,48 @@
   };
 
 
-  // ---------------- first run, pro themes, and the single slot a payment link drops into ----
-  // Paste a Stripe Payment Link here and the PRO AL button appears by itself. Nothing else to
-  // wire: the confirmation page hands over the code, the code unlocks the field in AYAR.
-  const BUY_URL = "";
+  // ---------------- first run, pro themes, and where the payment link comes from ----------
+  // The link lives in config.json, NOT in this file: that way it can be set from GitHub's web
+  // editor on a phone, without touching a thousand lines of HTML. Empty link = no buy button,
+  // and the Pro screen says how to unlock with a code instead.
+  let CONFIG = { buyUrl: "", price: "4,99 $", proPitch: "" };
+
+  fetch("config.json", { cache: "no-store" })
+    .then(r => r.ok ? r.json() : null)
+    .then(cfg => {
+      if (!cfg) return;
+      CONFIG = Object.assign(CONFIG, cfg);
+      el.payPrice.textContent = CONFIG.price || "";
+      applyBuy();
+    })
+    .catch(() => {});
+
+  function applyBuy() {
+    const has = !!(CONFIG.buyUrl || "").trim();
+    // PRO AL stays reachable without a payment link: it is also the way in to entering a code.
+    el.buy.style.display = isPro() ? "none" : "";
+    el.payGo.style.display = has ? "" : "none";
+    el.payNote.textContent = has
+      ? "Odeme sonrasi sayfada cikan kodu KODUM VAR ile gir."
+      : "Satis henuz acik degil. Pro kodun varsa KODUM VAR'a bas.";
+  }
+
+  function openPay() {
+    el.sheet.classList.remove("open");
+    el.pay.classList.add("open");
+    applyBuy();
+  }
+
+  el.payClose.onclick = () => el.pay.classList.remove("open");
+  el.payGo.onclick = () => {
+    const url = (CONFIG.buyUrl || "").trim();
+    if (url) window.open(url, "_blank", "noopener");
+  };
+  el.payHave.onclick = () => {
+    el.pay.classList.remove("open");
+    el.sheet.classList.add("open");
+    el.pro.focus();
+  };
 
   const PRO_FRAMES = ["cyber", "novel"];
 
@@ -1232,17 +1303,14 @@
     if (PRO_FRAMES.includes(el.frame.value) && !isPro()) {
       el.frame.value = "classic";
       el.status.textContent = "bu cerceve pro";
-      if (BUY_URL) el.buy.style.display = "";
+      openPay();
     }
     document.body.dataset.frame = el.frame.value;
     try { localStorage.setItem("retrosubs.frame", el.frame.value); } catch (e) {}
   }
   el.frame.onchange = applyFrame;
 
-  if (BUY_URL) {
-    el.buy.style.display = "";
-    el.buy.onclick = () => window.open(BUY_URL, "_blank", "noopener");
-  }
+  el.buy.onclick = openPay;
 
   el.introGo.onclick = () => {
     document.body.dataset.intro = "done";
@@ -1304,6 +1372,7 @@
 
   loadPrefs();
   paintPro();
+  applyBuy();
 
   // Installable and offline: once added to the home screen it opens without browser chrome,
   // and the shell is cached so a dropped connection does not take the box away.

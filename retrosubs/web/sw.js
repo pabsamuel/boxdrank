@@ -3,7 +3,7 @@
 // The page is deployed often, so the HTML is fetched network-first: a new build lands on the
 // next load instead of leaving someone stuck on an old one. Everything that never changes
 // without a new filename -- fonts, icons -- is served cache-first.
-const VERSION = "v15";
+const VERSION = "v18";
 const SHELL = "retrosubs-shell-" + VERSION;
 const ASSETS = [
   "./",
@@ -33,6 +33,13 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   const request = event.request;
   if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) return;
+
+  // config.json carries the payment link: it must never be served from a stale cache, or
+  // turning sales on would not reach anyone who already opened the page.
+  if (new URL(request.url).pathname.endsWith("/config.json")) {
+    event.respondWith(fetch(request).catch(() => caches.match(request)));
+    return;
+  }
 
   const isDocument = request.mode === "navigate" || request.destination === "document";
   if (isDocument) {

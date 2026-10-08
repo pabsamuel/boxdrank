@@ -26,6 +26,12 @@ camera, two lines a page with a blinking caret, text blip per character, vibe mo
 recognition. iOS has no overlay API at all, so on iPhone this is the whole product; on Android
 the app below floats over other apps.
 
+## Turn sales on
+
+The Pro screen is built and live; the only missing piece is a payment link, and it drops into
+`web/config.json` — editable from a phone, no code change. Step-by-step, in Turkish:
+**[`SATIS-KURULUMU.md`](SATIS-KURULUMU.md)**.
+
 ## Install it on a phone (no Android Studio)
 
 1. Push to `main` (or open the PR run) → the **RetroSubs Android** GitHub Actions workflow builds
