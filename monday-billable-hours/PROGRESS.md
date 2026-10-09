@@ -293,6 +293,11 @@ Submission
     answered "Email confirmed. Your request was sent. An agent will get back
     to you soon. You'll receive updates by email." The daily check now
     watches for the reply.
+  - FACT (Gmail, read 9 Oct 2026): monday's acknowledgement came 8 Oct
+    06:40 UTC as ticket **#5255645**, subject "Review invitation pending:
+    Template Guard (12248804) and Automation Watchdog (12249756)". **Automation
+    Inventory (12255778) is not named in it.** No agent reply as of 9 Oct
+    06:21 UTC.
 
 ## 6. Market check — 2/2
 
