@@ -192,3 +192,7 @@ Order: Gate 0 decides whether the listing and the submission get done.
 - [ ] 29. Pricing version submitted, once the Pricing & Plans tab appears.
       Ready to paste: `../monday-billable-hours/PRICING-VERSION.md` (4 Oct).
 - [ ] 30. Approved by monday.
+      - 9 Oct 2026: monday support (ticket #5255645) confirmed Watchdog and
+        Template Guard are in the review queue, behind "a significant
+        backlog". Inventory was not named in the question, so it is **not**
+        confirmed (`../monday-billable-hours/PROGRESS.md`).

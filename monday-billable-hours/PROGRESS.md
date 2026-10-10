@@ -298,6 +298,15 @@ Submission
     Template Guard (12248804) and Automation Watchdog (12249756)". **Automation
     Inventory (12255778) is not named in it.** No agent reply as of 9 Oct
     06:21 UTC.
+  - **Answered 9 Oct 2026, 16:58 UTC** (Angel Santizo, Technical Support
+    Engineer; read 10 Oct). FACT, quoted: "both of your submissions are there
+    and in the review queue. I can see Template Guard (App ID 12248804) and
+    Automation Watchdog (App ID 12249756)"; "Our review team has been working
+    through a significant backlog over the past few weeks"; "this is not a
+    sign that anything is missing or incomplete on your end"; the "locked for
+    changes" state "is expected and correct while they are under review".
+    No date given. **Watchdog is confirmed in the queue; nothing is needed
+    from Samet.** Inventory was not asked about, so it is not confirmed.
 
 ## 6. Market check — 2/2
 
