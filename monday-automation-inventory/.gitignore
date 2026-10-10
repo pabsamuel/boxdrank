@@ -1,0 +1,5 @@
+node_modules/
+dist/
+
+# `mapps code:push -s` writes its scan report here.
+security-scan-*.json

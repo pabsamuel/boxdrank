@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>How to use Unanswered Updates</title>
+    <!--
+      The how-to-use page monday's review asks for: embeddable in an iframe on
+      *.monday.com, installation and first-use instructions, and no navigation
+      to other pages. Static on purpose: no scripts, no external requests.
+      Structure from Automation Inventory's page. The support address is
+      rewritten by monday code's Cloudflare edge, which adds its own decoding
+      script to pages like this one (seen on Watchdog, 28 Sep 2026).
+    -->
+    <style>
+      :root {
+        --bg: #ffffff; --surface: #f6f7fb; --border: #dcdfea;
+        --text: #1c1f3b; --muted: #676879; --accent: #0073ea;
+        --new: #8b8fa3; --warn: #d9911a; --old: #d83a52;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #181b34; --surface: #20223f; --border: #33365a;
+          --text: #edeef5; --muted: #a4a7bd; --accent: #6c9fff;
+          --new: #9aa0b5; --warn: #f0ad4e; --old: #ff6b7f;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; padding: 28px 16px 56px; background: var(--bg); color: var(--text);
+        font: 15px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      }
+      main { max-width: 780px; margin: 0 auto; }
+      h1 { font-size: 26px; margin: 0 0 6px; }
+      h2 { font-size: 19px; margin: 34px 0 10px; }
+      p { margin: 0 0 12px; }
+      .lead { color: var(--muted); font-size: 16px; }
+      ol, ul { padding-left: 22px; margin: 0 0 14px; }
+      li { margin-bottom: 7px; }
+      table { width: 100%; border-collapse: collapse; margin: 0 0 14px; font-size: 14px; }
+      th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+      th { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+      .pill { font-size: 11.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; color: #fff; white-space: nowrap; }
+      .new { background: var(--new); } .warn { background: var(--warn); } .old { background: var(--old); }
+      .note { padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+      img {
+        display: block; width: 100%; height: auto; margin: 8px 0 18px;
+        border: 1px solid var(--border); border-radius: 8px;
+      }
+      .caption { font-size: 13px; color: var(--muted); margin-top: -10px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>How to use Unanswered Updates</h1>
+      <p class="lead">
+        A question written in an item's updates is easy to lose: nobody replies, and nothing reminds anyone.
+        Unanswered Updates lists the updates nobody has answered, from every board you can see, in one place.
+      </p>
+
+      <h2>Before you start</h2>
+      <ul>
+        <li>You need to be an admin or a member of the monday account. Viewers cannot use the app, because monday does not let viewer accounts use its API.</li>
+        <li>It reads the updates on the boards <em>you</em> can see. Someone with access to more boards sees more.</li>
+        <li>The app only reads. It never posts, changes or deletes an update, an item or a board.</li>
+      </ul>
+
+      <h2>Install and first use</h2>
+      <ol>
+        <li>Install Unanswered Updates from the monday marketplace.</li>
+        <li>
+          Open it from your workspace: click <strong>+</strong> (Add item to workspace) at the top of the left-side
+          menu, choose <strong>Apps</strong>, and pick Unanswered Updates. You can also add it as a view on any
+          board; it reads every board either way.
+        </li>
+        <li>The first time it opens, a short welcome page explains what it shows. Click <strong>Show unanswered updates</strong>.</li>
+        <li>The app reads the updates of the last 30 days and shows its progress. A busy account can take a minute.</li>
+      </ol>
+
+      <img src="./assets/welcome.png" alt="The welcome page: what the list shows, what counts as answered, and a Show unanswered updates button." width="860" height="518" />
+      <p class="caption">The welcome page, shown the first time.</p>
+
+      <h2>What counts as unanswered</h2>
+      <p>
+        An update counts as <strong>answered</strong> when someone other than its author replied to it, or posted a
+        newer update on the same item. Anything else is <strong>unanswered</strong>. A follow-up from the author
+        ("any news?") does not count as an answer, and neither does a like.
+      </p>
+      <p>
+        Updates that monday reports with no person as their author, and updates that are not on an item, are left
+        out. The list says how many.
+      </p>
+
+      <h2>Reading the list</h2>
+      <ul>
+        <li><strong>Mine</strong> (the default): updates you wrote that are still waiting for an answer.</li>
+        <li><strong>Mentioning me</strong>: updates that @mention you, from anyone, still unanswered.</li>
+        <li><strong>All</strong>: everyone's unanswered updates on the boards you can see.</li>
+      </ul>
+      <p>Each row shows how long the update has waited, who wrote it, its text, its item and board, and whom it mentions.</p>
+      <table>
+        <thead>
+          <tr><th>Edge</th><th>Waiting for</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="pill new">grey</span></td><td>less than 3 days</td></tr>
+          <tr><td><span class="pill warn">amber</span></td><td>3 to 7 days</td></tr>
+          <tr><td><span class="pill old">red</span></td><td>7 days or more</td></tr>
+        </tbody>
+      </table>
+      <img src="./assets/list.png" alt="The All view: view buttons with counts, filters, a search box, and one row per unanswered update." width="860" height="1110" />
+      <p class="caption">The All view, on an invented demo account.</p>
+
+      <h2>Narrowing it down</h2>
+      <ul>
+        <li><strong>No answer for</strong>: 1, 2, 3, 7 or 14 days or more, or any age. The default is 2.</li>
+        <li><strong>Board</strong> and <strong>Written by</strong>: one board, or one person.</li>
+        <li><strong>Search</strong>: type any words; an update must match all of them, in its text, its item, its board or the people on it. Capital letters and accents do not matter.</li>
+      </ul>
+      <img src="./assets/mentions.png" alt="The Mentioning me view lists the updates that @mention the signed-in user." width="860" height="699" />
+      <p class="caption">Mentioning me, on the demo account.</p>
+
+      <h2>Answering</h2>
+      <ul>
+        <li><strong>Reply</strong> opens the item's updates in monday, where you answer as usual. Once you have, the update leaves the list the next time the app opens.</li>
+        <li><strong>Open item in a new tab</strong> opens the item on its board.</li>
+      </ul>
+
+      <h2>Asking sidekick</h2>
+      <p>
+        If your account uses sidekick, monday's AI assistant, it can ask the app for you. For example: "which of my
+        updates got no answer?", "which updates mentioning me are still unanswered?", or "which questions on the Sales
+        Pipeline board have had no answer for a week?". It answers with each update's text, author, age, item and board.
+      </p>
+
+      <h2>Your data</h2>
+      <p class="note">
+        The app asks monday for read-only access to boards, updates and user names. The list is read in your browser,
+        straight from monday, each time you open the app, and is not stored anywhere. When sidekick asks, the app reads
+        the same updates with a token monday issues for that one request, answers, and keeps nothing. The full privacy
+        policy is linked on the app's marketplace listing.
+      </p>
+
+      <h2>Support</h2>
+      <p>Write to <strong>support@atesensoftware.com</strong>.</p>
+    </main>
+  </body>
+</html>

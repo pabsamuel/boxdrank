@@ -1,0 +1,38 @@
+name: monday-automation-watchdog CI
+
+on:
+  push:
+    paths:
+      - 'monday-automation-watchdog/**'
+      - '.github/workflows/monday-automation-watchdog-ci.yml'
+  pull_request:
+    paths:
+      - 'monday-automation-watchdog/**'
+      - '.github/workflows/monday-automation-watchdog-ci.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: monday-automation-watchdog
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # npm ci, not npm install: monday-sdk-js is pinned to 0.5.9 because
+      # 1.0.0-beta has removed the api() method this app depends on.
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+      # Does what monday code will do on `mapps code:push`: validates
+      # .mondaycoderc against the CLI's own schema, builds, and boots the server
+      # with no configuration, which is the state of the first deploy.
+      - run: npm run check:deploy
+
+      # The demo fixture is generated. If the generator and the committed file
+      # drift apart, the demo stops demonstrating what the tests claim it does.
+      - run: npm run fixtures
+      - run: git diff --exit-code fixtures/

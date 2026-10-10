@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- The name is also in src/core/brand.js. -->
+    <title>Unanswered Updates</title>
+    <!-- Inline so the page requests nothing but its own script. -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230073ea'/%3E%3Cpath d='M3.5 4.5h9v5.5h-5l-2.5 2v-2h-1.5z' fill='none' stroke='white' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+    <style>
+      /* Theme tokens and base styles carried over from Automation Inventory,
+         which follows monday's light, dark and black (night) themes. */
+      :root {
+        --bg: #ffffff; --surface: #f6f7fb; --border: #dcdfea;
+        --text: #1c1f3b; --muted: #676879; --accent: #0073ea;
+        --new: #8b8fa3; --warn: #d9911a; --old: #d83a52; --error: #d83a52;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --bg: #181b34; --surface: #20223f; --border: #33365a;
+          --text: #edeef5; --muted: #a4a7bd; --accent: #6c9fff;
+          --new: #9aa0b5; --warn: #f0ad4e; --old: #ff6b7f; --error: #ff6b7f;
+        }
+      }
+      :root[data-theme='dark'] {
+        --bg: #181b34; --surface: #20223f; --border: #33365a;
+        --text: #edeef5; --muted: #a4a7bd; --accent: #6c9fff;
+        --new: #9aa0b5; --warn: #f0ad4e; --old: #ff6b7f; --error: #ff6b7f;
+      }
+      :root[data-theme='black'] {
+        --bg: #111111; --surface: #1c1c1c; --border: #333333;
+        --text: #eeeeee; --muted: #a8a8a8; --accent: #6c9fff;
+        --new: #9a9a9a; --warn: #f0ad4e; --old: #ff6b7f; --error: #ff6b7f;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; padding: 24px 16px 48px;
+        background: var(--bg); color: var(--text);
+        font: 15px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      }
+      .wrap { max-width: 860px; margin: 0 auto; }
+      h1 { font-size: 22px; margin: 0 0 4px; }
+      .sub { color: var(--muted); margin: 0 0 8px; font-size: 14px; }
+      #source-note { font-size: 12.5px; color: var(--muted); margin: 0 0 18px; }
+
+      .notice-box {
+        display: flex; flex-direction: column; gap: 2px;
+        padding: 10px 14px; border-radius: 9px; margin-bottom: 18px;
+        border: 1px solid var(--warn); font-size: 13.5px;
+      }
+      .notice-box strong { font-size: 14px; color: var(--warn); }
+      .notice-box span { color: var(--muted); }
+
+      .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0 0 10px; }
+      button.chip {
+        padding: 5px 12px; border: 1px solid var(--border); border-radius: 999px; cursor: pointer;
+        background: var(--bg); color: var(--text); font: inherit; font-size: 13px;
+      }
+      button.chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+      select.age, select.board, select.author {
+        padding: 5px 8px; border: 1px solid var(--border); border-radius: 8px;
+        background: var(--bg); color: var(--text); font: inherit; font-size: 13px; max-width: 100%;
+      }
+      select[hidden] { display: none; }
+      input.search {
+        width: 100%; padding: 9px 12px; margin: 4px 0 14px; border: 1px solid var(--border); border-radius: 8px;
+        background: var(--bg); color: var(--text); font: inherit; font-size: 14px;
+      }
+
+      .row { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+      .row.new { border-left: 4px solid var(--new); }
+      .row.warn { border-left: 4px solid var(--warn); }
+      .row.old { border-left: 4px solid var(--old); }
+      .row-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+      .who { font-weight: 600; font-size: 14px; }
+      .pill { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; color: #fff; white-space: nowrap; }
+      .pill.new { background: var(--new); }
+      .pill.warn { background: var(--warn); }
+      .pill.old { background: var(--old); }
+      .text { margin: 8px 0 0; font-size: 15px; word-break: break-word; }
+      .meta { margin: 4px 0 0; font-size: 12.5px; color: var(--muted); }
+      .actions { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+
+      button.link {
+        margin-top: 6px; background: none; border: none; padding: 0; cursor: pointer;
+        font: inherit; font-size: 12.5px; color: var(--accent); text-decoration: underline;
+      }
+      button.link:hover { filter: brightness(1.15); }
+
+      .welcome {
+        padding: 18px 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface);
+      }
+      .welcome h2 { font-size: 19px; margin: 0 0 6px; }
+      .welcome p { margin: 0 0 10px; }
+      .steps { margin: 0 0 14px; padding-left: 20px; }
+      .steps li { margin-bottom: 6px; }
+      button.primary {
+        margin-top: 6px; padding: 9px 16px; border: none; border-radius: 6px; cursor: pointer;
+        background: var(--accent); color: #fff; font: inherit; font-weight: 600;
+      }
+      button.primary:hover { filter: brightness(1.08); }
+      .header-links { font-size: 13px; margin: 0 0 6px; }
+      .header-links a { color: var(--accent); }
+
+      .status { color: var(--muted); }
+      .warning {
+        padding: 10px 12px; border: 1px solid var(--warn); border-radius: 8px;
+        font-size: 13.5px; margin-bottom: 16px;
+      }
+      .error { padding: 16px; border: 1px solid var(--error); border-radius: 10px; color: var(--error); }
+      .error p { margin: 6px 0 0; color: var(--text); font-size: 14px; word-break: break-word; white-space: pre-line; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Unanswered Updates</h1>
+      <p class="sub">Item updates nobody has answered, across every board you can see.</p>
+      <p class="header-links">
+        <a href="./how-to.html" target="_blank" rel="noopener noreferrer">How it works</a>
+      </p>
+      <p id="source-note"></p>
+      <main id="app"><p class="status">Loading…</p></main>
+    </div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,15 @@
+# Netlify reads this from the base directory, which the site's settings must
+# set to `atesensoftware-site` (docs: build/configure-builds/file-based-
+# configuration). Paths here are relative to that base directory.
+[build]
+  # public/ is committed, built by `node atesensoftware-site/build.mjs`.
+  publish = "public/"
+  command = "echo 'No build: public/ is committed.'"
+  # Deploy only when the site itself changed. FACT (Netlify docs, credit-based
+  # pricing, read 28 Sep 2026): a production deploy costs 15 credits and the
+  # free plan has 300 a month with a hard limit; this branch also carries the
+  # app's code and notes, and every push was deploying the site — half the
+  # month's credits went in one day. Exit 0 skips the build (docs:
+  # ignore-builds). The path is taken from the repository root so it holds
+  # whichever directory the command runs in.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- \"$(git rev-parse --show-toplevel)/atesensoftware-site\""
