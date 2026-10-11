@@ -12,7 +12,7 @@ The app serves from one domain, its monday code URL:
 
 ## Secrets: storage, and whether any are in the repository
 
-None are in the repository (`.gitignore` covers `.env`, `.mappsrc`). The five
+None are in the repository (`.gitignore` covers `.env`, `.mappsrc`). The six
 secrets — `MONDAY_CLIENT_ID`, `MONDAY_CLIENT_SECRET`, `MONDAY_SIGNING_SECRET`,
 `TOKEN_ENCRYPTION_KEY`, `DRIFT_CRON_SECRET`, `SMTP_URL` — are monday code secrets, read at
 startup through the SDK (`src/server/config.ts`, `MondayCodeConfig`). A missing
