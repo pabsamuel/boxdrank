@@ -307,6 +307,10 @@ Submission
     changes" state "is expected and correct while they are under review".
     No date given. **Watchdog is confirmed in the queue; nothing is needed
     from Samet.** Inventory was not asked about, so it is not confirmed.
+  - 13 Oct 2026, 02:01 UTC: monday's reminder on the same ticket: "If we
+    don't hear back from you within two business days we'll go ahead and
+    close this request". So it closes around 15 Oct unless Samet replies.
+    Replying is also the way to ask about Inventory on the same ticket.
 
 ## 6. Market check — 2/2
 
