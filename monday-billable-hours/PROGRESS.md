@@ -311,6 +311,9 @@ Submission
     don't hear back from you within two business days we'll go ahead and
     close this request". So it closes around 15 Oct unless Samet replies.
     Replying is also the way to ask about Inventory on the same ticket.
+  - 14 Oct 2026, 02:02 UTC: a satisfaction survey on the ticket ("Did we
+    resolve your issue?"). INFERENCE: monday marked it solved. Samet had not
+    replied, so Inventory is still not confirmed.
 
 ## 6. Market check — 2/2
 
