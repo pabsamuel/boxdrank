@@ -196,3 +196,21 @@ Order: Gate 0 decides whether the listing and the submission get done.
         Template Guard are in the review queue, behind "a significant
         backlog". Inventory was not named in the question, so it is **not**
         confirmed (`../monday-billable-hours/PROGRESS.md`).
+      - **16 Oct 2026, 08:22 UTC: first review email** (Olha Cherednichenko,
+        App reviewer, olhach-ext@monday.com; read 17 Oct). So Inventory is
+        in review. FACT, quoted: "As part of our updated Marketplace
+        standards, we have raised the bar for new app submissions. We are
+        placing greater emphasis on apps that solve a clear customer pain
+        point, provide differentiated value, and extend monday.com in a
+        meaningful way rather than replicate functionality that is already
+        available natively." It asks for five things: customer pain point,
+        use case and target user, value proposition, differentiation from
+        native features and other solutions, and "a short video or
+        walkthrough demonstrating the main use case end-to-end".
+      - **17 Oct 2026, 03:43 UTC: answered** from Samet's Gmail (not by
+        this session), with `listing/automation-inventory.mp4` attached
+        (41 s, sample data). The five answers lean on `COMPETITORS.md`: the
+        512-automations community post, the Autopilot hub (health and
+        usage, not a complete list), and the ~980-listing directory check.
+        It offers a recording inside a live account if wanted. Waiting for
+        the reviewer.

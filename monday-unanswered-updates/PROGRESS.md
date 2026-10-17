@@ -85,3 +85,10 @@ days), then the live checks, then the listing and the submission.
 - A user report of a wrong "unanswered": the answered rule.
 - monday shipping the same as an agent template: the weak-GO risk in
   `GATE0.md`.
+- monday's review bar, raised (FACT, reviewer email on Automation Inventory,
+  16 Oct 2026): "greater emphasis on apps that solve a clear customer pain
+  point, provide differentiated value … rather than replicate functionality
+  that is already available natively". It asks for pain point, use case,
+  value, differentiation and an end-to-end video. The native Inbox covers
+  "mentions of me"; this app's case must lead with "Mine" and "All", which
+  monday does not have (`COMPETITORS.md`).
