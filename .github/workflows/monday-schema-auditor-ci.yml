@@ -1,0 +1,36 @@
+name: monday-schema-auditor CI
+
+# Scoped to this app's own paths, matching how the other workflows in this
+# repository are set up. A change to the docs or another project does not need
+# to run these tests.
+on:
+  push:
+    paths:
+      - 'monday-schema-auditor/**'
+      - '.github/workflows/monday-schema-auditor-ci.yml'
+  pull_request:
+    paths:
+      - 'monday-schema-auditor/**'
+      - '.github/workflows/monday-schema-auditor-ci.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: monday-schema-auditor
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # npm ci rather than npm install: the lockfile pins monday-sdk-js to
+      # 0.5.9 deliberately, and an unpinned install would pull 1.0.0-beta,
+      # which has removed the api() method this app depends on.
+      - run: npm ci
+
+      - run: npm test
+
+      - run: npm run build

@@ -1,0 +1,23 @@
+# What `mapps code:push` leaves out of the upload.
+#
+# The CLI uses this file *instead of* .gitignore when it exists, and it finds
+# .gitignore with a `**/.gitignore` glob that takes the first match — which can
+# be one inside a dependency. node_modules, .git, .env and
+# local-secure-storage.db.json are always excluded by the CLI itself.
+#
+# Only literal paths that exist work: each line is kept only if
+# `fs.existsSync(directory + line)` is true, so wildcards are silently dropped
+# (monday-apps-cli, src/services/files-service.ts, read 27 Sep 2026).
+
+# Rebuilt by `npm start` on the server; a stale copy would hide a broken build.
+dist/
+
+# Not needed to run.
+test/
+listing/
+
+# Renders the how-to screenshots on the owner's machine; the server never loads
+# it. Its fetch of the local server over http://127.0.0.1 is the kind of line
+# monday's security scan flagged in Watchdog (28 Sep 2026). The same goes for
+# the listing scripts, once they are added here.
+scripts/make-assets.js
