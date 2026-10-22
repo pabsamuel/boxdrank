@@ -126,3 +126,26 @@ Watchdog.
   someone opens it or asks sidekick.
 - UNKNOWN: whether anyone will pay it. Nobody has been asked. Revisit with
   installs and reviews, not before.
+
+## 21 Oct 2026: monday rejected the app
+
+By monday's reviewer (Olha Cherednichenko), after the five questions of 16 Oct
+were answered on 17 Oct. FACT, quoted: "we've decided not to move forward with Automation Inventory at this time,
+as its current functionality significantly overlaps with monday.com native
+functionality already available and does not provide enough additional
+customer value to meet our updated Marketplace standards."
+A new submission is possible only with "more differentiated capabilities or a
+substantially different customer use case".
+
+What it means (INFERENCE): the Autopilot hub was judged close enough. Our
+answer said the hub is not a complete list; the reviewer did not accept that
+difference as enough. Arguing the same point again is unlikely to change it.
+
+**Open, Samet's:**
+- Accept and stop (Claude's recommendation): no reply needed; nothing more to
+  build. The app stays installed on Samet's own accounts and live on monday
+  code until he removes it; whether monday code charges anything for a live
+  app with no marketplace listing is UNKNOWN.
+- The Inventory pages on atesensoftware.com (privacy, terms, pricing) and its
+  client id in the association file: keep or remove. Removing them needs the
+  site session on Samet's PC.

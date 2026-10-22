@@ -314,6 +314,10 @@ Submission
   - 14 Oct 2026, 02:02 UTC: a satisfaction survey on the ticket ("Did we
     resolve your issue?"). INFERENCE: monday marked it solved. Samet had not
     replied, so Inventory is still not confirmed.
+  - Overtaken: Inventory was reviewed after all (16 Oct) and **rejected on
+    21 Oct** for overlapping native functionality
+    (`../monday-automation-inventory/DECISIONS.md`). Watchdog has had no
+    review email yet; its answers are ready in `REVIEW-ANSWERS-WATCHDOG.md`.
 
 ## 6. Market check — 2/2
 

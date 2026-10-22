@@ -5,7 +5,7 @@ searchable place: on or off, with monday's warnings, older automations
 included. Monday's AI assistant can search it too, through a Sidekick tool.
 The idea is Patrick Fallon's; his words are in `SPEC.md`.
 
-**Status, 28 Sep 2026: Gate 0 passed (GO); v2 live with all four features, installed and tested; submitted to monday on 28 Sep; security evidence complete. 28 / 30 = 93%**
+**Status, 22 Oct 2026: REJECTED by monday on 21 Oct** ("significantly overlaps with monday.com native functionality", `PROGRESS.md` item 30). Before that, 28 Sep 2026: Gate 0 passed (GO); v2 live with all four features, installed and tested; submitted to monday on 28 Sep; security evidence complete. 28 / 30 = 93%**
 (`PROGRESS.md`).
 - The code works in tests and in a browser inside a fake monday.
 - Name and price are decided. App 12255778 is live on monday code, with the

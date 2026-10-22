@@ -1,6 +1,6 @@
 # Progress
 
-**28 / 30 done: 93%.** Recompute this line whenever a box changes, and put the
+**28 / 30 done: 93%. REJECTED by monday on 21 Oct 2026 (item 30).** Recompute this line whenever a box changes, and put the
 percentage at the end of every reply to Samet.
 
 Order: Gate 0 decides whether the listing and the submission get done.
@@ -212,5 +212,13 @@ Order: Gate 0 decides whether the listing and the submission get done.
         (41 s, sample data). The five answers lean on `COMPETITORS.md`: the
         512-automations community post, the Autopilot hub (health and
         usage, not a complete list), and the ~980-listing directory check.
-        It offers a recording inside a live account if wanted. Waiting for
-        the reviewer.
+        It offers a recording inside a live account if wanted.
+      - **21 Oct 2026, 12:50 UTC: REJECTED** (same reviewer; read 22 Oct).
+        FACT, quoted: "we've decided not to move forward with Automation Inventory at this time,
+        as its current functionality significantly overlaps with monday.com native
+        functionality already available and does not provide enough additional
+        customer value to meet our updated Marketplace standards."
+        Also: "If you evolve the app in the future with more differentiated
+        capabilities or a substantially different customer use case, we'd be
+        happy to evaluate a new submission." Item 30 will not be ticked.
+        What next is Samet's (`DECISIONS.md`, 21 Oct).

@@ -7,6 +7,13 @@ the same day and is in the same queue (support ticket #5255645, 9 Oct). The
 same email is likely for Watchdog (INFERENCE). These answers are ready so the
 reply can go out the same day.
 
+**21 Oct 2026: Inventory was rejected** for "significantly overlaps with
+monday.com native functionality" (`../monday-automation-inventory/DECISIONS.md`).
+The lesson for this reply (INFERENCE): lead with what no native feature does,
+the silent switch-off and the alert, and do not lead with the board view's
+list of automations, which is the part the Autopilot hub resembles. The order
+below already does that; keep it.
+
 Every claim below is sourced in `COMPETITORS.md` or `VALIDATION.md`. Change
 nothing into a claim those files do not support. If the reviewer's questions
 differ, answer theirs, not these.
