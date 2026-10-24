@@ -318,6 +318,10 @@ Submission
     21 Oct** for overlapping native functionality
     (`../monday-automation-inventory/DECISIONS.md`). Watchdog has had no
     review email yet; its answers are ready in `REVIEW-ANSWERS-WATCHDOG.md`.
+  - 23 Oct 2026, 22:52 UTC: a follow-up on ticket #5255645 went from Samet's
+    Gmail (not by this session), asking support to confirm Watchdog is still
+    in the queue and its version still locked and unchanged. The daily check
+    watches for the answer.
 
 ## 6. Market check — 2/2
 
