@@ -222,3 +222,6 @@ Order: Gate 0 decides whether the listing and the submission get done.
         capabilities or a substantially different customer use case, we'd be
         happy to evaluate a new submission." Item 30 will not be ticked.
         What next is Samet's (`DECISIONS.md`, 21 Oct).
+      - 24 Oct 2026: patched for Node.js CVE-2026-111497 (Node 22.23.4,
+        live version 18319401) after monday's notice; details in
+        `../monday-billable-hours/PROGRESS.md`, "Node.js CVE-2026-111497".

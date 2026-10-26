@@ -38,7 +38,8 @@ days), then the live checks, then the listing and the submission.
       - how-to page with three screenshots from the real view.
 - [x] 8. Tests: 66 unit and HTTP tests (`npm test`); 50 browser checks inside
       a fake monday and as the demo (`test/browser/verify-view.mjs`);
-      `npm run check:deploy` clean.
+      `npm run check:deploy` clean. Runtime set to Node 22.23.4 on 26 Oct
+      (CVE-2026-111497; `../monday-billable-hours/PROGRESS.md`).
 - [ ] 9. Live check of the three assumptions (`PLAYGROUND.md`): mention HTML,
       automation-written updates, nested fields at the root. Fix the code if
       any differs.

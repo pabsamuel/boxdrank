@@ -339,3 +339,37 @@ monday's own analytics.
 Recorded so far (details in `VALIDATION.md`): Samet reports people have said
 they would pay, with who and how much still UNKNOWN; and one live lead running
 200+ workflows who built their own failure checker.
+
+## Node.js CVE-2026-111497: patched on all apps (24–25 Oct 2026)
+
+- FACT (nodejs.org, "Wednesday, October 21, 2026 Security Releases", read
+  25 Oct): CVE-2026-111497, High, "Node.js Brotli decoder out-of-bounds write
+  permits remote code execution". Fixed in 22.23.4, 24.22.1 and 26.12.1.
+- monday's notices, from team@learn.mail.monday.com (replies bounce: "550
+  5.7.1 relaying denied"):
+  - 24 Oct 21:05 UTC, "Urgent Action Required: update your Marketplace app
+    within 12 hours": Automation Inventory and Template Guard;
+  - 25 Oct 17:25 UTC, "Important update on your monday.com marketplace
+    app(s)": Automation Watchdog, 48 hours to confirm or it "may" be disabled;
+  - 25 Oct 19:46 UTC, same subject: Automation Inventory, 24 hours.
+- Done from Samet's account, not by this session (FACT, the sent mails):
+  - Inventory: Node 22.12.0 → 22.23.4, pushed to live version 18319401 on
+    24 Oct 23:34 UTC; scan 0 findings; `/health` 200.
+  - Watchdog: Node 22.12.0 → 22.23.4, pushed to live version **18317118**
+    on 25 Oct 17:39 UTC with `mapps code:push -s -f -i 18317118`; scan 0
+    findings; `/health` 200.
+  - Confirmations sent to support ticket **#5289547** (24 Oct 23:59, 25 Oct
+    17:39 and 20:12 UTC). No links in the notices were clicked.
+- monday support (Daniel Vasquez, 25 Oct 02:44 UTC): pushing to the existing
+  live version "is completely sufficient"; no new version or resubmission
+  unless features, scopes or manifest change; pass the live version with
+  `-i`, "as the CLI targets the latest draft version by default"; pushing to
+  the live version "does not break the review queue". He also wrote that
+  monday "does not send automated 12-hour urgent security notices via email"
+  and that the bounce "strongly suggests the sender address may have been
+  spoofed". Whether the notices are genuine is UNKNOWN; the advisory they cite
+  is real, and the patch is right either way.
+- 26 Oct: this repo's `.mondaycoderc` set to 22.23.4 in Watchdog, Inventory
+  and Unanswered Updates, to match what is deployed. Before this, a push from
+  the repo would have put the vulnerable 22.12.0 back. `check:deploy` passes
+  on all three. Open: whether support has recorded the remediation.
