@@ -372,4 +372,25 @@ they would pay, with who and how much still UNKNOWN; and one live lead running
 - 26 Oct: this repo's `.mondaycoderc` set to 22.23.4 in Watchdog, Inventory
   and Unanswered Updates, to match what is deployed. Before this, a push from
   the repo would have put the vulnerable 22.12.0 back. `check:deploy` passes
-  on all three. Open: whether support has recorded the remediation.
+  on all three.
+- 26 Oct 07:00 UTC: the 24 Oct notice again (Inventory and Template Guard);
+  answered on #5289547 at 07:13 from Samet's account.
+- **27 Oct 04:16 UTC, support (Daniel Vasquez):** "both Template Guard
+  (12248804) and Automation Inventory (12255778) are officially marked as
+  patched and fixed with Node.js 22.23.4 … The previous automated warnings
+  can be safely disregarded". **Watchdog is not named** in that answer,
+  although its patch was reported on the ticket on 25 Oct. 29 Oct 05:01 UTC:
+  reminder; #5289547 closes after two business days without a reply.
+- 29 Oct: Watchdog's `/health` reads `{"ok":true,"mail":"verified",…}`; it has
+  not been disabled.
+
+## Watchdog review status, 27 Oct 2026
+
+- FACT (support ticket #5255645, Angel Santizo, 27 Oct 13:33 UTC, answering
+  Samet's 26 Oct follow-up): "Your submission is still standing in the review
+  queue and the version remains locked and unchanged on our end … there has
+  been movement on the review side. It is a matter of time before the team
+  reaches out to you directly with next steps." The same mail confirms
+  Update Mover (12189366, another session's app) is queued.
+- The answers for the reviewer's likely questions are ready in
+  `REVIEW-ANSWERS-WATCHDOG.md`.
