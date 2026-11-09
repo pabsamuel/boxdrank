@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createMondayStorage, MAX_KEY_LENGTH } from '../src/server/monday-storage.js';
+import { createMondayStorage, MAX_KEY_LENGTH, RETENTION_TTL_SECONDS } from '../src/server/monday-storage.js';
 
 /** Stands in for the SDK's Storage, which the real adapter builds on demand. */
 function fakeStorage(responses = {}) {
@@ -29,8 +29,36 @@ test('it presents the same get/set interface runCheck already takes', async () =
 
   assert.deepEqual(calls, [
     ['get', 'watchdog:state:v1:acct'],
-    ['set', 'watchdog:state:v1:acct', { silentSince: 6 }],
+    ['set', 'watchdog:state:v1:acct', '{"silentSince":6}'],
   ]);
+});
+
+/** Behaves like the real service: whatever it is given, it keeps String(value). */
+function stringStore() {
+  const data = new Map();
+  return () => ({
+    async get(key) { return { success: true, value: data.get(key) }; },
+    async set(key, value) { data.set(key, String(value)); return { success: true, version: '1' }; },
+  });
+}
+
+test('objects survive a round trip through a store that keeps only strings', async () => {
+  // Seen live on 9 Nov 2026: objects were stored as "[object Object]", so the
+  // alert state and the run log were lost on every run.
+  const storage = build(stringStore());
+  const runs = [{ at: 2, watched: 3, silent: 1, sent: true }, { at: 1, watched: 3, silent: 0, sent: false }];
+  await storage.set('watchdog:runs:v1:1', runs);
+  await storage.set('watchdog:state:v1:1', { 'b:a:e': { silentSince: 5 } });
+
+  assert.deepEqual(await storage.get('watchdog:runs:v1:1'), runs);
+  assert.deepEqual(await storage.get('watchdog:state:v1:1'), { 'b:a:e': { silentSince: 5 } });
+});
+
+test('a value left by the old adapter reads as no state instead of breaking the check', async () => {
+  for (const legacy of ['[object Object]', '[object Object],[,o,b,j,e,c,t, ,O,b,j,e,c,t,],,,[,,,o']) {
+    const { factory } = fakeStorage({ get: { success: true, value: legacy } });
+    assert.equal(await build(factory).get('k'), null);
+  }
 });
 
 test('a missing key reads as no state, not as a failure', async () => {
@@ -77,6 +105,25 @@ test('the storage client is built once and reused', async () => {
   await storage.get('a');
   await storage.set('b', {});
   assert.equal(built, 1);
+});
+
+test('every write expires within 10 days, so an uninstalled account\'s data deletes itself', async () => {
+  // monday's review: End User Data must be deleted within 10 days of an
+  // uninstall. The app cannot delete Storage then (the token is revoked), so
+  // each write carries a ttl and the daily check keeps refreshing it.
+  const options = [];
+  const factory = () => ({
+    async get() { return { success: true, value: null }; },
+    async set(key, value, opts) { options.push(opts); return { success: true }; },
+  });
+  const storage = build(factory);
+  await storage.set('watchdog:state:v1:1', {});
+  await storage.set('watchdog:runs:v1:1', []);
+
+  assert.equal(RETENTION_TTL_SECONDS, 9 * 24 * 3600);
+  assert.ok(RETENTION_TTL_SECONDS < 10 * 24 * 3600, 'under the 10-day limit');
+  assert.ok(RETENTION_TTL_SECONDS <= 30 * 24 * 3600, 'within monday\'s 30-day ttl cap');
+  assert.deepEqual(options, [{ ttl: RETENTION_TTL_SECONDS }, { ttl: RETENTION_TTL_SECONDS }]);
 });
 
 test('a missing token fails loudly rather than reading nothing', () => {

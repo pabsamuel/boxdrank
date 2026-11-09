@@ -1,6 +1,6 @@
 # Automation Watchdog — Privacy Policy
 
-_Last updated: 27 September 2026_
+_Last updated: 9 November 2026_
 
 > **Before publishing:** replace the `[FILL IN]` values (the operator's name or
 > company, and a support email address — monday requires the same entity name
@@ -62,14 +62,15 @@ servers we run.
 | What | Where | Kept until |
 |---|---|---|
 | The account's access token, the installer's email address, the install time | monday code secure storage | **Deleted when the app is uninstalled** |
-| Alert state: a key per watched automation made of the board id, performer id and event type, with timestamps of when it went quiet and when we last told you | monday storage, separated per account | See below |
-| A log of recent checks: when each ran, how many automations were watched, how many had stopped, whether an email was sent, and a short error summary if the check failed | monday storage, separated per account | See below |
+| Alert state: a key per watched automation made of the board id, performer id and event type, with timestamps of when it went quiet and when we last told you | monday storage, separated per account | **Deleted automatically within 10 days of an uninstall** (see below) |
+| A log of recent checks: when each ran, how many automations were watched, how many had stopped, whether an email was sent, and a short error summary if the check failed | monday storage, separated per account | **Deleted automatically within 10 days of an uninstall** (see below) |
 
 Alert state and the check log contain **ids and timestamps, not names,
-addresses or tokens**. They cannot be deleted by us after an uninstall, because
-deleting them requires the account's access token and monday revokes that token
-at uninstall. Whether monday removes them on uninstall is not something we
-have been able to confirm.
+addresses or tokens**. Each is written with a 9-day expiry, which the daily
+check renews while the app is installed. After an uninstall nothing renews it,
+so monday storage **deletes both automatically within 9 days**, and always
+within 10 days of the uninstall. We can also remove an account's storage on
+request with monday's own tool for this.
 
 Mutes you set in the board view, and whether you have seen its welcome page,
 are stored **in your browser only**.

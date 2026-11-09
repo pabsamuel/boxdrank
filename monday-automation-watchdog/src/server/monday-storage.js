@@ -30,6 +30,45 @@
 export const MAX_KEY_LENGTH = 256;
 
 /**
+ * How long a value lives after its last write: 9 days.
+ *
+ * monday's review requires End User Data to be deleted within 10 days of an
+ * uninstall. This app cannot delete its per-account storage itself at that
+ * point: Storage needs the account's access token, and monday revokes it at
+ * uninstall. So every write sets a time to live instead. FACT (the SDK's
+ * README, `@mondaycom/apps-sdk` 3.3.2): `ttl` is "a time value in seconds,
+ * after which the value will be deleted"; monday's docs cap it at 30 days.
+ *
+ * The daily check rewrites both of the account's keys on every run, so an
+ * installed account never loses its state. After an uninstall nothing writes
+ * again, and the last write is at most a day old, so the data is gone within
+ * 9 days. The backstop is `mapps storage:remove-data -a <app> -c <account>`.
+ */
+export const RETENTION_TTL_SECONDS = 9 * 24 * 60 * 60;
+
+/**
+ * monday Storage keeps strings. Values go in as JSON text and come back parsed.
+ *
+ * FACT (`mapps storage:export -a 12249756 -c 36993937`, 9 Nov 2026): objects
+ * handed to `set` were stored as `"[object Object]"`, and the run log, read
+ * back as that string and spread into an array, had become
+ * `"[object Object],[,o,b,j,e,c,t, ,O,b,j,e,c,t,],…"`. So the alert state never
+ * survived a run and the board view never saw a run.
+ *
+ * A stored value that is not JSON is one of those old strings. It holds
+ * nothing recoverable, so it reads as no state rather than failing every check.
+ */
+function decode(value) {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * @param {object} options
  * @param {string} options.token Account access token from the OAuth flow.
  * @param {(token: string) => {get: Function, set: Function}} [options.storageFactory]
@@ -72,11 +111,11 @@ export function createMondayStorage({ token, storageFactory }) {
       if (result?.success === false) {
         throw new Error(`Reading watchdog state from monday storage failed: ${result.error ?? 'unknown error'}`);
       }
-      return result?.value ?? null;
+      return decode(result?.value);
     },
 
     async set(key, value) {
-      const result = await (await connect()).set(checkKey(key), value);
+      const result = await (await connect()).set(checkKey(key), JSON.stringify(value), { ttl: RETENTION_TTL_SECONDS });
       if (result?.success === false) {
         throw new Error(`Writing watchdog state to monday storage failed: ${result.error ?? 'unknown error'}`);
       }
