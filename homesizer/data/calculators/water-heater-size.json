@@ -1,0 +1,58 @@
+{
+  "id": "waterheater",
+  "slug": "what-size-water-heater-do-i-need",
+  "nav_label": "Water heater size",
+  "title": "What Size Water Heater Do I Need? (First Hour Rating Calculator)",
+  "h1": "Water heater sizing calculator",
+  "meta_description": "Size a tank water heater by first hour rating instead of guessing at gallons, or size a tankless unit by GPM and temperature rise.",
+  "engine": "waterheater",
+  "updated": "2026-09-15",
+  "intro": "Tank size in gallons is the number on the box and it is not the number that matters. A 40 gallon gas heater delivers more hot water in the first hour than a 50 gallon electric one, because recovery rate differs enormously between fuels. The spec to size against is first hour rating (FHR). Tick what happens during your household's busiest hour.",
+  "cta": "What happens in your busiest hour?",
+  "usage_items": [
+    { "name": "Shower", "gallons": 20, "default": 2 },
+    { "name": "Bath", "gallons": 36, "default": 0 },
+    { "name": "Shaving (with running tap)", "gallons": 2, "default": 0 },
+    { "name": "Hands / face washing", "gallons": 4, "default": 2 },
+    { "name": "Hand dishwashing or food prep", "gallons": 4, "default": 1 },
+    { "name": "Dishwasher cycle", "gallons": 14, "default": 0 },
+    { "name": "Clothes washer (warm)", "gallons": 30, "default": 0 }
+  ],
+  "inputs": [
+    { "key": "fuel", "label": "Fuel type", "type": "select", "default": "gas",
+      "options": [
+        { "value": "gas", "label": "Natural gas / propane" },
+        { "value": "electric", "label": "Electric resistance" },
+        { "value": "heatpump", "label": "Heat pump (hybrid)" }
+      ]
+    },
+    { "key": "groundtemp", "label": "Incoming water temperature", "type": "select", "default": "50",
+      "options": [
+        { "value": "65", "label": "Warm - Florida, south Texas, Hawaii" },
+        { "value": "57", "label": "Mild - Georgia, Arizona, southern California" },
+        { "value": "50", "label": "Average - most of the country" },
+        { "value": "42", "label": "Cold - upper Midwest, New England, mountains" }
+      ]
+    }
+  ],
+  "method_html": "<p><strong>Tank sizing: first hour rating.</strong> Add up the hot water your household actually draws in its busiest consecutive hour - typically a weekday morning. The DOE's per-use figures are the ones used here: 20 gallons for a shower, 36 for a bath, 14 for a dishwasher cycle, 30 for a warm clothes wash. That total is the FHR the heater has to meet. Match to a unit whose published FHR is within a gallon or two; buying far above it means paying to keep water hot that you never use.</p><p><strong>Why fuel changes the tank size.</strong> FHR is the tank volume plus whatever the burner or element can reheat during that hour. A gas burner recovers roughly 40 gallons an hour; a standard electric element manages around 20. So a 40 gal gas heater lands near 70 FHR while a 50 gal electric lands near 60 - the electric unit is bigger and delivers less. Heat pump water heaters sit in between and drop further in a cold garage, which is exactly where people install them.</p><p><strong>Tankless: GPM and temperature rise.</strong> Tankless units are not rated in gallons at all. You need the simultaneous flow you want (a modern shower is about 2.0 GPM, a kitchen tap 1.5) and the temperature rise from incoming groundwater to your target of about 120F. In Minnesota in February that rise is nearly 80F; in Florida it is 55F. The same unit delivers far fewer GPM in the cold case, which is why tankless sizing charts always list output by temperature rise and why an undersized tankless disappoints in exactly one season.</p><p><strong>Before you switch fuels:</strong> electric resistance to heat pump usually needs 7 ft of headroom, 700+ cubic feet of surrounding air or ducting, and a condensate drain. Gas to tankless usually needs a larger gas line (often 3/4 in) and a new vent. These retrofit costs frequently exceed the appliance.</p>",
+  "chart": {
+    "title": "Typical first hour rating by household",
+    "columns": ["Household", "Peak hour demand", "Gas tank", "Electric tank"],
+    "rows": [
+      ["1-2 people", "30-40 gal", "30 gal", "40 gal"],
+      ["2-3 people", "40-55 gal", "40 gal", "50 gal"],
+      ["3-4 people", "55-70 gal", "40-50 gal", "50-66 gal"],
+      ["4-5 people", "70-85 gal", "50 gal", "66-80 gal"],
+      ["5+ people or a soaking tub", "85-120 gal", "75 gal", "80 gal + or tankless"]
+    ]
+  },
+  "faqs": [
+    { "q": "Is a bigger tank always safer?", "a": "No. An oversized tank keeps more water hot around the clock for standby losses you pay for every day, costs more up front, and takes up floor space. The reason to size rather than guess is that the penalty runs in both directions." },
+    { "q": "Is a tankless water heater worth it?", "a": "It wins on endless hot water, on floor space, and on lifespan - 20 years against 10-12 for a tank. It loses on installed cost, which is often two to three times a tank replacement once the gas line and venting are done, and on the 'cold water sandwich' between draws. If your current tank is adequate and you are replacing it at end of life, the payback period is usually longer than people expect." },
+    { "q": "What temperature should I set it to?", "a": "The common guidance is 120F: hot enough for household use, below the point where a few seconds of contact scalds. The competing consideration is that Legionella survives below about 130F, which is why some plumbers and health authorities favour storing at 140F with a thermostatic mixing valve delivering 120F at the tap. If anyone in the house is immunocompromised, that is the setup worth asking about." },
+    { "q": "How long should a water heater last?", "a": "Tank units: 8-12 years, and much less in hard water unless the anode rod is replaced every 3-5 years, which almost nobody does. Tankless: 20 years, but they need descaling annually in hard water. If yours is over 10 and you are reading this because it failed, replace rather than repair." },
+    { "q": "Do heat pump water heaters work in a cold garage?", "a": "They work, with a caveat: they extract heat from surrounding air, so efficiency falls with ambient temperature and most models switch to resistance backup below roughly 40-45F. In an unheated northern garage you may be running expensive resistance heat through the winter and getting the efficiency only in summer. In a basement that stays above 50F they are excellent - and they dehumidify it as a side effect." }
+  ],
+  "related": ["what-size-generator-do-i-need", "mini-split-sizing-calculator"]
+}

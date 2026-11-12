@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ r.title }}{% endblock %}
+{% block description %}{{ r.meta_description }}{% endblock %}
+{% block head %}<script type="application/ld+json">{{ schema | safe }}</script>{% endblock %}
+{% block content %}
+<article class="wrap prose">
+  <nav class="crumbs"><a href="/">Home</a> › <a href="/guides/">Guides</a> › <span>{{ r.category }}</span></nav>
+  <h1>{{ r.h1 }}</h1>
+  {% if r.verified_on %}
+    <p class="verified">Specs and prices last checked <strong>{{ r.verified_on }}</strong>.</p>
+  {% else %}
+    <p class="unverified"><strong>Unverified data.</strong> This page has not had its specs and prices checked yet and must not be published in this state.</p>
+  {% endif %}
+  <p class="lede">{{ r.intro | safe }}</p>
+
+  {% if r.related_calculator %}
+  <p class="callout">Not sure what size you need yet? <a href="/{{ r.related_calculator }}/">Start with the sizing calculator</a> — it gives you the number this table is filtered against.</p>
+  {% endif %}
+
+  <div class="table-scroll">
+    <table class="specs">
+      <thead><tr>{% for c in r.columns %}<th>{{ c.label }}</th>{% endfor %}</tr></thead>
+      <tbody>
+      {% for p in r.products %}
+        <tr{% if not p.verified %} class="row-unverified"{% endif %}>
+          {% for c in r.columns %}
+          <td>
+            {% set v = p[c.key] %}
+            {% if c.key == 'model' and p.asin and site.amazon_tag %}
+              <a rel="sponsored nofollow" href="https://www.amazon.com/dp/{{ p.asin }}?tag={{ site.amazon_tag }}">{{ v }}</a>
+            {% elif c.key == 'price_usd' and v %}${{ v }}
+            {% elif v is none %}<span class="todo">TBD</span>
+            {% else %}{{ v }}{% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if site.adsense_client %}<div class="ad-slot" data-slot="under-table"></div>{% endif %}
+
+  <section><h2>What to look at beyond the wattage</h2>{{ r.buying_notes_html | safe }}</section>
+  <section><h2>Common questions</h2><div class="faqs">
+    {% for f in r.faqs %}<details{% if loop.first %} open{% endif %}><summary>{{ f.q }}</summary><div class="faq-body"><p>{{ f.a }}</p></div></details>{% endfor %}
+  </div></section>
+  <p class="updated muted small">Last reviewed {{ r.updated }} by {{ site.author }}.</p>
+</article>
+{% endblock %}

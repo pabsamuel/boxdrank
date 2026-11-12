@@ -1,0 +1,45 @@
+{
+  "id": "purifier",
+  "slug": "what-size-air-purifier-do-i-need",
+  "nav_label": "Air purifier CADR",
+  "title": "What Size Air Purifier Do I Need? (CADR Calculator)",
+  "h1": "Air purifier size & CADR calculator",
+  "meta_description": "Convert your room size and target air changes per hour into the CADR rating an air purifier actually needs. Includes what manufacturer coverage claims leave out.",
+  "engine": "purifier",
+  "updated": "2026-09-15",
+  "intro": "Manufacturer coverage claims (\"up to 1,500 sq ft!\") are usually quoted at two air changes per hour, which is fine for background odour and useless for allergies or wildfire smoke. The number that matters is CADR, measured in CFM, and it is the one spec that is independently verified. Put in your room and how hard you need the air worked.",
+  "cta": "Describe the room",
+  "inputs": [
+    { "key": "area", "label": "Room floor area", "type": "number", "unit": "sq ft", "default": 300, "min": 30, "max": 3000, "step": 10 },
+    { "key": "ceiling", "label": "Ceiling height", "type": "number", "unit": "ft", "default": 8, "min": 7, "max": 20, "step": 0.5 },
+    { "key": "ach", "label": "What are you dealing with?", "type": "select", "default": "4",
+      "options": [
+        { "value": "2", "label": "General freshness, light odours", "ach": 2 },
+        { "value": "4", "label": "Allergies, pets, dust", "ach": 4 },
+        { "value": "5", "label": "Asthma, wildfire smoke, new baby", "ach": 5 },
+        { "value": "6", "label": "Heavy smoke, renovation dust, serious sensitivity", "ach": 6 }
+      ]
+    },
+    { "key": "openplan", "label": "Room opens into another space (no door)", "type": "checkbox", "default": false }
+  ],
+  "method_html": "<p><strong>The calculation.</strong> Room volume is floor area times ceiling height. To change that volume N times an hour you need volume x N cubic feet per hour, and CADR is quoted per minute, so you divide by 60. A 300 sq ft room with 8 ft ceilings is 2,400 cubic feet; at 4 air changes per hour that is 9,600 ft3/hr, which is <strong>160 CFM of CADR</strong>.</p><p><strong>Why the '2/3 rule' exists.</strong> AHAM's familiar shorthand - CADR should be at least two-thirds of the room's square footage - is the same arithmetic frozen at an 8 ft ceiling and about 4.8 air changes per hour. It is a reasonable default and it is why this calculator and that rule agree for ordinary rooms. They diverge exactly where it matters: vaulted ceilings, and anyone who needs more than background filtration.</p><p><strong>The three CADR numbers.</strong> Purifiers are rated separately for smoke, dust and pollen. Smoke is the smallest particle and therefore the hardest, so the smoke CADR is always the lowest of the three and is the one to size against. A unit advertised on its pollen CADR is being advertised on its best number.</p><p><strong>Open plan.</strong> Air does not respect the boundary you drew on the floor plan. If the room has no door, this adds 40% to the requirement, and even then a single unit in a large open space will do noticeably better near the source than across the room.</p><p><strong>The catch nobody mentions:</strong> rated CADR is measured at maximum fan speed, which on most units is loud enough that people run them two settings lower and get perhaps 40% of the rated airflow. Buying one size up and running it at medium is quieter, uses less energy per unit of air cleaned, and is the single most useful thing to know before choosing.</p>",
+  "chart": {
+    "title": "Required smoke CADR by room size (8 ft ceilings)",
+    "columns": ["Room size", "General (2 ACH)", "Allergies (4 ACH)", "Asthma / smoke (5 ACH)"],
+    "rows": [
+      ["150 sq ft bedroom", "40 CFM", "80 CFM", "100 CFM"],
+      ["250 sq ft bedroom", "67 CFM", "133 CFM", "167 CFM"],
+      ["400 sq ft living room", "107 CFM", "213 CFM", "267 CFM"],
+      ["600 sq ft open plan", "160 CFM", "320 CFM", "400 CFM"],
+      ["1,000 sq ft great room", "267 CFM", "533 CFM", "667 CFM"]
+    ]
+  },
+  "faqs": [
+    { "q": "Is HEPA enough, or do I need a carbon filter too?", "a": "HEPA handles particles - dust, pollen, dander, smoke particulate. It does nothing for gases and odours, which need activated carbon. Wildfire smoke is both: the particulate is the health concern and HEPA catches it, the smell is VOCs and needs carbon. A thin carbon-impregnated pre-filter is mostly marketing; meaningful gas removal needs a carbon bed measured in pounds, not grams." },
+    { "q": "Should I avoid ionizers and UV?", "a": "Ionizers and some 'plasma' technologies can generate ozone, which is itself a lung irritant, and California maintains a list of air cleaners certified as ozone-safe for sale in the state. UV lamps inside a consumer purifier have contact times measured in fractions of a second, which is generally too short to do much. Mechanical filtration - a real HEPA filter and a fan strong enough to move your room's air - is the part with good evidence behind it." },
+    { "q": "One purifier for the whole house, or one per room?", "a": "Per room, and prioritise the bedroom. You spend a third of your life there with the door closed, which is the one time a purifier gets to work on a sealed volume. A single central unit fights the whole house's air exchange and generally loses." },
+    { "q": "How often do filters really need changing?", "a": "HEPA: 6-12 months typically, sooner in a smoky or high-dust environment. Carbon saturates faster, often 3-6 months, and gives no visual sign - once it is full it simply stops adsorbing. Budget for filters before you buy the unit; over five years, filters often cost more than the purifier did." },
+    { "q": "Can I just build a box fan and filter instead?", "a": "A Corsi-Rosenthal box - a box fan with four MERV-13 filters taped into a cube - delivers CADR in the 300-600 CFM range for around $70 in parts, which beats most consumer purifiers on airflow per dollar by a wide margin. It is loud and it looks like what it is. For a workshop, a nursery during wildfire season, or a temporary problem, it is genuinely the better buy." }
+  ],
+  "related": ["mini-split-sizing-calculator", "what-size-water-heater-do-i-need"]
+}

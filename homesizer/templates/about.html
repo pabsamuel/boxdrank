@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}About — {{ site.name }}{% endblock %}
+{% block description %}Who runs {{ site.name }}, how the calculators are built, and how the site makes money.{% endblock %}
+{% block head %}<script type="application/ld+json">{{ schema | safe }}</script>{% endblock %}
+{% block content %}
+<div class="wrap prose">
+  <h1>About {{ site.name }}</h1>
+  <h2>Who writes this</h2>
+  <p>{{ site.author_bio }}</p>
+  <h2>How the calculators are built</h2>
+  <p>Every calculator on this site shows its formula on the same page as its answer, under "How this is calculated". The inputs come from published standards and manufacturer sizing practice — AHAM for dehumidifier and air purifier capacity, DOE first-hour-rating figures for water heaters, and the ceiling-height-over-two convention for downlight spacing. Where a rule of thumb stops being good enough, the page says so and says what to do instead.</p>
+  <h2>What this site is not</h2>
+  <p>It is not a substitute for a Manual J load calculation, a licensed electrician, or your local code. Sizing is the part you can do at the kitchen table; installation generally is not.</p>
+  <h2>How it makes money</h2>
+  <p>Display advertising, and affiliate commission on some product links — marked as such, and they never change which product the table recommends or what the calculator outputs. The spec tables carry the date they were last checked, because a price table without a date is a price table nobody maintains.</p>
+  <h2>Corrections</h2>
+  <p>If a number here is wrong, say so and it gets fixed and re-dated. Contact: <strong>CHANGE ME</strong></p>
+</div>
+{% endblock %}

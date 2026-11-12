@@ -1,0 +1,13 @@
+{
+  "name": "seatguard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "monday.com seat and permission auditor",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "audit": "node src/cli.js fixtures/demo-account.json",
+    "demo": "node src/cli.js fixtures/demo-account.json --html seatguard-report.html"
+  },
+  "engines": { "node": ">=20" }
+}

@@ -1,0 +1,59 @@
+{
+  "slug": "best-portable-generators-home-backup",
+  "title": "Portable Generators for Home Backup: Specs Compared",
+  "h1": "Portable generators for home backup, compared by spec",
+  "meta_description": "Running watts, surge watts, noise, run time and fuel type for portable home backup generators, in one table. Prices and specs re-checked monthly.",
+  "category": "Generators",
+  "updated": "2026-09-15",
+  "verified_on": null,
+  "intro": "This is a spec table, not a ranking. Which generator is right for you comes out of the <a href=\"/what-size-generator-do-i-need/\">sizing calculator</a>; this page exists so you can see which real units meet the number you got, what they cost, and how loud they are at the distance you would actually stand from one.",
+  "columns": [
+    { "key": "model", "label": "Model" },
+    { "key": "running_w", "label": "Running W" },
+    { "key": "surge_w", "label": "Surge W" },
+    { "key": "fuel", "label": "Fuel" },
+    { "key": "noise_dba", "label": "Noise (dBA @ 23 ft)" },
+    { "key": "runtime_50pct", "label": "Run time @ 50%" },
+    { "key": "weight_lb", "label": "Weight (lb)" },
+    { "key": "price_usd", "label": "Price" }
+  ],
+  "products": [
+    {
+      "model": "PLACEHOLDER - inverter, ~2200W class",
+      "running_w": null, "surge_w": null, "fuel": null, "noise_dba": null,
+      "runtime_50pct": null, "weight_lb": null, "price_usd": null,
+      "asin": null, "verdict": null, "verified": false
+    },
+    {
+      "model": "PLACEHOLDER - inverter, ~3500W class",
+      "running_w": null, "surge_w": null, "fuel": null, "noise_dba": null,
+      "runtime_50pct": null, "weight_lb": null, "price_usd": null,
+      "asin": null, "verdict": null, "verified": false
+    },
+    {
+      "model": "PLACEHOLDER - dual fuel, ~5500W class",
+      "running_w": null, "surge_w": null, "fuel": null, "noise_dba": null,
+      "runtime_50pct": null, "weight_lb": null, "price_usd": null,
+      "asin": null, "verdict": null, "verified": false
+    },
+    {
+      "model": "PLACEHOLDER - open frame, ~7500W class",
+      "running_w": null, "surge_w": null, "fuel": null, "noise_dba": null,
+      "runtime_50pct": null, "weight_lb": null, "price_usd": null,
+      "asin": null, "verdict": null, "verified": false
+    },
+    {
+      "model": "PLACEHOLDER - open frame, ~9500W class",
+      "running_w": null, "surge_w": null, "fuel": null, "noise_dba": null,
+      "runtime_50pct": null, "weight_lb": null, "price_usd": null,
+      "asin": null, "verdict": null, "verified": false
+    }
+  ],
+  "buying_notes_html": "<p>Three things decide this purchase once the wattage is settled:</p><ul><li><strong>Noise.</strong> Published figures are measured at 23 ft and at partial load. An open-frame generator at 74 dBA and an inverter at 57 dBA are not a small difference - dBA is logarithmic, and that gap is roughly the difference between a vacuum cleaner and a conversation. If the generator will run outside a bedroom window for three days, this matters more than the price.</li><li><strong>Dual fuel.</strong> Propane stores indefinitely, gasoline does not. A dual fuel unit lets you keep two 20 lb tanks in the garage for years without stabiliser or rotation, at the cost of roughly 10% output on propane.</li><li><strong>Starting method.</strong> Recoil-only on anything above about 5,000 W is genuinely hard work. Electric start is worth the premium if anyone other than you might need to start it.</li></ul>",
+  "faqs": [
+    { "q": "How do I know what size I need?", "a": "Use the sizing calculator on this site - tick the appliances you want running and it gives you running watts, surge watts and the generator class that covers both. Buying by 'house size' is the usual mistake; a 3,000 sq ft house running four appliances needs less than a 1,200 sq ft house running a well pump and central air." },
+    { "q": "Portable or standby?", "a": "Standby generators start automatically, run on natural gas or a large propane tank, and cover the whole house - and installed, they are typically a five-figure job. Portables cost a tenth of that and require you to be home, awake, and willing to run cords or flip an interlock. The deciding question is usually how often your power goes out and whether anything in the house (a sump pump, medical equipment) cannot wait for you to get home." },
+    { "q": "Can I run it in the garage with the door open?", "a": "No. Carbon monoxide from a generator kills people every storm season, and an open garage door does not provide anywhere near enough ventilation. Outdoors only, at least 20 ft from the house, exhaust pointed away from doors and windows. Buy one with a CO shutoff sensor - it is now standard on most units and it is the single feature most worth insisting on." }
+  ],
+  "related_calculator": "what-size-generator-do-i-need"
+}
