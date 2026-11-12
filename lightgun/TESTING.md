@@ -21,7 +21,22 @@ calibration, smoothing lag and jitter, and degenerate rays.
 `npm run test:e2e` runs the actual display client in headless Chromium and drives it with a simulated
 6DoF phone speaking the real protocol over a real WebSocket: full calibration, 60 Hz aim streaming,
 shots at all nine test markers, a game round, and a "player walks 0.9 m" stage. It writes screenshots
-to `docs/`.
+to `docs/`. It then abuses the relay (floods, oversized frames, room capacity, cross-room leakage) and
+finally measures the display UI at 1920x1080.
+
+That last suite, `tests/ui.js`, exists because two defects got through review by looking fine:
+
+- the HUD sat at `y=0`, where a television's overscan crops it — so it checks every readable element
+  against a 5% title-safe inset, and against the ~22px floor for text read from a sofa;
+- the results buttons were 5.9% of screen height while the gun's own measured p95 aim error is 4.9%
+  of screen *width* — 8.7% of height on 16:9. The buttons were smaller than the error being aimed at
+  them. It now asserts every shootable target, and the gap between targets, beats that measured
+  error, because Fitts's law applies to the pointer you actually have and not to a mouse.
+
+It also checks that the crosshair draws *above* the results panel (it used to draw underneath an
+opaque overlay, so "shoot here" had no visible pointer), that muted colours hold 7:1 against the
+background rather than the 4.5:1 web floor, and that the combo and the "new best" flag appear only
+when they are true.
 
 Current results are in [PROGRESS.md](PROGRESS.md#measurements).
 

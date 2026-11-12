@@ -163,3 +163,28 @@ button { font-family: inherit; font-weight: 700; border: 0; cursor: pointer; }
   color: var(--dim);
   font-weight: 600;
 }
+
+/* Set the TV size here rather than at the laptop: the person holding the phone
+   is the one standing in front of the television. */
+.tvsize {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 340px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+.tvsize select {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--fg);
+  font: inherit;
+  font-size: 17px;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 12px;
+  border-radius: 12px;
+}

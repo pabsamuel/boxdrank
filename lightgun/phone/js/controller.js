@@ -25,7 +25,7 @@ const ui = {
   state: $('stateLabel'), track: $('trackPill'), instruction: $('instruction'),
   trigger: $('trigger'), triggerLabel: $('triggerLabel'),
   recal: $('recalBtn'), reload: $('reloadBtn'), diagBtn: $('diagBtn'), quit: $('quitBtn'),
-  gestureBtn: $('gestureBtn'),
+  gestureBtn: $('gestureBtn'), tvSize: $('tvSize'),
   diag: $('diag'),
 };
 
@@ -123,6 +123,10 @@ net.on('config', (m) => {
   if (m.filter) {
     app.filterX = new OneEuro(m.filter);
     app.filterY = new OneEuro(m.filter);
+  }
+  if (m.screen && m.screen.diagInches && ui.tvSize) {
+    const v = String(m.screen.diagInches);
+    if ([...ui.tvSize.options].some((o) => o.value === v)) ui.tvSize.value = v;
   }
   if (m.screen && m.screen.diagInches) {
     const { widthM, heightM } = screenMetricsFromDiagonal(
@@ -536,6 +540,11 @@ ui.fallbackBtn.addEventListener('click', async () => {
   } catch (err) {
     ui.hint.textContent = `Could not read motion sensors: ${err && err.message}`;
   }
+});
+
+ui.tvSize.addEventListener('change', () => {
+  net.send({ t: 'setScreen', diagInches: Number(ui.tvSize.value) });
+  haptic('tick');
 });
 
 ui.gestureBtn.addEventListener('click', async () => {

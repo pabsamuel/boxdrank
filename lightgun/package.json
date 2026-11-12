@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node tools/doctor.js --brief && node server/server.js",
     "test": "node tests/run.js && node tests/trace.js && node tests/gesture.js",
-    "test:e2e": "node tests/e2e.js && node tests/relay.js",
+    "test:e2e": "node tests/e2e.js && node tests/relay.js && node tests/ui.js",
     "doctor": "node tools/doctor.js"
   },
   "dependencies": {

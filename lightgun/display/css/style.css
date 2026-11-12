@@ -1,7 +1,7 @@
 :root {
   --bg: #07090e;
   --fg: #eef3fb;
-  --dim: #8794aa;
+  --dim: #a3aec2;   /* ~9:1 on --bg; the web 4.5:1 floor is not enough on a TV */
   --accent: #ff4d3d;
   --p1: #35d0ff;
   --p2: #ffd23d;
@@ -21,64 +21,190 @@ html, body {
 }
 
 #stage { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+
+/* Above every panel, so the crosshair is never hidden by the UI it is aimed at. */
+.pointer { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; z-index: 30; pointer-events: none; }
 .hidden { display: none !important; }
 
 /* ------------------------------------------------------------------ lobby */
+/* */
+/* Sized for a 10-foot UI, not a desktop. Body copy on a 1080p TV is unreadable */
+/* below roughly 22-28px, and the room code is the one thing everyone in the */
+/* room needs to read at once, so it is the largest element on screen. The QR */
+/* sits beside it as the fast path rather than above it as the only path. */
 
 .panel-full {
   position: fixed;
   inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4vw;
-  padding: 5vh 6vw;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: 1fr auto;
+  gap: 3vh 4vw;
+  /* Title-safe: many sets crop the edges, by varying amounts. */
+  padding: 6vh 6vw;
   background:
     radial-gradient(1200px 700px at 20% 15%, rgba(255, 77, 61, 0.12), transparent 60%),
     radial-gradient(900px 600px at 85% 80%, rgba(53, 208, 255, 0.10), transparent 60%),
     var(--bg);
 }
-.lobby-left { max-width: 46vw; }
-h1 { margin: 0; font-size: clamp(40px, 6vw, 92px); letter-spacing: 0.12em; font-weight: 900; }
+
+.lobby-main { min-width: 0; align-self: center; }
+.lobby-side { align-self: center; justify-self: end; width: min(30vw, 400px); }
+.lobby-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 3vw;
+}
+
+h1 { margin: 0; font-size: clamp(44px, 5.5vw, 96px); letter-spacing: 0.12em; font-weight: 900; }
 h1 span { color: var(--accent); }
-.tagline { margin: 0.2em 0 1.4em; color: var(--dim); font-size: clamp(14px, 1.4vw, 22px); letter-spacing: 0.08em; }
+.tagline {
+  margin: 0.3em 0 1.1em;
+  color: var(--dim);
+  font-size: clamp(22px, 1.9vw, 34px);
+  letter-spacing: 0.06em;
+}
 
-.settings { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: flex-end; }
-.settings label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; letter-spacing: 0.14em; color: var(--dim); text-transform: uppercase; }
-.settings select, .settings input {
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+/* ------------------------------------------------------------ join steps */
+
+.join { list-style: none; margin: 0; padding: 0; display: grid; gap: clamp(18px, 2.4vh, 34px); }
+.join li { display: flex; flex-direction: column; gap: 4px; }
+.join-label {
+  font-size: clamp(20px, 1.5vw, 26px);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.join-url {
+  font: 600 clamp(24px, 2.4vw, 44px)/1.2 ui-monospace, "SF Mono", Menlo, monospace;
   color: var(--fg);
-  font: inherit;
-  font-size: 16px;
-  padding: 8px 10px;
-  border-radius: 8px;
+  word-break: break-all;
 }
-.note { flex-basis: 100%; margin: 4px 0 0; color: var(--dim); font-size: 13px; max-width: 42ch; line-height: 1.5; }
+/* The hero. Everyone in the room reads this one from the sofa. */
+.join-code {
+  font-size: clamp(64px, 9vw, 150px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  text-shadow: 0 0 60px rgba(255, 77, 61, 0.35);
+}
 
-.players { margin-top: 26px; display: flex; gap: 14px; flex-wrap: wrap; min-height: 74px; }
+/* -------------------------------------------------------------- players */
+
+.players { margin-top: clamp(24px, 4vh, 54px); display: flex; gap: 18px; flex-wrap: wrap; min-height: 96px; }
 .player {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 12px;
-  padding: 10px 16px;
-  min-width: 190px;
-  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px;
+  padding: 14px 22px;
+  min-width: 230px;
+  background: rgba(255, 255, 255, 0.05);
 }
-.player .name { font-weight: 800; letter-spacing: 0.1em; }
-.player .meta { color: var(--dim); font-size: 12px; margin-top: 4px; line-height: 1.5; }
+.player .name { font-weight: 800; letter-spacing: 0.1em; font-size: clamp(22px, 1.8vw, 30px); }
+.player .meta { color: var(--dim); font-size: clamp(16px, 1.2vw, 22px); margin-top: 6px; line-height: 1.5; }
 .player.p1 { border-color: var(--p1); }
 .player.p2 { border-color: var(--p2); }
-.player.waiting { opacity: 0.45; }
+.player.waiting { opacity: 0.5; }
 
-.keys { margin-top: 28px; color: var(--dim); font-size: 13px; letter-spacing: 0.06em; }
-.keys b { color: var(--fg); background: rgba(255, 255, 255, 0.1); padding: 2px 7px; border-radius: 5px; }
+/* ------------------------------------------------------------------- QR */
 
-.qr-card { background: #fff; color: #111; border-radius: 20px; padding: 22px; text-align: center; width: min(34vw, 420px); }
+.qr-card { background: #fff; color: #111; border-radius: 20px; padding: 18px; text-align: center; }
 .qr-card img { width: 100%; display: block; border-radius: 10px; image-rendering: pixelated; }
-.qr-card .room { margin-top: 12px; font-size: 16px; letter-spacing: 0.2em; color: #444; }
-.qr-card .room b { font-size: 26px; color: #111; }
-.qr-card .url { margin-top: 6px; font: 13px ui-monospace, Menlo, monospace; color: #555; word-break: break-all; }
-.qr-card .warn { margin-top: 12px; font-size: 12px; line-height: 1.5; color: #8a5a00; background: #fff4d6; border-radius: 8px; padding: 8px 10px; }
+.qr-cap {
+  margin-top: 10px;
+  font-size: clamp(16px, 1.2vw, 22px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #555;
+}
+
+.lobby-side .warn {
+  margin-top: 14px;
+  font-size: clamp(15px, 1.1vw, 20px);
+  line-height: 1.5;
+  color: #ffd79a;
+  background: rgba(255, 176, 32, 0.12);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.lobby-side .addr { margin-top: 12px; font-size: clamp(14px, 1vw, 18px); color: var(--dim); }
+.lobby-side .addr select {
+  width: 100%;
+  margin-top: 6px;
+  font: 16px ui-monospace, Menlo, monospace;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--fg);
+}
+
+/* ------------------------------------------- settings (operated by mouse) */
+/* */
+/* Deliberately the quietest thing on screen: it is used once, up close, by */
+/* whoever is at the laptop — and it competes with the code for attention if */
+/* given the same weight. */
+
+.settings { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; }
+.settings label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+.settings select, .settings input {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--fg);
+  font: inherit;
+  font-size: 18px;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+.note { flex-basis: 100%; margin: 2px 0 0; color: var(--dim); font-size: 15px; max-width: 48ch; line-height: 1.5; }
+.keys-hint { color: var(--dim); font-size: 16px; letter-spacing: 0.08em; white-space: nowrap; }
+.keys-hint b {
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.12);
+  padding: 3px 9px;
+  border-radius: 6px;
+}
+
+/* --------------------------------------------------------- keys overlay */
+
+.keys-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(7, 9, 14, 0.92);
+  z-index: 40;   /* above the pointer layer: nothing is aimed at while it is up */
+}
+.keys-panel { text-align: center; }
+.keys-panel h2 { margin: 0 0 24px; font-size: clamp(28px, 3vw, 46px); letter-spacing: 0.3em; color: var(--dim); }
+.keys-panel dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px 20px;
+  margin: 0;
+  text-align: left;
+  font-size: clamp(18px, 1.5vw, 26px);
+}
+.keys-panel dt {
+  font-weight: 900;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 2px 12px;
+  text-align: center;
+}
+.keys-panel dd { margin: 0; color: var(--dim); }
+.keys-panel p { margin-top: 28px; color: var(--dim); font-size: 16px; letter-spacing: 0.14em; }
 
 /* --------------------------------------------------------------- overlays */
 
@@ -102,18 +228,67 @@ h1 span { color: var(--accent); }
   pointer-events: none;
 }
 
+/* ------------------------------------------------------------------- HUD */
+/* */
+/* Title-safe: a television crops its edges by an amount nobody can predict */
+/* (5% is the usual planning figure), and the HUD is the one thing a player */
+/* reads mid-round — at 0px from the top it is the first thing to be cut. */
+/* Hierarchy matters as much as size: score and time are what the player is */
+/* playing against, the combo is transient, the best score is reference. */
+
 .hud {
   position: fixed;
   top: 0; left: 0; right: 0;
-  display: flex;
-  justify-content: space-around;
-  padding: 18px 4vw;
-  background: linear-gradient(rgba(0, 0, 0, 0.55), transparent);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;   /* keeps the clock centred regardless */
+  align-items: start;
+  gap: 2vw;
+  padding: 4.5vh 5vw 3vh;
+  background: linear-gradient(rgba(0, 0, 0, 0.6), transparent);
   pointer-events: none;
 }
-.hud-item { text-align: center; }
-.hud-item span { display: block; font-size: 12px; letter-spacing: 0.22em; color: var(--dim); }
-.hud-item b { font-size: clamp(26px, 3.4vw, 54px); font-weight: 900; }
+.hud-group { display: flex; gap: clamp(20px, 2.6vw, 48px); align-items: baseline; }
+.hud-group.right { justify-content: flex-end; }
+
+.hud-item span {
+  display: block;
+  font-size: clamp(15px, 1.05vw, 20px);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.hud-item b {
+  display: block;
+  font-variant-numeric: tabular-nums;   /* so a changing digit does not shuffle */
+  font-weight: 900;
+  line-height: 1;
+}
+.hud-item.primary b { font-size: clamp(34px, 3.6vw, 62px); }
+.hud-item.primary.time { text-align: center; }
+.hud-item.quiet { opacity: 0.6; }
+.hud-item.quiet b { font-size: clamp(20px, 1.8vw, 30px); }
+
+/* The clock only shouts in the last ten seconds — a permanently red timer is */
+/* just a red timer. */
+.hud-item.time.urgent b { color: var(--accent); animation: tick 1s steps(1) infinite; }
+@keyframes tick { 0% { opacity: 1; } 50% { opacity: 0.45; } 100% { opacity: 1; } }
+
+/* The combo is the one number worth celebrating, and it does not exist at x1. */
+.hud-item.combo { text-align: right; }
+.hud-item.combo span { color: var(--p2); opacity: 0.85; }
+.hud-item.combo b {
+  font-size: clamp(30px, 3vw, 52px);
+  color: var(--p2);
+  text-shadow: 0 0 36px rgba(255, 210, 61, 0.5);
+}
+.hud-item.combo { animation: comboIn 180ms ease-out; }
+@keyframes comboIn { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* A score that changes silently is a score nobody notices changing. */
+.hud-item.pop b { animation: pop 220ms ease-out; }
+@keyframes pop { 0% { transform: scale(1); } 35% { transform: scale(1.22); } 100% { transform: scale(1); } }
+
+/* --------------------------------------------------------------- results */
 
 .results {
   position: fixed;
@@ -122,22 +297,125 @@ h1 span { color: var(--accent); }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  background: rgba(7, 9, 14, 0.88);
+  gap: clamp(8px, 1.4vh, 20px);
+  padding: 6vh 6vw;
+  background: rgba(7, 9, 14, 0.9);
 }
-.results h2 { margin: 0; font-size: clamp(24px, 3vw, 44px); letter-spacing: 0.3em; color: var(--dim); }
-.final { font-size: clamp(60px, 12vw, 180px); font-weight: 900; line-height: 1; }
-.breakdown { color: var(--dim); letter-spacing: 0.1em; text-align: center; line-height: 1.8; }
-.actions { margin-top: 18px; display: flex; gap: 18px; align-items: center; color: var(--dim); font-size: 13px; letter-spacing: 0.1em; flex-wrap: wrap; justify-content: center; }
-.btn {
-  border: 2px solid var(--accent);
-  border-radius: 12px;
-  padding: 16px 30px;
+.results h2 {
+  margin: 0;
+  font-size: clamp(22px, 2.4vw, 38px);
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.final {
+  font-size: clamp(60px, 11vw, 170px);
   font-weight: 900;
-  letter-spacing: 0.18em;
-  color: var(--fg);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
-.btn.hot { background: var(--accent); }
+.best-flag {
+  font-size: clamp(18px, 1.6vw, 28px);
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #0a0d14;
+  background: var(--p2);
+  border-radius: 999px;
+  padding: 6px 22px;
+}
+
+/* Numbers read faster in a labelled row than in a sentence of capitals. */
+.breakdown { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(18px, 3vw, 52px); margin-top: 0.4em; }
+.breakdown .stat { text-align: center; }
+.breakdown .stat span {
+  display: block;
+  font-size: clamp(14px, 1vw, 19px);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.breakdown .stat b { font-size: clamp(22px, 2vw, 34px); font-weight: 900; font-variant-numeric: tabular-nums; }
+.breakdown .stat.warn b { color: var(--accent); }
+
+/* ------------------------------------------------- shootable targets */
+/* */
+/* These are aimed at with the gun, so Fitts's law applies to the gun's */
+/* measured error and not to a mouse: p95 aim error is ~4.9% of screen */
+/* width, which on 16:9 is 8.7% of screen height. A 6%-tall button is */
+/* therefore smaller than the error that will be aimed at it — unhittable. */
+/* min-height 15vh leaves roughly 1.7x the p95 error in the tight axis. */
+
+.targets {
+  margin-top: clamp(14px, 2.5vh, 34px);
+  display: flex;
+  gap: clamp(28px, 6vw, 130px);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.target {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: clamp(240px, 26vw, 460px);
+  min-height: 15vh;
+  padding: clamp(16px, 2.4vh, 32px) clamp(24px, 3vw, 54px);
+  border: 3px solid var(--accent);
+  border-radius: 20px;
+  background: rgba(255, 77, 61, 0.08);
+  color: var(--fg);
+  font: inherit;
+  cursor: none;
+  transition: background 90ms linear, transform 90ms ease-out;
+}
+.target-label {
+  font-size: clamp(24px, 2.2vw, 38px);
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.target-sub {
+  font-size: clamp(15px, 1.1vw, 21px);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+/* Lit while a crosshair is inside it: the only aiming feedback that tells a */
+/* player "this will fire at the button" before they pull the trigger. */
+/* Recalibrating is the rare choice and the expensive misfire, so it reads as */
+/* secondary from across the room: same size — it still has to be hittable — */
+/* but it does not compete with the action everyone wants. */
+.target.secondary {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.04);
+}
+.target.secondary .target-label { color: var(--dim); }
+.target.secondary.hot { background: rgba(255, 255, 255, 0.92); box-shadow: 0 0 60px rgba(255, 255, 255, 0.3); }
+
+.target.hot {
+  background: var(--accent);
+  transform: scale(1.03);
+  box-shadow: 0 0 60px rgba(255, 77, 61, 0.45);
+}
+.target.hot .target-sub { color: rgba(10, 13, 20, 0.75); }
+.target.hot .target-label { color: #0a0d14; }
+
+.results-hint {
+  margin: clamp(10px, 2vh, 26px) 0 0;
+  color: var(--dim);
+  font-size: clamp(15px, 1.2vw, 22px);
+  letter-spacing: 0.1em;
+}
+.results-hint b {
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.12);
+  padding: 2px 9px;
+  border-radius: 6px;
+  font-weight: 900;
+}
 
 .diag {
   position: fixed;
