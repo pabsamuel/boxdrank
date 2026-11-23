@@ -108,8 +108,9 @@ const BOARDS_QUERY = `
  * documentation marks user-scoped logs preview-only and explicitly not stable.
  */
 const ACTIVITY_QUERY = `
-  query ($boardId: ID!, $from: ISO8601DateTime!, $to: ISO8601DateTime!, $limit: Int!, $page: Int!) {
-    boards(ids: [$boardId]) {
+  query ($boardIds: [ID!], $boardLimit: Int!, $from: ISO8601DateTime!, $to: ISO8601DateTime!, $limit: Int!, $page: Int!) {
+    boards(ids: $boardIds, limit: $boardLimit) {
+      id
       activity_logs(from: $from, to: $to, limit: $limit, page: $page) {
         id
         event
@@ -146,6 +147,26 @@ const PAGE_SIZE = 100;
 const MAX_ACTIVITY_PAGES = 100;
 const MAX_BOARD_PAGES = 50;
 
+/**
+ * Boards read per activity query.
+ *
+ * One query per board made the board view crawl on a large account: monday's
+ * marketplace reviewer saw it sit on "Read 7626 activity entries…" (23 Nov
+ * 2026), because every quiet board still cost a full round trip and the count
+ * on screen stopped moving while the loop walked them. Measured on a live
+ * account on 23 Nov 2026: 15 boards' activity in a single query took 0.8 s and
+ * 1,670 complexity points, against a 10M-per-minute budget. `boards(ids:)`
+ * returns 25 boards unless `limit` says otherwise, so the limit is always sent.
+ */
+export const ACTIVITY_BATCH_SIZE = 25;
+
+/**
+ * How long one monday API call may take before it is treated as failed. A call
+ * that never answers would otherwise leave the view on its loading line for
+ * good, which is the one thing a watchdog must not do.
+ */
+export const API_TIMEOUT_MS = 45_000;
+
 function explainApiError(rawMessage) {
   const message = String(rawMessage ?? 'Unknown error');
   const lower = message.toLowerCase();
@@ -162,10 +183,21 @@ function explainApiError(rawMessage) {
   return message;
 }
 
+function withTimeout(promise, ms) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`monday did not answer within ${Math.round(ms / 1000)} seconds. Reload the view to try again.`)),
+      ms,
+    );
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 async function query(monday, graphql, variables) {
   let response;
   try {
-    response = await monday.api(graphql, { variables });
+    response = await withTimeout(Promise.resolve().then(() => monday.api(graphql, { variables })), API_TIMEOUT_MS);
   } catch (error) {
     throw new Error(explainApiError(error?.message ?? error));
   }
@@ -200,47 +232,96 @@ export async function fetchBoards(monday, onProgress) {
  * quiet account and a parsing problem. A silently wrong timestamp would corrupt
  * every interval derived from it.
  *
- * `shouldStop`, checked before each board, lets a caller with a deadline (the
- * Sidekick tool, which must answer in seconds) stop early; `boardsRead` says
- * how far it got, so a partial answer can say it is partial.
+ * Boards are read {@link ACTIVITY_BATCH_SIZE} at a time, newest page first.
+ * Page 1 of every board comes before page 2 of any, so a run that has to stop
+ * early has still seen every board's most recent activity, which is what says
+ * whether something has gone quiet. Only boards whose last page was full are
+ * asked for the next one, and a page that brings no entry not already seen ends
+ * that board, so a `page` argument monday ignored could never loop.
  *
- * @returns {Promise<{entries: object[], unparsedTimestamps: number, boardsRead: number}>}
+ * `shouldStop`, checked before each query, lets a caller with a deadline (the
+ * Sidekick tool, which must answer in seconds; the board view) stop early.
+ * `boardsRead` is how many boards had their newest page read and `complete`
+ * whether everything asked for was read, so a partial answer can say so.
+ *
+ * `onProgress(entriesSoFar, boardsRead, boardsTotal)` after each query.
+ *
+ * @returns {Promise<{entries: object[], unparsedTimestamps: number, boardsRead: number, complete: boolean}>}
  */
 export async function fetchActivity(monday, boardIds, fromMs, toMs, onProgress, shouldStop) {
   const entries = [];
   let unparsedTimestamps = 0;
   let boardsRead = 0;
+  let complete = true;
   const from = new Date(fromMs).toISOString();
   const to = new Date(toMs).toISOString();
+  const seen = new Map(); // board id -> ids of the log entries already taken
 
-  for (const boardId of boardIds) {
-    if (shouldStop?.()) break;
-    boardsRead += 1;
-    for (let page = 1; page <= MAX_ACTIVITY_PAGES; page += 1) {
-      const data = await query(monday, ACTIVITY_QUERY, { boardId, from, to, limit: PAGE_SIZE, page });
-      const logs = data?.boards?.[0]?.activity_logs ?? [];
+  let round = [...new Set(boardIds.map(String))];
+  const total = round.length;
 
-      for (const log of logs) {
-        const at = parseActivityTimestamp(log.created_at);
-        if (at === null) {
-          unparsedTimestamps += 1;
-          continue;
-        }
-        entries.push({
-          boardId: String(boardId),
-          actor: log.user_id === null || log.user_id === undefined ? null : String(log.user_id),
-          event: log.event ?? null,
-          entity: log.entity ?? null,
-          at,
-        });
+  for (let page = 1; round.length > 0; page += 1) {
+    if (page > MAX_ACTIVITY_PAGES) break;
+    const next = [];
+
+    for (let start = 0; start < round.length; start += ACTIVITY_BATCH_SIZE) {
+      if (shouldStop?.()) {
+        complete = false;
+        return { entries, unparsedTimestamps, boardsRead, complete };
       }
+      const batch = round.slice(start, start + ACTIVITY_BATCH_SIZE);
+      const data = await query(monday, ACTIVITY_QUERY, {
+        boardIds: batch,
+        boardLimit: batch.length,
+        from,
+        to,
+        limit: PAGE_SIZE,
+        page,
+      });
 
-      onProgress?.(entries.length);
-      if (logs.length < PAGE_SIZE) break;
+      const returned = data?.boards ?? [];
+      returned.forEach((board, index) => {
+        // monday echoes the id; the positional fallback only covers a reply
+        // without one, never a board outside the batch.
+        const boardId = board?.id !== undefined && board?.id !== null ? String(board.id) : batch[index];
+        if (!batch.includes(boardId)) return;
+        const logs = board?.activity_logs ?? [];
+        if (!seen.has(boardId)) seen.set(boardId, new Set());
+        const taken = seen.get(boardId);
+        let fresh = 0;
+
+        for (const log of logs) {
+          const logId = log?.id === undefined || log?.id === null ? null : String(log.id);
+          if (logId !== null) {
+            if (taken.has(logId)) continue;
+            taken.add(logId);
+          }
+          fresh += 1;
+          const at = parseActivityTimestamp(log.created_at);
+          if (at === null) {
+            unparsedTimestamps += 1;
+            continue;
+          }
+          entries.push({
+            boardId,
+            actor: log.user_id === null || log.user_id === undefined ? null : String(log.user_id),
+            event: log.event ?? null,
+            entity: log.entity ?? null,
+            at,
+          });
+        }
+
+        if (logs.length >= PAGE_SIZE && fresh > 0) next.push(boardId);
+      });
+
+      if (page === 1) boardsRead += batch.length;
+      onProgress?.(entries.length, boardsRead, total);
     }
+
+    round = next;
   }
 
-  return { entries, unparsedTimestamps, boardsRead };
+  return { entries, unparsedTimestamps, boardsRead, complete };
 }
 
 /**

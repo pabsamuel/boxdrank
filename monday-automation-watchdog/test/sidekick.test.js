@@ -10,25 +10,35 @@ const NOW = Date.UTC(2026, 8, 17, 11, 0, 0); // a Thursday
  * stopped three days ago; on "Sales Pipeline" automation 9003 still acts
  * every hour. Users are people 1 and 2, so 9002 and 9003 are automations.
  */
-function fakeMonday({ onActivity } = {}) {
+function fakeMonday({ onActivity, quietBoards = 0 } = {}) {
+  // monday's real activity-log timestamp: 17 digits of 100-ns ticks (DERSLER #27).
   const series = (actor, lastAt) =>
     Array.from({ length: 40 }, (_, i) => ({
       id: `${actor}-${i}`,
       event: 'create_update',
       entity: 'pulse',
       user_id: actor,
-      created_at: new Date(lastAt - (39 - i) * HOUR).toISOString(),
+      created_at: String((lastAt - (39 - i) * HOUR) * 10_000),
     }));
+  const boards = [{ id: '1', name: 'Client Projects' }, { id: '2', name: 'Sales Pipeline' }];
+  for (let i = 0; i < quietBoards; i += 1) boards.push({ id: String(100 + i), name: `Quiet ${i}` });
   return {
     async api(graphql, { variables } = {}) {
       if (graphql.includes('activity_logs')) {
-        onActivity?.(variables.boardId);
-        if (variables.page > 1) return { data: { boards: [{ activity_logs: [] }] } };
-        const logs = String(variables.boardId) === '1' ? series(9002, NOW - 72 * HOUR) : series(9003, NOW - HOUR / 2);
-        return { data: { boards: [{ activity_logs: logs }] } };
+        onActivity?.(variables.boardIds);
+        return {
+          data: {
+            boards: variables.boardIds.slice(0, variables.boardLimit).map((id) => {
+              if (variables.page > 1) return { id, activity_logs: [] };
+              if (String(id) === '1') return { id, activity_logs: series(9002, NOW - 72 * HOUR) };
+              if (String(id) === '2') return { id, activity_logs: series(9003, NOW - HOUR / 2) };
+              return { id, activity_logs: [] };
+            }),
+          },
+        };
       }
       if (graphql.includes('users')) return { data: { users: [{ id: '1', name: 'Ada' }, { id: '2', name: 'Bo' }] } };
-      return { data: { boards: variables?.page > 1 ? [] : [{ id: '1', name: 'Client Projects' }, { id: '2', name: 'Sales Pipeline' }] } };
+      return { data: { boards: variables?.page > 1 ? [] : boards } };
     },
   };
 }
@@ -46,7 +56,7 @@ test('across every board, the stopped automation is named in words', async () =>
 
 test('a board name narrows the read to that board, matched as people type it', async () => {
   const read = [];
-  const check = await checkForSidekick({ monday: fakeMonday({ onActivity: (id) => read.push(String(id)) }), boardName: '  sales   PIPELINE ', now: NOW });
+  const check = await checkForSidekick({ monday: fakeMonday({ onActivity: (ids) => read.push(...ids.map(String)) }), boardName: '  sales   PIPELINE ', now: NOW });
   assert.deepEqual([...new Set(read)], ['2']);
   const answer = sidekickAnswer(check, NOW);
   assert.equal(answer.stopped_count, 0);
@@ -65,12 +75,14 @@ test('an unknown board name becomes a question, with similar names', async () =>
 });
 
 test('out of time, it answers with what it read and says so', async () => {
+  // Boards are read 25 to a query, so the cut-off falls after the first batch.
   let clock = 0;
-  const monday = fakeMonday({ onActivity: () => { clock += 5000; } });
+  const monday = fakeMonday({ quietBoards: 28, onActivity: () => { clock += 5000; } });
   const check = await checkForSidekick({ monday, now: NOW, clock: () => clock, budgetMs: 4000 });
   const answer = sidekickAnswer(check, NOW);
-  assert.equal(answer.checked_boards, 1);
-  assert.match(answer.summary, /It had time to read 1 of 2 boards\. Name a board to check it fully/);
+  assert.equal(answer.checked_boards, 25);
+  assert.equal(answer.stopped_count, 1, 'the first batch held the stopped automation');
+  assert.match(answer.summary, /It had time to read 25 of 30 boards\. Name a board to check it fully/);
 });
 
 test('an account with nothing recurring says what it needs', () => {

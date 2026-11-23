@@ -20,6 +20,24 @@ import { classifyActors } from '../core/actors.js';
 /** How far back to read activity. Long enough for the engine to learn a rhythm. */
 const HISTORY_DAYS = 60;
 
+/**
+ * How long the view keeps reading activity before it shows what it has. Every
+ * board's newest page comes first (see fetchActivity), so a cut-off still
+ * covers every board's latest activity on all but the very largest accounts.
+ */
+const VIEW_READ_BUDGET_MS = 60_000;
+
+/** The most any single later step (session token, check history) may take. */
+const STEP_TIMEOUT_MS = 15_000;
+
+function withDeadline(promise, ms) {
+  let timer;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('timed out')), ms);
+  });
+  return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
+}
+
 /** Set once the welcome page has been dismissed in this browser. */
 const WELCOME_KEY = 'watchdog:welcomed:v1';
 
@@ -53,6 +71,7 @@ const state = {
   results: [],
   summary: null,
   unparsedTimestamps: 0,
+  partial: null,
   now: Date.now(),
   mutes: {},
   muteStoreFailed: false,
@@ -317,6 +336,21 @@ function renderWelcome() {
   return box;
 }
 
+/**
+ * Said whenever the view stopped reading before the last board, so a partial
+ * picture is never mistaken for the whole account. The daily email check is
+ * not cut short, which is why it is the one to rely on there.
+ */
+function renderPartialNote() {
+  const { boardsRead, boardsTotal } = state.partial;
+  return el(
+    'p',
+    'warning',
+    `This account is large, so this view read the newest activity of ${boardsRead} of ${boardsTotal} boards ` +
+      `and stopped after ${Math.round(VIEW_READ_BUDGET_MS / 1000)} seconds. The daily email check reads every board.`,
+  );
+}
+
 function render() {
   const app = $('app');
   app.replaceChildren();
@@ -353,7 +387,9 @@ function render() {
 
   if (state.error) {
     const box = el('div', 'error');
-    box.append(el('strong', null, 'Could not read activity'), el('p', null, state.error));
+    const retry = el('button', 'link', 'Try again');
+    retry.addEventListener('click', () => window.location.reload());
+    box.append(el('strong', null, 'Could not read activity'), el('p', null, state.error), retry);
     app.append(box);
     return;
   }
@@ -368,6 +404,7 @@ function render() {
     // and its strip holds the only "Set up email alerts" link. Returning
     // before it hid that link from every fresh install (found 1 Oct 2026).
     app.append(renderRunStatus());
+    if (state.partial) app.append(renderPartialNote());
     app.append(
       el(
         'p',
@@ -414,6 +451,7 @@ function render() {
 
   // Surfaced rather than hidden: a parsing problem and a quiet account must not
   // look the same, and a wrong timestamp would corrupt every interval.
+  if (state.partial) app.append(renderPartialNote());
   if (state.unparsedTimestamps > 0) {
     app.append(
       el(
@@ -485,16 +523,22 @@ async function loadFromMonday() {
   state.status = `Reading ${HISTORY_DAYS} days of activity across ${boards.length} boards…`;
   render();
 
-  const { entries, unparsedTimestamps } = await fetchActivity(
+  // A read with a deadline: on a very large account the view shows what it
+  // has rather than a loading line that never ends (monday's reviewer, 23 Nov
+  // 2026). The daily email check has no such limit and reads everything.
+  const readStarted = Date.now();
+  const { entries, unparsedTimestamps, boardsRead, complete } = await fetchActivity(
     monday,
     boards.map((board) => board.id),
     now - HISTORY_DAYS * 24 * 3600_000,
     now,
-    (n) => {
-      state.status = `Read ${n} activity entries…`;
+    (n, read, total) => {
+      state.status = `Read ${n} activity entries from ${read} of ${total} boards…`;
       render();
     },
+    () => Date.now() - readStarted > VIEW_READ_BUDGET_MS,
   );
+  state.partial = complete ? null : { boardsRead, boardsTotal: boards.length };
 
   state.source = 'monday';
   state.now = now;
@@ -503,14 +547,20 @@ async function loadFromMonday() {
   // session token monday issues to this view, which the server verifies, so a
   // view can only ever read its own account's history. If the server cannot be
   // reached the view falls back to saying checks are not running — the one
-  // failure it must never hide.
+  // failure it must never hide. Bounded in time like every other step, so a
+  // slow answer cannot hold the whole view on its loading line.
   state.runs = [];
   state.installed = null;
+  state.status = 'Checking the daily email check…';
+  render();
   try {
-    const session = await monday.get('sessionToken');
+    const session = await withDeadline(monday.get('sessionToken'), STEP_TIMEOUT_MS);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), STEP_TIMEOUT_MS);
     const response = await fetch(new URL('../api/status', window.location.href), {
       headers: { Authorization: session?.data ?? '' },
-    });
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timer));
     if (response.ok) {
       const body = await response.json();
       state.runs = Array.isArray(body?.runs) ? body.runs : [];
@@ -521,6 +571,8 @@ async function loadFromMonday() {
     // Left as "not running"; see above.
   }
   state.unparsedTimestamps = unparsedTimestamps;
+  state.status = `Sorting ${entries.length} activity entries into automations…`;
+  render();
   // The same narrowing as the daily check and the Sidekick tool: patterns by
   // the account's people are not automations. Without it this view counted a
   // person's routine as a stopped automation — 4 here against 0 from sidekick

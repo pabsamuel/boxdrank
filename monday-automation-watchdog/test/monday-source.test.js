@@ -95,14 +95,104 @@ test('fetchActivity walks every requested board', async () => {
   const seen = [];
   await fetchActivity(
     sdk((_q, vars) => {
-      seen.push(vars.boardId);
-      return { data: { boards: [{ activity_logs: [] }] } };
+      seen.push(...vars.boardIds);
+      assert.equal(vars.boardLimit, vars.boardIds.length, 'monday returns 25 boards unless told otherwise');
+      return { data: { boards: vars.boardIds.map((id) => ({ id, activity_logs: [] })) } };
     }),
     ['b1', 'b2', 'b3'],
     TARGET - 1000,
     TARGET,
   );
   assert.deepEqual(seen, ['b1', 'b2', 'b3']);
+});
+
+// A fake monday holding `logsPerBoard[id]` entries per board, newest first,
+// paged the way the activity_logs field pages. Timestamps are in monday's real
+// 17-digit format (100-ns ticks), as DERSLER #27 requires of fixtures.
+function fakeAccount(logsPerBoard, { ignorePage = false } = {}) {
+  const calls = [];
+  const monday = sdk((_q, vars) => {
+    calls.push({ boardIds: [...vars.boardIds], page: vars.page });
+    const page = ignorePage ? 1 : vars.page;
+    return {
+      data: {
+        boards: vars.boardIds.slice(0, vars.boardLimit).map((id) => {
+          const count = logsPerBoard[id] ?? 0;
+          const first = (page - 1) * vars.limit;
+          const logs = [];
+          for (let i = first; i < Math.min(count, first + vars.limit); i += 1) {
+            logs.push({
+              id: `${id}-${i}`,
+              event: 'update_column_value',
+              entity: 'pulse',
+              user_id: '-4',
+              created_at: String((TARGET - i * 60_000) * 10_000),
+            });
+          }
+          return { id, activity_logs: logs };
+        }),
+      },
+    };
+  });
+  return { monday, calls };
+}
+
+test('a large account is read in batches, not one call per board (reviewer stall, 23 Nov 2026)', async () => {
+  const logsPerBoard = {};
+  const ids = [];
+  for (let i = 0; i < 2000; i += 1) {
+    const id = String(5_000_000_000 + i);
+    ids.push(id);
+    logsPerBoard[id] = i % 3; // most boards nearly quiet, as on a real account
+  }
+  logsPerBoard[ids[7]] = 250; // three pages
+  logsPerBoard[ids[1500]] = 100; // exactly one full page: asks once more, gets nothing
+  const { monday, calls } = fakeAccount(logsPerBoard);
+  const progress = [];
+
+  const result = await fetchActivity(monday, ids, TARGET - 60 * 86_400_000, TARGET, (n, read, total) =>
+    progress.push([n, read, total]),
+  );
+
+  const expected = Object.values(logsPerBoard).reduce((a, b) => a + b, 0);
+  assert.equal(result.entries.length, expected);
+  assert.equal(result.boardsRead, 2000);
+  assert.equal(result.complete, true);
+  assert.equal(result.unparsedTimestamps, 0);
+  // 80 batches of 25 for page 1, then page 2 for two boards, page 3 for one.
+  assert.equal(calls.length, 82);
+  assert.ok(calls.every((call) => call.boardIds.length <= 25));
+  assert.deepEqual(progress.at(-1).slice(1), [2000, 2000]);
+  assert.equal(new Date(result.entries[0].at).toISOString(), new Date(TARGET).toISOString());
+});
+
+test('if monday ignored the page argument, a busy board still ends instead of looping', async () => {
+  const { monday, calls } = fakeAccount({ busy: 400 }, { ignorePage: true });
+  const result = await fetchActivity(monday, ['busy'], 0, TARGET);
+  assert.equal(result.entries.length, 100, 'the repeated page is not counted twice');
+  assert.equal(calls.length, 2);
+});
+
+test('a deadline returns what was read, says so, and keeps every board newest-first', async () => {
+  const ids = Array.from({ length: 100 }, (_, i) => `b${i}`);
+  const { monday, calls } = fakeAccount(Object.fromEntries(ids.map((id) => [id, 2])));
+  let budget = 2; // two queries allowed
+  const result = await fetchActivity(monday, ids, 0, TARGET, undefined, () => budget-- <= 0);
+  assert.equal(result.complete, false);
+  assert.equal(result.boardsRead, 50);
+  assert.equal(result.entries.length, 100);
+  assert.equal(calls.length, 2);
+});
+
+test('a monday call that never answers becomes an error instead of an endless wait', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const { API_TIMEOUT_MS } = await import('../src/app/monday-source.js');
+  const hung = { api: () => new Promise(() => {}) };
+  const pending = assert.rejects(() => fetchBoards(hung), /did not answer/);
+  await Promise.resolve();
+  await Promise.resolve();
+  t.mock.timers.tick(API_TIMEOUT_MS + 1);
+  await pending;
 });
 
 test('GraphQL errors are thrown with an explanation, not read as an empty account', async () => {
