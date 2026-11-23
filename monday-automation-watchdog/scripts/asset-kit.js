@@ -24,6 +24,12 @@ export const FONT = "'Inter', 'Liberation Sans', Arial, sans-serif";
 export const NAVY = '#1c1f3b';
 export const TEAL = '#12b3a0';
 export const RED = '#e2445c';
+/**
+ * The mark's alert dot. Not RED: #e2445c is monday's own red, and monday's
+ * reviewer asked for a non-monday color in the icon (23 Nov 2026). Amber is
+ * outside monday's status palette (#fdab3d is theirs, this is not).
+ */
+export const ALERT_DOT = '#f59e0b';
 
 /** The mark: an activity line that runs, then goes flat, ending in an alert dot. */
 export function markSvg(size, { background = NAVY, radius = 0.22 } = {}) {
@@ -31,7 +37,7 @@ export function markSvg(size, { background = NAVY, radius = 0.22 } = {}) {
     <rect width="100" height="100" rx="${radius * 100}" fill="${background}"/>
     <path d="M14 58 H27 L34 36 L43 72 L51 30 L58 58 H74" fill="none" stroke="${TEAL}" stroke-width="7"
       stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="82" cy="58" r="7.5" fill="${RED}"/>
+    <circle cx="82" cy="58" r="7.5" fill="${ALERT_DOT}"/>
   </svg>`;
 }
 
