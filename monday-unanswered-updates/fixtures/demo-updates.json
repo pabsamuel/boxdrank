@@ -1,0 +1,247 @@
+{
+  "_comment": "Invented demo account: people, boards, items and updates are made up, in the shape monday returns them. Nothing here is a customer's data. The signed-in user is Alex Morgan.",
+  "now": "2026-10-08T09:00:00Z",
+  "userId": "1001",
+  "updates": [
+    {
+      "id": "70001",
+      "created_at": "2026-10-07T09:00:00Z",
+      "creator_id": "1001",
+      "creator": {
+        "id": "1001",
+        "name": "Alex Morgan"
+      },
+      "body": "<p><a class=\"user_mention_editor router\" href=\"https://demo.monday.com/users/1002\" data-mention-type=\"User\" data-mention-id=\"1002\" target=\"_blank\" rel=\"noopener noreferrer\">@Priya Shah</a> can you confirm the launch date with Acme?</p>",
+      "text_body": "@Priya Shah can you confirm the launch date with Acme?",
+      "item": {
+        "id": "9001",
+        "name": "Acme website relaunch",
+        "url": "https://demo.monday.com/boards/501/pulses/9001",
+        "board": {
+          "id": "501",
+          "name": "Client Projects"
+        }
+      },
+      "replies": []
+    },
+    {
+      "id": "70002",
+      "created_at": "2026-10-06T09:00:00Z",
+      "creator_id": null,
+      "creator": null,
+      "body": "<p>Status changed from Proposal to Negotiation.</p>",
+      "text_body": "Status changed from Proposal to Negotiation.",
+      "item": {
+        "id": "9201",
+        "name": "Contoso — 40 seats",
+        "url": "https://demo.monday.com/boards/503/pulses/9201",
+        "board": {
+          "id": "503",
+          "name": "Sales Pipeline"
+        }
+      },
+      "replies": []
+    },
+    {
+      "id": "70003",
+      "created_at": "2026-10-05T09:00:00Z",
+      "creator_id": "1001",
+      "creator": {
+        "id": "1001",
+        "name": "Alex Morgan"
+      },
+      "body": "<p><a class=\"user_mention_editor router\" href=\"https://demo.monday.com/users/1003\" data-mention-type=\"User\" data-mention-id=\"1003\" target=\"_blank\" rel=\"noopener noreferrer\">@Tom Becker</a> did Northwind sign the renewal? I need it before invoicing.</p>",
+      "text_body": "@Tom Becker did Northwind sign the renewal? I need it before invoicing.",
+      "item": {
+        "id": "9002",
+        "name": "Q4 retainer — Northwind",
+        "url": "https://demo.monday.com/boards/501/pulses/9002",
+        "board": {
+          "id": "501",
+          "name": "Client Projects"
+        }
+      },
+      "replies": [
+        {
+          "id": "700030",
+          "creator_id": "1001",
+          "created_at": "2026-10-07T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "70004",
+      "created_at": "2026-10-04T09:00:00Z",
+      "creator_id": "1002",
+      "creator": {
+        "id": "1002",
+        "name": "Priya Shah"
+      },
+      "body": "<p><a class=\"user_mention_editor router\" href=\"https://demo.monday.com/users/1001\" data-mention-type=\"User\" data-mention-id=\"1001\" target=\"_blank\" rel=\"noopener noreferrer\">@Alex Morgan</a> the hero image is ready. Is it approved?</p>",
+      "text_body": "@Alex Morgan the hero image is ready. Is it approved?",
+      "item": {
+        "id": "9102",
+        "name": "Homepage hero image",
+        "url": "https://demo.monday.com/boards/502/pulses/9102",
+        "board": {
+          "id": "502",
+          "name": "Design Requests"
+        }
+      },
+      "replies": []
+    },
+    {
+      "id": "70005",
+      "created_at": "2026-10-03T09:00:00Z",
+      "creator_id": "1001",
+      "creator": {
+        "id": "1001",
+        "name": "Alex Morgan"
+      },
+      "body": "<p>Which logo goes in the guide, the round one or the wide one?</p>",
+      "text_body": "Which logo goes in the guide, the round one or the wide one?",
+      "item": {
+        "id": "9101",
+        "name": "Brand guide v2",
+        "url": "https://demo.monday.com/boards/502/pulses/9101",
+        "board": {
+          "id": "502",
+          "name": "Design Requests"
+        }
+      },
+      "replies": []
+    },
+    {
+      "id": "70006",
+      "created_at": "2026-10-02T09:00:00Z",
+      "creator_id": "1004",
+      "creator": {
+        "id": "1004",
+        "name": "Lena Novak"
+      },
+      "body": "<p>Do we have the final copy from Acme yet?</p>",
+      "text_body": "Do we have the final copy from Acme yet?",
+      "item": {
+        "id": "9001",
+        "name": "Acme website relaunch",
+        "url": "https://demo.monday.com/boards/501/pulses/9001",
+        "board": {
+          "id": "501",
+          "name": "Client Projects"
+        }
+      },
+      "replies": []
+    },
+    {
+      "id": "70007",
+      "created_at": "2026-10-01T09:00:00Z",
+      "creator_id": "1002",
+      "creator": {
+        "id": "1002",
+        "name": "Priya Shah"
+      },
+      "body": "<p><a class=\"user_mention_editor router\" href=\"https://demo.monday.com/users/1003\" data-mention-type=\"User\" data-mention-id=\"1003\" target=\"_blank\" rel=\"noopener noreferrer\">@Tom Becker</a> can you review the new icons?</p>",
+      "text_body": "@Tom Becker can you review the new icons?",
+      "item": {
+        "id": "9103",
+        "name": "Icon set",
+        "url": "https://demo.monday.com/boards/502/pulses/9103",
+        "board": {
+          "id": "502",
+          "name": "Design Requests"
+        }
+      },
+      "replies": [
+        {
+          "id": "700070",
+          "creator_id": "1003",
+          "created_at": "2026-10-02T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "70008",
+      "created_at": "2026-09-29T09:00:00Z",
+      "creator_id": "1004",
+      "creator": {
+        "id": "1004",
+        "name": "Lena Novak"
+      },
+      "body": "<p><a class=\"user_mention_editor router\" href=\"https://demo.monday.com/users/1001\" data-mention-type=\"User\" data-mention-id=\"1001\" target=\"_blank\" rel=\"noopener noreferrer\">@Alex Morgan</a> Contoso asked for a discount above 15%. Can we do it?</p>",
+      "text_body": "@Alex Morgan Contoso asked for a discount above 15%. Can we do it?",
+      "item": {
+        "id": "9201",
+        "name": "Contoso — 40 seats",
+        "url": "https://demo.monday.com/boards/503/pulses/9201",
+        "board": {
+          "id": "503",
+          "name": "Sales Pipeline"
+        }
+      },
+      "replies": []
+    },
+    {
+      "id": "70009",
+      "created_at": "2026-09-26T09:00:00Z",
+      "creator_id": "1003",
+      "creator": {
+        "id": "1003",
+        "name": "Tom Becker"
+      },
+      "body": "<p>Who is taking over Fabrikam while Lena is away?</p>",
+      "text_body": "Who is taking over Fabrikam while Lena is away?",
+      "item": {
+        "id": "9202",
+        "name": "Fabrikam renewal",
+        "url": "https://demo.monday.com/boards/503/pulses/9202",
+        "board": {
+          "id": "503",
+          "name": "Sales Pipeline"
+        }
+      },
+      "replies": []
+    },
+    {
+      "id": "70010",
+      "created_at": "2026-09-23T09:00:00Z",
+      "creator_id": "1001",
+      "creator": {
+        "id": "1001",
+        "name": "Alex Morgan"
+      },
+      "body": "<p><a class=\"user_mention_editor router\" href=\"https://demo.monday.com/users/1004\" data-mention-type=\"User\" data-mention-id=\"1004\" target=\"_blank\" rel=\"noopener noreferrer\">@Lena Novak</a> please send me the Fabrikam usage report.</p>",
+      "text_body": "@Lena Novak please send me the Fabrikam usage report.",
+      "item": {
+        "id": "9202",
+        "name": "Fabrikam renewal",
+        "url": "https://demo.monday.com/boards/503/pulses/9202",
+        "board": {
+          "id": "503",
+          "name": "Sales Pipeline"
+        }
+      },
+      "replies": []
+    },
+    {
+      "id": "70011",
+      "created_at": "2026-09-18T09:00:00Z",
+      "creator_id": "1003",
+      "creator": {
+        "id": "1003",
+        "name": "Tom Becker"
+      },
+      "body": "<p><a class=\"user_mention_editor router\" href=\"https://demo.monday.com/users/1001\" data-mention-type=\"User\" data-mention-id=\"1001\" target=\"_blank\" rel=\"noopener noreferrer\">@Alex Morgan</a> <a class=\"user_mention_editor router\" href=\"https://demo.monday.com/users/1002\" data-mention-type=\"User\" data-mention-id=\"1002\" target=\"_blank\" rel=\"noopener noreferrer\">@Priya Shah</a> the kickoff deck is in the files. Comments welcome.</p>",
+      "text_body": "@Alex Morgan @Priya Shah the kickoff deck is in the files. Comments welcome.",
+      "item": {
+        "id": "9003",
+        "name": "Northwind onboarding",
+        "url": "https://demo.monday.com/boards/501/pulses/9003",
+        "board": {
+          "id": "501",
+          "name": "Client Projects"
+        }
+      },
+      "replies": []
+    }
+  ]
+}

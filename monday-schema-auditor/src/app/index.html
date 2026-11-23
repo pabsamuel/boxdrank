@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Board Schema Auditor</title>
+    <!-- Inline so the page requests nothing but its own script: one less
+         404 in the console and one less host for a security scan. -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230073ea'/%3E%3Cpath d='M4 5h8M4 8h8M4 11h5' stroke='white' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E"
+    />
+    <style>
+      :root {
+        --bg: #ffffff;
+        --surface: #f6f7fb;
+        --border: #dcdfea;
+        --text: #1c1f3b;
+        --muted: #676879;
+        --accent: #0073ea;
+        --high: #d83a52;
+        --medium: #d9911a;
+        --low: #667085;
+        --clean: #16a34a;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --bg: #181b34;
+          --surface: #20223f;
+          --border: #33365a;
+          --text: #edeef5;
+          --muted: #a4a7bd;
+          --accent: #6c9fff;
+          --high: #ff6b7f;
+          --medium: #f0ad4e;
+          --low: #9aa0b5;
+          --clean: #4ade80;
+        }
+      }
+      :root[data-theme='dark'] {
+        --bg: #181b34;
+        --surface: #20223f;
+        --border: #33365a;
+        --text: #edeef5;
+        --muted: #a4a7bd;
+        --accent: #6c9fff;
+        --high: #ff6b7f;
+        --medium: #f0ad4e;
+        --low: #9aa0b5;
+        --clean: #4ade80;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 24px 16px 48px;
+        background: var(--bg);
+        color: var(--text);
+        font: 15px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      }
+      .wrap { max-width: 860px; margin: 0 auto; }
+      h1 { font-size: 22px; margin: 0 0 4px; }
+      .sub { color: var(--muted); margin: 0 0 20px; font-size: 14px; }
+
+      .controls {
+        display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+        padding: 16px; background: var(--surface);
+        border: 1px solid var(--border); border-radius: 10px; margin-bottom: 20px;
+      }
+      label { font-weight: 600; font-size: 14px; }
+      select {
+        flex: 1 1 240px; min-width: 0; padding: 8px 10px;
+        border: 1px solid var(--border); border-radius: 7px;
+        background: var(--bg); color: var(--text); font-size: 14px;
+      }
+      button {
+        padding: 8px 16px; border-radius: 7px; font-size: 14px;
+        font-weight: 600; cursor: pointer; border: 1px solid transparent;
+      }
+      button.primary { background: var(--accent); color: #fff; }
+      button.secondary { background: transparent; color: var(--accent); border-color: var(--accent); }
+      button:hover { filter: brightness(1.08); }
+
+      .selection { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 20px; overflow: hidden; }
+      .selection-head {
+        display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+        padding: 12px 14px; background: var(--surface);
+      }
+      .selection-head h2 { font-size: 14px; margin: 0; flex: 1 1 auto; }
+      .selection-head input[type='search'] {
+        flex: 0 1 200px; min-width: 0; padding: 6px 9px; font-size: 13px;
+        border: 1px solid var(--border); border-radius: 6px;
+        background: var(--bg); color: var(--text);
+      }
+      .board-list { max-height: 260px; overflow-y: auto; }
+      .board-row {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px 14px; border-top: 1px solid var(--border);
+        font-size: 14px; cursor: pointer;
+      }
+      .board-row:hover { background: var(--surface); }
+      .board-row[hidden] { display: none; }
+      .board-row-name { flex: 1 1 auto; word-break: break-word; }
+      .match { font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+      .match.yes { color: var(--clean); }
+      .match.no { color: var(--muted); }
+
+      button:disabled { opacity: 0.45; cursor: not-allowed; filter: none; }
+
+      .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 22px; }
+      .tile { padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+      .tile-value { font-size: 26px; font-weight: 700; line-height: 1.1; }
+      .tile-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+      .tile.high .tile-value { color: var(--high); }
+      .tile.medium .tile-value { color: var(--medium); }
+      .tile.low .tile-value { color: var(--low); }
+      .tile.clean .tile-value { color: var(--clean); }
+
+      .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+      .tab {
+        background: transparent; border: 1px solid var(--border);
+        color: var(--muted); font-weight: 600;
+      }
+      .tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+      .fix { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; padding: 12px 14px; }
+      .fix.high { border-left: 4px solid var(--high); }
+      .fix.medium { border-left: 4px solid var(--medium); }
+      .fix.low { border-left: 4px solid var(--low); }
+      .fix-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+      .fix-head h3 { font-size: 15px; margin: 0; flex: 1 1 auto; word-break: break-word; }
+      .fix-variants, .fix-boards { margin: 6px 0 0; font-size: 13px; color: var(--muted); word-break: break-word; }
+      .fix-variants { font-style: italic; }
+
+      .board { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+      .board-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 14px; background: var(--surface); }
+      .board-head h3 { font-size: 15px; margin: 0; flex: 1 1 auto; word-break: break-word; }
+      .pill { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; color: #fff; white-space: nowrap; }
+      .pill.high { background: var(--high); }
+      .pill.medium { background: var(--medium); }
+      .pill.low { background: var(--low); }
+      .pill.clean { background: var(--clean); }
+
+      .findings { list-style: none; margin: 0; padding: 0; }
+      .finding { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 10px 14px; border-top: 1px solid var(--border); font-size: 14px; }
+      .finding .kind { font-weight: 600; flex: 0 0 132px; }
+      .finding .message { flex: 1 1 260px; color: var(--muted); word-break: break-word; }
+      .finding.high .kind { color: var(--high); }
+      .finding.medium .kind { color: var(--medium); }
+      .finding.low .kind { color: var(--low); }
+
+      .status { color: var(--muted); }
+      .error { padding: 16px; border: 1px solid var(--high); border-radius: 10px; color: var(--high); }
+      /* API failure explanations are multi-line: the original message, then what
+         to do about it. Without pre-line the browser collapses them into one. */
+      .error p { margin: 6px 0 0; color: var(--text); font-size: 14px; word-break: break-word; white-space: pre-line; }
+      #source-note { font-size: 12.5px; color: var(--muted); margin-bottom: 16px; }
+
+      @media (max-width: 520px) {
+        .finding .kind { flex: 1 1 100%; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Board Schema Auditor</h1>
+      <p class="sub">
+        Finds where boards built from the same template have drifted apart — the mismatched column types
+        and renamed fields that make a dashboard show wrong numbers without showing an error.
+      </p>
+      <p id="source-note"></p>
+      <main id="app"><p class="status">Loading…</p></main>
+    </div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
